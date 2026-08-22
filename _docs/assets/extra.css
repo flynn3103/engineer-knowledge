@@ -1,0 +1,645 @@
+/* ================================================================
+   Senior Project — terminal / phosphor theme (all pages)
+   ================================================================ */
+
+/* Dark scheme — terminal / phosphor green on near-black */
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color:        #39ff7a;
+  --md-primary-fg-color--light: #6effa5;
+  --md-primary-fg-color--dark:  #1f8a3e;
+  --md-primary-bg-color:        #0a0a0c;
+  --md-primary-bg-color--light: #0a0a0c;
+
+  --md-accent-fg-color:         #39ff7a;
+  --md-accent-fg-color--transparent: rgba(57, 255, 122, 0.10);
+  --md-accent-bg-color:         #0a0a0c;
+  --md-accent-bg-color--light:  #0a0a0c;
+
+  --md-default-bg-color:        #0a0a0c;
+  --md-default-fg-color:        #d4d4d4;
+  --md-default-fg-color--light: #a0a0a0;
+  --md-default-fg-color--lighter: #909090;
+  --md-default-fg-color--lightest: #2a2d35;
+
+  --md-typeset-a-color:          #39ff7a;
+  --md-code-bg-color:            #15161a;
+  --md-code-fg-color:            #d4d4d4;
+
+  --md-footer-bg-color:          #0a0a0c;
+  --md-footer-bg-color--dark:    #0a0a0c;
+  --md-footer-fg-color:          #909090;
+}
+
+/* Light scheme — darker phosphor on warm off-white, same typography */
+[data-md-color-scheme="default"] {
+  --md-primary-fg-color:        #1f8a3e;
+  --md-primary-fg-color--light: #2da854;
+  --md-primary-fg-color--dark:  #15662c;
+  --md-primary-bg-color:        #fafaf7;
+  --md-primary-bg-color--light: #fafaf7;
+
+  --md-accent-fg-color:         #1f8a3e;
+  --md-accent-fg-color--transparent: rgba(31, 138, 62, 0.10);
+  --md-accent-bg-color:         #fafaf7;
+  --md-accent-bg-color--light:  #fafaf7;
+
+  --md-default-bg-color:        #fafaf7;
+  --md-default-fg-color:        #1a1a1a;
+  --md-default-fg-color--light: #4a4a4a;
+  --md-default-fg-color--lighter: #6a6a6a;
+  --md-default-fg-color--lightest: #d8d8d2;
+
+  --md-typeset-a-color:          #1f8a3e;
+  --md-code-bg-color:            #f0f0eb;
+  --md-code-fg-color:            #1a1a1a;
+
+  --md-footer-bg-color:          #fafaf7;
+  --md-footer-bg-color--dark:    #ebebe5;
+  --md-footer-fg-color:          #4a4a4a;
+}
+
+/* Whole page typography */
+body,
+.md-typeset {
+  font-family: "Intel One Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  font-feature-settings: "ss01";
+}
+
+.md-typeset {
+  font-size: 0.85rem;
+  line-height: 1.65;
+}
+
+/* Headers — mono, with phosphor green left bar */
+.md-typeset h1,
+.md-typeset h2,
+.md-typeset h3,
+.md-typeset h4,
+.md-typeset h5,
+.md-typeset h6 {
+  font-family: "Intel One Mono", monospace;
+  color: var(--md-default-fg-color);
+  font-weight: 500;
+  letter-spacing: -0.005em;
+}
+.md-typeset h1 {
+  font-family: "Intel One Mono", ui-monospace, monospace;
+  font-size: 1.85rem;
+  line-height: 1.15;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-top: 0.2em;
+  color: var(--md-default-fg-color);
+}
+.md-typeset h2 {
+  font-size: 1.25rem;
+  margin-top: 2em;
+  padding-left: 0.6em;
+  border-left: 2px solid var(--md-primary-fg-color);
+}
+.md-typeset h3 { font-size: 1.05rem; color: var(--md-primary-fg-color); }
+/* Header (top bar) — pure black with green accent line */
+.md-header {
+  background: #0a0a0c !important;
+  color: var(--md-default-fg-color) !important;
+  box-shadow: 0 1px 0 #2a2d35;
+  font-family: "Intel One Mono", monospace;
+}
+.md-header__title { color: var(--md-default-fg-color); font-weight: 500; }
+.md-header__button.md-logo {
+  color: var(--md-primary-fg-color) !important;
+  padding: 0.4rem 0.6rem 0.4rem 0.4rem;
+}
+.md-header__button.md-logo svg,
+.md-header__button.md-logo img {
+  width: 1.4rem;
+  height: 1.4rem;
+  fill: currentColor;
+}
+/* Hide the duplicated active page title — keep only site_name in header */
+.md-header__topic--active { display: none !important; }
+.md-search__input {
+  background: #15161a;
+  color: var(--md-default-fg-color);
+  border: 1px solid #2a2d35;
+}
+.md-search__input::placeholder { color: var(--md-default-fg-color--lighter); }
+.md-search-result__meta { background: #0a0a0c; color: var(--md-default-fg-color--light); }
+.md-search-result__article { background: #0a0a0c; color: var(--md-default-fg-color); }
+.md-search-result__article:hover { background: #15161a; }
+
+/* Tabs row */
+.md-tabs {
+  background: #0a0a0c;
+  color: var(--md-default-fg-color);
+  border-bottom: 1px solid #2a2d35;
+  font-family: "Intel One Mono", monospace;
+}
+.md-tabs__link { opacity: 0.6; font-size: 0.78rem; }
+.md-tabs__link--active { opacity: 1; color: var(--md-primary-fg-color); }
+.md-tabs__link:hover { opacity: 1; color: var(--md-primary-fg-color); text-shadow: 0 0 6px rgba(57, 255, 122, 0.3); }
+
+/* Sidebar nav — terminal tree style */
+.md-nav {
+  font-size: 0.78rem;
+  font-family: "Intel One Mono", monospace;
+}
+.md-nav__title {
+  color: var(--md-default-fg-color--light);
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}.md-nav__link {
+  color: var(--md-default-fg-color--light);
+  border-radius: 0;
+}
+.md-nav__link:hover {
+  color: var(--md-primary-fg-color);
+}
+.md-nav__link--active {
+  color: var(--md-primary-fg-color) !important;
+  font-weight: 500;
+}
+.md-nav__link--active { border-left: 2px solid var(--md-primary-fg-color); padding-left: 0.5em; }
+
+/* Content area */
+.md-main { background: #0a0a0c; }
+.md-content { background: #0a0a0c; color: var(--md-default-fg-color); }
+
+/* Links — green underline */
+.md-typeset a:not(.md-button):not(.md-tag) {
+  color: var(--md-primary-fg-color);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(57, 255, 122, 0.25);
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+.md-typeset a:not(.md-button):not(.md-tag):hover {
+  color: var(--md-primary-fg-color--light);
+  border-bottom-color: var(--md-primary-fg-color);
+  text-shadow: 0 0 6px rgba(57, 255, 122, 0.3);
+}
+
+/* Inline code */
+.md-typeset code {
+  background: #1a1c22;
+  color: #b9f3c8;
+  border: 1px solid #2a2d35;
+  border-radius: 8px;
+  padding: 0.1em 0.4em;
+  font-size: 0.85em;
+}
+
+/* Code block */
+.md-typeset pre > code,
+.md-typeset .highlight {
+  background: #15161a !important;
+  border: 1px solid #2a2d35;
+  border-radius: 8px;
+}
+.md-typeset .highlight pre {
+  background: #15161a !important;
+}
+.md-typeset .highlight code {
+  border: none;
+}
+.md-typeset .filename {
+  background: #1a1c22;
+  border-color: #2a2d35;
+  color: var(--md-default-fg-color--light);
+}
+
+/* Blockquote */
+.md-typeset blockquote {
+  color: var(--md-default-fg-color--light);
+  background: #15161a;
+  border-left: 2px solid var(--md-primary-fg-color);
+  border-radius: 0 4px 4px 0;
+  padding: 0.6em 0.95em;
+  margin-bottom: 1.4em;
+  font-style: normal;
+}
+.md-typeset blockquote::before { content: ""; }
+
+/* Tables */
+.md-typeset table:not([class]) {
+  background: #15161a;
+  border: 1px solid #2a2d35;
+  font-size: 0.78rem;
+}
+.md-typeset table:not([class]) th {
+  background: #1a1c22;
+  color: var(--md-primary-fg-color);
+  border-bottom: 1px solid #2a2d35;
+  font-weight: 500;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+}
+.md-typeset table:not([class]) td {
+  border-color: #2a2d35;
+  color: var(--md-default-fg-color);
+}
+
+/* Grid cards — terminal panels */
+.md-typeset .grid {
+  gap: 0.8rem;
+}
+.md-typeset .grid.cards > :is(ul, ol) > li,
+.md-typeset .grid > .card {
+  background: #15161a;
+  border: 1px solid #2a2d35;
+  border-radius: 8px;
+  padding: 1rem;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+.md-typeset .grid.cards > :is(ul, ol) > li:hover {
+  border-color: var(--md-primary-fg-color);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 18px rgba(57, 255, 122, 0.08);
+}
+.md-typeset .grid.cards > :is(ul, ol) > li > p:first-child {
+  color: var(--md-primary-fg-color);
+  font-weight: 500;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Admonition */
+.md-typeset .admonition,
+.md-typeset details {
+  background: #15161a;
+  border: 1px solid #2a2d35;
+  border-left: 2px solid var(--md-primary-fg-color);
+  border-radius: 8px;
+  font-size: 0.78rem;
+}
+.md-typeset .admonition-title,
+.md-typeset summary {
+  background: #1a1c22 !important;
+  color: var(--md-primary-fg-color) !important;
+  font-weight: 500;
+}
+
+/* Footer */
+.md-footer { background: #0a0a0c; }
+.md-footer-meta { background: #0a0a0c; color: var(--md-default-fg-color--lighter); }
+.md-footer-meta__inner { padding-top: 0.6rem; padding-bottom: 0.6rem; }
+
+/* Selection */
+::selection {
+  background: rgba(57, 255, 122, 0.3);
+  color: #ffffff;
+}
+
+/* Scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #2a2a2a #0a0a0c;
+}
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-track { background: #0a0a0c; }
+*::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 0; }
+*::-webkit-scrollbar-thumb:hover { background: var(--md-primary-fg-color); }
+
+/* Page transition (works with Material's instant nav) */
+.md-content {
+  animation: sp-page-fade-in 0.35s ease-out;
+}
+@keyframes sp-page-fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Palette toggle stays visible (dark <-> light) */
+
+/* ================================================================
+   "Report this page" footer block — injected by extra.js
+   ================================================================ */
+.sp-report {
+  margin-top: 3rem;
+  font-family: "Intel One Mono", monospace;
+  font-size: 0.78rem;
+  color: var(--md-default-fg-color--lighter);
+}
+.sp-report-rule {
+  border: none;
+  border-top: 1px dashed var(--md-default-fg-color--lightest);
+  margin: 0 0 1rem;
+}
+.sp-report-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 0.55rem;
+  padding: 0.55rem 0.85rem;
+  background: rgba(57, 255, 122, 0.02);
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 8px;
+}
+.sp-report-prompt {
+  color: var(--md-primary-fg-color);
+  font-weight: 500;
+}
+.sp-report-text {
+  color: var(--md-default-fg-color--light);
+}
+.sp-report-link {
+  color: var(--md-default-fg-color) !important;
+  text-decoration: none !important;
+  border-bottom: 1px solid transparent !important;
+  transition: color 0.18s ease, border-color 0.18s ease;
+}
+.sp-report-link:hover {
+  color: var(--md-primary-fg-color) !important;
+  border-bottom-color: var(--md-primary-fg-color) !important;
+  text-shadow: 0 0 6px rgba(57, 255, 122, 0.3);
+}
+.sp-report-link--soft {
+  color: var(--md-default-fg-color--light) !important;
+}
+.sp-report-arrow {
+  color: var(--md-primary-fg-color);
+  margin-right: 0.15em;
+}
+.sp-report-sep {
+  color: var(--md-default-fg-color--lightest);
+}
+
+/* Mermaid diagrams — let wide graphs scroll horizontally instead of squashing */
+.mermaid {
+  margin: 1.4rem 0;
+  padding: 0.5rem;
+  background: #15161a;
+  border: 1px solid #2a2d35;
+  border-radius: 8px;
+  overflow-x: auto;
+  text-align: center;
+}
+.mermaid svg {
+  /* Mermaid hard-codes width="100%". Force natural intrinsic size so wide
+     graphs scroll horizontally instead of squashing to one line. */
+  max-width: none !important;
+  width: max-content !important;
+  height: auto !important;
+  display: inline-block;
+}
+
+/* Hide mermaid syntax errors (broken diagrams won't show empty crashed bombs) */
+.mermaid svg[aria-roledescription="error"],
+.mermaid svg[aria-roledescription="error"] ~ * {
+  display: none !important;
+}
+.mermaid:has(svg[aria-roledescription="error"]) {
+  display: none !important;
+}
+/* fallback: hide any mermaid block that contains explicit error-icon class */
+.mermaid:has(.error-icon) {
+  display: none !important;
+}
+
+/* Grid card content - links inside cards */
+.md-typeset .grid.cards a:not(.md-button) {
+  font-size: 0.78rem;
+}
+
+/* ================================================================
+   "Coming soon" nav items — non-clickable + soft badge
+   Triggered by frontmatter:  status: coming-soon
+   ================================================================ */
+.md-nav__item:has(> .md-nav__link .md-status--coming-soon) > .md-nav__link,
+.md-nav__link:has(.md-status--coming-soon) {
+  pointer-events: none;
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+.md-nav__link:has(.md-status--coming-soon) .md-ellipsis::after {
+  content: " · soon";
+  color: var(--md-default-fg-color--lighter);
+  font-size: 0.85em;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-left: 0.25em;
+}
+/* Hide the redundant status icon — the "· soon" tag already says it */
+.md-nav__link .md-status--coming-soon { display: none; }
+
+/* ================================================================
+   Sibling page navigation panel (right sidebar, above TOC)
+   Reuses .md-nav md-nav--secondary so it inherits TOC typography
+   automatically. Only spacing tweaks live here.
+   ================================================================ */
+
+.md-nav.sibling-nav {
+  margin-bottom: 0.75rem;
+}
+
+.md-nav.sibling-nav + .md-nav.sibling-nav {
+  margin-top: -0.25rem;
+}
+
+/* ================================================================
+   Light-scheme overrides
+   Remap the hardcoded dark surfaces/borders above so the same
+   terminal layout works on warm off-white with a darker phosphor.
+   ================================================================ */
+[data-md-color-scheme="default"] .md-header,
+[data-md-color-scheme="default"] .md-tabs,
+[data-md-color-scheme="default"] .md-main,
+[data-md-color-scheme="default"] .md-content,
+[data-md-color-scheme="default"] .md-footer,
+[data-md-color-scheme="default"] .md-footer-meta,
+[data-md-color-scheme="default"] .md-search-result__meta,
+[data-md-color-scheme="default"] .md-search-result__article {
+  background: #fafaf7 !important;
+}
+
+[data-md-color-scheme="default"] .md-header {
+  box-shadow: 0 1px 0 #d8d8d2;
+}
+
+[data-md-color-scheme="default"] .md-search__input {
+  background: #f0f0eb;
+  border-color: #d8d8d2;
+}
+
+[data-md-color-scheme="default"] .md-search-result__article:hover {
+  background: #f0f0eb;
+}
+
+[data-md-color-scheme="default"] .md-tabs {
+  border-bottom-color: #d8d8d2;
+}
+
+[data-md-color-scheme="default"] .md-tabs__link--active,
+[data-md-color-scheme="default"] .md-tabs__link:hover {
+  text-shadow: none;
+}
+
+[data-md-color-scheme="default"] .md-typeset a:not(.md-button):not(.md-tag) {
+  border-bottom-color: rgba(31, 138, 62, 0.30);
+}
+
+[data-md-color-scheme="default"] .md-typeset a:not(.md-button):not(.md-tag):hover {
+  text-shadow: none;
+}
+
+[data-md-color-scheme="default"] .md-typeset code {
+  background: #f0f0eb;
+  color: #15662c;
+  border-color: #d8d8d2;
+}
+
+[data-md-color-scheme="default"] .md-typeset pre > code,
+[data-md-color-scheme="default"] .md-typeset .highlight {
+  background: #f4f4ef !important;
+  border-color: #d8d8d2;
+}
+
+[data-md-color-scheme="default"] .md-typeset .highlight pre {
+  background: #f4f4ef !important;
+}
+
+[data-md-color-scheme="default"] .md-typeset .filename {
+  background: #ebebe5;
+  border-color: #d8d8d2;
+}
+
+[data-md-color-scheme="default"] .md-typeset table:not([class]) {
+  background: #fafaf7;
+  border-color: #d8d8d2;
+}
+
+[data-md-color-scheme="default"] .md-typeset table:not([class]) th {
+  background: #ebebe5;
+  border-bottom-color: #d8d8d2;
+}
+
+[data-md-color-scheme="default"] .md-typeset table:not([class]) td {
+  border-color: #d8d8d2;
+}
+
+[data-md-color-scheme="default"] .md-typeset .grid.cards > :is(ul, ol) > li,
+[data-md-color-scheme="default"] .md-typeset .grid > .card {
+  background: #f4f4ef;
+  border-color: #d8d8d2;
+}
+
+[data-md-color-scheme="default"] .md-typeset .grid.cards > :is(ul, ol) > li:hover {
+  box-shadow: 0 4px 18px rgba(31, 138, 62, 0.10);
+}
+
+[data-md-color-scheme="default"] .md-typeset .admonition,
+[data-md-color-scheme="default"] .md-typeset details {
+  background: #f4f4ef;
+  border-color: #d8d8d2;
+}
+
+[data-md-color-scheme="default"] .md-typeset .admonition-title,
+[data-md-color-scheme="default"] .md-typeset summary {
+  background: #ebebe5 !important;
+}
+
+[data-md-color-scheme="default"] ::selection {
+  background: rgba(31, 138, 62, 0.25);
+  color: #1a1a1a;
+}
+
+[data-md-color-scheme="default"] * {
+  scrollbar-color: #c8c8c2 #fafaf7;
+}
+[data-md-color-scheme="default"] *::-webkit-scrollbar-track { background: #fafaf7; }
+[data-md-color-scheme="default"] *::-webkit-scrollbar-thumb { background: #c8c8c2; }
+
+[data-md-color-scheme="default"] .mermaid {
+  background: #f4f4ef;
+  border-color: #d8d8d2;
+}
+[data-md-color-scheme="default"] .mermaid svg {
+  filter: none;
+}
+
+[data-md-color-scheme="default"] .sp-report-row {
+  background: rgba(31, 138, 62, 0.04);
+}
+[data-md-color-scheme="default"] .sp-report-link:hover {
+  text-shadow: none;
+}
+
+/* ================================================================
+   End-of-file sibling-page navigation (partials/sibling-end.html)
+   ---------------------------------------------------------------
+   Mirrors the sidebar Levels/Modes list at the bottom of each topic
+   page. Built from Material custom properties so it tracks all three
+   palettes (slate / default / senior-sepia) without per-scheme rules.
+   ================================================================ */
+.md-content .sibling-end {
+  margin: 3rem 0 0;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--md-default-fg-color--lightest);
+}
+
+.sibling-end__title {
+  margin: 0 0 0.9rem;
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--md-default-fg-color--light);
+}
+
+.sibling-end__group {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.75rem;
+  margin-bottom: 0.7rem;
+}
+
+.sibling-end__label {
+  flex: 0 0 4.5rem;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--md-default-fg-color--light);
+}
+
+.sibling-end__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sibling-end__item {
+  margin: 0;
+  padding: 0;
+}
+
+.sibling-end__link {
+  display: inline-block;
+  padding: 0.25rem 0.7rem;
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 0.4rem;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  text-transform: capitalize;
+  color: var(--md-default-fg-color);
+  transition: border-color 125ms, color 125ms, background-color 125ms;
+}
+
+a.sibling-end__link:hover {
+  border-color: var(--md-accent-fg-color);
+  color: var(--md-accent-fg-color);
+}
+
+.sibling-end__link--active {
+  border-color: var(--md-accent-fg-color);
+  color: var(--md-accent-fg-color);
+  background-color: var(--md-accent-fg-color--transparent);
+  font-weight: 700;
+  cursor: default;
+}

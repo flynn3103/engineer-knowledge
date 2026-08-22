@@ -1,0 +1,722 @@
+/* ================================================================
+   Senior Stack — Reading-Comfort Pack
+   F1 progress bar · F2 read-time · F3 focus · F4 sepia palette
+   F5 mark-as-read · F6 bionic · F7 (no UI) · F8 read-width · F9 auto-hide
+   Plus the consolidated .sp-reader-panel popover (gear button).
+   ================================================================ */
+
+:root {
+  --sp-read-width: none;
+  --sp-focus-width: 72ch;
+}
+
+/* ----------------------------------------------------------------
+   F1 — Reading progress bar
+   ---------------------------------------------------------------- */
+.sp-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  z-index: 10000;
+  pointer-events: none;
+  transform: scaleX(0);
+  transform-origin: left center;
+  background: var(--md-primary-fg-color);
+  will-change: transform;
+}
+
+html[data-eink="1"] .sp-progress {
+  display: none !important;
+}
+
+/* ----------------------------------------------------------------
+   F2 — Estimated read time
+   ---------------------------------------------------------------- */
+.sp-readtime {
+  margin: -0.4rem 0 1.6rem;
+  padding: 0;
+  font-family: "Intel One Mono", ui-monospace, monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--md-default-fg-color--lighter);
+}
+.sp-readtime::before {
+  content: "// ";
+  color: var(--md-primary-fg-color);
+  opacity: 0.7;
+}
+
+html[data-eink="1"] .sp-readtime {
+  color: #555;
+}
+html[data-eink="1"] .sp-readtime::before {
+  color: #000;
+}
+
+/* ----------------------------------------------------------------
+   F3 — Focus mode
+   ---------------------------------------------------------------- */
+html[data-focus="1"] .md-sidebar--primary,
+html[data-focus="1"] .md-sidebar--secondary,
+html[data-focus="1"] .md-tabs {
+  display: none !important;
+}
+
+html[data-focus="1"] .md-content {
+  margin: 0 auto;
+}
+
+html[data-focus="1"] .md-content__inner {
+  max-width: var(--sp-focus-width);
+  margin: 0 auto;
+}
+
+/* ----------------------------------------------------------------
+   F4 — Sepia palette  (cycles after dark→light in Material toggle)
+   Mirrors the light-scheme block in extra.css but with paper tones.
+   ---------------------------------------------------------------- */
+[data-md-color-scheme="senior-sepia"] {
+  --md-primary-fg-color:        #7a4a1f;
+  --md-primary-fg-color--light: #9b6633;
+  --md-primary-fg-color--dark:  #5a3413;
+  --md-primary-bg-color:        #f5ecd9;
+  --md-primary-bg-color--light: #f5ecd9;
+
+  --md-accent-fg-color:         #7a4a1f;
+  --md-accent-fg-color--transparent: rgba(122, 74, 31, 0.10);
+  --md-accent-bg-color:         #f5ecd9;
+  --md-accent-bg-color--light:  #f5ecd9;
+
+  --md-default-bg-color:        #f5ecd9;
+  --md-default-fg-color:        #2a2a24;
+  --md-default-fg-color--light: #4a4a3e;
+  --md-default-fg-color--lighter: #6a6a58;
+  --md-default-fg-color--lightest: #d8cdb2;
+
+  --md-typeset-a-color:          #7a4a1f;
+  --md-code-bg-color:            #ece2c8;
+  --md-code-fg-color:            #2a2a24;
+
+  --md-footer-bg-color:          #f5ecd9;
+  --md-footer-bg-color--dark:    #ece2c8;
+  --md-footer-fg-color:          #4a4a3e;
+}
+
+[data-md-color-scheme="senior-sepia"] .md-header,
+[data-md-color-scheme="senior-sepia"] .md-tabs,
+[data-md-color-scheme="senior-sepia"] .md-main,
+[data-md-color-scheme="senior-sepia"] .md-content,
+[data-md-color-scheme="senior-sepia"] .md-footer,
+[data-md-color-scheme="senior-sepia"] .md-footer-meta,
+[data-md-color-scheme="senior-sepia"] .md-search-result__meta,
+[data-md-color-scheme="senior-sepia"] .md-search-result__article {
+  background: #f5ecd9 !important;
+}
+
+[data-md-color-scheme="senior-sepia"] .md-header {
+  box-shadow: 0 1px 0 #d8cdb2;
+}
+
+[data-md-color-scheme="senior-sepia"] .md-search__input {
+  background: #ece2c8;
+  border-color: #d8cdb2;
+}
+[data-md-color-scheme="senior-sepia"] .md-search-result__article:hover {
+  background: #ece2c8;
+}
+
+[data-md-color-scheme="senior-sepia"] .md-tabs {
+  border-bottom-color: #d8cdb2;
+}
+[data-md-color-scheme="senior-sepia"] .md-tabs__link--active,
+[data-md-color-scheme="senior-sepia"] .md-tabs__link:hover {
+  text-shadow: none;
+}
+
+[data-md-color-scheme="senior-sepia"] .md-typeset a:not(.md-button):not(.md-tag) {
+  border-bottom-color: rgba(122, 74, 31, 0.30);
+}
+[data-md-color-scheme="senior-sepia"] .md-typeset a:not(.md-button):not(.md-tag):hover {
+  text-shadow: none;
+}
+
+[data-md-color-scheme="senior-sepia"] .md-typeset code {
+  background: #ece2c8;
+  color: #5a3413;
+  border-color: #d8cdb2;
+}
+[data-md-color-scheme="senior-sepia"] .md-typeset pre > code,
+[data-md-color-scheme="senior-sepia"] .md-typeset .highlight {
+  background: #ece2c8 !important;
+  border-color: #d8cdb2;
+}
+[data-md-color-scheme="senior-sepia"] .md-typeset .highlight pre {
+  background: #ece2c8 !important;
+}
+[data-md-color-scheme="senior-sepia"] .md-typeset .filename {
+  background: #e2d6b8;
+  border-color: #d8cdb2;
+}
+
+[data-md-color-scheme="senior-sepia"] .md-typeset table:not([class]) {
+  background: #f5ecd9;
+  border-color: #d8cdb2;
+}
+[data-md-color-scheme="senior-sepia"] .md-typeset table:not([class]) th {
+  background: #e2d6b8;
+  border-bottom-color: #d8cdb2;
+}
+[data-md-color-scheme="senior-sepia"] .md-typeset table:not([class]) td {
+  border-color: #d8cdb2;
+}
+
+[data-md-color-scheme="senior-sepia"] .md-typeset .grid.cards > :is(ul, ol) > li,
+[data-md-color-scheme="senior-sepia"] .md-typeset .grid > .card {
+  background: #ece2c8;
+  border-color: #d8cdb2;
+}
+[data-md-color-scheme="senior-sepia"] .md-typeset .grid.cards > :is(ul, ol) > li:hover {
+  box-shadow: 0 4px 18px rgba(122, 74, 31, 0.10);
+}
+
+[data-md-color-scheme="senior-sepia"] .md-typeset .admonition,
+[data-md-color-scheme="senior-sepia"] .md-typeset details {
+  background: #ece2c8;
+  border-color: #d8cdb2;
+}
+[data-md-color-scheme="senior-sepia"] .md-typeset .admonition-title,
+[data-md-color-scheme="senior-sepia"] .md-typeset summary {
+  background: #e2d6b8 !important;
+}
+
+[data-md-color-scheme="senior-sepia"] ::selection {
+  background: rgba(122, 74, 31, 0.25);
+  color: #2a2a24;
+}
+
+[data-md-color-scheme="senior-sepia"] * {
+  scrollbar-color: #c8b894 #f5ecd9;
+}
+[data-md-color-scheme="senior-sepia"] *::-webkit-scrollbar-track { background: #f5ecd9; }
+[data-md-color-scheme="senior-sepia"] *::-webkit-scrollbar-thumb { background: #c8b894; }
+
+[data-md-color-scheme="senior-sepia"] .mermaid {
+  background: #ece2c8;
+  border-color: #d8cdb2;
+}
+[data-md-color-scheme="senior-sepia"] .mermaid svg { filter: none; }
+
+[data-md-color-scheme="senior-sepia"] .sp-report-row {
+  background: rgba(122, 74, 31, 0.04);
+}
+
+/* ----------------------------------------------------------------
+   F5 — Mark-as-read sidebar indicator
+   ---------------------------------------------------------------- */
+.md-nav__link.sp-read {
+  opacity: 0.55;
+}
+.md-nav__link.sp-read .md-ellipsis::after {
+  content: " ✓";
+  color: var(--md-primary-fg-color);
+  font-weight: 600;
+  margin-left: 0.25em;
+}
+
+/* ----------------------------------------------------------------
+   F6 — Bionic reading
+   ---------------------------------------------------------------- */
+.sp-bionic-fix {
+  font-weight: 700;
+}
+
+/* ----------------------------------------------------------------
+   F8 — Reading width
+   ---------------------------------------------------------------- */
+.md-content__inner {
+  max-width: var(--sp-read-width, none);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ----------------------------------------------------------------
+   F9 — Auto-hide header
+   ---------------------------------------------------------------- */
+.md-header {
+  transition: transform 0.18s ease-out;
+  will-change: transform;
+}
+html[data-autohide="1"].sp-nav-hidden .md-header {
+  transform: translateY(-100%);
+}
+html[data-eink="1"] .md-header {
+  transition: none !important;
+}
+
+/* ----------------------------------------------------------------
+   Reader-settings panel (gear button + popover)
+   ---------------------------------------------------------------- */
+.sp-reader-panel__toggle {
+  position: fixed;
+  right: 12px;
+  bottom: 12px;
+  z-index: 9999;
+  appearance: none;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font: 17px/1 ui-monospace, "SF Mono", Menlo, monospace;
+  background: rgba(0, 0, 0, 0.65);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  cursor: pointer;
+  user-select: none;
+  opacity: 0.6;
+}
+.sp-reader-panel__toggle:hover,
+.sp-reader-panel__toggle[aria-expanded="true"] {
+  opacity: 1;
+}
+
+.sp-reader-panel {
+  position: fixed;
+  right: 12px;
+  bottom: 52px;
+  z-index: 9999;
+  width: 240px;
+  padding: 12px 14px 10px;
+  background: rgba(10, 10, 10, 0.96);
+  color: var(--md-default-fg-color, #d4d4d4);
+  border: 1px solid #1a1a1a;
+  border-radius: 4px;
+  font: 12px/1.4 "Intel One Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+.sp-reader-panel[hidden] { display: none; }
+
+.sp-reader-panel h4 {
+  margin: 0 0 8px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--md-default-fg-color--light, #a0a0a0);
+  font-weight: 500;
+}
+
+.sp-reader-panel section {
+  margin-bottom: 10px;
+}
+.sp-reader-panel section > span {
+  display: block;
+  font-size: 11px;
+  opacity: 0.7;
+  margin-bottom: 4px;
+}
+
+.sp-reader-panel__btns {
+  display: inline-flex;
+  gap: 0;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.sp-reader-panel__btns button {
+  appearance: none;
+  background: transparent;
+  color: inherit;
+  border: 0;
+  padding: 4px 9px;
+  cursor: pointer;
+  font: inherit;
+}
+.sp-reader-panel__btns button + button {
+  border-left: 1px solid rgba(255, 255, 255, 0.15);
+}
+.sp-reader-panel__btns button[aria-pressed="true"] {
+  background: var(--md-primary-fg-color);
+  color: #050505;
+}
+
+.sp-reader-panel label {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  padding: 4px 0;
+  cursor: pointer;
+}
+.sp-reader-panel label input[type="checkbox"] {
+  margin: 0;
+  accent-color: var(--md-primary-fg-color);
+}
+
+.sp-reader-panel hr {
+  border: 0;
+  border-top: 1px dashed rgba(255, 255, 255, 0.12);
+  margin: 8px 0;
+}
+
+/* Light scheme */
+[data-md-color-scheme="default"] .sp-reader-panel__toggle {
+  background: rgba(255, 255, 255, 0.95);
+  color: #1a1a1a;
+  border-color: #d8d8d2;
+}
+[data-md-color-scheme="default"] .sp-reader-panel {
+  background: #fafaf7;
+  color: #1a1a1a;
+  border-color: #d8d8d2;
+}
+[data-md-color-scheme="default"] .sp-reader-panel h4 { color: #4a4a4a; }
+[data-md-color-scheme="default"] .sp-reader-panel__btns { border-color: #d8d8d2; }
+[data-md-color-scheme="default"] .sp-reader-panel__btns button + button { border-left-color: #d8d8d2; }
+[data-md-color-scheme="default"] .sp-reader-panel hr { border-top-color: #d8d8d2; }
+
+/* Sepia scheme */
+[data-md-color-scheme="senior-sepia"] .sp-reader-panel__toggle {
+  background: #ece2c8;
+  color: #2a2a24;
+  border-color: #d8cdb2;
+}
+[data-md-color-scheme="senior-sepia"] .sp-reader-panel {
+  background: #f5ecd9;
+  color: #2a2a24;
+  border-color: #d8cdb2;
+}
+[data-md-color-scheme="senior-sepia"] .sp-reader-panel h4 { color: #4a4a3e; }
+[data-md-color-scheme="senior-sepia"] .sp-reader-panel__btns { border-color: #d8cdb2; }
+[data-md-color-scheme="senior-sepia"] .sp-reader-panel__btns button + button { border-left-color: #d8cdb2; }
+[data-md-color-scheme="senior-sepia"] .sp-reader-panel hr { border-top-color: #d8cdb2; }
+
+/* E-ink — flat, no opacity, square corners */
+html[data-eink="1"] .sp-reader-panel__toggle {
+  background: #fff;
+  color: #000;
+  border: 1px solid #000;
+  border-radius: 0;
+  opacity: 1;
+}
+html[data-eink="1"] .sp-reader-panel {
+  background: #fff;
+  color: #000;
+  border: 1px solid #000;
+  border-radius: 0;
+}
+html[data-eink="1"] .sp-reader-panel h4 { color: #000; }
+html[data-eink="1"] .sp-reader-panel__btns { border-color: #000; }
+html[data-eink="1"] .sp-reader-panel__btns button + button { border-left-color: #000; }
+html[data-eink="1"] .sp-reader-panel__btns button[aria-pressed="true"] {
+  background: #000; color: #fff;
+}
+html[data-eink="1"] .sp-reader-panel hr { border-top-color: #000; }
+
+/* ----------------------------------------------------------------
+   Responsive — tablet & phone
+   Touch targets grow, panel expands toward the viewport edges so it
+   doesn't get clipped on narrow screens, and font sizes step up for
+   easier tapping with a finger instead of a cursor.
+   ---------------------------------------------------------------- */
+@media (max-width: 1024px) {
+  .sp-reader-panel__toggle {
+    width: 44px;
+    height: 44px;
+    font-size: 20px;
+    right: 16px;
+    bottom: 16px;
+    opacity: 0.85;
+  }
+
+  .sp-reader-panel {
+    right: 16px;
+    bottom: 68px;
+    width: 280px;
+    padding: 14px 16px 12px;
+    font-size: 13px;
+  }
+
+  .sp-reader-panel h4 {
+    font-size: 12px;
+    margin-bottom: 10px;
+  }
+
+  .sp-reader-panel section {
+    margin-bottom: 12px;
+  }
+  .sp-reader-panel section > span {
+    font-size: 12px;
+    margin-bottom: 6px;
+  }
+
+  .sp-reader-panel__btns button {
+    padding: 8px 12px;
+    min-width: 44px;
+    min-height: 36px;
+    font-size: 13px;
+  }
+
+  .sp-reader-panel label {
+    padding: 8px 0;
+    min-height: 36px;
+    gap: 0.65em;
+  }
+  .sp-reader-panel label input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+  }
+
+  .sp-fontsize__btn--minus { font-size: 13px; }
+  .sp-fontsize__btn--reset { font-size: 14px; }
+  .sp-fontsize__btn--plus  { font-size: 16px; }
+}
+
+@media (max-width: 600px) {
+  .sp-reader-panel {
+    right: 12px;
+    left: 12px;
+    width: auto;
+    max-width: none;
+    bottom: 68px;
+  }
+  .sp-reader-panel__btns {
+    display: flex;
+    width: 100%;
+  }
+  .sp-reader-panel__btns button {
+    flex: 1 1 0;
+  }
+}
+
+/* ================================================================
+   F10 — Per-section read stats
+   Three surfaces: top-right pill · sidebar inline counts · home card
+   ================================================================ */
+
+/* --- Sidebar inline section counts --- */
+.sp-sec-stat {
+  margin-left: auto;
+  padding-left: 0.6em;
+  font: 10px/1 "Intel One Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  color: var(--md-default-fg-color--lighter);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.md-nav__link {
+  display: flex;
+  align-items: center;
+}
+[data-md-color-scheme="senior-sepia"] .sp-sec-stat {
+  color: #6a6a58;
+}
+html[data-eink="1"] .sp-sec-stat {
+  color: #555;
+}
+
+/* --- Home stats card --- */
+.sp-home-stats {
+  margin: 1.4rem 0 1.6rem;
+  padding: 14px 16px 12px;
+  background: var(--sp-cell-bg, rgba(20, 20, 20, 0.4));
+  border: 1px solid var(--sp-line-strong, #2a2a2a);
+  border-radius: 2px;
+  font-family: "Intel One Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  color: var(--sp-fg, #d4d4d4);
+}
+.sp-home-stats[hidden] { display: none; }
+
+.sp-home-stats__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  margin-bottom: 8px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.sp-home-stats__label {
+  color: var(--sp-fg-dim, #909090);
+}
+.sp-home-stats__total {
+  color: var(--sp-fg, #d4d4d4);
+}
+.sp-home-stats__total strong {
+  color: var(--sp-green, #39ff7a);
+  font-weight: 700;
+}
+
+.sp-home-stats__bar {
+  height: 4px;
+  background: var(--sp-line, #1a1a1a);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+.sp-home-stats__bar-fill {
+  height: 100%;
+  background: var(--sp-green, #39ff7a);
+  transition: width 0.3s ease-out;
+}
+
+.sp-home-stats__sections {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 4px 16px;
+  font-size: 11px;
+}
+.sp-home-stats__sections li {
+  display: grid;
+  grid-template-columns: 1fr 48px 90px;
+  align-items: center;
+  gap: 8px;
+  color: var(--sp-fg-dim, #909090);
+}
+.sp-home-stats__sec-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sp-home-stats__sec-bar {
+  display: block;
+  height: 3px;
+  background: var(--sp-line, #1a1a1a);
+  border-radius: 1px;
+  overflow: hidden;
+}
+.sp-home-stats__sec-bar span {
+  display: block;
+  height: 100%;
+  background: var(--sp-green-dim, #1f8a3e);
+}
+.sp-home-stats__sec-count {
+  text-align: right;
+  color: var(--sp-fg-deep, #3a3a3a);
+}
+
+/* E-ink overrides for home stats — flat black/white, no animation */
+html[data-eink="1"] .sp-home-stats {
+  background: #fff;
+  border: 1px solid #000;
+  border-radius: 0;
+  color: #000;
+}
+html[data-eink="1"] .sp-home-stats__bar,
+html[data-eink="1"] .sp-home-stats__sec-bar {
+  background: #ddd;
+  border-radius: 0;
+}
+html[data-eink="1"] .sp-home-stats__bar-fill,
+html[data-eink="1"] .sp-home-stats__sec-bar span {
+  background: #000;
+  transition: none;
+}
+html[data-eink="1"] .sp-home-stats__label,
+html[data-eink="1"] .sp-home-stats__sections li,
+html[data-eink="1"] .sp-home-stats__sec-count {
+  color: #555;
+}
+html[data-eink="1"] .sp-home-stats__total strong {
+  color: #000;
+}
+
+/* ----------------------------------------------------------------
+   Reader-selectable reading font (panel: "Reading font")
+   The chosen typeface is published as --sp-reading-font-stack on
+   <html> by reading.js. Swaps the prose typeface only; code, pre and
+   kbd stay monospace. Default (no attribute) keeps Intel One Mono.
+   ---------------------------------------------------------------- */
+html[data-sp-font] body,
+html[data-sp-font] .md-typeset,
+html[data-sp-font] .md-typeset h1,
+html[data-sp-font] .md-typeset h2,
+html[data-sp-font] .md-typeset h3,
+html[data-sp-font] .md-typeset h4,
+html[data-sp-font] .md-typeset h5,
+html[data-sp-font] .md-typeset h6 {
+  font-family: var(--sp-reading-font-stack);
+  font-feature-settings: normal;
+}
+
+/* ----------------------------------------------------------------
+   Reader-selectable page background (panel: "Background")
+   Tints the page within the dark family so element backgrounds keep
+   their contrast. Guarded with :not([data-eink]) so the high-contrast
+   e-ink mode always wins.
+   ---------------------------------------------------------------- */
+/* The scheme var lives on <body>, so re-declare it there to win. */
+html[data-sp-bg="black"]:not([data-eink]) body { --md-default-bg-color: #000000; }
+html[data-sp-bg="warm"]:not([data-eink])  body { --md-default-bg-color: #14120d; }
+html[data-sp-bg="ocean"]:not([data-eink]) body { --md-default-bg-color: #0b1622; }
+
+html[data-sp-bg]:not([data-eink]) body,
+html[data-sp-bg]:not([data-eink]) .md-main,
+html[data-sp-bg]:not([data-eink]) .md-container {
+  background-color: var(--md-default-bg-color);
+}
+
+/* Background swatch buttons (panel: "Background") */
+.sp-bg-swatches {
+  display: inline-flex;
+  gap: 6px;
+}
+.sp-bg-swatches button.sp-bg-swatch {
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: none;
+}
+.sp-bg-swatches button.sp-bg-swatch[aria-pressed="true"] {
+  outline: 2px solid var(--md-primary-fg-color);
+  outline-offset: 2px;
+  border-color: var(--md-primary-fg-color);
+}
+
+/* Code always stays monospace, whatever the reading font. */
+html[data-sp-font] .md-typeset code,
+html[data-sp-font] .md-typeset pre,
+html[data-sp-font] .md-typeset kbd,
+html[data-sp-font] code,
+html[data-sp-font] pre {
+  font-family: "Intel One Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+/* Reading-font dropdown, styled to match the panel's button groups. */
+.sp-reader-panel__select {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  background: transparent;
+  color: inherit;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+  padding: 5px 26px 5px 9px;
+  cursor: pointer;
+  font: inherit;
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%),
+                    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: right 12px center, right 7px center;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+}
+.sp-reader-panel__select:focus-visible {
+  outline: 2px solid var(--md-primary-fg-color);
+  outline-offset: 1px;
+}
+.sp-reader-panel__select option {
+  background: var(--md-default-bg-color, #15161a);
+  color: var(--md-default-fg-color, #d4d4d4);
+}
+[data-md-color-scheme="default"] .sp-reader-panel__select { border-color: #d8d8d2; }
+[data-md-color-scheme="senior-sepia"] .sp-reader-panel__select { border-color: #d8cdb2; }

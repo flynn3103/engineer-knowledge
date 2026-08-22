@@ -1,0 +1,162 @@
+site_name: Engineer Knowledge
+site_description: A personal engineering knowledge base — Software Engineering, Data Engineering, AI Engineering, Soft Skill, and Project.
+site_author: flynn3103
+site_url: https://flynn3103.github.io/engineer-knowledge/
+
+copyright: >
+  © 2026 engineer-knowledge
+  &nbsp;·&nbsp; <a href="#__consent">Change cookie settings</a>
+
+repo_url: https://github.com/flynn3103/engineer-knowledge
+repo_name: flynn3103/engineer-knowledge
+edit_uri: edit/main/
+
+docs_dir: _docs
+site_dir: _site
+
+exclude_docs: |
+  TEMPLATE.md
+  **/TEMPLATE.md
+  .pages
+  **/.pages
+
+theme:
+  name: material
+  custom_dir: mkdocs/theme
+  language: en
+  features:
+    - navigation.sections
+    - navigation.path
+    - navigation.top
+    - navigation.indexes
+    - navigation.footer
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+    - toc.follow
+  font: false
+  palette:
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-night
+        name: Switch to light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to sepia mode
+    - scheme: senior-sepia
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/book-open-page-variant
+        name: Switch to dark mode
+  logo: assets/images/logo.svg
+  icon:
+    repo: fontawesome/brands/github
+    edit: material/pencil
+    view: material/eye
+    status:
+      coming-soon: material/clock-outline
+      new: material/alert-decagram
+      deprecated: material/trash-can
+
+hooks:
+  - mkdocs/hooks/sibling_nav.py
+  - mkdocs/hooks/read_manifest.py
+  - mkdocs/hooks/seo_meta.py
+
+plugins:
+  - awesome-pages:
+      strict: false
+      order: asc
+      sort_type: natural
+      order_by: filename
+  - minify:
+      minify_html: true
+      minify_js: true
+      minify_css: true
+      htmlmin_opts:
+        remove_comments: true
+      js_files:
+        - assets/extra.js
+        - assets/eink.js
+        - assets/fontsize.js
+        - assets/reading.js
+        - assets/pagefind-init.js
+      css_files:
+        - assets/extra.css
+        - assets/eink.css
+        - assets/fontsize.css
+        - assets/reading.css
+        - assets/pagefind-init.css
+        - assets/fonts/intel-one-mono.css
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - footnotes
+  - def_list
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_div_format
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - toc:
+      permalink: true
+      toc_depth: 3
+
+extra:
+  status:
+    coming-soon: Coming soon — not published yet
+    new: Recently added
+    deprecated: Deprecated
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/flynn3103
+  consent:
+    title: Cookie consent
+    description: >-
+      We use cookies to recognize your repeated visits and preferences,
+      as well as to measure the effectiveness of our documentation.
+      With your consent, you're helping us make our content better.
+    actions:
+      - accept
+      - reject
+      - manage
+
+extra_css:
+  - assets/fonts/intel-one-mono.css
+  - assets/extra.css
+  - assets/eink.css
+  - assets/fontsize.css
+  - assets/reading.css
+  - assets/pagefind-init.css
+
+extra_javascript:
+  - assets/extra.js
+  - assets/eink.js
+  - assets/fontsize.js
+  - assets/reading.js
+  - assets/pagefind-init.js

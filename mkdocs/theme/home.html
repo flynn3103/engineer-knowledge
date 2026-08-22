@@ -1,0 +1,306 @@
+{% extends "main.html" %}
+
+{% block extrahead %}
+  {{ super() }}
+  <style>
+    /* ================================================================
+       Senior Stack — roadmap.sh-style home (dark-first, green accent,
+       monospace). Tokens vary per palette (slate / default / sepia).
+       ================================================================ */
+    .sp-home {
+      --sp-bg:        #0a0a0c;
+      --sp-bg-soft:   #101013;
+      --sp-surface:   #15161a;
+      --sp-surface-soft: #0f1012;
+      --sp-fg:        #e6e6e6;
+      --sp-fg-dim:    #8a8f98;
+      --sp-fg-deep:   #565b63;
+      --sp-line:      #2a2d35;
+      --sp-line-soft: #1d1f25;
+      --sp-green:     #39ff7a;
+
+      position: relative;
+      min-height: calc(100vh - 3rem);
+      padding: 0 0 3rem;
+      background: var(--sp-bg);
+      color: var(--sp-fg);
+      font-family: "Intel One Mono", ui-monospace, "SF Mono", Menlo, monospace;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    [data-md-color-scheme="default"] .sp-home {
+      --sp-bg:        #fafaf7;
+      --sp-bg-soft:   #f0f0eb;
+      --sp-surface:   #ffffff;
+      --sp-surface-soft: #f4f4ef;
+      --sp-fg:        #1a1a1a;
+      --sp-fg-dim:    #5a5f55;
+      --sp-fg-deep:   #8a8f82;
+      --sp-line:      #d8d8d2;
+      --sp-line-soft: #e4e4dc;
+      --sp-green:     #1f8a3e;
+    }
+    [data-md-color-scheme="senior-sepia"] .sp-home {
+      --sp-bg:        #f5ecd9;
+      --sp-bg-soft:   #ece2c8;
+      --sp-surface:   #fbf5e6;
+      --sp-surface-soft: #ece2c8;
+      --sp-fg:        #2a2a24;
+      --sp-fg-dim:    #5a5848;
+      --sp-fg-deep:   #8a8868;
+      --sp-line:      #d8cdb2;
+      --sp-line-soft: #e2d6b8;
+      --sp-green:     #7a4a1f;
+    }
+
+    /* hero */
+    .sp-hero {
+      text-align: center;
+      padding: clamp(2.5rem, 6vw, 4rem) 1.25rem clamp(2rem, 5vw, 3rem);
+      background: radial-gradient(120% 100% at 50% 0, var(--sp-bg-soft) 0, var(--sp-bg) 65%);
+    }
+    .sp-pill {
+      display: inline-block;
+      font-size: 0.7rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--sp-green);
+      border: 1px solid var(--sp-line);
+      border-radius: 999px;
+      padding: 5px 13px;
+      margin-bottom: 1.25rem;
+    }
+    .sp-hero h1 {
+      font-family: "Intel One Mono", ui-monospace, monospace;
+      font-size: clamp(2rem, 5vw, 2.7rem);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.05;
+      margin: 0 0 1rem;
+      color: var(--sp-fg);
+    }
+    .sp-hero h1::before { content: none; }   /* override site h1 "// " */
+    .sp-hero p {
+      max-width: 580px;
+      margin: 0 auto 1.6rem;
+      color: var(--sp-fg-dim);
+      font-size: 0.95rem;
+    }
+    .sp-cta { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
+    .sp-btn-primary {
+      background: var(--sp-green); color: var(--sp-bg);
+      font-weight: 700; font-size: 0.88rem;
+      padding: 12px 22px; border-radius: 8px; text-decoration: none;
+      transition: box-shadow 0.2s ease;
+    }
+    .sp-btn-primary:hover { box-shadow: 0 0 24px color-mix(in srgb, var(--sp-green) 35%, transparent); }
+    .sp-btn-ghost {
+      background: var(--sp-surface); color: var(--sp-fg);
+      font-weight: 600; font-size: 0.88rem;
+      padding: 12px 22px; border-radius: 8px;
+      border: 1px solid var(--sp-line); text-decoration: none;
+      transition: border-color 0.2s ease;
+    }
+    .sp-btn-ghost:hover { border-color: var(--sp-green); }
+    .sp-stats {
+      display: flex; gap: 2rem; justify-content: center; flex-wrap: wrap;
+      margin-top: 2rem; color: var(--sp-fg-deep); font-size: 0.82rem;
+    }
+    .sp-stats b { color: var(--sp-green); font-size: 1.2rem; font-variant-numeric: tabular-nums; margin-right: 0.3em; }
+
+    /* accordion column */
+    .sp-wrap {
+      max-width: 920px; margin: 0 auto;
+      padding: 2rem 1.25rem 0;
+      display: flex; flex-direction: column; gap: 0.75rem;
+    }
+    .sp-acc {
+      border: 1px solid var(--sp-line);
+      border-radius: 12px;
+      background: var(--sp-surface);
+      overflow: hidden;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .sp-acc.is-open {
+      border-color: color-mix(in srgb, var(--sp-green) 40%, var(--sp-line));
+      box-shadow: 0 0 24px color-mix(in srgb, var(--sp-green) 8%, transparent);
+    }
+    .sp-acc-head {
+      display: flex; align-items: center; gap: 0.85rem;
+      padding: 1rem 1.25rem; cursor: pointer; user-select: none;
+      background: none; border: 0; width: 100%; text-align: left;
+      font: inherit; color: inherit;
+    }
+    .sp-acc-head:hover .sp-acc-title { color: var(--sp-green); }
+    .sp-acc-chev { color: var(--sp-fg-deep); font-size: 0.8rem; transition: transform 0.25s ease, color 0.2s ease; }
+    .sp-acc.is-open .sp-acc-chev { transform: rotate(90deg); color: var(--sp-green); }
+    .sp-acc-title { font-weight: 700; font-size: 0.95rem; color: var(--sp-fg); transition: color 0.2s ease; letter-spacing: -0.01em; }
+    .sp-acc-meta { margin-left: auto; font-size: 0.68rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--sp-fg-deep); }
+    .sp-acc-body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.28s ease; }
+    .sp-acc.is-open .sp-acc-body { grid-template-rows: 1fr; }
+    .sp-acc-inner { overflow: hidden; }
+
+    .sp-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.65rem; padding: 0.25rem 1rem 1.1rem; }
+    @media (max-width: 760px) { .sp-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 480px) { .sp-grid { grid-template-columns: 1fr; } }
+
+    .sp-card {
+      background: var(--sp-surface-soft);
+      border: 1px solid var(--sp-line);
+      border-radius: 9px;
+      padding: 0.85rem 0.95rem;
+      font-weight: 600; font-size: 0.85rem; color: var(--sp-fg);
+      text-decoration: none;
+      display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
+      transition: border-color 0.18s ease, transform 0.18s ease;
+    }
+    .sp-card:hover { border-color: var(--sp-green); transform: translateY(-2px); }
+    .sp-card .sp-arrow { color: var(--sp-fg-deep); transition: transform 0.18s ease, color 0.18s ease; }
+    .sp-card:hover .sp-arrow { color: var(--sp-green); transform: translateX(3px); }
+    .sp-badge { background: var(--sp-green); color: var(--sp-bg); font-size: 0.62rem; font-weight: 700; padding: 2px 7px; border-radius: 5px; letter-spacing: 0.04em; }
+    .sp-card--soon {
+      background: transparent; border-style: dashed; border-color: var(--sp-line-soft);
+      color: var(--sp-fg-deep); cursor: not-allowed;
+    }
+    .sp-card--soon:hover { border-color: var(--sp-line-soft); transform: none; }
+    .sp-card--soon .sp-tag { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.06em; }
+
+    .sp-footer {
+      max-width: 920px; margin: 2rem auto 0;
+      padding: 1.25rem 1.25rem 0;
+      border-top: 1px dashed var(--sp-line);
+      display: flex; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;
+      color: var(--sp-fg-deep); font-size: 0.72rem;
+    }
+    .sp-footer a { color: var(--sp-fg-dim); text-decoration: none; }
+    .sp-footer a:hover { color: var(--sp-green); }
+
+    /* tame Material chrome on home only */
+    .md-main { background: var(--sp-bg); }
+    .md-main__inner { margin: 0; padding: 0; }
+    .md-content { max-width: 100% !important; }
+    .md-content__inner { margin: 0 !important; padding: 0 !important; }
+    .md-content__inner::before { display: none; }
+    .md-sidebar { display: none; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .sp-acc-body, .sp-acc-chev, .sp-card { transition: none !important; }
+    }
+  </style>
+{% endblock %}
+
+{% block tabs %}
+  {{ super() }}
+
+  <section class="sp-home" data-home>
+
+    <div class="sp-hero">
+      <span class="sp-pill">A personal engineering knowledge base</span>
+      <h1>Engineer Knowledge</h1>
+      <p>Software Engineering, Data Engineering, AI Engineering, Soft Skill, and Project — consolidated in one structured place.</p>
+      <div class="sp-cta">
+        <a class="sp-btn-primary" href="Software-Engineering/README.md">Software Engineering &rarr;</a>
+        <a class="sp-btn-ghost" href="Soft-Skill/README.md">Soft Skill &rarr;</a>
+        <a class="sp-btn-ghost" href="Data-Engineering/README.md">Data Engineering &rarr;</a>
+        <a class="sp-btn-ghost" href="AI-Engineering/README.md">AI Engineering &rarr;</a>
+      </div>
+      <div class="sp-stats" data-facts>
+        <span><b data-count="5">0</b> domains</span>
+        <span><b data-count="6">0</b> software-engineering topics</span>
+        <span><b data-count="11">0</b> engineering-thinking sections</span>
+      </div>
+    </div>
+
+    <div class="sp-wrap">
+
+      <div class="sp-acc is-open">
+        <button class="sp-acc-head" type="button" aria-expanded="true"
+          onclick="this.parentElement.classList.toggle('is-open');this.setAttribute('aria-expanded',this.parentElement.classList.contains('is-open'))">
+          <span class="sp-acc-chev" aria-hidden="true">&#9654;</span>
+          <span class="sp-acc-title">Software Engineering</span>
+          <span class="sp-acc-meta">6 topics</span>
+        </button>
+        <div class="sp-acc-body"><div class="sp-acc-inner"><div class="sp-grid">
+          <a class="sp-card" href="Software-Engineering/programming-languages/golang/">Go <span class="sp-badge">NEW</span></a>
+          <a class="sp-card" href="Software-Engineering/object-oriented-programming/">OOP <span class="sp-arrow">&rarr;</span></a>
+          <a class="sp-card" href="Software-Engineering/anti-patterns/">Anti-Patterns <span class="sp-arrow">&rarr;</span></a>
+          <a class="sp-card" href="Software-Engineering/refactoring/">Refactoring <span class="sp-arrow">&rarr;</span></a>
+          <a class="sp-card" href="Software-Engineering/design-patterns/">Design Patterns <span class="sp-arrow">&rarr;</span></a>
+          <a class="sp-card" href="Software-Engineering/quality-engineering/">Quality Engineering <span class="sp-arrow">&rarr;</span></a>
+        </div></div></div>
+      </div>
+
+      <div class="sp-acc is-open">
+        <button class="sp-acc-head" type="button" aria-expanded="true"
+          onclick="this.parentElement.classList.toggle('is-open');this.setAttribute('aria-expanded',this.parentElement.classList.contains('is-open'))">
+          <span class="sp-acc-chev" aria-hidden="true">&#9654;</span>
+          <span class="sp-acc-title">Soft Skill &mdash; Engineering Thinking</span>
+          <span class="sp-acc-meta">11 sections</span>
+        </button>
+        <div class="sp-acc-body"><div class="sp-acc-inner"><div class="sp-grid">
+          <a class="sp-card" href="Soft-Skill/engineering-thinking/01-computational-thinking/">Computational Thinking <span class="sp-arrow">&rarr;</span></a>
+          <a class="sp-card" href="Soft-Skill/engineering-thinking/02-problem-solving/">Problem-Solving <span class="sp-arrow">&rarr;</span></a>
+          <a class="sp-card" href="Soft-Skill/engineering-thinking/03-systems-thinking/">Systems Thinking <span class="sp-arrow">&rarr;</span></a>
+          <a class="sp-card" href="Soft-Skill/engineering-thinking/04-critical-thinking/">Critical Thinking <span class="sp-arrow">&rarr;</span></a>
+          <a class="sp-card" href="Soft-Skill/engineering-thinking/05-first-principles-thinking/">First-Principles <span class="sp-arrow">&rarr;</span></a>
+          <a class="sp-card" href="Soft-Skill/engineering-thinking/06-probabilistic-thinking/">Probabilistic Thinking <span class="sp-arrow">&rarr;</span></a>
+          <a class="sp-card" href="Soft-Skill/engineering-thinking/07-creative-and-lateral-thinking/">Creative &amp; Lateral <span class="sp-arrow">&rarr;</span></a>
+          <a class="sp-card" href="Soft-Skill/engineering-thinking/08-object-thinking/">Object Thinking <span class="sp-arrow">&rarr;</span></a>
+          <a class="sp-card" href="Soft-Skill/engineering-thinking/09-scientific-and-hypothesis-driven/">Scientific &amp; Hypothesis <span class="sp-arrow">&rarr;</span></a>
+          <a class="sp-card" href="Soft-Skill/engineering-thinking/10-metacognition-and-learning/">Metacognition &amp; Learning <span class="sp-arrow">&rarr;</span></a>
+          <a class="sp-card" href="Soft-Skill/engineering-thinking/11-diagnostics-and-observability-thinking/">Diagnostics &amp; Observability <span class="sp-badge">NEW</span></a>
+        </div></div></div>
+      </div>
+
+      <div class="sp-acc">
+        <button class="sp-acc-head" type="button" aria-expanded="false"
+          onclick="this.parentElement.classList.toggle('is-open');this.setAttribute('aria-expanded',this.parentElement.classList.contains('is-open'))">
+          <span class="sp-acc-chev" aria-hidden="true">&#9654;</span>
+          <span class="sp-acc-title">Coming soon</span>
+          <span class="sp-acc-meta">3 domains</span>
+        </button>
+        <div class="sp-acc-body"><div class="sp-acc-inner"><div class="sp-grid">
+          <a class="sp-card sp-card--soon" href="Data-Engineering/README.md">Data Engineering <span class="sp-tag">soon</span></a>
+          <a class="sp-card sp-card--soon" href="AI-Engineering/README.md">AI Engineering <span class="sp-tag">soon</span></a>
+          <a class="sp-card sp-card--soon" href="Project/README.md">Project <span class="sp-tag">soon</span></a>
+        </div></div></div>
+      </div>
+
+      {# Per-section read stats card, populated by reading.js #}
+      <aside class="sp-home-stats" data-sp-home-stats hidden></aside>
+
+    </div>
+
+    <footer class="sp-footer">
+      <span>// docs generated with <a href="https://claude.com/claude-code" target="_blank" rel="noopener">claude</a></span>
+      <span>// curated by <a href="https://github.com/flynn3103" target="_blank" rel="noopener">flynn3103</a></span>
+    </footer>
+
+  </section>
+
+  <script>
+    /* stat counter — count up when scrolled into view */
+    (() => {
+      const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const facts = document.querySelectorAll('[data-count]');
+      if (!facts.length) return;
+      if (reduced) { facts.forEach((el) => { el.textContent = el.dataset.count; }); return; }
+      const animate = (el) => {
+        const target = +el.dataset.count, dur = 1100, start = performance.now();
+        const tick = (now) => {
+          const p = Math.min(1, (now - start) / dur);
+          el.textContent = Math.round(target * (1 - Math.pow(1 - p, 3)));
+          if (p < 1) requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+      };
+      const obs = new IntersectionObserver((entries) => {
+        entries.forEach((e) => { if (e.isIntersecting) { animate(e.target); obs.unobserve(e.target); } });
+      }, { threshold: 0.5 });
+      facts.forEach((el) => obs.observe(el));
+    })();
+  </script>
+{% endblock %}
+
+{% block content %}{% endblock %}
+{% block footer %}{% endblock %}

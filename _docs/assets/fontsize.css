@@ -1,0 +1,18 @@
+/* ================================================================
+   Senior Stack — reader font-size control (A− / A / A+)
+   Rendered INSIDE the reader-settings panel (see reading.js).
+   Inherits the panel's segmented-button look from .sp-reader-panel__btns.
+   ================================================================ */
+
+.sp-reader-panel .sp-fontsize {
+  display: inline-flex;
+}
+
+.sp-reader-panel .sp-fontsize__btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.sp-reader-panel .sp-fontsize__btn--minus { font-size: 11px; }
+.sp-reader-panel .sp-fontsize__btn--reset { font-size: 12px; }
+.sp-reader-panel .sp-fontsize__btn--plus  { font-size: 14px; }

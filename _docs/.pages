@@ -1,0 +1,12 @@
+nav:
+  - Home: index.md
+  - Software Engineering:
+    - ... | regex=^Software-Engineering/.+
+  - Soft Skill:
+    - ... | regex=^Soft-Skill/.+
+  - Data Engineering:
+    - ... | regex=^Data-Engineering/.+
+  - AI Engineering:
+    - ... | regex=^AI-Engineering/.+
+  - Project:
+    - ... | regex=^Project/.+
