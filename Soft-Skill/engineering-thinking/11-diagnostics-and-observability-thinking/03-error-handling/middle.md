@@ -1093,7 +1093,7 @@ Try these without looking. Run them where applicable.
 - [Error Handling — Tasks](tasks.md) — hands-on exercises mirroring this page.
 - [Debugging — Junior](../01-debugging/junior.md) — using errors as the starting point for diagnosis.
 - [Logging — Junior](../02-logging/junior.md) — where wrapped errors are ultimately consumed.
-- [Go Error Handling Basics](../../languages/golang/05-error-handling/01-error-handling-basics/junior.md) — language-specific deep dive.
+- [Go Error Handling Basics](../../../../Software-Engineering/programming-languages/golang/04-error-handling/junior.md) — language-specific deep dive.
 
 ---
 

@@ -6,7 +6,7 @@ This roadmap is about **how a program tells the truth to its caller when somethi
 
 > Looking for the *operator-facing side* (structured logs, log levels, correlation IDs, sampling)? See the sibling roadmap: [Logging](../02-logging/README.md). Error handling answers "how does my code report failure?" — logging answers "how does my system record it?"
 >
-> Looking for *language-specific* idioms? See [Golang → Error Handling](../../../../Software-Engineering/programming-languages/golang/05-error-handling/01-error-handling-basics/junior.md).
+> Looking for *language-specific* idioms? See [Golang → Error Handling](../../../../Software-Engineering/programming-languages/golang/04-error-handling/junior.md).
 >
 > Looking for *retry / circuit breaker / backoff*? Those are resilience patterns — see the `retry-pattern`, `circuit-breaker-pattern`, and `error-handling-patterns` skills.
 

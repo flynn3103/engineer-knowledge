@@ -10,3 +10,4 @@ nav:
     - ... | regex=^AI-Engineering/.+
   - Project:
     - ... | regex=^Project/.+
+  - About: about.md

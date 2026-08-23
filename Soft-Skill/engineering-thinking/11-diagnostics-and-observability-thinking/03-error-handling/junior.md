@@ -654,7 +654,7 @@ Each of these forces you to confront the difference between "a function failed" 
 - [Logging](../02-logging/README.md) — the operator-facing companion: how *systems* record errors.
 - [Debugging](../01-debugging/README.md) — how to track an error backwards to its source.
 - [Clean Code → Error Handling](../../code-craft/clean-code/06-error-handling/README.md) — the *code style* chapter.
-- [Golang → Error Handling](../../languages/golang/05-error-handling/01-error-handling-basics/junior.md) — Go-specific idioms.
+- [Golang → Error Handling](../../../../Software-Engineering/programming-languages/golang/04-error-handling/junior.md) — Go-specific idioms.
 
 ---
 

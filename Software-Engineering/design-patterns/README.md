@@ -143,7 +143,7 @@ DI is a *technique* for applying the Dependency Inversion Principle; its concret
 form is language-specific, so it lives with the principle and the languages:
 
 - **Principle:** [SOLID · Dependency Inversion (DIP)](../design-principles/04-solid/05-dip-dependency-inversion/)
-- **Go idiom:** [Go · Dependency Injection](../programming-languages/golang/06-code-organization/06-dependency-injection/) *(full content)*
+- **Go idiom:** [Go · Interfaces (dependency injection)](../programming-languages/golang/03-interfaces/middle.md)
 
 ---
 

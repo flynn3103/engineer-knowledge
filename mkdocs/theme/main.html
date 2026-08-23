@@ -22,9 +22,27 @@
   <meta name="twitter:description" content="{% if page and page.meta and page.meta.description %}{{ page.meta.description }}{% else %}{{ config.site_description }}{% endif %}">
   <meta name="twitter:image" content="{{ config.site_url }}assets/og-cover.png">
 
-  {# Read-progress manifest URL — fetched once by reading.js, browser-cached.
-     Built by hooks/read_manifest.py and emitted as a static JSON file. #}
-  <link id="sp-read-manifest" rel="prefetch" href="{{ 'sp-read-manifest.json' | url }}">
+{% endblock %}
+
+{# Custom top tab bar: Home + About only (independent of navigation.tabs,
+   which would otherwise promote every top-level section into a tab). #}
+{% block tabs %}
+  {{ super() }}
+  {% set sp_about = nav.items | selectattr("title", "equalto", "About") | first %}
+  <nav class="md-tabs" aria-label="{{ lang.t('tabs') }}" data-md-component="tabs">
+    <div class="md-grid">
+      <ul class="md-tabs__list">
+        <li class="md-tabs__item{% if page.is_homepage %} md-tabs__item--active{% endif %}">
+          <a href="{{ config.extra.homepage | d(nav.homepage.url, true) | url }}" class="md-tabs__link">Home</a>
+        </li>
+        {% if sp_about %}
+          <li class="md-tabs__item{% if sp_about.active %} md-tabs__item--active{% endif %}">
+            <a href="{{ sp_about.url | url }}" class="md-tabs__link">{{ sp_about.title }}</a>
+          </li>
+        {% endif %}
+      </ul>
+    </div>
+  </nav>
 {% endblock %}
 
 {% block content %}
