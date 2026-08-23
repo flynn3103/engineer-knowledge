@@ -162,6 +162,14 @@ body,
 }
 .md-nav__link--active { border-left: 2px solid var(--md-primary-fg-color); padding-left: 0.5em; }
 
+/* Primary sidebar (site-wide "Home / Software Engineering / ..." tree) —
+   hidden everywhere; the top tab bar (Home / About) covers primary
+   navigation instead. Flexbox drops display:none items from layout,
+   so content reclaims the freed width automatically. */
+.md-sidebar--primary {
+  display: none !important;
+}
+
 /* Content area */
 .md-main { background: #0a0a0c; }
 .md-content { background: #0a0a0c; color: var(--md-default-fg-color); }
@@ -503,6 +511,10 @@ body,
 [data-md-color-scheme="default"] .md-typeset .filename {
   background: #ebebe5;
   border-color: #d8d8d2;
+}
+
+[data-md-color-scheme="default"] .md-typeset blockquote {
+  background: #f4f4ef;
 }
 
 [data-md-color-scheme="default"] .md-typeset table:not([class]) {

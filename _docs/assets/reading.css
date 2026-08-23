@@ -187,6 +187,9 @@ html[data-focus="1"] .md-content__inner {
   background: #ece2c8;
   border-color: #d8cdb2;
 }
+[data-md-color-scheme="senior-sepia"] .md-typeset blockquote {
+  background: #ece2c8;
+}
 [data-md-color-scheme="senior-sepia"] .md-typeset .admonition-title,
 [data-md-color-scheme="senior-sepia"] .md-typeset summary {
   background: #e2d6b8 !important;
