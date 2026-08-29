@@ -259,3 +259,13 @@ The central lesson is:
 > Professional decomposition aligns software, teams, and delivery sequence so each piece can create value, operate safely, and evolve with minimal coordination.
 
 Return to [junior](junior.md), [middle](middle.md), or [senior](senior.md), or continue with [systems thinking](../../03-systems-thinking/) and [problem-solving](../../02-problem-solving/).
+
+---
+## Check your understanding
+
+Try to answer these questions from memory:
+
+1. Explain Conway's law and what it means for how you decompose a system.
+2. You're told to break a monolith into microservices. What's your first question?
+3. How do you decompose a multi-quarter initiative?
+4. Give a quick example of a *bad cut* and how you'd fix it.

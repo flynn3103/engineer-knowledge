@@ -2,8 +2,6 @@ nav:
   - Home: index.md
   - Software Engineering:
     - ... | regex=^Software-Engineering/.+
-  - Soft Skill:
-    - ... | regex=^Soft-Skill/.+
   - Engineering Thinking:
     - ... | regex=^Engineering-Thinking/.+
   - Data Engineering:

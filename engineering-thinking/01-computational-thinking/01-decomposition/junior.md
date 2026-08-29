@@ -356,10 +356,10 @@ The central idea is simple:
 > Do not solve the entire problem in your head at once. Find the next small, clear result, solve it, verify it, and connect it to the rest.
 
 ---
+## Check your understanding
 
-## 11. Continue learning
+Try to answer these questions from memory:
 
-- [Middle level](middle.md) — learn cohesion, coupling, and module boundaries.
-- [Senior level](senior.md) — find architectural seams and hide information.
-- [Problem-solving](../../02-problem-solving/) — use decomposition as part of a complete problem-solving process.
-- [Modeling a problem in code](../05-modeling-a-problem-in-code/) — turn decomposed parts into code structures.
+1. What is decomposition, and why is it the *first* step of computational thinking?
+2. Functional vs data vs domain decomposition — when do you use each?
+3. How do you tell a *good* decomposition from a bad one?

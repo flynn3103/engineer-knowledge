@@ -226,3 +226,13 @@ The central lesson is:
 > A good decomposition does not only create smaller pieces. It creates focused pieces that can change without surprising each other.
 
 Next: [Senior level](senior.md) — find natural seams, hide volatile decisions, and protect business invariants.
+
+---
+## Check your understanding
+
+Try to answer these questions from memory:
+
+1. What does Parnas's 1972 paper actually say, and why does it still matter?
+2. What's a "seam," and how do you find one?
+3. Top-down vs bottom-up decomposition — which do you use?
+4. What is over-decomposition and why is it sometimes *worse* than under-decomposition?

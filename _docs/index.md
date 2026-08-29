@@ -23,13 +23,13 @@ The knowledge required for modern software development is scattered across count
 
     [:octicons-arrow-right-24: Browse Software Engineering](Software-Engineering/README.md)
 
-- :material-account-group:{ .lg .middle } **Soft Skill**
+- :material-head-cog:{ .lg .middle } **Engineering Thinking**
 
     ---
 
-    Engineering thinking — computational, systems, critical, first-principles, probabilistic and creative thinking, plus diagnostics & observability thinking.
+    Practical reasoning methods for decomposition, problem-solving, systems, critical, first-principles, probabilistic, creative, scientific, and reflective thinking.
 
-    [:octicons-arrow-right-24: Browse Soft Skill](Soft-Skill/README.md)
+    [:octicons-arrow-right-24: Browse Engineering Thinking](Engineering-Thinking/README.md)
 
 - :material-database:{ .lg .middle } **Data Engineering**
 
@@ -68,8 +68,8 @@ Each topic follows a consistent multi-level file structure:
 | `middle.md` | Mid-level depth and patterns |
 | `senior.md` | Senior-level mastery |
 | `professional.md` | Expert-level production knowledge |
-| `interview.md` | Interview-style questions |
-| `tasks.md` | Practical exercises |
+
+Each level guide ends with unanswered questions that help you check your understanding.
 
 ---
 

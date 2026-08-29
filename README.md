@@ -9,7 +9,7 @@
 The knowledge required for modern engineering work is scattered across countless blogs, courses, and documentation. This project brings it all together in **one place**, in a **structured way**, organized around five domains:
 
 - **Software Engineering** — programming languages, OOP, anti-patterns, refactoring, design patterns, quality engineering
-- **Soft Skill** — engineering thinking (computational, systems, critical, first-principles, probabilistic, creative thinking) plus diagnostics & observability thinking
+- **Engineering Thinking** — computational, systems, critical, first-principles, probabilistic, creative, scientific, and metacognitive reasoning
 - **Data Engineering** — *coming soon*
 - **AI Engineering** — *coming soon*
 - **Project** — *coming soon*
@@ -25,8 +25,7 @@ The knowledge required for modern engineering work is scattered across countless
 │   ├── refactoring/                      # Code smells and the techniques that resolve them
 │   ├── design-patterns/                  # Creational, structural, behavioral, concurrency patterns
 │   └── quality-engineering/              # Testing, performance, build systems, release engineering
-├── 📂 Soft-Skill/
-│   └── engineering-thinking/             # 11 sections: computational → metacognition, + diagnostics & observability
+├── 📂 engineering-thinking/              # 10 sections: computational thinking → metacognition and learning
 ├── 📂 Data-Engineering/                  # Coming soon
 ├── 📂 AI-Engineering/                    # Coming soon
 └── 📂 Project/                           # Coming soon
@@ -43,8 +42,8 @@ Each topic follows a consistent multi-level file structure:
 | `middle.md` | Mid-level depth and patterns |
 | `senior.md` | Senior-level mastery |
 | `professional.md` | Expert-level production knowledge |
-| `interview.md` | Interview-style questions |
-| `tasks.md` | Practical exercises |
+
+Every level guide ends with unanswered comprehension questions for active recall.
 
 ## Who is this for?
 

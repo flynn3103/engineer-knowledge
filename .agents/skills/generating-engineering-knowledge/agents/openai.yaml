@@ -1,0 +1,4 @@
+interface:
+  display_name: "Generate Engineering Knowledge"
+  short_description: "Create progressive engineering learning modules"
+  default_prompt: "Use $generating-engineering-knowledge to create a four-level guide for this engineering topic."

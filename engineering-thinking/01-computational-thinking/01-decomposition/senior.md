@@ -273,3 +273,13 @@ The central lesson is:
 > Cut where change, language, ownership, and invariants naturally separate—and calculate the cost of reconnecting the pieces before making the cut.
 
 Next: [Professional level](professional.md) — align architecture, team ownership, and multi-stage delivery.
+
+---
+## Check your understanding
+
+Try to answer these questions from memory:
+
+1. Why is recomposition a design concern and not an afterthought?
+2. How is decomposition a debugging tool?
+3. How does decomposition relate to estimation?
+4. What's the connection between divide-and-conquer and decomposition?
