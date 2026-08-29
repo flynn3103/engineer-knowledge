@@ -50,4 +50,4 @@ Use the loop at every scale. What changes between levels is the size of the syst
 
 ---
 
-> Pair this roadmap with [Software Engineering](../Software-Engineering/) when the reasoning needs to become code, tests, architecture, or an operational system.
+> Pair this roadmap with [Craftsmanship](../craftsmanship/README.md) when the reasoning needs to become code, tests, architecture, or an operational system.
