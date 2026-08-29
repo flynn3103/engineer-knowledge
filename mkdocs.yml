@@ -1,5 +1,5 @@
 site_name: Engineer Knowledge
-site_description: A personal engineering knowledge base — Craftsmanship, Programming Languages, Networking, Engineering Thinking, Data Engineering, AI Engineering, and Project.
+site_description: A personal engineering knowledge base — Craftsmanship, Programming Languages, Networking, On Production, Engineering Thinking, Data Engineering, AI Engineering, and Project.
 site_author: flynn3103
 site_url: https://flynn3103.github.io/engineer-knowledge/
 
@@ -27,6 +27,14 @@ exclude_docs: |
   Programming-Languages/**/find-bug.md
   Programming-Languages/**/optimize.md
   Programming-Languages/**/specification.md
+  On-Production/**/interview.md
+  On-Production/**/tasks.md
+  On-Production/**/staff.md
+  Data-Engineering/**/interview.md
+  Data-Engineering/**/tasks.md
+  Data-Engineering/**/find-bug.md
+  Data-Engineering/**/optimize.md
+  Data-Engineering/**/specification.md
 
 theme:
   name: material
