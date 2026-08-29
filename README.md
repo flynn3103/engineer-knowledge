@@ -6,9 +6,10 @@
 
 ## Purpose
 
-The knowledge required for modern engineering work is scattered across countless blogs, courses, and documentation. This project brings it all together in **one place**, in a **structured way**, organized around five domains:
+The knowledge required for modern engineering work is scattered across countless blogs, courses, and documentation. This project brings it all together in **one place**, in a **structured way**, organized around six domains:
 
-- **Software Engineering** — programming languages, OOP, anti-patterns, refactoring, design patterns, quality engineering
+- **Craftsmanship** — code review, object-oriented design, disciplined testing, documentation, build engineering, legacy code, anti-patterns, and technical debt
+- **Programming Languages** — Go plus shared language/runtime internals
 - **Engineering Thinking** — computational, systems, critical, first-principles, probabilistic, creative, scientific, and metacognitive reasoning
 - **Data Engineering** — *coming soon*
 - **AI Engineering** — *coming soon*
@@ -18,14 +19,11 @@ The knowledge required for modern engineering work is scattered across countless
 
 ```
 📁 engineer-knowledge
-├── 📂 Software-Engineering/
-│   ├── programming-languages/golang/     # Go roadmap — language basics through runtime internals
-│   ├── object-oriented-programming/      # Classes, dispatch, contracts, design principles
-│   ├── anti-patterns/                    # Recurring wrong shapes at code/design level
-│   ├── refactoring/                      # Code smells and the techniques that resolve them
-│   ├── design-patterns/                  # Creational, structural, behavioral, concurrency patterns
-│   └── quality-engineering/              # Testing, performance, build systems, release engineering
-├── 📂 engineering-thinking/              # 10 sections: computational thinking → metacognition and learning
+├── 📂 craftsmanship/                     # Review, design, testing discipline, docs, builds, legacy code, and debt
+├── 📂 programming-languages/
+│   ├── golang/                           # Go roadmap — concurrency through production debugging
+│   └── language-internals/               # Runtime, memory, types, compilers, and interoperability
+├── 📂 engineering-thinking/              # 9 sections: computational thinking → metacognition and learning
 ├── 📂 Data-Engineering/                  # Coming soon
 ├── 📂 AI-Engineering/                    # Coming soon
 └── 📂 Project/                           # Coming soon

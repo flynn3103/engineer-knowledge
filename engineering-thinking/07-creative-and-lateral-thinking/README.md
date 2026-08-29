@@ -19,4 +19,4 @@ Each topic has four depth levels — **junior → middle → senior → professi
 
 ---
 
-> Part of the [Engineering Thinking](../) roadmap. Apply this generative mindset to design with [Object Thinking](../08-object-thinking/).
+> Part of the [Engineering Thinking](../) roadmap. Apply this generative mindset to design with [Object Thinking](../../craftsmanship/object-oriented-design/08-object-thinking/).

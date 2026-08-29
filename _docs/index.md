@@ -15,13 +15,21 @@ The knowledge required for modern software development is scattered across count
 
 <div class="grid cards" markdown>
 
-- :material-code-braces:{ .lg .middle } **Software Engineering**
+- :material-hammer-wrench:{ .lg .middle } **Craftsmanship**
 
     ---
 
-    Programming languages (Go), object-oriented programming, anti-patterns, refactoring, design patterns, and quality engineering.
+    Code review, object-oriented design, testing disciplines, documentation, legacy code, build engineering, anti-patterns, and technical debt.
 
-    [:octicons-arrow-right-24: Browse Software Engineering](Software-Engineering/README.md)
+    [:octicons-arrow-right-24: Browse Craftsmanship](Craftsmanship/README.md)
+
+- :material-code-braces:{ .lg .middle } **Programming Languages**
+
+    ---
+
+    Practical language guides and the runtime, type-system, memory, compiler, and interoperability concepts behind them.
+
+    [:octicons-arrow-right-24: Browse Programming Languages](Programming-Languages/README.md)
 
 - :material-head-cog:{ .lg .middle } **Engineering Thinking**
 

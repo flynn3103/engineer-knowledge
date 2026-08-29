@@ -130,7 +130,7 @@ A light DDD vocabulary worth carrying:
 | **Value object** | Defined entirely by its values, immutable | "Are two of these interchangeable if equal?" → `Money(10, "USD")`, a `DateRange` |
 | **Aggregate** | A cluster you treat as one unit for consistency | "What must change together atomically?" → an `Order` and its line items |
 
-The key distinction for a middle engineer: **entities have identity; values don't.** Two `$10` are the same $10. Two users named "Alex" are different people. Getting this wrong — giving identity to a value, or treating an entity as interchangeable — is a frequent source of subtle bugs (e.g. deduping users by name). See [domain modeling from requirements](../../08-object-thinking/06-domain-modeling-from-requirements/) for the full treatment.
+The key distinction for a middle engineer: **entities have identity; values don't.** Two `$10` are the same $10. Two users named "Alex" are different people. Getting this wrong — giving identity to a value, or treating an entity as interchangeable — is a frequent source of subtle bugs (e.g. deduping users by name). See [domain modeling from requirements](../../../craftsmanship/object-oriented-design/08-object-thinking/06-domain-modeling-from-requirements/) for the full treatment.
 
 ---
 
@@ -179,7 +179,7 @@ When this happens, change the model deliberately: introduce the new type, migrat
 
 ---
 
-**See also:** [Decomposition](../01-decomposition/) · [Pattern recognition](../02-pattern-recognition/) · [Algorithmic thinking](../04-algorithmic-thinking/) · [Domain modeling from requirements](../../08-object-thinking/06-domain-modeling-from-requirements/) · [Roadmap home](../../README.md)
+**See also:** [Decomposition](../01-decomposition/) · [Pattern recognition](../02-pattern-recognition/) · [Algorithmic thinking](../04-algorithmic-thinking/) · [Domain modeling from requirements](../../../craftsmanship/object-oriented-design/08-object-thinking/06-domain-modeling-from-requirements/) · [Roadmap home](../../README.md)
 
 ---
 ## Check your understanding

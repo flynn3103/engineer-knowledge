@@ -162,7 +162,7 @@ body,
 }
 .md-nav__link--active { border-left: 2px solid var(--md-primary-fg-color); padding-left: 0.5em; }
 
-/* Primary sidebar (site-wide "Home / Software Engineering / ..." tree) —
+/* Primary sidebar (site-wide "Home / Craftsmanship / ..." tree) —
    hidden everywhere; the top tab bar (Home / About) covers primary
    navigation instead. Flexbox drops display:none items from layout,
    so content reclaims the freed width automatically. */

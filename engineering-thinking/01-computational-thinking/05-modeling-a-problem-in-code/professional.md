@@ -134,7 +134,7 @@ Brooks's tables, governed at scale: get them right and the architecture follows;
 
 ---
 
-**See also:** [Decomposition](../01-decomposition/) · [Abstraction and generalization](../03-abstraction-and-generalization/) · [Algorithmic thinking](../04-algorithmic-thinking/) · [Systems thinking](../../03-systems-thinking/) · [Domain modeling from requirements](../../08-object-thinking/06-domain-modeling-from-requirements/) · [First-principles thinking](../../05-first-principles-thinking/) · [Roadmap home](../../README.md)
+**See also:** [Decomposition](../01-decomposition/) · [Abstraction and generalization](../03-abstraction-and-generalization/) · [Algorithmic thinking](../04-algorithmic-thinking/) · [Systems thinking](../../03-systems-thinking/) · [Domain modeling from requirements](../../../craftsmanship/object-oriented-design/08-object-thinking/06-domain-modeling-from-requirements/) · [First-principles thinking](../../05-first-principles-thinking/) · [Roadmap home](../../README.md)
 
 ---
 ## Check your understanding

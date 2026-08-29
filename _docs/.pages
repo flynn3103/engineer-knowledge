@@ -1,7 +1,9 @@
 nav:
   - Home: index.md
-  - Software Engineering:
-    - ... | regex=^Software-Engineering/.+
+  - Craftsmanship:
+    - ... | regex=^Craftsmanship/.+
+  - Programming Languages:
+    - ... | regex=^Programming-Languages/.+
   - Engineering Thinking:
     - ... | regex=^Engineering-Thinking/.+
   - Data Engineering:
