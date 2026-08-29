@@ -5,27 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [C/C++ Cross-Toolchains in Practice](#cc-cross-toolchains-in-practice)
-4. [CMake Toolchain Files](#cmake-toolchain-files)
-5. [glibc vs musl and the ABI Question](#glibc-vs-musl-and-the-abi-question)
-6. [QEMU User-Mode Emulation vs True Cross-Compile](#qemu-user-mode-emulation-vs-true-cross-compile)
-7. [Multi-Arch Container Images with buildx](#multi-arch-container-images-with-buildx)
-8. [Reproducibility Across Host and Target](#reproducibility-across-host-and-target)
-9. [Testing Artifacts You Can't Natively Run](#testing-artifacts-you-cant-natively-run)
-10. [Mental Models](#mental-models)
-11. [Common Mistakes](#common-mistakes)
-12. [Test Yourself](#test-yourself)
-13. [Cheat Sheet](#cheat-sheet)
-14. [Summary](#summary)
-15. [Further Reading](#further-reading)
-16. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **The two execution models (true cross vs emulation), their correctness/speed trade-off, and integrating cross-builds into CMake, containers, and CI.**

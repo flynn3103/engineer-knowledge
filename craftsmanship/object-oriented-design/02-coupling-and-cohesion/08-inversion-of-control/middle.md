@@ -7,27 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Which Control Is Inverted? (Fowler's Question)](#which-control-is-inverted-fowlers-question)
-3. [Template Method: The Original IoC](#template-method-the-original-ioc)
-4. [Strategy + Injection: Inverting a Pluggable Step](#strategy--injection-inverting-a-pluggable-step)
-5. [Inverting a Whole Program: main → Framework](#inverting-a-whole-program-main--framework)
-6. [The Composition Root](#the-composition-root)
-7. [IoC vs DI vs DIP — The Working Distinction](#ioc-vs-di-vs-dip--the-working-distinction)
-8. [Why IoC Lowers Coupling (Mechanically)](#why-ioc-lowers-coupling-mechanically)
-9. [When to Reach for IoC — and When Not To](#when-to-reach-for-ioc--and-when-not-to)
-10. [Trade-offs](#trade-offs)
-11. [Edge Cases](#edge-cases)
-12. [Tricky Points](#tricky-points)
-13. [Best Practices](#best-practices)
-14. [Test Yourself](#test-yourself)
-15. [Summary](#summary)
-16. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **Why** and **When**

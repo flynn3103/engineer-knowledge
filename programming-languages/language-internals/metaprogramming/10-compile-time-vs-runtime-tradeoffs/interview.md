@@ -13,15 +13,6 @@ industry shift toward compile time driven by cold start and native image. Strong
 cite concrete pairs (serde vs Jackson, Dagger vs Spring) and reason from deployment targets,
 not preferences.
 
-## Table of Contents
-
-- [Conceptual](#conceptual)
-- [Scenario](#scenario)
-- [Tricky / Trap](#tricky--trap)
-- [Design](#design)
-
----
-
 ## Conceptual
 
 ## Question 1

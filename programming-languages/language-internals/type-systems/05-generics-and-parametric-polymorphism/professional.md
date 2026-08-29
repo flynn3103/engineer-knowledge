@@ -5,24 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concepts](#core-concepts)
-5. [Real-World Analogies](#real-world-analogies)
-6. [Mental Models](#mental-models)
-7. [Code Examples](#code-examples)
-8. [Pros & Cons](#pros--cons)
-9. [Use Cases](#use-cases)
-10. [Coding Patterns](#coding-patterns)
-11. [Best Practices](#best-practices)
-12. [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-13. [Summary](#summary)
-
----
-
 ## Introduction
 
 > Focus: **At scale, the choice of generics implementation stops being a language-design footnote and becomes a line item in your budget** — binary size, cold-start time, p99 latency, GC pressure, build duration, and on-call incidents. This page is about *operating* generics in production: measuring the costs, recognizing the failure modes, and making the right trade per call site.

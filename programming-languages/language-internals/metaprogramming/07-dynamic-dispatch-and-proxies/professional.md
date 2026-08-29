@@ -5,20 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Where Proxies Power Real Frameworks](#where-proxies-power-real-frameworks)
-3. [The Self-Invocation Trap](#the-self-invocation-trap)
-4. [Code Examples](#code-examples)
-5. [Performance](#performance)
-6. [Best Practices](#best-practices)
-7. [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-8. [War Stories](#war-stories)
-9. [Summary](#summary)
-
----
-
 ## Introduction
 
 A proxy is a stand-in object that intercepts the operations performed on it and

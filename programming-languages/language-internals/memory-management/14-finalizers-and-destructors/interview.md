@@ -6,15 +6,6 @@ Interviewers use this topic to probe whether you understand the difference betwe
 
 ---
 
-## Table of Contents
-
-- [Conceptual](#conceptual)
-- [Tool-Specific](#tool-specific)
-- [Tricky / Trap](#tricky--trap)
-- [Design](#design)
-
----
-
 ## Conceptual
 
 ## Question 1

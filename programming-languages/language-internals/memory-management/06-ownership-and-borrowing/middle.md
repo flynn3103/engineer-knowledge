@@ -5,23 +5,6 @@
 
 ---
 
-## Table of Contents
-
-- [Introduction](#introduction)
-- [Prerequisites](#prerequisites)
-- [Glossary](#glossary)
-- [Core Concepts](#core-concepts)
-- [Mental Models](#mental-models)
-- [Code Examples](#code-examples)
-- [Coding Patterns](#coding-patterns)
-- [Pros & Cons](#pros--cons)
-- [Use Cases](#use-cases)
-- [Best Practices](#best-practices)
-- [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-- [Summary](#summary)
-
----
-
 ## Introduction
 
 At the junior level, ownership is "who frees the memory." At this level we open the hood. The borrow checker is a static analysis that proves, before your program runs, that **every reference is valid for exactly as long as it is used and no longer**. To do that it reasons about *lifetimes* — regions of code over which a reference stays alive — and enforces *aliasing XOR mutability*. This page explains those mechanisms, how the compiler infers most of them for you (elision, NLL), when you must write them down (explicit lifetime annotations), and the standard library tools that let you opt out of the static rules when they're genuinely too restrictive (`Box`, `Rc`/`Arc`, `RefCell`/`Cell`/`Mutex`).

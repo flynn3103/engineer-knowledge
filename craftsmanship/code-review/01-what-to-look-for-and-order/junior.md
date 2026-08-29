@@ -5,27 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concept 1 — What Review Is For (and What It Isn't)](#core-concept-1--what-review-is-for-and-what-it-isnt)
-5. [Core Concept 2 — The Order of Operations](#core-concept-2--the-order-of-operations)
-6. [Core Concept 3 — Read the Tests First](#core-concept-3--read-the-tests-first)
-7. [Core Concept 4 — The Diff Lies; Read the Change](#core-concept-4--the-diff-lies-read-the-change)
-8. [Core Concept 5 — Severity: Blocker vs Nit](#core-concept-5--severity-blocker-vs-nit)
-9. [Real-World Examples](#real-world-examples)
-10. [Mental Models](#mental-models)
-11. [Common Mistakes](#common-mistakes)
-12. [Test Yourself](#test-yourself)
-13. [Cheat Sheet](#cheat-sheet)
-14. [Summary](#summary)
-15. [Further Reading](#further-reading)
-16. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **When a PR lands in your queue, what do you actually look at, and in what order?**

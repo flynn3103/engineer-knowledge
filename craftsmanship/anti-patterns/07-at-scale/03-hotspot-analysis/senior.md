@@ -5,26 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [The Limit of Single-File Hotspots](#the-limit-of-single-file-hotspots)
-4. [Change / Temporal Coupling: Files That Change Together](#change--temporal-coupling-files-that-change-together)
-5. [Computing Temporal Coupling Yourself](#computing-temporal-coupling-yourself)
-6. [Defect Coupling: Files That Break Together](#defect-coupling-files-that-break-together)
-7. [code-maat and CodeScene: What They Add](#code-maat-and-codescene-what-they-add)
-8. [Building a Prioritized Refactoring Backlog](#building-a-prioritized-refactoring-backlog)
-9. [Tying Hotspots to Fitness Functions and Ratchets](#tying-hotspots-to-fitness-functions-and-ratchets)
-10. [Common Mistakes](#common-mistakes)
-11. [Test Yourself](#test-yourself)
-12. [Cheat Sheet](#cheat-sheet)
-13. [Summary](#summary)
-14. [Further Reading](#further-reading)
-15. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Beyond churn — coupling.** The most expensive structure isn't a single hot file; it's the *hidden coupling between files that change together but live apart*. Senior level mines temporal and defect coupling, then turns the findings into a prioritized backlog wired to fitness functions and ratchets.

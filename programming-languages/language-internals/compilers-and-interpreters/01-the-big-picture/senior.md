@@ -5,20 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [The Three-Stage Architecture](#the-three-stage-architecture)
-3. [The M×N Problem and the Shared IR](#the-mn-problem-and-the-shared-ir)
-4. [Real Toolchain Anatomies](#real-toolchain-anatomies)
-5. [Passes, Lowering, and the Narrow Waist](#passes-lowering-and-the-narrow-waist)
-6. [Mental Models](#mental-models)
-7. [Best Practices](#best-practices)
-8. [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-9. [Summary](#summary)
-
----
-
 ## Introduction
 
 A compiler is not one program; it is a pipeline of transformations, each turning a

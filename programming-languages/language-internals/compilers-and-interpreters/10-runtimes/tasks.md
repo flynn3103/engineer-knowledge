@@ -21,16 +21,6 @@ else*, not when the program merely compiles. The sample solutions are
 intentionally sparse — they appear only where the canonical answer is more
 instructive than your first attempt would be.
 
-## Table of Contents
-
-- [Warm-Up](#warm-up)
-- [Core](#core)
-- [Advanced](#advanced)
-- [Capstone](#capstone)
-- [Related Topics](#related-topics)
-
----
-
 ## Warm-Up
 
 These tasks make the runtime *visible*. They are short, but each one surfaces a

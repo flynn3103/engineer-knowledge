@@ -5,25 +5,6 @@
 
 ---
 
-## Table of Contents
-
-- [Introduction](#introduction)
-- [Prerequisites](#prerequisites)
-- [Glossary](#glossary)
-- [Allocation in a GC'd Heap](#allocation-in-a-gcd-heap)
-- [The Cost Model: What You Actually Pay](#the-cost-model-what-you-actually-pay)
-- [Pause Analysis](#pause-analysis)
-- [Pacing, Headroom, and the Key Knobs](#pacing-headroom-and-the-key-knobs)
-  - [Go](#go)
-  - [HotSpot JVM](#hotspot-jvm)
-- [Diagnosing GC Problems](#diagnosing-gc-problems)
-- [Coding Patterns](#coding-patterns)
-- [Best Practices](#best-practices)
-- [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-- [Summary](#summary)
-
----
-
 ## Introduction
 
 In production, the GC stops being an abstraction and becomes a line on your latency dashboard. A p50 of 8 ms with a p99.9 of 400 ms is almost always a GC story. This tier is about operating GC'd systems: how allocation actually works (because reducing allocation is the highest-leverage tuning), how to read and decompose a pause, how pacing and headroom interact, and the specific knobs that move the needle in Go and the JVM. The throughline: **measure first**. GC tuning done from intuition usually makes things worse.

@@ -5,23 +5,6 @@
 
 ---
 
-## Table of Contents
-
-- [Introduction](#introduction)
-- [Prerequisites](#prerequisites)
-- [Glossary](#glossary)
-- [Core Concepts](#core-concepts)
-- [Real-World Analogies](#real-world-analogies)
-- [Mental Models](#mental-models)
-- [Code Examples](#code-examples)
-- [Pros & Cons](#pros--cons)
-- [Use Cases](#use-cases)
-- [Best Practices](#best-practices)
-- [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-- [Summary](#summary)
-
----
-
 ## Introduction
 
 When your program allocates an object — a slice, a struct, a list, a closure — that memory has to be returned to the system eventually, or the program slowly eats all available RAM and dies. In languages like C you do this by hand with `free()`. In languages like Go, Java, Python, JavaScript, and C# a **garbage collector (GC)** does it for you automatically.

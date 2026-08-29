@@ -5,27 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [The Code-Smell Catalog as a Detection Lens](#the-code-smell-catalog-as-a-detection-lens)
-4. [Static Analysis Signals — Turning Code into Numbers](#static-analysis-signals--turning-code-into-numbers)
-5. [The Hotspot Technique — Churn × Complexity](#the-hotspot-technique--churn--complexity)
-6. [Coverage Gaps and Dependency Staleness as Debt](#coverage-gaps-and-dependency-staleness-as-debt)
-7. [Quantifying — SQALE, the Debt Ratio, and Remediation Effort](#quantifying--sqale-the-debt-ratio-and-remediation-effort)
-8. [Lead-Time and Defect Density as Debt Proxies](#lead-time-and-defect-density-as-debt-proxies)
-9. [Worked Example — Building a Hotspot List from git](#worked-example--building-a-hotspot-list-from-git)
-10. [Mental Models](#mental-models)
-11. [Common Mistakes](#common-mistakes)
-12. [Test Yourself](#test-yourself)
-13. [Cheat Sheet](#cheat-sheet)
-14. [Summary](#summary)
-15. [Further Reading](#further-reading)
-16. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **How do I find debt concretely, and how do I turn "this code is bad" into a defensible number?**

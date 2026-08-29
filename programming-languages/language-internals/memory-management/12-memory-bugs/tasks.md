@@ -8,16 +8,6 @@ Each task has a **Self-check** list. Hints are folded in; full solutions are giv
 
 ---
 
-## Table of Contents
-
-- [Warm-Up](#warm-up)
-- [Core](#core)
-- [Advanced](#advanced)
-- [Capstone](#capstone)
-- [Self-Assessment](#self-assessment)
-
----
-
 ## Warm-Up
 
 ### Task 1 — Make memory climb and watch the floor rise

@@ -5,25 +5,6 @@
 
 ---
 
-## Table of Contents
-
-- [Introduction](#introduction)
-- [Measuring the Hierarchy: the Counters That Matter](#measuring-the-hierarchy-the-counters-that-matter)
-- [Top-Down Microarchitecture Analysis](#top-down-microarchitecture-analysis)
-- [The Roofline Model](#the-roofline-model)
-- [Hardware Detail You Eventually Need](#hardware-detail-you-eventually-need)
-  - [MSHRs and memory-level parallelism](#mshrs-and-memory-level-parallelism)
-  - [DRAM internals: banks, rows, and the page-hit gamble](#dram-internals-banks-rows-and-the-page-hit-gamble)
-  - [Prefetcher tuning and its limits](#prefetcher-tuning-and-its-limits)
-  - [Non-temporal stores and write bandwidth](#non-temporal-stores-and-write-bandwidth)
-- [War Stories](#war-stories)
-- [A Production Profiling Playbook](#a-production-profiling-playbook)
-- [Best Practices](#best-practices)
-- [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-- [Summary](#summary)
-
----
-
 ## Introduction
 
 At this level you stop reasoning about the hierarchy abstractly and start *measuring* it on real hardware under real load, then attributing wall-clock time to specific levels with hardware performance counters. The questions become precise: Is this loop bound by L3 latency or DRAM bandwidth? Are we losing 20% to TLB walks? Is a single false-sharing line costing us a core? The tools are `perf`, `toplev`, `likwid`, Intel VTune, AMD uProf, and the roofline model — and the fixes are informed by how the silicon actually behaves.

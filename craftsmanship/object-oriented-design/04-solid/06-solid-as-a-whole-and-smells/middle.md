@@ -7,23 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [How the Principles Reinforce Each Other](#how-the-principles-reinforce-each-other)
-3. [How the Principles Tension Each Other](#how-the-principles-tension-each-other)
-4. [Applying the Full Set to Real Code](#applying-the-full-set-to-real-code)
-5. [The Smell Catalog, Deepened](#the-smell-catalog-deepened)
-6. [Trade-offs](#trade-offs)
-7. [Edge Cases](#edge-cases)
-8. [Tricky Points](#tricky-points)
-9. [Best Practices](#best-practices)
-10. [Test Yourself](#test-yourself)
-11. [Summary](#summary)
-12. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **Why** and **When**

@@ -4,25 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [What "Allocation" Means](#what-allocation-means)
-4. [The Classic Example: String Concatenation in a Loop](#the-classic-example-string-concatenation-in-a-loop)
-5. [Why O(n²) and Not O(n)](#why-on-and-not-on)
-6. [The Fix: Build the String Once](#the-fix-build-the-string-once)
-7. [Allocation Isn't Free — But It's Not Always the Enemy](#allocation-isnt-free--but-its-not-always-the-enemy)
-8. [A Few More Shapes to Recognize](#a-few-more-shapes-to-recognize)
-9. [Common Mistakes](#common-mistakes)
-10. [Test Yourself](#test-yourself)
-11. [Cheat Sheet](#cheat-sheet)
-12. [Summary](#summary)
-13. [Further Reading](#further-reading)
-14. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **What does it look like?** and **Why is it bad?**

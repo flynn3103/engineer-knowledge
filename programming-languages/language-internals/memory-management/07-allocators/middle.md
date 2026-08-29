@@ -5,30 +5,6 @@
 
 ---
 
-## Table of Contents
-
-- [Introduction](#introduction)
-- [Prerequisites](#prerequisites)
-- [Glossary](#glossary)
-- [Core Concepts](#core-concepts)
-  - [Anatomy of a chunk: headers and boundary tags](#anatomy-of-a-chunk-headers-and-boundary-tags)
-  - [Splitting and coalescing](#splitting-and-coalescing)
-  - [Placement strategies: first/best/next fit](#placement-strategies-firstbestnext-fit)
-  - [Size classes and segregated free lists](#size-classes-and-segregated-free-lists)
-  - [Bins: the dlmalloc/ptmalloc model](#bins-the-dlmallocptmalloc-model)
-- [Specialized Allocators](#specialized-allocators)
-- [Real-World Analogies](#real-world-analogies)
-- [Mental Models](#mental-models)
-- [Code Examples](#code-examples)
-- [Pros & Cons](#pros--cons)
-- [Use Cases](#use-cases)
-- [Coding Patterns](#coding-patterns)
-- [Best Practices](#best-practices)
-- [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-- [Summary](#summary)
-
----
-
 ## Introduction
 
 At the junior tier, the allocator was a black box that hands out and reclaims memory. Now we open the box. A general-purpose allocator is a data-structures problem: given a stream of arbitrary `malloc(size)` and `free(ptr)` requests, maintain a map of the heap that lets you answer "where is a free region of at least `size` bytes?" quickly, while keeping fragmentation and metadata overhead low.

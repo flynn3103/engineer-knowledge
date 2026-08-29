@@ -5,26 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [The Two Axes, Made Computable](#the-two-axes-made-computable)
-4. [Churn: One Command, Whole Repo](#churn-one-command-whole-repo)
-5. [Complexity: Cheap Proxies That Work](#complexity-cheap-proxies-that-work)
-6. [The Churn × Complexity Table](#the-churn--complexity-table)
-7. [A Script That Joins Churn and Complexity](#a-script-that-joins-churn-and-complexity)
-8. [Reading the Ranked Output](#reading-the-ranked-output)
-9. [Bounding the Time Window](#bounding-the-time-window)
-10. [Common Mistakes](#common-mistakes)
-11. [Test Yourself](#test-yourself)
-12. [Cheat Sheet](#cheat-sheet)
-13. [Summary](#summary)
-14. [Further Reading](#further-reading)
-15. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Computing hotspots yourself.** Turn "I suspect this file is hot" into a ranked list of the whole repo, produced by a command and a small script — so targets come from data, not vibes.

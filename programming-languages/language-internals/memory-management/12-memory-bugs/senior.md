@@ -5,24 +5,6 @@
 
 ---
 
-## Table of Contents
-
-- [Introduction](#introduction)
-- [Prerequisites](#prerequisites)
-- [Glossary](#glossary)
-- [Core Concepts](#core-concepts)
-- [Real-World Analogies](#real-world-analogies)
-- [Mental Models](#mental-models)
-- [Code Examples](#code-examples)
-- [Pros & Cons](#pros--cons)
-- [Use Cases](#use-cases)
-- [Coding Patterns](#coding-patterns)
-- [Best Practices](#best-practices)
-- [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-- [Summary](#summary)
-
----
-
 ## Introduction
 
 A junior recognizes leaks; a mid-level engineer diagnoses one. A senior engineer reasons about **whole classes of memory bugs across runtimes** and designs systems where these bugs are hard to introduce, cheap to detect, and bounded in blast radius.

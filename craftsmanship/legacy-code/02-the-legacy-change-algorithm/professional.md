@@ -1,20 +1,5 @@
 # The Legacy Change Algorithm — Professional
 
-## Table of Contents
-
-- [Leading legacy work, not just doing it](#leading-legacy-work-not-just-doing-it)
-- [Turning the algorithm into a team process](#turning-the-algorithm-into-a-team-process)
-- [Slicing a legacy change into incremental PRs](#slicing-a-legacy-change-into-incremental-prs)
-- [Reviewing legacy-change PRs: what to look for](#reviewing-legacy-change-prs-what-to-look-for)
-- [Decision frameworks you can hand to a team](#decision-frameworks-you-can-hand-to-a-team)
-- [Coordinating across people and time](#coordinating-across-people-and-time)
-- [Checklists](#checklists)
-- [War stories](#war-stories)
-- [Pitfalls that bite teams, not individuals](#pitfalls-that-bite-teams-not-individuals)
-- [Related Topics](#related-topics)
-
----
-
 ## Leading legacy work, not just doing it
 
 The senior file is about making good decisions on a single change. This file is about a tech lead or staff engineer making the *whole team* good at legacy change — turning a private skill into a repeatable, reviewable, teachable process that survives staff turnover and deadline pressure. The failure mode is a team where one person can safely touch the scary subsystem and everyone else routes their tickets to that person. That bottleneck is an organizational risk, and dissolving it is leadership work.

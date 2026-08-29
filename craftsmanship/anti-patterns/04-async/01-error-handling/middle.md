@@ -5,28 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [The Real Question: When Does This Creep In?](#the-real-question-when-does-this-creep-in)
-4. [Forgotten `await` — Making the Mistake Impossible](#forgotten-await--making-the-mistake-impossible)
-5. [Floating Promise — Await It or Own It](#floating-promise--await-it-or-own-it)
-6. [Swallowed Rejection — Designing Error Propagation](#swallowed-rejection--designing-error-propagation)
-7. [Fire-and-Forget Without Logging — Making Background Work Observable](#fire-and-forget-without-logging--making-background-work-observable)
-8. [The Trap: Don't `await` Things You Meant to Run Concurrently](#the-trap-dont-await-things-you-meant-to-run-concurrently)
-9. [Python `asyncio` Equivalents](#python-asyncio-equivalents)
-10. [Go Contrast: `errgroup` and `context`](#go-contrast-errgroup-and-context)
-11. [Tooling: Types, Linters, and the Global Net](#tooling-types-linters-and-the-global-net)
-12. [Common Mistakes](#common-mistakes)
-13. [Test Yourself](#test-yourself)
-14. [Cheat Sheet](#cheat-sheet)
-15. [Summary](#summary)
-16. [Further Reading](#further-reading)
-17. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **When does this creep in?** and **What do I do instead?**

@@ -12,15 +12,6 @@ overloading, blocks, lambdas-with-receiver, macros, `method_missing`), and — m
 importantly — judge when a DSL earns its keep versus when a plain API is better. Strong
 answers weigh error quality, IDE support, and the "now you have two languages" cost.
 
-## Table of Contents
-
-- [Conceptual](#conceptual)
-- [Language-Specific](#language-specific)
-- [Tricky / Trap](#tricky--trap)
-- [Design](#design)
-
----
-
 ## Conceptual
 
 ## Question 1

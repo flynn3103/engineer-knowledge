@@ -5,25 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concepts](#core-concepts)
-5. [Real-World Analogies](#real-world-analogies)
-6. [Mental Models](#mental-models)
-7. [Code Examples](#code-examples)
-8. [Pros & Cons](#pros--cons)
-9. [Use Cases](#use-cases)
-10. [Coding Patterns](#coding-patterns)
-11. [Best Practices](#best-practices)
-12. [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-13. [Summary](#summary)
-14. [Further Reading](#further-reading)
-
----
-
 ## Introduction
 
 > Focus: **Where does the number `0.30000000000000004` come from, and what do professionals use instead?**

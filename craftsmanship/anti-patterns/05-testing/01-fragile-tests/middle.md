@@ -4,26 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Where Fragility Creeps In](#where-fragility-creeps-in)
-4. [Over-Specified Assertions](#over-specified-assertions)
-5. [Asserting on Order and Log Text](#asserting-on-order-and-log-text)
-6. [Snapshot-Everything](#snapshot-everything)
-7. [White-Box Mocking](#white-box-mocking)
-8. [The Principle: Test the Contract](#the-principle-test-the-contract)
-9. [Refactors in All Three Languages](#refactors-in-all-three-languages)
-10. [Common Mistakes](#common-mistakes)
-11. [Test Yourself](#test-yourself)
-12. [Cheat Sheet](#cheat-sheet)
-13. [Summary](#summary)
-14. [Further Reading](#further-reading)
-15. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **When does fragility creep in?** and **What do you write instead?**

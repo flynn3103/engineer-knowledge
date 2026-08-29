@@ -4,30 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [The Minimum-Viable-Diagram Judgement](#the-minimum-viable-diagram-judgement)
-5. [Disposable Sketches vs Long-Lived Diagrams](#disposable-sketches-vs-long-lived-diagrams)
-6. [Diagrams Inside ADRs, RFCs, and Design Docs](#diagrams-inside-adrs-rfcs-and-design-docs)
-7. [C4 vs UML: Which, When](#c4-vs-uml-which-when)
-8. [Worked Example: One Decision, One Diagram](#worked-example-one-decision-one-diagram)
-9. [Keeping the Survivors Alive](#keeping-the-survivors-alive)
-10. [The Anti-Patterns Seniors Prevent](#the-anti-patterns-seniors-prevent)
-11. [Best Practices](#best-practices)
-12. [Common Mistakes](#common-mistakes)
-13. [Mental Models](#mental-models)
-14. [Test Yourself](#test-yourself)
-15. [Cheat Sheet](#cheat-sheet)
-16. [Summary](#summary)
-17. [Further Reading](#further-reading)
-18. [Related Topics](#related-topics)
-19. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **Judgement** — the minimum diagram for the decision, and what deserves to live.

@@ -10,17 +10,6 @@ These questions probe whether a candidate understands what it means to *implemen
 
 The questions are grouped: **Conceptual / Foundational** (the model and the dispatch core), **Implementation-Specific** (CPython, Ruby, Lua, JS engines, the BEAM), **Tricky / Trap** (where the textbook answer is wrong), and **System / Design**. Use the answers as a rubric, not a script.
 
-## Table of Contents
-
-- [Conceptual / Foundational](#conceptual--foundational)
-- [Implementation-Specific](#implementation-specific)
-- [Tricky / Trap Questions](#tricky--trap-questions)
-- [System / Design Scenarios](#system--design-scenarios)
-- [Cheat Sheet](#cheat-sheet)
-- [Further Reading](#further-reading)
-
----
-
 ## Conceptual / Foundational
 
 ## Question 1

@@ -7,23 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Enforcing Deletability in Code Review](#enforcing-deletability-in-code-review)
-3. [The Reuse-Worship Culture and How to Counter It](#the-reuse-worship-culture-and-how-to-counter-it)
-4. [Measuring Deletability in Production](#measuring-deletability-in-production)
-5. [Team Conventions for Deletable Code](#team-conventions-for-deletable-code)
-6. [Deprecation and Removal Playbook](#deprecation-and-removal-playbook)
-7. [Recovering Deletability in Legacy Systems](#recovering-deletability-in-legacy-systems)
-8. [Real Incidents](#real-incidents)
-9. [Review Checklist](#review-checklist)
-10. [Cheat Sheet](#cheat-sheet)
-11. [Diagrams](#diagrams)
-12. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **production** — keeping a large, multi-contributor codebase deletable over years.

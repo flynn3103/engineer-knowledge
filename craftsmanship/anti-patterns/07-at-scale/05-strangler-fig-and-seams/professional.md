@@ -5,28 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [The Cost of Coexistence: A Map](#the-cost-of-coexistence-a-map)
-4. [Shadow-Traffic Cost and How to Bound It](#shadow-traffic-cost-and-how-to-bound-it)
-5. [Diffing in Production: Discrepancies Are the Job](#diffing-in-production-discrepancies-are-the-job)
-6. [Dual-Write / Dual-Read Integrity](#dual-write--dual-read-integrity)
-7. [Feature-Flag Mechanics and Ordering](#feature-flag-mechanics-and-ordering)
-8. [Rollback Safety Under Coexistence](#rollback-safety-under-coexistence)
-9. [Routing-Layer Latency](#routing-layer-latency)
-10. [The Dominant Failure: The Migration That Never Finishes](#the-dominant-failure-the-migration-that-never-finishes)
-11. [A Worked Example: Strangling a Ledger](#a-worked-example-strangling-a-ledger)
-12. [Common Mistakes](#common-mistakes)
-13. [Test Yourself](#test-yourself)
-14. [Cheat Sheet](#cheat-sheet)
-15. [Summary](#summary)
-16. [Further Reading](#further-reading)
-17. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Correctness & performance during coexistence** — the cost of shadow traffic, in-production diffing and discrepancy handling, dual-write/dual-read integrity, feature-flag ordering, rollback safety, routing latency, and the migration that *never finishes* — the permanent two-systems tax — and how to force completion.

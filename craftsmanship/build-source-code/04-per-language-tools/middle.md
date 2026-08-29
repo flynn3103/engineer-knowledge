@@ -5,27 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Semver and Version Ranges — the Language of Intent](#semver-and-version-ranges--the-language-of-intent)
-4. [Transitive Dependencies and the Resolution Problem](#transitive-dependencies-and-the-resolution-problem)
-5. [Two Philosophies — Go's MVS vs Newest-Compatible (npm/cargo)](#two-philosophies--gos-mvs-vs-newest-compatible-npmcargo)
-6. [Lockfile Semantics Across Tools](#lockfile-semantics-across-tools)
-7. [Where the Caches Actually Live](#where-the-caches-actually-live)
-8. [Workspaces and Monorepos, Per Tool](#workspaces-and-monorepos-per-tool)
-9. [Build Scripts and Their Risks](#build-scripts-and-their-risks)
-10. [Mental Models](#mental-models)
-11. [Common Mistakes](#common-mistakes)
-12. [Test Yourself](#test-yourself)
-13. [Cheat Sheet](#cheat-sheet)
-14. [Summary](#summary)
-15. [Further Reading](#further-reading)
-16. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **How do these tools actually pick versions — and why do the answers differ so much?**

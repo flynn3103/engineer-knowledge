@@ -4,25 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [What "Fragile" Means](#what-fragile-means)
-4. [The Pain: Refactor → Red for No Reason](#the-pain-refactor--red-for-no-reason)
-5. [Side by Side: Brittle vs Robust](#side-by-side-brittle-vs-robust)
-6. [The Four Ways Tests Couple to Internals](#the-four-ways-tests-couple-to-internals)
-7. [Why It's Bad](#why-its-bad)
-8. [The Junior-Level Fix](#the-junior-level-fix)
-9. [Common Mistakes](#common-mistakes)
-10. [Test Yourself](#test-yourself)
-11. [Cheat Sheet](#cheat-sheet)
-12. [Summary](#summary)
-13. [Further Reading](#further-reading)
-14. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **What does a fragile test look like?** and **Why is it bad?**

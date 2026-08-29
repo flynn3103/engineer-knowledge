@@ -7,23 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Enforcing YAGNI in Code Review](#enforcing-yagni-in-code-review)
-3. [Fighting Gold-Plating](#fighting-gold-plating)
-4. [Making Speculation Visible: Signals and Metrics](#making-speculation-visible-signals-and-metrics)
-5. [Team Conventions](#team-conventions)
-6. [YAGNI in Legacy Systems](#yagni-in-legacy-systems)
-7. [Real Incidents](#real-incidents)
-8. [The Politics of YAGNI](#the-politics-of-yagni)
-9. [Review Checklist](#review-checklist)
-10. [Cheat Sheet](#cheat-sheet)
-11. [Diagrams](#diagrams)
-12. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **production** — keeping speculation out of a large, multi-contributor codebase over years.

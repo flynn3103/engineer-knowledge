@@ -4,31 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [The Core Idea](#the-core-idea)
-5. [Why It Works: Docs Live Next to the Code](#why-it-works-docs-live-next-to-the-code)
-6. [The "Where Is the Truth?" Problem](#the-where-is-the-truth-problem)
-7. [Markup: Why Plain Text](#markup-why-plain-text)
-8. [Static Site Generators](#static-site-generators)
-9. [This Repo as a Concrete Example: MkDocs + .pages](#this-repo-as-a-concrete-example-mkdocs--pages)
-10. [The Docs CI Pipeline](#the-docs-ci-pipeline)
-11. [A Minimal Docs-as-Code Setup, End to End](#a-minimal-docs-as-code-setup-end-to-end)
-12. [Best Practices](#best-practices)
-13. [Common Mistakes](#common-mistakes)
-14. [Tricky Points](#tricky-points)
-15. [Test Yourself](#test-yourself)
-16. [Cheat Sheet](#cheat-sheet)
-17. [Summary](#summary)
-18. [Further Reading](#further-reading)
-19. [Related Topics](#related-topics)
-20. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **What is it?** and **How to use it?**

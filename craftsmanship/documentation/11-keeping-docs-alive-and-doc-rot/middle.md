@@ -7,27 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [The Asymmetry That Drives All Rot](#the-asymmetry-that-drives-all-rot)
-3. [Single Source of Truth: When and How to Generate](#single-source-of-truth-when-and-how-to-generate)
-4. [Generated vs Hand-Written, by Doc Type](#generated-vs-hand-written-by-doc-type)
-5. [Executable Docs: Making Prose Fail the Build](#executable-docs-making-prose-fail-the-build)
-6. [Docs in the Same PR: Closing the Drift Window](#docs-in-the-same-pr-closing-the-drift-window)
-7. [Ownership and Definition of Done](#ownership-and-definition-of-done)
-8. [Freshness Signals That Aren't Theater](#freshness-signals-that-arent-theater)
-9. [Deleting and Archiving Without Losing Knowledge](#deleting-and-archiving-without-losing-knowledge)
-10. [Trade-offs](#trade-offs)
-11. [Edge Cases](#edge-cases)
-12. [Tricky Points](#tricky-points)
-13. [Best Practices](#best-practices)
-14. [Test Yourself](#test-yourself)
-15. [Summary](#summary)
-16. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **Why** and **When**

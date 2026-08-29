@@ -7,27 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [How to Test for Orthogonality](#how-to-test-for-orthogonality)
-3. [The Contractor / Team Test](#the-contractor--team-test)
-4. [Toolkit and Library Orthogonality](#toolkit-and-library-orthogonality)
-5. [Cross-Cutting Concerns Are Orthogonality's Hard Case](#cross-cutting-concerns-are-orthogonalitys-hard-case)
-6. [Layering as an Orthogonality Tool](#layering-as-an-orthogonality-tool)
-7. [Don't Rely on Properties You Can't Control](#dont-rely-on-properties-you-cant-control)
-8. [Orthogonality vs. Coupling and Cohesion, Precisely](#orthogonality-vs-coupling-and-cohesion-precisely)
-9. [The DRY Tension, Introduced](#the-dry-tension-introduced)
-10. [Trade-offs](#trade-offs)
-11. [Edge Cases](#edge-cases)
-12. [Tricky Points](#tricky-points)
-13. [Best Practices](#best-practices)
-14. [Test Yourself](#test-yourself)
-15. [Summary](#summary)
-16. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **Why** and **When**

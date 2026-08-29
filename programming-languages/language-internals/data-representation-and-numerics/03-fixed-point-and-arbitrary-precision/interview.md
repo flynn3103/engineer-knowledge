@@ -10,20 +10,6 @@ These questions probe whether a candidate can be trusted with money and with lar
 
 The questions progress from conceptual foundations, through language-specific surfaces (Java `BigDecimal`/`BigInteger`, Python `int`+`Decimal`, Go `math/big`, C++ `__int128`/GMP, Rust), to traps where the textbook answer is wrong, and finally to design scenarios that reveal whether the candidate has actually shipped a billing or crypto system.
 
-## Table of Contents
-
-- [Conceptual](#conceptual)
-- [Language-Specific](#language-specific)
-  - [Java](#java)
-  - [Python](#python)
-  - [Go](#go)
-  - [C++](#c)
-  - [Rust](#rust)
-- [Tricky / Trap Questions](#tricky--trap-questions)
-- [Design Scenarios](#design-scenarios)
-
----
-
 ## Conceptual
 
 ## Question 1

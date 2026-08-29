@@ -4,32 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [The Real Definition](#the-real-definition)
-5. [What DRY Is *Not*](#what-dry-is-not)
-6. [The Cost DRY Fights](#the-cost-dry-fights)
-7. [Knowledge Lives Everywhere, Not Just in Code](#knowledge-lives-everywhere-not-just-in-code)
-8. [A Worked Example](#a-worked-example)
-9. [Techniques to Remove True Duplication](#techniques-to-remove-true-duplication)
-10. [WET, DIE, and the Counter-Acronyms](#wet-die-and-the-counter-acronyms)
-11. [Real-World Analogies](#real-world-analogies)
-12. [Mental Models](#mental-models)
-13. [Best Practices](#best-practices)
-14. [Common Mistakes](#common-mistakes)
-15. [Tricky Points](#tricky-points)
-16. [Test Yourself](#test-yourself)
-17. [Cheat Sheet](#cheat-sheet)
-18. [Summary](#summary)
-19. [Further Reading](#further-reading)
-20. [Related Topics](#related-topics)
-21. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **What is it?** and **How to use it?**

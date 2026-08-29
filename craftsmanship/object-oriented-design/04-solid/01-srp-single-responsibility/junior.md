@@ -4,31 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [The Real Definition](#the-real-definition)
-5. [What SRP Is NOT: Debunking "Do One Thing"](#what-srp-is-not-debunking-do-one-thing)
-6. [Responsibility = An Axis of Change](#responsibility--an-axis-of-change)
-7. [Real-World Analogies](#real-world-analogies)
-8. [Mental Models](#mental-models)
-9. [A Worked Example: The Employee Class](#a-worked-example-the-employee-class)
-10. [Code Examples](#code-examples)
-11. [Symptoms of a Violation](#symptoms-of-a-violation)
-12. [Best Practices](#best-practices)
-13. [Common Mistakes](#common-mistakes)
-14. [Tricky Points](#tricky-points)
-15. [Test Yourself](#test-yourself)
-16. [Cheat Sheet](#cheat-sheet)
-17. [Summary](#summary)
-18. [Further Reading](#further-reading)
-19. [Related Topics](#related-topics)
-20. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **What is it?** and **How to use it?**

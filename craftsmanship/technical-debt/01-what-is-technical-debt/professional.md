@@ -5,28 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Debt in the Language of the People Who Fund It](#debt-in-the-language-of-the-people-who-fund-it)
-4. [The Second-Order Costs That Never Show Up in the Code](#the-second-order-costs-that-never-show-up-in-the-code)
-5. [Strategic vs Tactical Debt at Portfolio Scale](#strategic-vs-tactical-debt-at-portfolio-scale)
-6. [Who Is Allowed to Authorize Debt](#who-is-allowed-to-authorize-debt)
-7. [When the Organization Manufactures the Debt](#when-the-organization-manufactures-the-debt)
-8. [Debt and the Build-vs-Buy / Rewrite Temptation](#debt-and-the-build-vs-buy--rewrite-temptation)
-9. [War Stories](#war-stories)
-10. [Decision Frameworks](#decision-frameworks)
-11. [Mental Models](#mental-models)
-12. [Common Mistakes](#common-mistakes)
-13. [Test Yourself](#test-yourself)
-14. [Cheat Sheet](#cheat-sheet)
-15. [Summary](#summary)
-16. [Further Reading](#further-reading)
-17. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Technical debt as an organizational, financial, and leadership concern — surfacing it, pricing it, and getting it funded by people who will never read the diff.**

@@ -5,31 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concept 1 — Review as a Queueing System (Little's Law)](#core-concept-1--review-as-a-queueing-system-littles-law)
-5. [Core Concept 2 — Why TTFR Dominates Cycle Time](#core-concept-2--why-ttfr-dominates-cycle-time)
-6. [Core Concept 3 — The Doom-Loop as a Feedback System](#core-concept-3--the-doom-loop-as-a-feedback-system)
-7. [Core Concept 4 — Cost of Delay and WIP (Reinertsen)](#core-concept-4--cost-of-delay-and-wip-reinertsen)
-8. [Core Concept 5 — The Metric Set, Defined (with Pitfalls)](#core-concept-5--the-metric-set-defined-with-pitfalls)
-9. [Core Concept 6 — The Speed/Quality Frontier](#core-concept-6--the-speedquality-frontier)
-10. [Core Concept 7 — Goodhart, Campbell, and Surrogation](#core-concept-7--goodhart-campbell-and-surrogation)
-11. [Core Concept 8 — Counter-Metrics and the Balanced Set](#core-concept-8--counter-metrics-and-the-balanced-set)
-12. [Core Concept 9 — Instrumentation and the Review Clock](#core-concept-9--instrumentation-and-the-review-clock)
-13. [Real-World Examples](#real-world-examples)
-14. [Mental Models](#mental-models)
-15. [Common Mistakes](#common-mistakes)
-16. [Test Yourself](#test-yourself)
-17. [Cheat Sheet](#cheat-sheet)
-18. [Summary](#summary)
-19. [Further Reading](#further-reading)
-20. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **The quantitative and statistical reasoning a senior engineer uses to make code-review tempo a managed system rather than a folk belief.**

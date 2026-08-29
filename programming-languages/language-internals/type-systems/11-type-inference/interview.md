@@ -10,17 +10,6 @@ These questions probe whether a candidate understands type inference as a *mecha
 
 The questions move from conceptual foundations, through language-specific surfaces (Haskell/ML HM, Rust, TypeScript, C++ `auto`, Java `var`/diamond, Scala), into traps where the textbook answer is wrong, and finally to design judgment about annotation policy.
 
-## Table of Contents
-
-- [Conceptual / Foundational](#conceptual--foundational)
-- [Language-Specific](#language-specific)
-- [Tricky / Trap Questions](#tricky--trap-questions)
-- [Design / Judgment](#design--judgment)
-- [Cheat Sheet](#cheat-sheet)
-- [Further Reading](#further-reading)
-
----
-
 ## Conceptual / Foundational
 
 ## Question 1

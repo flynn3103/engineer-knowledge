@@ -5,20 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [The Lexer Is Often the Hot Path](#the-lexer-is-often-the-hot-path)
-3. [Error Recovery in the Lexer](#error-recovery-in-the-lexer)
-4. [Incremental and Editor Lexing](#incremental-and-editor-lexing)
-5. [Unicode and Security](#unicode-and-security)
-6. [Best Practices](#best-practices)
-7. [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-8. [War Stories](#war-stories)
-9. [Summary](#summary)
-
----
-
 ## Introduction
 
 In production the lexer is judged on three axes the textbook ignores: **speed** (it

@@ -4,31 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Comments vs. Docstrings: the One Distinction to Get Right](#comments-vs-docstrings-the-one-distinction-to-get-right)
-5. [Comment Philosophy in Brief](#comment-philosophy-in-brief)
-6. [What a Docstring Is](#what-a-docstring-is)
-7. [Docstring Conventions by Language](#docstring-conventions-by-language)
-8. [Anatomy of a Good Docstring](#anatomy-of-a-good-docstring)
-9. [Bad Docstring vs. Good Docstring](#bad-docstring-vs-good-docstring)
-10. [Doc Generators: From Source to a Reference Site](#doc-generators-from-source-to-a-reference-site)
-11. [Doc-Tests: Documentation That Can't Lie](#doc-tests-documentation-that-cant-lie)
-12. [Best Practices](#best-practices)
-13. [Common Mistakes](#common-mistakes)
-14. [Tricky Points](#tricky-points)
-15. [Test Yourself](#test-yourself)
-16. [Cheat Sheet](#cheat-sheet)
-17. [Summary](#summary)
-18. [Further Reading](#further-reading)
-19. [Related Topics](#related-topics)
-20. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **What is it?** and **How to use it?**

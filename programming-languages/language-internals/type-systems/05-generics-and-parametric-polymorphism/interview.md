@@ -10,23 +10,6 @@ These questions probe whether a candidate understands generics as more than "the
 
 A weaker candidate treats every language's generics as interchangeable, conflates parametric with subtype polymorphism, doesn't know why Java boxes or why Rust binaries grow, and can't explain a single free theorem. The questions move from conceptual foundations, through language-specific surfaces (Java erasure, C++ templates, C# reification, Rust monomorphization, Go's hybrid, Haskell typeclasses), into trap questions where the naive answer is wrong, then to design scenarios.
 
-## Table of Contents
-
-- [Conceptual / Foundational](#conceptual--foundational)
-- [Language-Specific](#language-specific)
-  - [Java](#java)
-  - [C++](#c)
-  - [C#](#c-1)
-  - [Rust](#rust)
-  - [Go](#go)
-  - [Haskell](#haskell)
-- [Tricky / Trap Questions](#tricky--trap-questions)
-- [Design Questions](#design-questions)
-- [Cheat Sheet](#cheat-sheet)
-- [Further Reading](#further-reading)
-
----
-
 ## Conceptual / Foundational
 
 ## Question 1

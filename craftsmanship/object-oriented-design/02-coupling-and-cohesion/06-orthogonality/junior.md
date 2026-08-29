@@ -4,32 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Where the Word Comes From](#where-the-word-comes-from)
-5. [The Definition](#the-definition)
-6. [The Two Analogies From the Book](#the-two-analogies-from-the-book)
-7. [Why Orthogonality Matters](#why-orthogonality-matters)
-8. [A Worked Example: A Non-Orthogonal Design and Its Fix](#a-worked-example-a-non-orthogonal-design-and-its-fix)
-9. [Global State: The Orthogonality Killer](#global-state-the-orthogonality-killer)
-10. [How Orthogonality Relates to Coupling and Cohesion](#how-orthogonality-relates-to-coupling-and-cohesion)
-11. [How to Achieve It](#how-to-achieve-it)
-12. [Mental Models](#mental-models)
-13. [Best Practices](#best-practices)
-14. [Common Mistakes](#common-mistakes)
-15. [Tricky Points](#tricky-points)
-16. [Test Yourself](#test-yourself)
-17. [Cheat Sheet](#cheat-sheet)
-18. [Summary](#summary)
-19. [Further Reading](#further-reading)
-20. [Related Topics](#related-topics)
-21. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **What is it?** and **How to use it?**

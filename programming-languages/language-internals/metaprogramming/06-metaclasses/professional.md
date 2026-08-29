@@ -5,20 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Where Metaclasses Actually Ship](#where-metaclasses-actually-ship)
-3. [The Modern Alternatives That Replaced Most Metaclasses](#the-modern-alternatives-that-replaced-most-metaclasses)
-4. [Code Examples](#code-examples)
-5. [Performance & Startup](#performance--startup)
-6. [Best Practices](#best-practices)
-7. [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-8. [War Stories](#war-stories)
-9. [Summary](#summary)
-
----
-
 ## Introduction
 
 By the professional tier the interesting question about metaclasses is not "how

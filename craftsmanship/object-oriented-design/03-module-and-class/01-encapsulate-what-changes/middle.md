@@ -7,26 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [The Parnas Insight, Properly](#the-parnas-insight-properly)
-3. [Finding the Axis of Variation in Practice](#finding-the-axis-of-variation-in-practice)
-4. [The Mechanisms of Encapsulation](#the-mechanisms-of-encapsulation)
-5. [This Is the Engine Behind Open/Closed and DIP](#this-is-the-engine-behind-openclosed-and-dip)
-6. [Depend on What Changes Least: Stable Dependencies](#depend-on-what-changes-least-stable-dependencies)
-7. [The YAGNI Tension, Rigorously](#the-yagni-tension-rigorously)
-8. [Relationship to SRP](#relationship-to-srp)
-9. [Trade-offs](#trade-offs)
-10. [Edge Cases](#edge-cases)
-11. [Tricky Points](#tricky-points)
-12. [Best Practices](#best-practices)
-13. [Test Yourself](#test-yourself)
-14. [Summary](#summary)
-15. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **Why** and **When**

@@ -4,21 +4,6 @@
 
 ---
 
-## Table of Contents
-- [Introduction](#introduction)
-- [Prerequisites](#prerequisites)
-- [SLO-Driven Tuning: Turning a Latency Target into GC Settings](#slo-driven-tuning-turning-a-latency-target-into-gc-settings)
-- [The Container Reality: Where GC Outages Are Born](#the-container-reality-where-gc-outages-are-born)
-- [War Stories](#war-stories)
-- [Mental Models](#mental-models)
-- [Code Examples](#code-examples)
-- [Operational Patterns](#operational-patterns)
-- [Best Practices](#best-practices)
-- [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-- [Summary](#summary)
-
----
-
 ## Introduction
 
 At this level GC tuning stops being about flags and starts being about **incidents, SLOs, and 3 a.m. pages.** The questions change: not "what does `MaxGCPauseMillis` do," but "our p999 jumped from 40 ms to 1.2 s at 14:03 and the on-call needs a root cause." Most real GC outages are not exotic collector internals — they're a container memory limit set wrong, an allocation regression from a deploy, or a slow leak that finally crossed the line under peak traffic.

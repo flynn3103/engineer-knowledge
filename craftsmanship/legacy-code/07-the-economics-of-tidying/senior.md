@@ -4,20 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [The senior reframing: tidying as buying an option](#the-senior-reframing-tidying-as-buying-an-option)
-2. [Optionality vs. discounting: the central tension](#optionality-vs-discounting-the-central-tension)
-3. [Coupling and cohesion as the true cost drivers](#coupling-and-cohesion-as-the-true-cost-drivers)
-4. [Reversibility and small batches lower the risk premium](#reversibility-and-small-batches-lower-the-risk-premium)
-5. [Discounted cash flow, made operational](#discounted-cash-flow-made-operational)
-6. [When NOT to tidy: the never quadrant](#when-not-to-tidy-the-never-quadrant)
-7. [Worked judgement calls](#worked-judgement-calls)
-8. [The human layer underneath the economics](#the-human-layer-underneath-the-economics)
-9. [Related Topics](#related-topics)
-
----
-
 ## The senior reframing: tidying as buying an option
 
 The middle file gave you a break-even ledger: discounted future savings versus up-front cost. That model is correct but incomplete, because it assumes you *know* the future changes are coming. Often you don't. The senior insight is that tidying is frequently an **option**, not a commitment — and options are priced differently from certain cash flows.

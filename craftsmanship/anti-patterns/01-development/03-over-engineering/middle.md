@@ -5,29 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [The Real Question: When Does This Creep In?](#the-real-question-when-does-this-creep-in)
-4. [Premature Optimization — Measure, Don't Guess](#premature-optimization--measure-dont-guess)
-5. [Speculative Generality — The Rule of Three and Real Seams](#speculative-generality--the-rule-of-three-and-real-seams)
-6. [Gold Plating — Scope Discipline](#gold-plating--scope-discipline)
-7. [Yo-yo & Lasagna — Finding the Right Number of Layers](#yo-yo--lasagna--finding-the-right-number-of-layers)
-8. [Accidental Complexity — The Core Skill](#accidental-complexity--the-core-skill)
-9. [Soft Coding — Where the Line Really Is](#soft-coding--where-the-line-really-is)
-10. [Bikeshedding — Protecting Attention](#bikeshedding--protecting-attention)
-11. [The Hardest Part: Telling Over- from Under-Engineering](#the-hardest-part-telling-over--from-under-engineering)
-12. [Catching It in Review](#catching-it-in-review)
-13. [Common Mistakes](#common-mistakes)
-14. [Test Yourself](#test-yourself)
-15. [Cheat Sheet](#cheat-sheet)
-16. [Summary](#summary)
-17. [Further Reading](#further-reading)
-18. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **When does this creep in?** and **What do I do instead?**

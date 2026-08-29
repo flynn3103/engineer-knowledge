@@ -10,25 +10,6 @@ These questions probe whether a candidate truly understands what an integer *is*
 
 A weaker candidate says "it just wraps around" for everything and cannot explain why that's wrong for C (undefined behavior), why `abs(INT_MIN)` is broken, or why `-1 < 1u` is false. The questions below run from foundational vocabulary, through language-specific surfaces, into traps where the textbook answer is incorrect, and finally to design and security scenarios that reveal whether the candidate has shipped systems where integer width and overflow actually mattered.
 
-## Table of Contents
-
-- [Conceptual / Foundational](#conceptual--foundational)
-- [Language-Specific](#language-specific)
-  - [Java](#java)
-  - [Go](#go)
-  - [Python](#python)
-  - [C++](#c)
-  - [Rust](#rust)
-- [Tricky / Trap Questions](#tricky--trap-questions)
-- [Design / Scenario Questions](#design--scenario-questions)
-- [Coding Questions](#coding-questions)
-- [What I'd Ask a Candidate Now](#what-id-ask-a-candidate-now)
-- [Cheat Sheet](#cheat-sheet)
-- [Further Reading](#further-reading)
-- [Related Topics](#related-topics)
-
----
-
 ## Conceptual / Foundational
 
 ## Question 1

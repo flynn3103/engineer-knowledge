@@ -5,28 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [How Did the Codebase Get Here? — Root-Cause Forces](#how-did-the-codebase-get-here--root-cause-forces)
-4. [The Senior Cure: Designing Out Shared Mutable State](#the-senior-cure-designing-out-shared-mutable-state)
-5. [Eliminating Races Structurally: Immutability, Confinement, Message Passing](#eliminating-races-structurally-immutability-confinement-message-passing)
-6. [Replacing Busy Waiting with Real Synchronization and Backpressure](#replacing-busy-waiting-with-real-synchronization-and-backpressure)
-7. [Choosing a Concurrency Architecture — and the C10k Lesson](#choosing-a-concurrency-architecture--and-the-c10k-lesson)
-8. [Capacity Planning for Pools: Little's Law, Bounds, Load Shedding](#capacity-planning-for-pools-littles-law-bounds-load-shedding)
-9. [Auditing for Races at Scale](#auditing-for-races-at-scale)
-10. [When Each Anti-Pattern Is Actually Acceptable](#when-each-anti-pattern-is-actually-acceptable)
-11. [Preventing Shared-State Decay Organizationally](#preventing-shared-state-decay-organizationally)
-12. [Common Mistakes](#common-mistakes)
-13. [Test Yourself](#test-yourself)
-14. [Cheat Sheet](#cheat-sheet)
-15. [Summary](#summary)
-16. [Further Reading](#further-reading)
-17. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **How did the codebase get here?** and **How do I fix it safely at scale?**

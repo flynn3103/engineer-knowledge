@@ -4,32 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [The Five Diagrams That Matter](#the-five-diagrams-that-matter)
-5. [Class Diagram: What Things Are](#class-diagram-what-things-are)
-6. [Sequence Diagram: What Happens, In Order](#sequence-diagram-what-happens-in-order)
-7. [State-Machine Diagram: The Lifecycle of One Thing](#state-machine-diagram-the-lifecycle-of-one-thing)
-8. [Activity Diagram: A Workflow With Branches](#activity-diagram-a-workflow-with-branches)
-9. [Use-Case Diagram: Actors and Scope](#use-case-diagram-actors-and-scope)
-10. [Reading the Notation](#reading-the-notation)
-11. [UML Is for Sketching, Not Ceremony](#uml-is-for-sketching-not-ceremony)
-12. [Which Diagram Answers Which Question](#which-diagram-answers-which-question)
-13. [Best Practices](#best-practices)
-14. [Common Mistakes](#common-mistakes)
-15. [Tricky Points](#tricky-points)
-16. [Test Yourself](#test-yourself)
-17. [Cheat Sheet](#cheat-sheet)
-18. [Summary](#summary)
-19. [Further Reading](#further-reading)
-20. [Related Topics](#related-topics)
-21. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **What is it?** and **How do I read it?**

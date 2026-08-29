@@ -3,14 +3,6 @@
 
 A focused bank of stack-vs-heap interview questions spanning fundamentals, language-specific tooling, classic traps, and design judgment. Each answer is the tight, correct response a strong candidate gives — enough to demonstrate depth without rambling. Use the traps section especially: they are where interviewers separate memorizers from people who understand the machine.
 
-## Table of Contents
-- [Conceptual](#conceptual)
-- [Tool-Specific](#tool-specific)
-- [Tricky / Trap](#tricky--trap)
-- [Design](#design)
-
----
-
 ## Conceptual
 
 ## Question 1

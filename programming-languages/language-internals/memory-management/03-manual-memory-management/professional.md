@@ -5,25 +5,6 @@
 
 ---
 
-## Table of Contents
-
-- [Introduction](#introduction)
-- [Prerequisites](#prerequisites)
-- [Glossary](#glossary)
-- [Core Concepts](#core-concepts)
-- [Tooling: The Sanitizer & Analyzer Stack](#tooling-the-sanitizer--analyzer-stack)
-- [War Stories](#war-stories)
-- [Mental Models](#mental-models)
-- [Code Examples](#code-examples)
-- [Coding Patterns](#coding-patterns)
-- [Pros & Cons](#pros--cons)
-- [Use Cases](#use-cases)
-- [Best Practices](#best-practices)
-- [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-- [Summary](#summary)
-
----
-
 ## Introduction
 
 In production, a memory bug is not an academic curiosity — it is a 3 a.m. page, a CVE with your company's name on it, or a customer's data exfiltrated through a heap overflow. Microsoft and Google have both reported that **roughly 70% of their severe security vulnerabilities are memory-safety issues** in C/C++ — the dominant category, year after year. That single statistic is why Rust adoption is accelerating, why Android and Chromium are migrating subsystems, and why the U.S. CISA has urged the industry away from memory-unsafe languages.

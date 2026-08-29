@@ -1,20 +1,5 @@
 # Seams and Enabling Points — Professional
 
-## Table of Contents
-
-- [Seams on real systems, not toy classes](#seams-on-real-systems-not-toy-classes)
-- [Build-system implications of each seam type](#build-system-implications-of-each-seam-type)
-- [Introducing seams without destabilizing main](#introducing-seams-without-destabilizing-main)
-- [Coordinating seams across teams](#coordinating-seams-across-teams)
-- [When NOT to use a seam: invest in real refactoring](#when-not-to-use-a-seam-invest-in-real-refactoring)
-- [Reviewing seam-introducing changes](#reviewing-seam-introducing-changes)
-- [Checklists](#checklists)
-- [War stories](#war-stories)
-- [Pitfalls that bite teams](#pitfalls-that-bite-teams)
-- [Related Topics](#related-topics)
-
----
-
 ## Seams on real systems, not toy classes
 
 The worked examples in the junior and middle pages are single classes with one or two welded-in dependencies. Real legacy systems present the same idea at a scale that introduces problems the toy examples never show: the dependency you want to seam is referenced from two hundred call sites, it's a static singleton initialized at process start, the build links it from a third-party binary you can't recompile, and three other teams ship code that constructs the class you're trying to make injectable. The *concept* of a seam doesn't change. The *engineering* of getting one in safely, on a system other people depend on, is the professional skill.

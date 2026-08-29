@@ -5,29 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [The Real Problem: Landing the Diff, Not Writing It](#the-real-problem-landing-the-diff-not-writing-it)
-4. [Sequence the Rollout with Hotspots and Fitness Functions](#sequence-the-rollout-with-hotspots-and-fitness-functions)
-5. [Splitting a Huge Diff into Reviewable Chunks](#splitting-a-huge-diff-into-reviewable-chunks)
-6. [Staged and Partial Application](#staged-and-partial-application)
-7. [Commit Hygiene: Never Mix Mechanical and Semantic](#commit-hygiene-never-mix-mechanical-and-semantic)
-8. [Routing Review with CODEOWNERS](#routing-review-with-codeowners)
-9. [Handling Non-Matching and Quarantined Files](#handling-non-matching-and-quarantined-files)
-10. [Rollback and the Re-Run Property](#rollback-and-the-re-run-property)
-11. [Locking the Old Pattern Out for Good](#locking-the-old-pattern-out-for-good)
-12. [A Rollout Playbook](#a-rollout-playbook)
-13. [Common Mistakes](#common-mistakes)
-14. [Test Yourself](#test-yourself)
-15. [Cheat Sheet](#cheat-sheet)
-16. [Summary](#summary)
-17. [Further Reading](#further-reading)
-18. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Rolling a transform across a monorepo / many repos** — the engineering is no longer the transform; it's *landing* a 40,000-line mechanical diff that humans must review, that won't conflict for weeks, that can be rolled back, and that doesn't come right back.

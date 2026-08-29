@@ -5,19 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [How to Use This Page](#how-to-use-this-page)
-2. [Warm-Up](#warm-up)
-3. [Python Decorator Tasks](#python-decorator-tasks)
-4. [Java Annotation Tasks](#java-annotation-tasks)
-5. [TypeScript / C# Tasks](#typescript--c-tasks)
-6. [Cross-Cutting & Trap Tasks](#cross-cutting--trap-tasks)
-7. [Stretch Projects](#stretch-projects)
-8. [Solutions (Sparse)](#solutions-sparse)
-
----
-
 ## How to Use This Page
 
 Each task has a **goal**, a **self-check** (how to know you succeeded), and a **hint**. Try the task before reading the hint, and write the self-check assertion *first* so you have a target. Sparse solutions for the trickier tasks are at the bottom — consult them only after a genuine attempt. The golden rule running through every task: **before you write code, say out loud whether you're dealing with metadata (someone must read it) or behavior (it runs and wraps).**

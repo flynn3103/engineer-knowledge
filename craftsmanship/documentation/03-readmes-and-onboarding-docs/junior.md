@@ -4,31 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [The README as the Front Door](#the-readme-as-the-front-door)
-5. [The 30-Second Test](#the-30-second-test)
-6. [README Anatomy](#readme-anatomy)
-7. [A Weak README vs. a Strong One](#a-weak-readme-vs-a-strong-one)
-8. [Quick Start: Commands That Actually Work](#quick-start-commands-that-actually-work)
-9. [The Companion Files](#the-companion-files)
-10. [Onboarding Docs](#onboarding-docs)
-11. [Writing for the Reader](#writing-for-the-reader)
-12. [Best Practices](#best-practices)
-13. [Common Mistakes](#common-mistakes)
-14. [Tricky Points](#tricky-points)
-15. [Test Yourself](#test-yourself)
-16. [Cheat Sheet](#cheat-sheet)
-17. [Summary](#summary)
-18. [Further Reading](#further-reading)
-19. [Related Topics](#related-topics)
-20. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **What is it?** and **How to use it?**

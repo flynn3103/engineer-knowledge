@@ -5,23 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [The Professional Workflow](#the-professional-workflow)
-3. [Reading Go Escape Output in Depth](#reading-go-escape-output-in-depth)
-4. [Measuring Allocations That Matter](#measuring-allocations-that-matter)
-5. [Go Tuning Recipes](#go-tuning-recipes)
-6. [Reading and Tuning HotSpot Escape Analysis](#reading-and-tuning-hotspot-escape-analysis)
-7. [Catching Regressions in CI](#catching-regressions-in-ci)
-8. [Worked Case Studies](#worked-case-studies)
-9. [Pros & Cons](#pros--cons)
-10. [Best Practices](#best-practices)
-11. [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-12. [Summary](#summary)
-
----
-
 ## Introduction
 
 This tier is operational. You will be handed a service with a p99 latency problem traced to GC pressure, or a hot function allocating in a tight loop, and asked to fix it without rewriting the architecture. The toolchain — `-gcflags='-m -m'`, `pprof`, `benchstat`, HotSpot diagnostic options, JITWatch, async-profiler — is how you turn "the optimizer should handle this" into a verified, regression-guarded result.

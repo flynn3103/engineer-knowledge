@@ -4,24 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [What "Slow" Actually Costs](#what-slow-actually-costs)
-4. [The One Cause You'll Create First: Real I/O](#the-one-cause-youll-create-first-real-io)
-5. [The Second Cause: `sleep`](#the-second-cause-sleep)
-6. [The Test Pyramid, in One Picture](#the-test-pyramid-in-one-picture)
-7. [Fast Is a Feature](#fast-is-a-feature)
-8. [Common Mistakes](#common-mistakes)
-9. [Test Yourself](#test-yourself)
-10. [Cheat Sheet](#cheat-sheet)
-11. [Summary](#summary)
-12. [Further Reading](#further-reading)
-13. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Why slow tests quietly kill the suite.**

@@ -5,28 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [The Event Loop & Microtask Queue — Where Rejections Actually Go](#the-event-loop--microtask-queue--where-rejections-actually-go)
-4. [Swallowed Rejection — `unhandledrejection` and the Process-Kill Policy](#swallowed-rejection--unhandledrejection-and-the-process-kill-policy)
-5. [Floating Promise & the Memory It Pins](#floating-promise--the-memory-it-pins)
-6. [Fire-and-Forget — Listener, Timer, and Task Leaks Without Logging](#fire-and-forget--listener-timer-and-task-leaks-without-logging)
-7. [Forgotten `await` — The Truthy Promise and the Silent Logic Bug](#forgotten-await--the-truthy-promise-and-the-silent-logic-bug)
-8. [Tracing Across Async Boundaries — `AsyncLocalStorage` and Its Cost](#tracing-across-async-boundaries--asynclocalstorage-and-its-cost)
-9. [Python `asyncio` — Destroyed Tasks and Un-Retrieved Exceptions](#python-asyncio--destroyed-tasks-and-un-retrieved-exceptions)
-10. [Go Contrast — Errors Are Values, Goroutines Still Leak](#go-contrast--errors-are-values-goroutines-still-leak)
-11. [A Combined Worked Example — A Leak You Can Watch Grow](#a-combined-worked-example--a-leak-you-can-watch-grow)
-12. [Common Mistakes](#common-mistakes)
-13. [Test Yourself](#test-yourself)
-14. [Cheat Sheet](#cheat-sheet)
-15. [Summary](#summary)
-16. [Further Reading](#further-reading)
-17. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **what these four anti-patterns cost the runtime** — the microtask queue, the heap, event-listener and timer tables, the tracing context — and **how you observe a failure that, by definition, made itself invisible.**

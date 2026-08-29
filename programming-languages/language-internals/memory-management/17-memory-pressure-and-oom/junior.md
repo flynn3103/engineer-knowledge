@@ -5,23 +5,6 @@
 
 ---
 
-## Table of Contents
-
-- [Introduction](#introduction)
-- [Prerequisites](#prerequisites)
-- [Glossary](#glossary)
-- [Core Concepts](#core-concepts)
-- [Real-World Analogies](#real-world-analogies)
-- [Mental Models](#mental-models)
-- [Code Examples](#code-examples)
-- [Pros & Cons](#pros--cons)
-- [Use Cases](#use-cases)
-- [Best Practices](#best-practices)
-- [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-- [Summary](#summary)
-
----
-
 ## Introduction
 
 Sooner or later every program meets the same wall: there is no more memory. When that happens your process does not get a polite error and a chance to recover. On Linux it usually gets **killed** — terminated instantly with no warning and no cleanup. The log says something like `Out of memory: Killed process 4821 (python)`, your service vanishes, and your pager goes off.

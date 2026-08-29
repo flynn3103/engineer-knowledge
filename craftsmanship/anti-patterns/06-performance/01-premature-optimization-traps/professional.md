@@ -4,26 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Two Opposite Failures, Two Different Cures](#two-opposite-failures-two-different-cures)
-4. [Death by a Thousand Cuts](#death-by-a-thousand-cuts)
-5. [The Real Cost of Premature Optimization](#the-real-cost-of-premature-optimization)
-6. [The Compiler and JIT Already Did It](#the-compiler-and-jit-already-did-it)
-7. [Benchmarking Pitfalls That Make You Lie to Yourself](#benchmarking-pitfalls-that-make-you-lie-to-yourself)
-8. [Performance Budgets and SLO-Driven Optimization](#performance-budgets-and-slo-driven-optimization)
-9. [A Combined Worked Example](#a-combined-worked-example)
-10. [Common Mistakes](#common-mistakes)
-11. [Test Yourself](#test-yourself)
-12. [Cheat Sheet](#cheat-sheet)
-13. [Summary](#summary)
-14. [Further Reading](#further-reading)
-15. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **The hard line and the opposite failure** — when a flat profile means *everything* is slow (death by a thousand cuts), why the compiler already did your micro-opts, how benchmarks lie if you let them, and how SLOs and perf budgets decide what's worth optimizing.

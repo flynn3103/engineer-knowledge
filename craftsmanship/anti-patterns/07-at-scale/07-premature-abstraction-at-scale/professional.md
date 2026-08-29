@@ -5,28 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Measure First: What Indirection Actually Costs](#measure-first-what-indirection-actually-costs)
-4. [The Readability & Onboarding Cost](#the-readability--onboarding-cost)
-5. [The Runtime Cost: Dispatch, Allocation, Layers](#the-runtime-cost-dispatch-allocation-layers)
-6. [The Build Cost: A Deep Generic Graph](#the-build-cost-a-deep-generic-graph)
-7. [A Worked Before/After With Measured Cost](#a-worked-beforeafter-with-measured-cost)
-8. [AHA in Depth: Abstraction as a Cost/Benefit Curve Over Time](#aha-in-depth-abstraction-as-a-costbenefit-curve-over-time)
-9. [DRY vs DAMP: Picking the Right Default per Context](#dry-vs-damp-picking-the-right-default-per-context)
-10. [The Meta-Anti-Pattern: Hunting Abstractions Everywhere](#the-meta-anti-pattern-hunting-abstractions-everywhere)
-11. [Governing Abstraction Without Rule-Worship](#governing-abstraction-without-rule-worship)
-12. [Common Mistakes](#common-mistakes)
-13. [Test Yourself](#test-yourself)
-14. [Cheat Sheet](#cheat-sheet)
-15. [Summary](#summary)
-16. [Further Reading](#further-reading)
-17. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Measuring the cost of abstraction and governing it across an org without dogma** — the readability/onboarding tax, the runtime cost of dispatch and layers, the build cost of a deep generic graph, AHA as a cost curve, DRY-vs-DAMP, and the meta-point that *hunting abstractions everywhere is itself an anti-pattern.*

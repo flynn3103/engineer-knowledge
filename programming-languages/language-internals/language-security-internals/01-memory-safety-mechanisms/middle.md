@@ -5,31 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concepts](#core-concepts)
-5. [Real-World Analogies](#real-world-analogies)
-6. [Mental Models](#mental-models)
-7. [Code Examples](#code-examples)
-8. [Pros & Cons](#pros--cons)
-9. [Use Cases](#use-cases)
-10. [Coding Patterns](#coding-patterns)
-11. [Best Practices](#best-practices)
-12. [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-13. [Common Mistakes](#common-mistakes)
-14. [Tricky Points](#tricky-points)
-15. [Test Yourself](#test-yourself)
-16. [Cheat Sheet](#cheat-sheet)
-17. [Summary](#summary)
-18. [Further Reading](#further-reading)
-19. [Related Topics](#related-topics)
-20. [Diagrams & Visual Aids](#diagrams--visual-aids)
-
----
-
 ## Introduction
 
 > Focus: **How do the tools that catch memory bugs actually catch them?** Not "use ASan" but "what does ASan *do* to your program so that an out-of-bounds write becomes a precise report?"

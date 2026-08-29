@@ -5,28 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [How Did the Codebase Get Here? — Root-Cause Forces](#how-did-the-codebase-get-here--root-cause-forces)
-4. [The Senior Refactoring Toolkit](#the-senior-refactoring-toolkit)
-5. [Dismantling a God Object at Scale](#dismantling-a-god-object-at-scale)
-6. [Untangling Spaghetti: State Machines and Explicit Pipelines](#untangling-spaghetti-state-machines-and-explicit-pipelines)
-7. [Lava Flow: Archaeology and Safe-Delete Campaigns](#lava-flow-archaeology-and-safe-delete-campaigns)
-8. [Boat Anchor: Governing Speculative Abstraction](#boat-anchor-governing-speculative-abstraction)
-9. [Arrow: Replacing Conditional Towers Structurally](#arrow-replacing-conditional-towers-structurally)
-10. [When NOT to Refactor](#when-not-to-refactor)
-11. [Preventing Structural Decay Organizationally](#preventing-structural-decay-organizationally)
-12. [Common Mistakes](#common-mistakes)
-13. [Test Yourself](#test-yourself)
-14. [Cheat Sheet](#cheat-sheet)
-15. [Summary](#summary)
-16. [Further Reading](#further-reading)
-17. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **How did the codebase get here?** and **How do I refactor safely at scale?**

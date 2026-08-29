@@ -7,23 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Enforcing OCP in Code Review](#enforcing-ocp-in-code-review)
-3. [The Two Failure Directions a Reviewer Must Catch](#the-two-failure-directions-a-reviewer-must-catch)
-4. [Team Conventions for OCP](#team-conventions-for-ocp)
-5. [Refactoring Legacy Type-Switches Toward OCP](#refactoring-legacy-type-switches-toward-ocp)
-6. [Removing a Speculative OCP Abstraction Safely](#removing-a-speculative-ocp-abstraction-safely)
-7. [Real Incidents](#real-incidents)
-8. [The Politics of "Flexibility"](#the-politics-of-flexibility)
-9. [Review Checklist](#review-checklist)
-10. [Cheat Sheet](#cheat-sheet)
-11. [Diagrams](#diagrams)
-12. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **production** — keeping a large, multi-contributor codebase extensible in the right places and simple everywhere else.

@@ -5,26 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Resolution Is SAT — and What That Buys the Solver](#resolution-is-sat--and-what-that-buys-the-solver)
-4. [One Version or Many: a Correctness Decision](#one-version-or-many-a-correctness-decision)
-5. [MVS, Defended Properly](#mvs-defended-properly)
-6. [Integrity and the Supply Chain](#integrity-and-the-supply-chain)
-7. [Vendoring at Scale](#vendoring-at-scale)
-8. [The Monorepo Single-Version Policy](#the-monorepo-single-version-policy)
-9. [Mental Models](#mental-models)
-10. [Common Mistakes](#common-mistakes)
-11. [Test Yourself](#test-yourself)
-12. [Cheat Sheet](#cheat-sheet)
-13. [Summary](#summary)
-14. [Further Reading](#further-reading)
-15. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **The algorithmic, architectural, and security depths under "the tool resolves your dependencies."**

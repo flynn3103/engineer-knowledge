@@ -7,23 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [The Real Boundary: Reversibility, Not Timing](#the-real-boundary-reversibility-not-timing)
-3. [Architecture-Level Performance Is Never Premature](#architecture-level-performance-is-never-premature)
-4. [Mechanical Sympathy](#mechanical-sympathy)
-5. [Performance Budgets and Benchmarks](#performance-budgets-and-benchmarks)
-6. [When the Principle Is Abused](#when-the-principle-is-abused)
-7. [Designing for Optimizability](#designing-for-optimizability)
-8. [Code Examples — Advanced](#code-examples--advanced)
-9. [Liabilities](#liabilities)
-10. [Pros & Cons at the System Level](#pros--cons-at-the-system-level)
-11. [Diagrams](#diagrams)
-12. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **design trade-offs** and **system-level reasoning**

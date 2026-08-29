@@ -5,28 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [How Did the Codebase Get Here? — Root-Cause Forces](#how-did-the-codebase-get-here--root-cause-forces)
-4. [The Memory-Model Foundation](#the-memory-model-foundation)
-5. [The History: Why DCL Was Broken Before Java 5](#the-history-why-dcl-was-broken-before-java-5)
-6. [Designing Safe Lazy Initialization at Scale](#designing-safe-lazy-initialization-at-scale)
-7. [Volatile Misuse and the Limits of Atomics](#volatile-misuse-and-the-limits-of-atomics)
-8. [Auditing a Codebase for Synchronization Misuse](#auditing-a-codebase-for-synchronization-misuse)
-9. [Eradication Strategies at Scale](#eradication-strategies-at-scale)
-10. [When Each Pattern Is Actually Acceptable](#when-each-pattern-is-actually-acceptable)
-11. [Prevention: Review Norms, Race Detectors, Immutability](#prevention-review-norms-race-detectors-immutability)
-12. [Common Mistakes](#common-mistakes)
-13. [Test Yourself](#test-yourself)
-14. [Cheat Sheet](#cheat-sheet)
-15. [Summary](#summary)
-16. [Further Reading](#further-reading)
-17. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **How did the codebase get here?** and **How do I fix it safely at scale?**

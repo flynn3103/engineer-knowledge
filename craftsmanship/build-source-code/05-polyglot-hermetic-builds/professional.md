@@ -5,25 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [The Adoption Decision — When It Pays Off, When It's Overkill](#the-adoption-decision--when-it-pays-off-when-its-overkill)
-3. [Migration Strategy and Its Multi-Quarter Cost](#migration-strategy-and-its-multi-quarter-cost)
-4. [Running RBE — Self-Hosted vs SaaS](#running-rbe--self-hosted-vs-saas)
-5. [Measuring What Matters — Cache Hit Rate and Beyond](#measuring-what-matters--cache-hit-rate-and-beyond)
-6. [Org-Wide BUILD Hygiene and Gazelle](#org-wide-build-hygiene-and-gazelle)
-7. [War Stories](#war-stories)
-8. [Mental Models](#mental-models)
-9. [Common Mistakes](#common-mistakes)
-10. [Test Yourself](#test-yourself)
-11. [Cheat Sheet](#cheat-sheet)
-12. [Summary](#summary)
-13. [Further Reading](#further-reading)
-14. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Should we adopt a hermetic build at all, and if so, how do we run it without it running us?**

@@ -5,26 +5,6 @@
 
 ---
 
-## Table of Contents
-
-- [Introduction](#introduction)
-- [Core Concepts](#core-concepts)
-  - [The DMA / async-IO buffer: the canonical driver](#the-dma--async-io-buffer-the-canonical-driver)
-  - [Why pinning fragments a compacting heap](#why-pinning-fragments-a-compacting-heap)
-  - [Pinning and pause time](#pinning-and-pause-time)
-- [FFI Integration In Practice](#ffi-integration-in-practice)
-  - [.NET: pinning across async I/O](#net-pinning-across-async-io)
-  - [Go: cgo, runtime.Pinner, and struct graphs](#go-cgo-runtimepinner-and-struct-graphs)
-  - [JVM: critical regions, copies, and off-heap](#jvm-critical-regions-copies-and-off-heap)
-- [War Stories](#war-stories)
-- [Diagnosing Pinning Problems](#diagnosing-pinning-problems)
-- [Pros & Cons](#pros--cons)
-- [Best Practices](#best-practices)
-- [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-- [Summary](#summary)
-
----
-
 ## Introduction
 
 At the senior tier, pinning is a clean contract: tell the collector "don't move this," hand the address across the boundary, release. In production, the contract leaks. A pin that was supposed to last microseconds spans an `await` that blocks on a slow network. A high-throughput service pins thousands of receive buffers simultaneously and watches its compacting heap turn into Swiss cheese. A cgo caller passes a Go struct that *looks* pointer-free but isn't after someone adds a field. This tier is about those failure modes — what they look like in a profiler, why they happen, and the integration patterns that keep them from happening.

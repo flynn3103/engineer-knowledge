@@ -5,17 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Conceptual Questions](#conceptual-questions)
-3. [Tool-Specific Questions](#tool-specific-questions)
-4. [Tricky-Trap Questions](#tricky-trap-questions)
-5. [Design Questions](#design-questions)
-6. [Summary](#summary)
-
----
-
 ## Introduction
 
 This page is a question bank for parsing interviews, from junior screens to senior/staff compiler-engineering rounds. Questions are grouped so you can drill the area you're weak in: **Conceptual** (the theory — grammars, LL/LR, FIRST/FOLLOW, ambiguity), **Tool-Specific** (recursive descent, yacc/bison LALR, ANTLR LL(*), PEG, hand-written parsers), **Tricky-Trap** (the questions that catch people who memorized definitions), and **Design** (open-ended "how would you build it?" rounds). Each question includes a complete answer; treat the answer as the *floor* of what a strong candidate says, not a script — the best answers connect ideas across groups.

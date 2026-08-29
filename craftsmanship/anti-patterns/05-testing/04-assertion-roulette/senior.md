@@ -4,26 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [The Design Principle: One Reason to Fail](#the-design-principle-one-reason-to-fail)
-4. [AAA Makes the Assert Block Legible](#aaa-makes-the-assert-block-legible)
-5. [Naming Tests by Behavior](#naming-tests-by-behavior)
-6. [Parameterized Tests Replace the Mega-Test](#parameterized-tests-replace-the-mega-test)
-7. [Custom Domain Assertions](#custom-domain-assertions)
-8. [Fixing It Across a Suite](#fixing-it-across-a-suite)
-9. [Balancing Granularity vs Test Count](#balancing-granularity-vs-test-count)
-10. [Common Mistakes](#common-mistakes)
-11. [Test Yourself](#test-yourself)
-12. [Cheat Sheet](#cheat-sheet)
-13. [Summary](#summary)
-14. [Further Reading](#further-reading)
-15. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **The design behind one-reason-to-fail**, and **how to remove roulette from a whole suite** — not one test at a time, but as a refactoring of how the suite is structured.

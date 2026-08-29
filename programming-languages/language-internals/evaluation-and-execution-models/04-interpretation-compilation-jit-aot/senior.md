@@ -5,26 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concepts](#core-concepts)
-5. [Real-World Analogies](#real-world-analogies)
-6. [Mental Models](#mental-models)
-7. [Code Examples](#code-examples)
-8. [Pros & Cons](#pros--cons)
-9. [Use Cases](#use-cases)
-10. [Coding Patterns](#coding-patterns)
-11. [Best Practices](#best-practices)
-12. [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-13. [Cheat Sheet](#cheat-sheet)
-14. [Summary](#summary)
-15. [Further Reading](#further-reading)
-
----
-
 ## Introduction
 
 > Focus: **The hard parts.** How does a JIT *un-compile* code when its bets go wrong? Why are there two architecturally different kinds of JIT — method-based and meta-tracing? What does it actually take to AOT-compile a language that was designed around a JIT, and what breaks? And how do you reason about the startup-vs-peak trade-off as an engineering decision rather than a slogan?

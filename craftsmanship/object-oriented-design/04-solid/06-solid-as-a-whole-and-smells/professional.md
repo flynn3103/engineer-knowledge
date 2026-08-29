@@ -7,22 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [The Unified Smell Catalog](#the-unified-smell-catalog)
-3. [Enforcing SOLID in Code Review](#enforcing-solid-in-code-review)
-4. [Automated Enforcement](#automated-enforcement)
-5. [Real Incidents](#real-incidents)
-6. [Team Adoption Without Dogma](#team-adoption-without-dogma)
-7. [Legacy Refactoring Strategy](#legacy-refactoring-strategy)
-8. [Review Checklist](#review-checklist)
-9. [Cheat Sheet](#cheat-sheet)
-10. [Diagrams](#diagrams)
-11. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **production** — keeping SOLID's *benefits* without its *dogma* across a large, multi-contributor codebase over years.

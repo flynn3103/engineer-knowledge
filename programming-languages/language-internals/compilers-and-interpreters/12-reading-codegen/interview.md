@@ -11,19 +11,6 @@ These questions probe whether a candidate can read codegen as a practical skill 
 
 The sections progress from conceptual foundations, through tool-specific fluency (Godbolt, objdump/perf, LLVM IR, JIT disassembly), into tricky traps where the obvious answer is wrong, and finally design/judgment scenarios.
 
-## Table of Contents
-
-- [Conceptual / Foundational](#conceptual--foundational)
-- [Tool-Specific](#tool-specific)
-  - [Compiler Explorer / Godbolt](#compiler-explorer--godbolt)
-  - [objdump / perf](#objdump--perf)
-  - [LLVM IR](#llvm-ir)
-  - [JIT Disassembly](#jit-disassembly)
-- [Tricky / Trap Questions](#tricky--trap-questions)
-- [Design / Judgment Scenarios](#design--judgment-scenarios)
-
----
-
 ## Conceptual / Foundational
 
 ## Question 1

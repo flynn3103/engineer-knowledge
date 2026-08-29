@@ -10,20 +10,6 @@ These questions probe whether a candidate can design, build, and *operate* an **
 
 Throughout, keep the internal/external distinction crisp: an internal/embedded DSL borrows the host language's syntax and parser (covered by metaprogramming); an external DSL brings its own and must be lexed, parsed, and evaluated by code you write. These questions are about the external kind.
 
-## Table of Contents
-
-- [Conceptual / Foundational](#conceptual--foundational)
-- [Tool-Specific](#tool-specific)
-  - [ANTLR](#antlr)
-  - [Lex / Yacc](#lex--yacc)
-  - [Parser Combinators](#parser-combinators)
-  - [Regex](#regex)
-  - [Query Languages](#query-languages)
-- [Tricky / Trap Questions](#tricky--trap-questions)
-- [Design Scenarios](#design-scenarios)
-
----
-
 ## Conceptual / Foundational
 
 ### Question 1

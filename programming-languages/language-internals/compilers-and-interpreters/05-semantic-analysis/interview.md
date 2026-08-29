@@ -5,15 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Conceptual](#conceptual)
-2. [Language-Specific](#language-specific)
-3. [Tricky / Trap](#tricky--trap)
-4. [Design](#design)
-
----
-
 ## Conceptual
 
 ## Question 1

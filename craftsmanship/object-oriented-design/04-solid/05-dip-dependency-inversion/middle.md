@@ -7,26 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Applying DIP to Real Code](#applying-dip-to-real-code)
-3. [Ownership: Who Defines the Interface](#ownership-who-defines-the-interface)
-4. [The Mechanisms of Injection](#the-mechanisms-of-injection)
-5. [Service Locator: The Tempting Anti-Pattern](#service-locator-the-tempting-anti-pattern)
-6. [DI Containers: When and Why](#di-containers-when-and-why)
-7. [Ports and Adapters: DIP as Architecture](#ports-and-adapters-dip-as-architecture)
-8. [When You DON'T Need an Interface](#when-you-dont-need-an-interface)
-9. [Trade-offs](#trade-offs)
-10. [Edge Cases](#edge-cases)
-11. [Tricky Points](#tricky-points)
-12. [Best Practices](#best-practices)
-13. [Test Yourself](#test-yourself)
-14. [Summary](#summary)
-15. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **Why** and **When**

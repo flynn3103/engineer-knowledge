@@ -7,24 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [SoC Is a Conceptual Decomposition, Not a Folder Layout](#soc-is-a-conceptual-decomposition-not-a-folder-layout)
-3. [The Dominant Decomposition Problem](#the-dominant-decomposition-problem)
-4. [When Separation Becomes Over-Separation](#when-separation-becomes-over-separation)
-5. [Separation vs. Locality of Behavior](#separation-vs-locality-of-behavior)
-6. [The AOP Trade-off: Power vs. Implicitness](#the-aop-trade-off-power-vs-implicitness)
-7. [SoC vs. SRP, Cohesion, and Orthogonality — Precisely](#soc-vs-srp-cohesion-and-orthogonality--precisely)
-8. [Choosing the Axis: Horizontal, Vertical, or Both](#choosing-the-axis-horizontal-vertical-or-both)
-9. [Code Examples — Advanced](#code-examples--advanced)
-10. [Liabilities](#liabilities)
-11. [Pros & Cons at the System Level](#pros--cons-at-the-system-level)
-12. [Diagrams](#diagrams)
-13. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **design trade-offs** and **system-level reasoning**

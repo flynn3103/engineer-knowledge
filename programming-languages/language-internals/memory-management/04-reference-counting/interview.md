@@ -6,15 +6,6 @@ A bank of interview questions on reference counting, from first principles to pr
 
 ---
 
-## Table of Contents
-
-- [Conceptual](#conceptual)
-- [Tool-Specific](#tool-specific)
-- [Tricky / Trap](#tricky--trap)
-- [Design](#design)
-
----
-
 ## Conceptual
 
 ## Question 1

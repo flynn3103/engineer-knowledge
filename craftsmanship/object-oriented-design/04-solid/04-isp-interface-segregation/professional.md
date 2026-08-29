@@ -7,22 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Enforcing ISP in Code Review](#enforcing-isp-in-code-review)
-3. [Team Conventions for ISP](#team-conventions-for-isp)
-4. [Refactoring a Fat Interface in a Legacy System](#refactoring-a-fat-interface-in-a-legacy-system)
-5. [Real Incidents](#real-incidents)
-6. [Tooling and Detection](#tooling-and-detection)
-7. [The Politics of "But It's More Flexible"](#the-politics-of-but-its-more-flexible)
-8. [Review Checklist](#review-checklist)
-9. [Cheat Sheet](#cheat-sheet)
-10. [Diagrams](#diagrams)
-11. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **production** — keeping interfaces client-shaped across a large, long-lived, multi-team codebase.

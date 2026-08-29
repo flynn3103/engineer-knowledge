@@ -5,33 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concept 1 — The Root-Cause Model: Anti-patterns Are Symptoms](#core-concept-1--the-root-cause-model-anti-patterns-are-symptoms)
-5. [Core Concept 2 — Bikeshedding Is an Automation Gap](#core-concept-2--bikeshedding-is-an-automation-gap)
-6. [Core Concept 3 — Rubber-Stamping Is the Inspection-Rate Cliff](#core-concept-3--rubber-stamping-is-the-inspection-rate-cliff)
-7. [Core Concept 4 — Ghosting and Bottlenecks Are Load Problems](#core-concept-4--ghosting-and-bottlenecks-are-load-problems)
-8. [Core Concept 5 — Review Theatre and the False-Assurance Trap](#core-concept-5--review-theatre-and-the-false-assurance-trap)
-9. [Core Concept 6 — Normalization of Deviance in Review](#core-concept-6--normalization-of-deviance-in-review)
-10. [Core Concept 7 — The Power and Social Dynamics](#core-concept-7--the-power-and-social-dynamics)
-11. [Core Concept 8 — Author-Side Pathologies](#core-concept-8--author-side-pathologies)
-12. [Core Concept 9 — Metrics That Manufacture Anti-patterns (Goodhart)](#core-concept-9--metrics-that-manufacture-anti-patterns-goodhart)
-13. [Core Concept 10 — When Review Is the Wrong Tool](#core-concept-10--when-review-is-the-wrong-tool)
-14. [Core Concept 11 — Diagnosing a Broken Review Culture](#core-concept-11--diagnosing-a-broken-review-culture)
-15. [Real-World Examples](#real-world-examples)
-16. [Mental Models](#mental-models)
-17. [Common Mistakes](#common-mistakes)
-18. [Test Yourself](#test-yourself)
-19. [Cheat Sheet](#cheat-sheet)
-20. [Summary](#summary)
-21. [Further Reading](#further-reading)
-22. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **The systemic causes that produce review anti-patterns, and the staff-level skill of diagnosing and turning around a broken review culture.**

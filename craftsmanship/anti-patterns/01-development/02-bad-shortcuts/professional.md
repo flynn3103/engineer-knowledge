@@ -5,27 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Measure First: The Tooling Map](#measure-first-the-tooling-map)
-4. [Stringly-Typed — The Most Expensive Shortcut at Runtime](#stringly-typed--the-most-expensive-shortcut-at-runtime)
-5. [Magic Numbers vs Named Constants — When "Free" Isn't Free](#magic-numbers-vs-named-constants--when-free-isnt-free)
-6. [Copy-Paste vs DRY — The Hot-Path Performance Paradox](#copy-paste-vs-dry--the-hot-path-performance-paradox)
-7. [Pokémon Exception Handling — Cost of Control Flow and Lost Observability](#pokémon-exception-handling--cost-of-control-flow-and-lost-observability)
-8. [Hard Coding vs Configuration — The Hot-Path Lookup Tax](#hard-coding-vs-configuration--the-hot-path-lookup-tax)
-9. [Cargo Cult — Pasted "Optimizations" That Don't Optimize](#cargo-cult--pasted-optimizations-that-dont-optimize)
-10. [A Combined Worked Example](#a-combined-worked-example)
-11. [Common Mistakes](#common-mistakes)
-12. [Test Yourself](#test-yourself)
-13. [Cheat Sheet](#cheat-sheet)
-14. [Summary](#summary)
-15. [Further Reading](#further-reading)
-16. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **What do these shortcuts cost the machine** — string hashing and comparison, allocation churn, the JIT's constant folding, exception unwinding, config lookups in hot loops — and **how do you measure that cost** before you trade convenience for it?

@@ -5,29 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [The Six at a Glance](#the-six-at-a-glance)
-5. [Copy-Paste Programming](#copy-paste-programming)
-6. [Magic Numbers / Magic Strings](#magic-numbers--magic-strings)
-7. [Hard Coding](#hard-coding)
-8. [Cargo Cult Programming](#cargo-cult-programming)
-9. [Pokémon Exception Handling](#pokémon-exception-handling)
-10. [Stringly-Typed Programming](#stringly-typed-programming)
-11. [How They Reinforce Each Other](#how-they-reinforce-each-other)
-12. [A Quick Spotting Checklist](#a-quick-spotting-checklist)
-13. [Common Mistakes](#common-mistakes)
-14. [Test Yourself](#test-yourself)
-15. [Cheat Sheet](#cheat-sheet)
-16. [Summary](#summary)
-17. [Further Reading](#further-reading)
-18. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **What does it look like?** and **Why is it bad?**

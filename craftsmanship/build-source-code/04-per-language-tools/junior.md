@@ -5,28 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concept 1 — One Language, One Main Tool](#core-concept-1--one-language-one-main-tool)
-5. [Core Concept 2 — Manifest vs Lockfile](#core-concept-2--manifest-vs-lockfile)
-6. [Core Concept 3 — Walking Through `go build`](#core-concept-3--walking-through-go-build)
-7. [Core Concept 4 — Walking Through `cargo build`](#core-concept-4--walking-through-cargo-build)
-8. [Core Concept 5 — Walking Through `npm install` (and `pip install`)](#core-concept-5--walking-through-npm-install-and-pip-install)
-9. [Core Concept 6 — The Build Cache Exists](#core-concept-6--the-build-cache-exists)
-10. [Real-World Examples](#real-world-examples)
-11. [Mental Models](#mental-models)
-12. [Common Mistakes](#common-mistakes)
-13. [Test Yourself](#test-yourself)
-14. [Cheat Sheet](#cheat-sheet)
-15. [Summary](#summary)
-16. [Further Reading](#further-reading)
-17. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **What is a per-language build tool, and why does every language have one?**

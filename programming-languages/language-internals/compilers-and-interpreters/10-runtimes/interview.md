@@ -11,23 +11,6 @@ These questions probe whether a candidate understands the **runtime system** the
 
 The questions are grouped: **Conceptual** (the model and vocabulary), **Runtime-Specific** (Go, JVM, CLR, V8/Node, BEAM), **Tricky / Trap** (where the obvious answer is wrong), and **Design** (architecture decisions a senior/staff engineer makes about runtimes). Weak answers stop at "it has a garbage collector"; strong answers explain *what the compiler had to emit* for that garbage collector to be correct, and *what it costs*.
 
-## Table of Contents
-
-- [Conceptual](#conceptual)
-- [Runtime-Specific](#runtime-specific)
-  - [Go Runtime](#go-runtime)
-  - [JVM](#jvm)
-  - [CLR (.NET)](#clr-net)
-  - [V8 / Node](#v8--node)
-  - [BEAM (Erlang/Elixir)](#beam-erlangelixir)
-- [Tricky / Trap](#tricky--trap)
-- [Design](#design)
-- [Cheat Sheet](#cheat-sheet)
-- [Further Reading](#further-reading)
-- [Related Topics](#related-topics)
-
----
-
 ## Conceptual
 
 ### Question 1

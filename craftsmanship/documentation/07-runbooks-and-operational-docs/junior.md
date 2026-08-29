@@ -4,31 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [The 3 a.m. Test](#the-3-am-test)
-5. [What an Operational Doc Is For](#what-an-operational-doc-is-for)
-6. [Runbook vs. Playbook](#runbook-vs-playbook)
-7. [Anatomy of a Runbook](#anatomy-of-a-runbook)
-8. [A Full Worked Runbook](#a-full-worked-runbook)
-9. [Alert → Runbook Linkage](#alert--runbook-linkage)
-10. [Other Operational Docs](#other-operational-docs)
-11. [Mental Models](#mental-models)
-12. [Best Practices](#best-practices)
-13. [Common Mistakes](#common-mistakes)
-14. [Tricky Points](#tricky-points)
-15. [Test Yourself](#test-yourself)
-16. [Cheat Sheet](#cheat-sheet)
-17. [Summary](#summary)
-18. [Further Reading](#further-reading)
-19. [Related Topics](#related-topics)
-20. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **What is it?** and **How to use it?**

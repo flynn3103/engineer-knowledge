@@ -12,15 +12,6 @@ A few answers anchor everything else and are worth over-preparing: the **confuse
 
 ---
 
-## Table of Contents
-
-- [Conceptual](#conceptual)
-- [System-Specific](#system-specific)
-- [Tricky-Trap](#tricky-trap)
-- [Design](#design)
-
----
-
 ## Conceptual
 
 ## Question 1

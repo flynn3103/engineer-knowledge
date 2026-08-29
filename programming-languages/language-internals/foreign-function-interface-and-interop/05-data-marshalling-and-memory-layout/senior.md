@@ -5,18 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Core Concepts](#core-concepts)
-3. [Mental Models](#mental-models)
-4. [Code Examples](#code-examples)
-5. [Best Practices](#best-practices)
-6. [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-7. [Summary](#summary)
-
----
-
 ## Introduction
 
 > Focus: **The four marshalling contracts — layout, lifetime, ownership, encoding — re-stated at the level of the C ABI, the garbage collector's relocation behavior, and the allocator boundary, so you can design a binding that does not corrupt the heap under load.**

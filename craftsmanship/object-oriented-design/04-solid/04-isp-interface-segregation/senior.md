@@ -7,23 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [ISP as a Cohesion Theorem](#isp-as-a-cohesion-theorem)
-3. [ISP and LSP: Two Views of One Defect](#isp-and-lsp-two-views-of-one-defect)
-4. [ISP and DIP: Small Stable Abstractions](#isp-and-dip-small-stable-abstractions)
-5. [ISP and SRP: The Precise Reconciliation](#isp-and-srp-the-precise-reconciliation)
-6. [Nominal vs. Structural Typing](#nominal-vs-structural-typing)
-7. [Where Segregation Goes Too Far](#where-segregation-goes-too-far)
-8. [Advanced Examples](#advanced-examples)
-9. [Liabilities](#liabilities)
-10. [Pros & Cons at the System Level](#pros--cons-at-the-system-level)
-11. [Diagrams](#diagrams)
-12. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **design trade-offs** and **system-level reasoning**

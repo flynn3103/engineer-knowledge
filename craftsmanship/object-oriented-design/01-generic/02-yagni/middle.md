@@ -7,24 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [The Four Costs of a Presumptive Feature](#the-four-costs-of-a-presumptive-feature)
-3. [Applying YAGNI to Real Requirements](#applying-yagni-to-real-requirements)
-4. [YAGNI vs. Anticipated Change: the Honest Tension](#yagni-vs-anticipated-change-the-honest-tension)
-5. [The Rule of Three in Practice](#the-rule-of-three-in-practice)
-6. [Where YAGNI Sits Among Its Siblings](#where-yagni-sits-among-its-siblings)
-7. [Trade-offs](#trade-offs)
-8. [Edge Cases](#edge-cases)
-9. [Tricky Points](#tricky-points)
-10. [Best Practices](#best-practices)
-11. [Test Yourself](#test-yourself)
-12. [Summary](#summary)
-13. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **Why** and **When**

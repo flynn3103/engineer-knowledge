@@ -5,35 +5,6 @@
 
 ---
 
-## Table of Contents
-
-- [Introduction](#introduction)
-- [Prerequisites](#prerequisites)
-- [Glossary](#glossary)
-- [Core Concepts](#core-concepts)
-  - [The Production Decision Framework](#the-production-decision-framework)
-  - [In-Process FFI: Fastest, Most Dangerous](#in-process-ffi-fastest-most-dangerous)
-  - [Flattening C++ Through a `extern "C"` Shim](#flattening-c-through-a-extern-c-shim)
-  - [SWIG and Generated Bindings at Scale](#swig-and-generated-bindings-at-scale)
-  - [COM: vtables, IUnknown, and Refcount Discipline](#com-vtables-iunknown-and-refcount-discipline)
-  - [Polyglot VMs in Production](#polyglot-vms-in-production)
-  - [Wasm Components: The Emerging Interop Answer](#wasm-components-the-emerging-interop-answer)
-  - [RPC/IPC with an IDL](#rpcipc-with-an-idl)
-  - [Schema-Evolution Discipline](#schema-evolution-discipline)
-  - [Choosing RPC Over FFI for Fault Isolation](#choosing-rpc-over-ffi-for-fault-isolation)
-- [Real-World Analogies](#real-world-analogies)
-- [Mental Models](#mental-models)
-- [Code Examples](#code-examples)
-- [Pros & Cons](#pros--cons)
-- [Use Cases](#use-cases)
-- [Coding Patterns](#coding-patterns)
-- [Best Practices](#best-practices)
-- [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-- [War Stories](#war-stories)
-- [Summary](#summary)
-
----
-
 ## Introduction
 
 At the professional tier — Staff, Principal, Distinguished — cross-language interop stops being "how do I call this library from my language" and becomes "which boundary do I draw, and what will it cost the organization for the next five years." The senior tier gave you the full spectrum: in-process FFI, polyglot VMs, Wasm components, and RPC. This page is about choosing among them under real constraints — latency budgets, fault-isolation requirements, team boundaries, portability mandates, and the maintenance burden of whatever you pick — and then keeping that choice healthy in production.

@@ -4,26 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [The Test-Double Taxonomy, Used Precisely](#the-test-double-taxonomy-used-precisely)
-4. [Mockist vs Classicist — The Debate in Full](#mockist-vs-classicist--the-debate-in-full)
-5. [When Interaction Testing Is Genuinely Right](#when-interaction-testing-is-genuinely-right)
-6. [The False-Confidence Cost and Its Economics](#the-false-confidence-cost-and-its-economics)
-7. [Consumer-Driven Contracts: Making Mocks Honest](#consumer-driven-contracts-making-mocks-honest)
-8. [The Triangle: Over-Mocking ↔ Fragile Tests ↔ Over-Abstraction](#the-triangle-over-mocking--fragile-tests--over-abstraction)
-9. [A Decision Framework You Can Defend](#a-decision-framework-you-can-defend)
-10. [Common Mistakes](#common-mistakes)
-11. [Test Yourself](#test-yourself)
-12. [Cheat Sheet](#cheat-sheet)
-13. [Summary](#summary)
-14. [Further Reading](#further-reading)
-15. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **The trade-offs and the deep debate.** Mockist vs classicist in full (Fowler / GOOS); when interaction testing is *genuinely* the right tool; the false-confidence economics of mocks that drift; the precise test-double taxonomy; and how over-mocking, fragile tests, and over-abstraction form one triangle.

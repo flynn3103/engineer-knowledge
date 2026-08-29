@@ -7,25 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Cohesion as "Things That Change Together"](#cohesion-as-things-that-change-together)
-3. [Measuring Cohesion: LCOM](#measuring-cohesion-lcom)
-4. [Change-Coupling: Misplaced Cohesion in Git History](#change-coupling-misplaced-cohesion-in-git-history)
-5. [Applying the Ladder: When Each Level Is Acceptable](#applying-the-ladder-when-each-level-is-acceptable)
-6. [Splitting a God Class by Field Clusters](#splitting-a-god-class-by-field-clusters)
-7. [The Cohesion/Coupling Tension](#the-cohesioncoupling-tension)
-8. [Trade-offs](#trade-offs)
-9. [Edge Cases](#edge-cases)
-10. [Tricky Points](#tricky-points)
-11. [Best Practices](#best-practices)
-12. [Test Yourself](#test-yourself)
-13. [Summary](#summary)
-14. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **Why** and **When**

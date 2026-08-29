@@ -5,25 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Why the Rewrite Almost Always Fails](#why-the-rewrite-almost-always-fails)
-4. [The Strangler Fig Metaphor](#the-strangler-fig-metaphor)
-5. [What a Seam Is](#what-a-seam-is)
-6. [A Tiny Worked Example: Wrapping a Legacy Function](#a-tiny-worked-example-wrapping-a-legacy-function)
-7. [Seams You Already Have](#seams-you-already-have)
-8. [The Vocabulary You'll Hear](#the-vocabulary-youll-hear)
-9. [Common Mistakes](#common-mistakes)
-10. [Test Yourself](#test-yourself)
-11. [Cheat Sheet](#cheat-sheet)
-12. [Summary](#summary)
-13. [Further Reading](#further-reading)
-14. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Why a rewrite usually fails; what a seam is.**

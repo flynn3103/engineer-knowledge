@@ -7,23 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Enforcing Maintainability in Code Review](#enforcing-maintainability-in-code-review)
-3. [Measuring Maintainability Honestly](#measuring-maintainability-honestly)
-4. [Team Conventions That Make the Maintainer Win by Default](#team-conventions-that-make-the-maintainer-win-by-default)
-5. [Debuggability Standards for Production](#debuggability-standards-for-production)
-6. [Maintaining Maintainability in Legacy Systems](#maintaining-maintainability-in-legacy-systems)
-7. [Real Incidents](#real-incidents)
-8. [The Politics of Maintainability](#the-politics-of-maintainability)
-9. [Review Checklist](#review-checklist)
-10. [Cheat Sheet](#cheat-sheet)
-11. [Diagrams](#diagrams)
-12. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **production** — keeping a large, multi-contributor codebase maintainable over years.

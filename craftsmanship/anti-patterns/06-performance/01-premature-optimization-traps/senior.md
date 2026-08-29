@@ -4,26 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Design Is Not Premature Optimization](#design-is-not-premature-optimization)
-4. [The Readability/Performance Dial](#the-readabilityperformance-dial)
-5. [Clarity-Neutral Wins Are Free — Take Them Always](#clarity-neutral-wins-are-free--take-them-always)
-6. [When a Micro-Optimization Is Justified](#when-a-micro-optimization-is-justified)
-7. [Boxing the Ugly Fast Path](#boxing-the-ugly-fast-path)
-8. [Reviewing for Premature Optimization](#reviewing-for-premature-optimization)
-9. [A Worked Judgment Call](#a-worked-judgment-call)
-10. [Common Mistakes](#common-mistakes)
-11. [Test Yourself](#test-yourself)
-12. [Cheat Sheet](#cheat-sheet)
-13. [Summary](#summary)
-14. [Further Reading](#further-reading)
-15. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Judgment in a real codebase** — telling premature optimization from legitimate engineering, working the readability/performance trade-off deliberately, and knowing exactly when a micro-optimization earns its place.

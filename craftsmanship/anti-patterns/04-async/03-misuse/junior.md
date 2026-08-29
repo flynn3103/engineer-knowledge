@@ -5,25 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [The Two at a Glance](#the-two-at-a-glance)
-5. [Promise Constructor Anti-Pattern](#promise-constructor-anti-pattern)
-6. [`async` Without `await`](#async-without-await)
-7. [How They Relate](#how-they-relate)
-8. [Quick Spotting Checklist](#quick-spotting-checklist)
-9. [Common Mistakes](#common-mistakes)
-10. [Test Yourself](#test-yourself)
-11. [Cheat Sheet](#cheat-sheet)
-12. [Summary](#summary)
-13. [Further Reading](#further-reading)
-14. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **What does it look like?** and **Why is it bad?**

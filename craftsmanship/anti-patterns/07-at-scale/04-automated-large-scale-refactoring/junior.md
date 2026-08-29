@@ -5,26 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [The Core Idea: Code Is a Tree, Not a String](#the-core-idea-code-is-a-tree-not-a-string)
-5. [Why `sed` and Regex Break on Code](#why-sed-and-regex-break-on-code)
-6. [What a Codemod Actually Is](#what-a-codemod-actually-is)
-7. [Your First Safe Transform: `gofmt -r`](#your-first-safe-transform-gofmt--r)
-8. [A Tiny Structural Pattern with Comby](#a-tiny-structural-pattern-with-comby)
-9. [The One Rule: Verify, Don't Trust](#the-one-rule-verify-dont-trust)
-10. [Common Mistakes](#common-mistakes)
-11. [Test Yourself](#test-yourself)
-12. [Cheat Sheet](#cheat-sheet)
-13. [Summary](#summary)
-14. [Further Reading](#further-reading)
-15. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Why `sed`/regex breaks on code, and what a codemod is.**

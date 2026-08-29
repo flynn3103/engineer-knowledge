@@ -7,28 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Choosing a Markup Language](#choosing-a-markup-language)
-3. [Choosing a Static Site Generator](#choosing-a-static-site-generator)
-4. [The Full CI Pipeline: Every Gate](#the-full-ci-pipeline-every-gate)
-5. [Prose Linting with Vale](#prose-linting-with-vale)
-6. [Link Checking That Doesn't Cry Wolf](#link-checking-that-doesnt-cry-wolf)
-7. [Preview Deploys per PR](#preview-deploys-per-pr)
-8. [Versioned Docs](#versioned-docs)
-9. [Search](#search)
-10. [Executable Docs: Testing the Examples](#executable-docs-testing-the-examples)
-11. [Workflow & Culture](#workflow--culture)
-12. [Trade-offs](#trade-offs)
-13. [Tricky Points](#tricky-points)
-14. [Best Practices](#best-practices)
-15. [Test Yourself](#test-yourself)
-16. [Summary](#summary)
-17. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **Why** and **When**

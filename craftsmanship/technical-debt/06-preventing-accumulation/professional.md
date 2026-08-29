@@ -5,28 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Prevention Is an Incentives Problem, Not a Tooling One](#prevention-is-an-incentives-problem-not-a-tooling-one)
-4. [Broken Windows at Org Scale](#broken-windows-at-org-scale)
-5. [Building a Quality-First Engineering Culture](#building-a-quality-first-engineering-culture)
-6. [Aligning Incentives and the Golden Path](#aligning-incentives-and-the-golden-path)
-7. [Preventing Debt During Org Events](#preventing-debt-during-org-events)
-8. [The Leadership Conversation That Funds Prevention](#the-leadership-conversation-that-funds-prevention)
-9. [War Stories](#war-stories)
-10. [Decision Frameworks](#decision-frameworks)
-11. [Mental Models](#mental-models)
-12. [Common Mistakes](#common-mistakes)
-13. [Test Yourself](#test-yourself)
-14. [Cheat Sheet](#cheat-sheet)
-15. [Summary](#summary)
-16. [Further Reading](#further-reading)
-17. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **The culture, incentives, and systems that keep debt low across an organization — and why those are leadership problems before they are engineering ones.**

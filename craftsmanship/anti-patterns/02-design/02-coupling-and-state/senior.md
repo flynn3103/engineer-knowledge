@@ -5,31 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [How Did the Codebase Get Here? — Root-Cause Forces](#how-did-the-codebase-get-here--root-cause-forces)
-4. [The Five as One Disease: Implicit, Ambient State](#the-five-as-one-disease-implicit-ambient-state)
-5. [The Testability Crisis as the Early Warning](#the-testability-crisis-as-the-early-warning)
-6. [Dependency Inversion: The Master Cure](#dependency-inversion-the-master-cure)
-7. [Killing Singletonitis at Scale](#killing-singletonitis-at-scale)
-8. [Making Hidden Dependencies Explicit](#making-hidden-dependencies-explicit)
-9. [Taming Action at a Distance](#taming-action-at-a-distance)
-10. [Breaking Module Cycles at Scale](#breaking-module-cycles-at-scale)
-11. [Encapsulating Sequential Coupling](#encapsulating-sequential-coupling)
-12. [Safe Refactoring with Seams & Characterization Tests](#safe-refactoring-with-seams--characterization-tests)
-13. [When These Are Acceptable](#when-these-are-acceptable)
-14. [Preventing Regrowth: Architecture Tests & Norms](#preventing-regrowth-architecture-tests--norms)
-15. [Common Mistakes](#common-mistakes)
-16. [Test Yourself](#test-yourself)
-17. [Cheat Sheet](#cheat-sheet)
-18. [Summary](#summary)
-19. [Further Reading](#further-reading)
-20. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **How did the codebase get here?** and **How do I refactor safely at scale?**

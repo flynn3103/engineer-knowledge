@@ -5,28 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Two Kinds of Debt, Two Orders of Magnitude](#two-kinds-of-debt-two-orders-of-magnitude)
-4. [The Compound-Interest Model, Quantitatively](#the-compound-interest-model-quantitatively)
-5. [The Death Spiral — When Interest Exceeds Capacity](#the-death-spiral--when-interest-exceeds-capacity)
-6. [Debt as a Real Option — Optionality Under Uncertainty](#debt-as-a-real-option--optionality-under-uncertainty)
-7. [Entropy, Bit Rot, and Lehman's Laws](#entropy-bit-rot-and-lehmans-laws)
-8. [Strategic vs Tactical Programming (Ousterhout)](#strategic-vs-tactical-programming-ousterhout)
-9. [When Taking Debt Is Strictly Correct](#when-taking-debt-is-strictly-correct)
-10. [The Irreversibility Gradient](#the-irreversibility-gradient)
-11. [Mental Models](#mental-models)
-12. [Common Mistakes](#common-mistakes)
-13. [Test Yourself](#test-yourself)
-14. [Cheat Sheet](#cheat-sheet)
-15. [Summary](#summary)
-16. [Further Reading](#further-reading)
-17. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Technical debt as an architecture-scale, quantitative phenomenon — the economics a senior reasons about when deciding what to borrow, what it will cost to repay, and whether the loan should ever have been taken.**

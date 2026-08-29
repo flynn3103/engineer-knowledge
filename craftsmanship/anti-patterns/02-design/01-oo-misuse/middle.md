@@ -5,28 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [The Real Question: When Does This Creep In?](#the-real-question-when-does-this-creep-in)
-4. [Anemic Domain Model — Where Behavior Belongs](#anemic-domain-model--where-behavior-belongs)
-5. [Flag Arguments — One Method Pretending to Be Two](#flag-arguments--one-method-pretending-to-be-two)
-6. [Telescoping Constructor — Building Without Over-Building](#telescoping-constructor--building-without-over-building)
-7. [Fragile Base Class — Inheritance That Breaks at a Distance](#fragile-base-class--inheritance-that-breaks-at-a-distance)
-8. [Magic Container — When the Type System Goes Dark](#magic-container--when-the-type-system-goes-dark)
-9. [The Remaining Six — A Field Guide](#the-remaining-six--a-field-guide)
-10. [Catching OO Misuse in Review](#catching-oo-misuse-in-review)
-11. [Tooling That Helps](#tooling-that-helps)
-12. [Common Mistakes](#common-mistakes)
-13. [Test Yourself](#test-yourself)
-14. [Cheat Sheet](#cheat-sheet)
-15. [Summary](#summary)
-16. [Further Reading](#further-reading)
-17. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **When does this creep in?** and **What do I do instead?**

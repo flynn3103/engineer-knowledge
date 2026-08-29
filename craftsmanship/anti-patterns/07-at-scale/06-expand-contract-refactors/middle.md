@@ -5,26 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [The Same Three Steps, Four Different Contracts](#the-same-three-steps-four-different-contracts)
-4. [Contract 1: A Method Signature](#contract-1-a-method-signature)
-5. [Contract 2: A Config Key](#contract-2-a-config-key)
-6. [Contract 3: An Event Field](#contract-3-an-event-field)
-7. [Contract 4: A Database Column](#contract-4-a-database-column)
-8. [Deprecation: Marking the Old Path on Its Way Out](#deprecation-marking-the-old-path-on-its-way-out)
-9. [Tolerant Reader: Compatibility from the Consumer Side](#tolerant-reader-compatibility-from-the-consumer-side)
-10. [Common Mistakes](#common-mistakes)
-11. [Test Yourself](#test-yourself)
-12. [Cheat Sheet](#cheat-sheet)
-13. [Summary](#summary)
-14. [Further Reading](#further-reading)
-15. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Applying it to real contracts.** A method, a config key, an event field, a DB column — additive first, dual-support, then remove.

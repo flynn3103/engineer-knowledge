@@ -7,25 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Fixture Strategy at Scale](#fixture-strategy-at-scale)
-3. [Shared vs Fresh Fixtures: The Real Trade-off](#shared-vs-fresh-fixtures-the-real-trade-off)
-4. [Test Data for Integration Tests](#test-data-for-integration-tests)
-5. [Solitary vs Sociable Tests](#solitary-vs-sociable-tests)
-6. [Contract Tests: Keeping Fakes Honest](#contract-tests-keeping-fakes-honest)
-7. [Deterministic Time, Randomness, and IDs](#deterministic-time-randomness-and-ids)
-8. [Over-Mocking and the Cost of Behavior Verification](#over-mocking-and-the-cost-of-behavior-verification)
-9. [The General Fixture Anti-Pattern](#the-general-fixture-anti-pattern)
-10. [Test Pyramid and Fixture Weight](#test-pyramid-and-fixture-weight)
-11. [Code Examples — Advanced](#code-examples-advanced)
-12. [Liabilities](#liabilities)
-13. [Diagrams](#diagrams)
-14. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **design trade-offs** and **system-level reasoning**

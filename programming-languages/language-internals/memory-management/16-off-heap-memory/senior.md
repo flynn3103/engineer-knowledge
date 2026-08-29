@@ -5,24 +5,6 @@
 
 ---
 
-## Table of Contents
-
-- [Introduction](#introduction)
-- [Core Concepts](#core-concepts)
-  - [When off-heap is actually the right call](#when-off-heap-is-actually-the-right-call)
-  - [Designing ownership and lifetime](#designing-ownership-and-lifetime)
-  - [The serialization boundary](#the-serialization-boundary)
-  - [How off-heap reshapes GC behavior](#how-off-heap-reshapes-gc-behavior)
-  - [mmap as an architecture, not just an API](#mmap-as-an-architecture-not-just-an-api)
-  - [Cross-runtime trade-off table](#cross-runtime-trade-off-table)
-- [Code Examples](#code-examples)
-- [Pros & Cons](#pros--cons)
-- [Best Practices](#best-practices)
-- [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-- [Summary](#summary)
-
----
-
 ## Introduction
 
 Knowing the off-heap APIs is the middle tier. The senior question is *whether to reach for them at all*, and if so, how to structure the system so the manual-memory responsibility doesn't metastasize into leaks and crashes scattered across the codebase. Off-heap is a power tool: it removes the GC from the hot path for huge datasets, but it reintroduces every problem managed runtimes were invented to solve. The senior skill is containing that blast radius — concentrating native ownership in a few well-tested components and keeping the rest of the system in the safe, managed world.

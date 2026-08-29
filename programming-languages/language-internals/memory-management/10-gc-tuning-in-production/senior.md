@@ -4,23 +4,6 @@
 
 ---
 
-## Table of Contents
-- [Introduction](#introduction)
-- [Prerequisites](#prerequisites)
-- [Glossary](#glossary)
-- [Collector Selection: A Decision Framework](#collector-selection-a-decision-framework)
-- [Inside Concurrent Compaction](#inside-concurrent-compaction)
-- [The Diagnosis-Then-Tune Workflow](#the-diagnosis-then-tune-workflow)
-- [Mental Models](#mental-models)
-- [Code Examples](#code-examples)
-- [Pros & Cons of the Major Collectors](#pros--cons-of-the-major-collectors)
-- [Coding Patterns](#coding-patterns)
-- [Best Practices](#best-practices)
-- [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-- [Summary](#summary)
-
----
-
 ## Introduction
 
 By now you can read a GC log and turn the knobs. The senior question is harder and more consequential: **which collector should this service run, and how do I prove it?** This is where the triangle stops being a diagram and becomes a budget you allocate against an SLO.

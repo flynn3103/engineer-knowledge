@@ -5,23 +5,6 @@
 
 ---
 
-## Table of Contents
-
-- [Introduction](#introduction)
-- [Prerequisites](#prerequisites)
-- [Glossary](#glossary)
-- [Core Concepts](#core-concepts)
-- [Real-World Analogies](#real-world-analogies)
-- [Mental Models](#mental-models)
-- [Code Examples](#code-examples)
-- [Pros & Cons](#pros--cons)
-- [Use Cases](#use-cases)
-- [Best Practices](#best-practices)
-- [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-- [Summary](#summary)
-
----
-
 ## Introduction
 
 Most engineers meet their first memory bug the same way: a service that "works fine" gets paged at 3 a.m. because it ran out of memory and the orchestrator killed it. It restarts, runs fine for another six hours, and dies again. Nothing in the code looks wrong. There's no crash, no stack trace pointing at a bad line — just a slow, relentless climb in memory until the operating system or the runtime gives up.

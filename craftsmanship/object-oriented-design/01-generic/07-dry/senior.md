@@ -7,24 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [DRY Is About Knowledge — Connascence Makes It Precise](#dry-is-about-knowledge--connascence-makes-it-precise)
-3. [The Danger at the Heart of DRY: Premature Abstraction](#the-danger-at-the-heart-of-dry-premature-abstraction)
-4. [Why the Wrong Abstraction Is Harder to Remove Than Duplication](#why-the-wrong-abstraction-is-harder-to-remove-than-duplication)
-5. [DRY vs. Decoupling and Orthogonality](#dry-vs-decoupling-and-orthogonality)
-6. [DRY vs. Optimize-for-Deletion](#dry-vs-optimize-for-deletion)
-7. [DRY Across Service and Bounded-Context Boundaries](#dry-across-service-and-bounded-context-boundaries)
-8. [Code: A True Fix and a False Fix Side by Side](#code-a-true-fix-and-a-false-fix-side-by-side)
-9. [A Decision Framework for "DRY It or Not"](#a-decision-framework-for-dry-it-or-not)
-10. [Liabilities](#liabilities)
-11. [Pros & Cons at the System Level](#pros--cons-at-the-system-level)
-12. [Diagrams](#diagrams)
-13. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **design trade-offs** and **system-level reasoning**

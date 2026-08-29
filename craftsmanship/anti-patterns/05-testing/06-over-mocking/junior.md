@@ -4,26 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [What Over-Mocking Looks Like](#what-over-mocking-looks-like)
-5. [The Test That Passes While the Code Is Broken](#the-test-that-passes-while-the-code-is-broken)
-6. [State Testing vs Interaction Testing](#state-testing-vs-interaction-testing)
-7. [Why Over-Mocking Is Bad](#why-over-mocking-is-bad)
-8. [The Junior-Level Fix](#the-junior-level-fix)
-9. [A Spotting Checklist](#a-spotting-checklist)
-10. [Common Mistakes](#common-mistakes)
-11. [Test Yourself](#test-yourself)
-12. [Cheat Sheet](#cheat-sheet)
-13. [Summary](#summary)
-14. [Further Reading](#further-reading)
-15. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **What does over-mocking look like?** and **Why is it bad?**

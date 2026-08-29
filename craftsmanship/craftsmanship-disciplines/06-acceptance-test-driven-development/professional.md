@@ -7,25 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [The Collaboration Workflow That Actually Works](#the-collaboration-workflow-that-actually-works)
-3. [Keeping Specs Alive](#keeping-specs-alive)
-4. [CI Integration](#ci-integration)
-5. [Taming Flaky Acceptance Suites](#taming-flaky-acceptance-suites)
-6. [Test Data and Environment Management](#test-data-and-environment-management)
-7. [Tooling Choices](#tooling-choices)
-8. [Rolling ATDD Into an Existing Team](#rolling-atdd-into-an-existing-team)
-9. [Metrics for an Acceptance Suite](#metrics-for-an-acceptance-suite)
-10. [Real Incidents](#real-incidents)
-11. [Code Review Standards for Scenarios](#code-review-standards-for-scenarios)
-12. [Cheat Sheet](#cheat-sheet)
-13. [Diagrams](#diagrams)
-14. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **production** — what ATDD costs and protects once a feature is live, observed, and maintained by a team across many releases.

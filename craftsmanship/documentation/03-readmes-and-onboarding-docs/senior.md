@@ -7,23 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [The README as an Architectural Boundary](#the-readme-as-an-architectural-boundary)
-3. [When the README Should Become a Docs Site](#when-the-readme-should-become-a-docs-site)
-4. [Onboarding as a System, Not a Document](#onboarding-as-a-system-not-a-document)
-5. [The Economics of Time-to-First-Commit](#the-economics-of-time-to-first-commit)
-6. [Executable Onboarding: Making Docs a Build Artifact](#executable-onboarding-making-docs-a-build-artifact)
-7. [README-Driven Development as a Design Tool](#readme-driven-development-as-a-design-tool)
-8. [The Front Door at Scale: Many Repos](#the-front-door-at-scale-many-repos)
-9. [Liabilities](#liabilities)
-10. [Pros & Cons at the System Level](#pros-cons-at-the-system-level)
-11. [Diagrams](#diagrams)
-12. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **design trade-offs** and **system-level reasoning**

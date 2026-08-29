@@ -4,32 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [What Problem Does an ADR Solve?](#what-problem-does-an-adr-solve)
-5. [The Nygard Format](#the-nygard-format)
-6. [A Complete Worked ADR](#a-complete-worked-adr)
-7. [Where ADRs Live](#where-adrs-live)
-8. [Numbering and Naming](#numbering-and-naming)
-9. [Status: The Life of an ADR](#status-the-life-of-an-adr)
-10. [Real-World Analogies](#real-world-analogies)
-11. [Mental Models](#mental-models)
-12. [When to Write One](#when-to-write-one)
-13. [Best Practices](#best-practices)
-14. [Common Mistakes](#common-mistakes)
-15. [Tricky Points](#tricky-points)
-16. [Test Yourself](#test-yourself)
-17. [Cheat Sheet](#cheat-sheet)
-18. [Summary](#summary)
-19. [Further Reading](#further-reading)
-20. [Related Topics](#related-topics)
-21. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **What is it?** and **How to use it?**

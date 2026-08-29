@@ -4,31 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [The Core Idea](#the-core-idea)
-5. [Why Deletability Equals Changeability](#why-deletability-equals-changeability)
-6. [Real-World Analogies](#real-world-analogies)
-7. [Mental Models](#mental-models)
-8. [A Worked Example: Two Ways to Add a Feature](#a-worked-example-two-ways-to-add-a-feature)
-9. [Code Examples](#code-examples)
-10. [The Techniques From the Essay](#the-techniques-from-the-essay)
-11. [The Tension With DRY (a First Look)](#the-tension-with-dry-a-first-look)
-12. [Best Practices](#best-practices)
-13. [Common Mistakes](#common-mistakes)
-14. [Tricky Points](#tricky-points)
-15. [Test Yourself](#test-yourself)
-16. [Cheat Sheet](#cheat-sheet)
-17. [Summary](#summary)
-18. [Further Reading](#further-reading)
-19. [Related Topics](#related-topics)
-20. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **What is it?** and **How to use it?**

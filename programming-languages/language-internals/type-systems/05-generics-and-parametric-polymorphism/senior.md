@@ -5,24 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concepts](#core-concepts)
-5. [Real-World Analogies](#real-world-analogies)
-6. [Mental Models](#mental-models)
-7. [Code Examples](#code-examples)
-8. [Pros & Cons](#pros--cons)
-9. [Use Cases](#use-cases)
-10. [Coding Patterns](#coding-patterns)
-11. [Best Practices](#best-practices)
-12. [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-13. [Summary](#summary)
-
----
-
 ## Introduction
 
 > Focus: **Parametric polymorphism is not only about reuse — it is about *ignorance as a guarantee*.** Because a fully-parametric function *cannot inspect* the types it's given, the type signature alone constrains — sometimes *determines* — what the function can do. This is the deepest and most beautiful idea in the topic: **the type tells you the behavior.**

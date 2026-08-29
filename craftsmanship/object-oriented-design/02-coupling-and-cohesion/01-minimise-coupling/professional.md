@@ -7,22 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Enforcing Low Coupling in Code Review](#enforcing-low-coupling-in-code-review)
-3. [Catching Over-Decoupling Too](#catching-over-decoupling-too)
-4. [Measuring Coupling in Production](#measuring-coupling-in-production)
-5. [Team Conventions](#team-conventions)
-6. [Decoupling Legacy Systems Safely](#decoupling-legacy-systems-safely)
-7. [Real Incidents](#real-incidents)
-8. [Review Checklist](#review-checklist)
-9. [Cheat Sheet](#cheat-sheet)
-10. [Diagrams](#diagrams)
-11. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **production** — keeping coupling appropriate across a large, multi-contributor codebase over years.

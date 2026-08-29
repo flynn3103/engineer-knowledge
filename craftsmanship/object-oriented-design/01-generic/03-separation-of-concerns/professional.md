@@ -7,23 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Enforcing Separation in Code Review](#enforcing-separation-in-code-review)
-3. [Measuring Separation (and Its Absence)](#measuring-separation-and-its-absence)
-4. [Team Conventions for Separation of Concerns](#team-conventions-for-separation-of-concerns)
-5. [Untangling a Legacy God Class](#untangling-a-legacy-god-class)
-6. [Managing Cross-Cutting Concerns at Scale](#managing-cross-cutting-concerns-at-scale)
-7. [Real Incidents](#real-incidents)
-8. [The Politics of Boundaries](#the-politics-of-boundaries)
-9. [Review Checklist](#review-checklist)
-10. [Cheat Sheet](#cheat-sheet)
-11. [Diagrams](#diagrams)
-12. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **production** — keeping concerns separated across a large, multi-contributor codebase over years.

@@ -10,21 +10,6 @@ These questions probe whether a candidate truly understands what happens when an
 
 A strong candidate refuses to call Python "pass by reference," reaches for the broken-swap test to prove it, distinguishes mutation from rebinding without hesitation, and can explain why call-by-name can terminate where call-by-value loops forever. At the senior end they connect the strategies to reduction order in the lambda calculus, treat move semantics as a first-class member of the call-by-x family, and reason about the ABI/performance reality. A weaker candidate gives surface answers ("just use a copy") and cannot say what their language actually does when they pass a list. The questions below progress from foundations to language-specific surfaces, then to traps where the textbook answer is wrong, then to design scenarios.
 
-## Table of Contents
-
-- [Conceptual / Foundational](#conceptual--foundational)
-- [Language-Specific](#language-specific)
-  - [Java](#java)
-  - [Go](#go)
-  - [Python](#python)
-  - [C++](#c)
-  - [Rust](#rust)
-  - [Haskell](#haskell)
-- [Tricky / Trap Questions](#tricky--trap-questions)
-- [Design Scenarios](#design-scenarios)
-
----
-
 ## Conceptual / Foundational
 
 ## Question 1

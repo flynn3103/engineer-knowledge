@@ -5,28 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Definition of Done — the First Gate](#definition-of-done--the-first-gate)
-4. [Automated Quality Gates in CI](#automated-quality-gates-in-ci)
-5. [Clean as You Code — the Leak/Ratchet Model](#clean-as-you-code--the-leakratchet-model)
-6. [Code Review as a Debt Filter](#code-review-as-a-debt-filter)
-7. [ADRs — Preventing Decision Debt](#adrs--preventing-decision-debt)
-8. [Small PRs — Why Size Is a Debt Signal](#small-prs--why-size-is-a-debt-signal)
-9. [Making the Right Thing Easy](#making-the-right-thing-easy)
-10. [Worked Example — A Gate That Blocks New Debt](#worked-example--a-gate-that-blocks-new-debt)
-11. [Mental Models](#mental-models)
-12. [Common Mistakes](#common-mistakes)
-13. [Test Yourself](#test-yourself)
-14. [Cheat Sheet](#cheat-sheet)
-15. [Summary](#summary)
-16. [Further Reading](#further-reading)
-17. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **What concrete practices and automation keep debt out, and how do I make them enforce themselves?**

@@ -7,27 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [The Two Questions That Decide Everything](#the-two-questions-that-decide-everything)
-3. [True vs. Coincidental Duplication — A Field Guide](#true-vs-coincidental-duplication--a-field-guide)
-4. [The Rule of Three](#the-rule-of-three)
-5. [AHA: Avoid Hasty Abstractions](#aha-avoid-hasty-abstractions)
-6. [DRY vs. WET vs. AHA](#dry-vs-wet-vs-aha)
-7. [Single Source of Truth Across Layers](#single-source-of-truth-across-layers)
-8. [A False DRY "Fix" — The Wrong-Abstraction Trap](#a-false-dry-fix--the-wrong-abstraction-trap)
-9. [When Duplication Is the Right Call](#when-duplication-is-the-right-call)
-10. [Trade-offs](#trade-offs)
-11. [Edge Cases](#edge-cases)
-12. [Tricky Points](#tricky-points)
-13. [Best Practices](#best-practices)
-14. [Test Yourself](#test-yourself)
-15. [Summary](#summary)
-16. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **Why** and **When**

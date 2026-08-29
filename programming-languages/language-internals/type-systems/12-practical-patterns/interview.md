@@ -10,20 +10,6 @@ These questions probe whether a candidate can *use* a type system as an engineer
 
 A great answer here is concrete: it names the pattern, shows the failure it prevents, writes a few lines of code, and — crucially — states the *cost* and when *not* to use it. Engineering judgment is the signal we're listening for. The questions move from conceptual foundations, through language-specific surfaces (TypeScript, Rust, Haskell, Java, Swift), into traps where the textbook answer is wrong, and finally to design scenarios that reveal whether the candidate has actually shipped type-driven code.
 
-## Table of Contents
-
-- [Conceptual / Foundational](#conceptual--foundational)
-- [Language-Specific](#language-specific)
-  - [TypeScript](#typescript)
-  - [Rust](#rust)
-  - [Haskell](#haskell)
-  - [Java](#java)
-  - [Swift](#swift)
-- [Tricky / Trap Questions](#tricky--trap-questions)
-- [Design Questions](#design-questions)
-
----
-
 ## Conceptual / Foundational
 
 ## Question 1

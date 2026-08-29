@@ -5,28 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [How Did the Codebase Get Here? — Organizational Forces](#how-did-the-codebase-get-here--organizational-forces)
-4. [Over-Engineering at Architecture Scale](#over-engineering-at-architecture-scale)
-5. [The Reversibility Lens: Where Up-Front Investment Is Warranted](#the-reversibility-lens-where-up-front-investment-is-warranted)
-6. [Safely Removing Over-Engineering at Scale](#safely-removing-over-engineering-at-scale)
-7. [De-Microservicing: Collapsing a Distributed Monolith](#de-microservicing-collapsing-a-distributed-monolith)
-8. [Deleting Speculative Abstractions and Soft-Coded Engines](#deleting-speculative-abstractions-and-soft-coded-engines)
-9. [Performance Optimization Done Right at Scale](#performance-optimization-done-right-at-scale)
-10. [Leading a Team Away from Over-Engineering](#leading-a-team-away-from-over-engineering)
-11. [Over- vs Under-Engineering and the Cost Asymmetry](#over--vs-under-engineering-and-the-cost-asymmetry)
-12. [Common Mistakes](#common-mistakes)
-13. [Test Yourself](#test-yourself)
-14. [Cheat Sheet](#cheat-sheet)
-15. [Summary](#summary)
-16. [Further Reading](#further-reading)
-17. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **How did the codebase get here?** and **How do I remove the excess safely at scale?**

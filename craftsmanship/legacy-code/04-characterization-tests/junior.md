@@ -1,20 +1,5 @@
 # Characterization Tests — Junior
 
-## Table of Contents
-
-- [The problem characterization tests solve](#the-problem-characterization-tests-solve)
-- [A photograph of current behavior](#a-photograph-of-current-behavior)
-- [How this differs from a normal unit test](#how-this-differs-from-a-normal-unit-test)
-- [The basic recipe](#the-basic-recipe)
-- [A worked example](#a-worked-example)
-- [Why you assert something you know is wrong](#why-you-assert-something-you-know-is-wrong)
-- [Pinning behavior you suspect is a bug](#pinning-behavior-you-suspect-is-a-bug)
-- [Common beginner mistakes](#common-beginner-mistakes)
-- [Mini Glossary](#mini-glossary)
-- [Review questions](#review-questions)
-
----
-
 ## The problem characterization tests solve
 
 You have been asked to change a function. It is forty lines long, it has no tests, and you did not write it. You read it three times and you still are not sure what it does in every case. If you change it and something breaks, you will not know — there is nothing watching the behavior.

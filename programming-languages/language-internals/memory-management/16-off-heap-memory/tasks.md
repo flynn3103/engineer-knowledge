@@ -6,16 +6,6 @@ These tasks move from observing the heap/off-heap boundary, through allocating a
 
 ---
 
-## Table of Contents
-
-- [Warm-Up](#warm-up)
-- [Core](#core)
-- [Advanced](#advanced)
-- [Capstone](#capstone)
-- [Self-Assessment](#self-assessment)
-
----
-
 ## Warm-Up
 
 ### Task 1 — See the boundary with your own eyes

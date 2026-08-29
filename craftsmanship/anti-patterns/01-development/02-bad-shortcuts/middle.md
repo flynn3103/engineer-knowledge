@@ -5,27 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [The Real Question: When Does This Creep In?](#the-real-question-when-does-this-creep-in)
-4. [Copy-Paste — and the DRY Nuance That Trips People Up](#copy-paste--and-the-dry-nuance-that-trips-people-up)
-5. [Magic Values — Where Constants Should Live](#magic-values--where-constants-should-live)
-6. [Hard Coding — The Configuration Spectrum](#hard-coding--the-configuration-spectrum)
-7. [Cargo Cult — From Imitation to Understanding](#cargo-cult--from-imitation-to-understanding)
-8. [Pokémon Exception Handling — Designing Error Flow](#pokémon-exception-handling--designing-error-flow)
-9. [Stringly-Typed — Making Illegal States Unrepresentable](#stringly-typed--making-illegal-states-unrepresentable)
-10. [Catching Shortcuts in Review and Tooling](#catching-shortcuts-in-review-and-tooling)
-11. [Common Mistakes](#common-mistakes)
-12. [Test Yourself](#test-yourself)
-13. [Cheat Sheet](#cheat-sheet)
-14. [Summary](#summary)
-15. [Further Reading](#further-reading)
-16. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **When does this creep in?** and **What do I do instead?**

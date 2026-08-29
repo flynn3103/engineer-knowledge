@@ -4,30 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Reference vs. Guides: The Core Distinction](#reference-vs-guides-the-core-distinction)
-5. [The Classic Failure: Mixing the Two](#the-classic-failure-mixing-the-two)
-6. [What a Great API Reference Contains](#what-a-great-api-reference-contains)
-7. [A Poor Endpoint Doc vs. an Excellent One](#a-poor-endpoint-doc-vs-an-excellent-one)
-8. [Examples That Actually Run](#examples-that-actually-run)
-9. [The Four Pillars of Developer Docs](#the-four-pillars-of-developer-docs)
-10. [Reference for Libraries vs. Web APIs](#reference-for-libraries-vs-web-apis)
-11. [Best Practices](#best-practices)
-12. [Common Mistakes](#common-mistakes)
-13. [Tricky Points](#tricky-points)
-14. [Test Yourself](#test-yourself)
-15. [Cheat Sheet](#cheat-sheet)
-16. [Summary](#summary)
-17. [Further Reading](#further-reading)
-18. [Related Topics](#related-topics)
-19. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **What is it?** and **How to use it?**

@@ -7,24 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Why Prose Runbooks Rot Fastest](#why-prose-runbooks-rot-fastest)
-3. [The Automation Continuum](#the-automation-continuum)
-4. [Executable and Living Runbooks](#executable-and-living-runbooks)
-5. [ChatOps and Runbook Automation Platforms](#chatops-and-runbook-automation-platforms)
-6. [Keeping Runbooks Honest: Game Days and DiRT](#keeping-runbooks-honest-game-days-and-dirt)
-7. [The Stale-Runbook Failure Mode](#the-stale-runbook-failure-mode)
-8. [Over-Documentation vs. Automation](#over-documentation-vs-automation)
-9. [Operational Docs as a System](#operational-docs-as-a-system)
-10. [Liabilities](#liabilities)
-11. [Pros & Cons at the System Level](#pros--cons-at-the-system-level)
-12. [Diagrams](#diagrams)
-13. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **design trade-offs** and **system-level reasoning**

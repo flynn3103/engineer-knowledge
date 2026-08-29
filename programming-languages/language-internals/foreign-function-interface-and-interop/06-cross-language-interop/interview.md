@@ -9,15 +9,6 @@
 
 These questions test whether a candidate can reason about cross-language interop as an *architectural* decision, not just recite that "FFI is fast." Strong answers connect a mechanism to its consequences — crash domain, coupling, evolution, security — and pick deliberately rather than by habit. The questions are grouped into Conceptual, Technology-Specific (C++ interop, WebAssembly Component Model, gRPC/Protobuf, COM/.NET, GraalVM/JVM polyglot), Tricky-Trap, and Design. Each answer is written to be the kind of response a senior or staff engineer would give in a real interview.
 
-## Table of Contents
-
-- [Conceptual](#conceptual)
-- [Technology-Specific](#technology-specific)
-- [Tricky-Trap](#tricky-trap)
-- [Design](#design)
-
----
-
 ## Conceptual
 
 ## Question 1

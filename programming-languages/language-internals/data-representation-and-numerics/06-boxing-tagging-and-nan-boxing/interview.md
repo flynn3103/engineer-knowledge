@@ -10,25 +10,6 @@ These questions probe whether a candidate understands the central problem of dyn
 
 The sections below run from conceptual foundations through language-specific surfaces, into traps where the obvious answer is wrong, and finally to design scenarios that test whether the candidate has actually thought about building or tuning a runtime.
 
-## Table of Contents
-
-- [Conceptual / Foundational](#conceptual--foundational)
-- [Language-Specific](#language-specific)
-  - [Java](#java)
-  - [C#](#c)
-  - [Python](#python)
-  - [JavaScript / V8](#javascript--v8)
-  - [Lua / LuaJIT](#lua--luajit)
-  - [Ruby](#ruby)
-  - [OCaml](#ocaml)
-- [Tricky / Trap Questions](#tricky--trap-questions)
-- [Design Scenarios](#design-scenarios)
-- [Cheat Sheet](#cheat-sheet)
-- [Further Reading](#further-reading)
-- [Related Topics](#related-topics)
-
----
-
 ## Conceptual / Foundational
 
 ## Question 1

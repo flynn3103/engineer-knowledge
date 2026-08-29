@@ -11,15 +11,6 @@ These tasks are meant to be done *with the tools open*. Reading codegen is a mus
 
 The single most important tool is **Compiler Explorer (godbolt.org)** — most tasks can be done entirely in a browser. A few need a local toolchain (`gcc`/`clang`, `objdump`, `perf`) or a runtime (`node`, `java`). Use **Intel syntax** throughout (it's Godbolt's default; pass `-masm=intel` / `objdump -M intel` locally) to avoid the operand-order trap.
 
-## Table of Contents
-
-- [Warm-Up](#warm-up)
-- [Core](#core)
-- [Advanced](#advanced)
-- [Capstone](#capstone)
-
----
-
 ## Warm-Up
 
 ### Task 1: Add two numbers and read it

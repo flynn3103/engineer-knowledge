@@ -5,26 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [The Anatomy of a Codemod](#the-anatomy-of-a-codemod)
-4. [A Complete jscodeshift Transform](#a-complete-jscodeshift-transform)
-5. [The Same Idea in ts-morph](#the-same-idea-in-ts-morph)
-6. [The Pattern-Tool Alternative: Comby](#the-pattern-tool-alternative-comby)
-7. [Idempotency: Twice Must Equal Once](#idempotency-twice-must-equal-once)
-8. [Testing a Codemod with Fixtures](#testing-a-codemod-with-fixtures)
-9. [Running It Over a Directory](#running-it-over-a-directory)
-10. [Common Mistakes](#common-mistakes)
-11. [Test Yourself](#test-yourself)
-12. [Cheat Sheet](#cheat-sheet)
-13. [Summary](#summary)
-14. [Further Reading](#further-reading)
-15. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Writing and testing a codemod.**

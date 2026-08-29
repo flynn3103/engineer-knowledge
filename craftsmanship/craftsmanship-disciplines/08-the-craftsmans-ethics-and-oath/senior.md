@@ -7,27 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [The Central Tension: Deadlines vs Quality](#the-central-tension-deadlines-vs-quality)
-3. [Saying No as a Professional Act](#saying-no-as-a-professional-act)
-4. [The Limits of "Just Following Orders"](#the-limits-of-just-following-orders)
-5. [Whistleblowing: The Last Resort](#whistleblowing-the-last-resort)
-6. [Case Study: Therac-25](#case-study-therac-25)
-7. [Case Study: Volkswagen Dieselgate](#case-study-volkswagen-dieselgate)
-8. [Case Study: Boeing 737 MAX (MCAS)](#case-study-boeing-737-max-mcas)
-9. [Case Study: Knight Capital](#case-study-knight-capital)
-10. [What the Failures Have in Common](#what-the-failures-have-in-common)
-11. [Technical Debt as an Ethical Issue](#technical-debt-as-an-ethical-issue)
-12. [A Decision Model: Should I Ship This?](#a-decision-model-should-i-ship-this)
-13. [Pros & Cons of an Ethical Stand](#pros-cons-of-an-ethical-stand)
-14. [Test Yourself](#test-yourself)
-15. [Summary](#summary)
-16. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: ethics is only tested **under pressure**, and history shows exactly how it fails.

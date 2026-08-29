@@ -5,26 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Running a Remote Cache at Org Scale](#running-a-remote-cache-at-org-scale)
-3. [The Cache as a Cost and Velocity Lever](#the-cache-as-a-cost-and-velocity-lever)
-4. [Security of a Shared Cache — Who Can Write?](#security-of-a-shared-cache--who-can-write)
-5. [Trust Boundaries and Supply-Chain Risk](#trust-boundaries-and-supply-chain-risk)
-6. [Debugging "Why Was This a Cache Miss?"](#debugging-why-was-this-a-cache-miss)
-7. [Debugging "Why Did I Get a Stale Artifact?"](#debugging-why-did-i-get-a-stale-artifact)
-8. [War Stories](#war-stories)
-9. [Mental Models](#mental-models)
-10. [Common Mistakes](#common-mistakes)
-11. [Test Yourself](#test-yourself)
-12. [Cheat Sheet](#cheat-sheet)
-13. [Summary](#summary)
-14. [Further Reading](#further-reading)
-15. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **How do you operate a shared build cache for a whole org — its cost, its security, and the two questions you'll be paged about?**

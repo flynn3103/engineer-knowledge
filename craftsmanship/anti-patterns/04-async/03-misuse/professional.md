@@ -5,30 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Measure First: The Tooling Map](#measure-first-the-tooling-map)
-4. [The Microtask Model You Are Actually Paying Into](#the-microtask-model-you-are-actually-paying-into)
-5. [`async` Without `await` — Desugaring and Its Microtask Cost](#async-without-await--desugaring-and-its-microtask-cost)
-6. [`return await x` vs `return x` — The Historical Extra Tick and the Stack-Trace Trade](#return-await-x-vs-return-x--the-historical-extra-tick-and-the-stack-trace-trade)
-7. [The Promise Constructor Anti-Pattern — Where Errors Go to Die](#the-promise-constructor-anti-pattern--where-errors-go-to-die)
-8. [`no-async-promise-executor` — Why the Linter Bans an `async` Executor](#no-async-promise-executor--why-the-linter-bans-an-async-executor)
-9. [Memory: Extra Promise Objects and Retained Closures](#memory-extra-promise-objects-and-retained-closures)
-10. [Inlining, Optimization, and What V8 Does With `async`](#inlining-optimization-and-what-v8-does-with-async)
-11. [When `async` Is the Right Call: Taming Zalgo](#when-async-is-the-right-call-taming-zalgo)
-12. [Python `asyncio` Analogs](#python-asyncio-analogs)
-13. [A Combined Worked Example](#a-combined-worked-example)
-14. [Common Mistakes](#common-mistakes)
-15. [Test Yourself](#test-yourself)
-16. [Cheat Sheet](#cheat-sheet)
-17. [Summary](#summary)
-18. [Further Reading](#further-reading)
-19. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **what these two shapes cost the runtime** — microtask ticks, promise allocations, retained closures, and the optimizer — and, far more importantly, **what they cost correctness**. The professional headline is counterintuitive: the performance cost of both anti-patterns is almost always negligible, and the *real* damage is lost errors. Measure before you "optimize" away an `async`.

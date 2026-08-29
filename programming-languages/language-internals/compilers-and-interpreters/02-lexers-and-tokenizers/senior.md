@@ -5,20 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Significant Whitespace: INDENT/DEDENT](#significant-whitespace-indentdedent)
-3. [String Interpolation: Lexer/Parser Entanglement](#string-interpolation-lexerparser-entanglement)
-4. [The Lexer Hack and Other Context-Sensitivity](#the-lexer-hack-and-other-context-sensitivity)
-5. [Mental Models](#mental-models)
-6. [Code Examples](#code-examples)
-7. [Best Practices](#best-practices)
-8. [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-9. [Summary](#summary)
-
----
-
 ## Introduction
 
 The textbook story — tokens are a regular language, so a lexer is a clean,

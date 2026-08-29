@@ -5,30 +5,6 @@
 
 ---
 
-## Table of Contents
-
-- [Introduction](#introduction)
-- [Prerequisites](#prerequisites)
-- [Glossary](#glossary)
-- [Core Concepts](#core-concepts)
-  - [Anatomy of a cache](#anatomy-of-a-cache)
-  - [Associativity, sets, and eviction](#associativity-sets-and-eviction)
-  - [The three Cs of cache misses](#the-three-cs-of-cache-misses)
-  - [Spatial and temporal locality](#spatial-and-temporal-locality)
-  - [Prefetching](#prefetching)
-  - [The TLB and address translation](#the-tlb-and-address-translation)
-  - [Bandwidth vs latency](#bandwidth-vs-latency)
-- [A Cost Model You Can Use](#a-cost-model-you-can-use)
-- [Mental Models](#mental-models)
-- [Code Examples](#code-examples)
-- [Coding Patterns](#coding-patterns)
-- [Pros & Cons](#pros--cons)
-- [Best Practices](#best-practices)
-- [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-- [Summary](#summary)
-
----
-
 ## Introduction
 
 At the junior level the hierarchy is a pyramid of latencies and one rule: be sequential. That rule works because of *machinery* — set-associative caches, hardware prefetchers, and a translation cache called the TLB — that you can now learn to reason about quantitatively. The goal of this tier is to replace "scattered access is slow" with a model that predicts *how* slow and *why*, so you can estimate the cost of a loop before you run it.

@@ -5,26 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [The Release Matrix as a System](#the-release-matrix-as-a-system)
-3. [The CGO / Native-Dependency Tax — and How Teams Avoid It](#the-cgo--native-dependency-tax--and-how-teams-avoid-it)
-4. [Zig as a Cross-Compiler](#zig-as-a-cross-compiler)
-5. [Apple: Universal Binaries and Notarization](#apple-universal-binaries-and-notarization)
-6. [Embedded and Firmware Pipelines](#embedded-and-firmware-pipelines)
-7. [Supply Chain and Reproducibility of Cross-Builds](#supply-chain-and-reproducibility-of-cross-builds)
-8. [War Stories](#war-stories)
-9. [Mental Models](#mental-models)
-10. [Common Mistakes](#common-mistakes)
-11. [Test Yourself](#test-yourself)
-12. [Cheat Sheet](#cheat-sheet)
-13. [Summary](#summary)
-14. [Further Reading](#further-reading)
-15. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Cross-compilation as a shipping discipline — release matrices, the native-dependency tax, platform-specific gauntlets (Apple, embedded), supply-chain integrity, and the failures that teach.**

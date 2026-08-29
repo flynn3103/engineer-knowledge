@@ -5,26 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Running These Tools in CI at Org Scale](#running-these-tools-in-ci-at-org-scale)
-3. [Caching Strategy, Per Tool](#caching-strategy-per-tool)
-4. [Lockfile Hygiene and Dependency Security](#lockfile-hygiene-and-dependency-security)
-5. [Private Registries and Provenance](#private-registries-and-provenance)
-6. [Polyglot Repos — Many Tools, One Repo](#polyglot-repos--many-tools-one-repo)
-7. [Migration Pain](#migration-pain)
-8. [War Stories](#war-stories)
-9. [Mental Models](#mental-models)
-10. [Common Mistakes](#common-mistakes)
-11. [Test Yourself](#test-yourself)
-12. [Cheat Sheet](#cheat-sheet)
-13. [Summary](#summary)
-14. [Further Reading](#further-reading)
-15. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Operating per-language tools across an organization — CI, caching, security, and the incidents that set the rules.**

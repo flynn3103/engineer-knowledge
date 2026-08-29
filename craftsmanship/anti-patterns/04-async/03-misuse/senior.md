@@ -5,27 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [How Did the Codebase Get Here? — Root-Cause Forces](#how-did-the-codebase-get-here--root-cause-forces)
-4. [The Promise Constructor Anti-Pattern at Scale](#the-promise-constructor-anti-pattern-at-scale)
-5. [Building the Bridge Once: A Hardened `eventToPromise` Utility](#building-the-bridge-once-a-hardened-eventtopromise-utility)
-6. [`async` Without `await`: Reasoning About Semantic Effects](#async-without-await-reasoning-about-semantic-effects)
-7. [When Each Construct Is Legitimately Needed](#when-each-construct-is-legitimately-needed)
-8. [Eradicating Both at Scale: Lint Gates, Codemods, Review](#eradicating-both-at-scale-lint-gates-codemods-review)
-9. [Python `asyncio` Analogs](#python-asyncio-analogs)
-10. [When NOT to Change It](#when-not-to-change-it)
-11. [Common Mistakes](#common-mistakes)
-12. [Test Yourself](#test-yourself)
-13. [Cheat Sheet](#cheat-sheet)
-14. [Summary](#summary)
-15. [Further Reading](#further-reading)
-16. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **How did the codebase fill up with hand-rolled `new Promise` wrappers and decorative `async`? How do I remove them safely without changing behavior?**

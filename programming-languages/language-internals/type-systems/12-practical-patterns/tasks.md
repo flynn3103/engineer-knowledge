@@ -12,17 +12,6 @@ Work in tiers. Junior tasks drill the three core habits (illegal states, parse-d
 
 > Rule of the page: after every "fix," try to *write the original bug* in your new design. If it compiles, you haven't fixed it — you've decorated it.
 
-## Table of Contents
-
-- [Junior Tasks](#junior-tasks)
-- [Middle Tasks](#middle-tasks)
-- [Senior Tasks](#senior-tasks)
-- [Stretch / Professional Tasks](#stretch--professional-tasks)
-- [Self-Check Summary](#self-check-summary)
-- [Selected Solutions](#selected-solutions)
-
----
-
 ## Junior Tasks
 
 ### Task J1 — Kill the impossible state

@@ -7,26 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Observable vs. Non-Observable Side Effects](#observable-vs-non-observable-side-effects)
-3. [Why CQS Makes Code Easier to Reason About](#why-cqs-makes-code-easier-to-reason-about)
-4. [The Conscious Exceptions: When to Combine Command and Query](#the-conscious-exceptions-when-to-combine-command-and-query)
-5. [CQS vs. CQRS — Clearing Up the Confusion](#cqs-vs-cqrs--clearing-up-the-confusion)
-6. [CQS and HTTP: Safe Methods, Idempotency, and Caching](#cqs-and-http-safe-methods-idempotency-and-caching)
-7. [CQS and Tell-Don't-Ask: A Real Tension](#cqs-and-tell-dont-ask-a-real-tension)
-8. [The Debated Cases](#the-debated-cases)
-9. [Trade-offs](#trade-offs)
-10. [Edge Cases](#edge-cases)
-11. [Tricky Points](#tricky-points)
-12. [Best Practices](#best-practices)
-13. [Test Yourself](#test-yourself)
-14. [Summary](#summary)
-15. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **Why** and **When**

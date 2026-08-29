@@ -6,15 +6,6 @@ A bank of interview questions on escape analysis, spanning conceptual understand
 
 ---
 
-## Table of Contents
-
-- [Conceptual](#conceptual)
-- [Tool-Specific](#tool-specific)
-- [Tricky / Trap](#tricky--trap)
-- [Design](#design)
-
----
-
 ## Conceptual
 
 ## Question 1

@@ -7,15 +7,6 @@ These tasks build intuition the only way it sticks: by deliberately driving syst
 
 ---
 
-## Table of Contents
-- [Warm-Up](#warm-up)
-- [Core](#core)
-- [Advanced](#advanced)
-- [Capstone](#capstone)
-- [Self-Assessment](#self-assessment)
-
----
-
 ## Warm-Up
 
 ### Task 1 — Read the real memory numbers

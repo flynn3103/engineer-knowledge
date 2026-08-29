@@ -17,15 +17,6 @@ is defensive and conceptual — we explain *mechanisms* and *bypass classes*, ne
 working exploits. Use the questions to interview others or to pressure-test your
 own mental model.
 
-## Table of Contents
-
-- [Conceptual](#conceptual)
-- [Toolchain-Specific](#toolchain-specific)
-- [Tricky-Trap](#tricky-trap)
-- [Design](#design)
-
----
-
 ## Conceptual
 
 ## Question 1

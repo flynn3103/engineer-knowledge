@@ -5,27 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [The Triple, Field by Field](#the-triple-field-by-field)
-4. [Three Machines: Build, Host, Target](#three-machines-build-host-target)
-5. [The Cross-Toolchain — What It Actually Is](#the-cross-toolchain--what-it-actually-is)
-6. [The Sysroot — the Target's World on Your Disk](#the-sysroot--the-targets-world-on-your-disk)
-7. [Rust Cross-Compilation — `--target` and the Linker](#rust-cross-compilation----target-and-the-linker)
-8. [Go + CGO — How C Breaks the Easy Case](#go--cgo--how-c-breaks-the-easy-case)
-9. [Static Linking as a Cross-Compile Simplifier](#static-linking-as-a-cross-compile-simplifier)
-10. [Mental Models](#mental-models)
-11. [Common Mistakes](#common-mistakes)
-12. [Test Yourself](#test-yourself)
-13. [Cheat Sheet](#cheat-sheet)
-14. [Summary](#summary)
-15. [Further Reading](#further-reading)
-16. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **The precise vocabulary — triple, build/host/target, toolchain, sysroot — and how Rust and Go-with-CGO use it.**

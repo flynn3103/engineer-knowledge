@@ -5,27 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concept 1 — The Unifying Diagnosis](#core-concept-1--the-unifying-diagnosis)
-5. [Core Concept 2 — Reviewer-Side Anti-patterns](#core-concept-2--reviewer-side-anti-patterns)
-6. [Core Concept 3 — Author-Side Anti-patterns](#core-concept-3--author-side-anti-patterns)
-7. [Core Concept 4 — Systemic & Cultural Anti-patterns](#core-concept-4--systemic--cultural-anti-patterns)
-8. [Core Concept 5 — Root Cause → Systemic Fix](#core-concept-5--root-cause--systemic-fix)
-9. [Real-World Examples](#real-world-examples)
-10. [Mental Models](#mental-models)
-11. [Common Mistakes](#common-mistakes)
-12. [Test Yourself](#test-yourself)
-13. [Cheat Sheet](#cheat-sheet)
-14. [Summary](#summary)
-15. [Further Reading](#further-reading)
-16. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Why does each anti-pattern happen, and what change to the system — not the person — actually stops it?**

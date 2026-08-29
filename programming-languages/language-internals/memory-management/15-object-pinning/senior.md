@@ -5,26 +5,6 @@
 
 ---
 
-## Table of Contents
-
-- [Introduction](#introduction)
-- [Core Concepts](#core-concepts)
-  - [Why a heap moves objects](#why-a-heap-moves-objects)
-  - [What "address stability" actually means](#what-address-stability-actually-means)
-  - [Pinning as the contract with the collector](#pinning-as-the-contract-with-the-collector)
-- [The Cross-Runtime Design Space](#the-cross-runtime-design-space)
-  - [.NET: fixed, GCHandle, and the Pinned Object Heap](#net-fixed-gchandle-and-the-pinned-object-heap)
-  - [JVM: JNI critical regions vs. copying](#jvm-jni-critical-regions-vs-copying)
-  - [Go: cgo pointer rules and runtime.Pinner](#go-cgo-pointer-rules-and-runtimepinner)
-  - [Moving stacks: the interior-pointer hazard](#moving-stacks-the-interior-pointer-hazard)
-- [Sidebar: Rust `Pin<P>` Is a Different Thing](#sidebar-rust-pinp-is-a-different-thing)
-- [Pros & Cons](#pros--cons)
-- [Best Practices](#best-practices)
-- [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-- [Summary](#summary)
-
----
-
 ## Introduction
 
 A managed heap is a negotiated illusion. The runtime promises your code that a reference stays valid for the object's lifetime, but it does *not* promise that the object stays at a fixed machine address. Compacting, copying, and generational collectors routinely **relocate live objects** — to defragment the heap, to keep allocation a cheap bump of a pointer, and to promote survivors between generations. After a move, the collector rewrites every managed reference it can find: roots on the stack, in registers, in static fields, and inside other heap objects. The illusion holds because the collector owns the full set of pointers.

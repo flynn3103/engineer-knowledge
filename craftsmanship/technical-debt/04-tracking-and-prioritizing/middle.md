@@ -5,27 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Where Debt Lives — and Why Naked TODOs Fail](#where-debt-lives--and-why-naked-todos-fail)
-4. [Anatomy of a Good Debt Ticket](#anatomy-of-a-good-debt-ticket)
-5. [Prioritization Frameworks, Applied to Debt](#prioritization-frameworks-applied-to-debt)
-6. [Cost of Delay and WSJF — the Math](#cost-of-delay-and-wsjf--the-math)
-7. [The Interest-Rate Rule — Pay High-Churn Debt First](#the-interest-rate-rule--pay-high-churn-debt-first)
-8. [Tie Debt to the Work That Touches It](#tie-debt-to-the-work-that-touches-it)
-9. [Worked Example — Ranking Four Debts by WSJF](#worked-example--ranking-four-debts-by-wsjf)
-10. [Mental Models](#mental-models)
-11. [Common Mistakes](#common-mistakes)
-12. [Test Yourself](#test-yourself)
-13. [Cheat Sheet](#cheat-sheet)
-14. [Summary](#summary)
-15. [Further Reading](#further-reading)
-16. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **How do I run a debt-tracking and prioritization practice that actually changes what gets worked on?**

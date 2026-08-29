@@ -7,27 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [The Contract Rules in Full](#the-contract-rules-in-full)
-3. [Preconditions Cannot Be Strengthened](#preconditions-cannot-be-strengthened)
-4. [Postconditions Cannot Be Weakened](#postconditions-cannot-be-weakened)
-5. [Invariants Must Be Preserved](#invariants-must-be-preserved)
-6. [The History Constraint](#the-history-constraint)
-7. [Variance: Arguments, Returns, Exceptions](#variance-arguments-returns-exceptions)
-8. [A Real JDK Violation: the Immutable List](#a-real-jdk-violation-the-immutable-list)
-9. [How to Fix LSP Violations](#how-to-fix-lsp-violations)
-10. [Trade-offs](#trade-offs)
-11. [Edge Cases](#edge-cases)
-12. [Tricky Points](#tricky-points)
-13. [Best Practices](#best-practices)
-14. [Test Yourself](#test-yourself)
-15. [Summary](#summary)
-16. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **Why** and **When**

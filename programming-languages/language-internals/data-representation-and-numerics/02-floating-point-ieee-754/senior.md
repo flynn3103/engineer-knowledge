@@ -5,31 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concepts](#core-concepts)
-5. [Real-World Analogies](#real-world-analogies)
-6. [Mental Models](#mental-models)
-7. [Code Examples](#code-examples)
-8. [Trade-offs](#trade-offs)
-9. [Use Cases](#use-cases)
-10. [Coding Patterns](#coding-patterns)
-11. [Best Practices](#best-practices)
-12. [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-13. [Common Mistakes](#common-mistakes)
-14. [Tricky Points](#tricky-points)
-15. [Test Yourself](#test-yourself)
-16. [Cheat Sheet](#cheat-sheet)
-17. [Summary](#summary)
-18. [Further Reading](#further-reading)
-19. [Related Topics](#related-topics)
-20. [Diagrams & Visual Aids](#diagrams--visual-aids)
-
----
-
 ## Introduction
 
 > 🎓 At middle level you learned ULPs, cancellation, and how to compare floats correctly. At senior level you confront the gap between the *standard* and the *machine*: the same `a*b + c` may be computed with one rounding or two depending on whether the compiler emitted an FMA; the same expression may carry 64 bits of mantissa on SSE and 64 bits *of integer* — really 80-bit floats — on a 1999 x87 FPU; the same binary, recompiled with `-ffast-math`, may quietly stop being IEEE 754 at all. Your job at this level is to know exactly which guarantees survive each layer.

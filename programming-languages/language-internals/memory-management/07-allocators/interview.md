@@ -4,15 +4,6 @@
 
 A bank of interview questions on memory allocators, from fundamentals through production tuning and design. Each question pairs the prompt with an answer at the depth a strong candidate would actually give — concrete, honest about trade-offs, and grounded in real systems (glibc, jemalloc, tcmalloc, mimalloc, the Linux slab/buddy allocators).
 
-## Table of Contents
-
-- [Conceptual](#conceptual)
-- [Tool-Specific](#tool-specific)
-- [Tricky / Trap](#tricky--trap)
-- [Design](#design)
-
----
-
 ## Conceptual
 
 ## Question 1

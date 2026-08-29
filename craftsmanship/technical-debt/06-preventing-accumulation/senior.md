@@ -5,28 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Architectural Erosion — The Debt Gates Don't Catch](#architectural-erosion--the-debt-gates-dont-catch)
-4. [Fitness Functions — Encoding Intent as Executable Tests](#fitness-functions--encoding-intent-as-executable-tests)
-5. [Conformance Checking — Built vs Intended](#conformance-checking--built-vs-intended)
-6. [Clean as You Code — The Quality-Leak Model](#clean-as-you-code--the-quality-leak-model)
-7. [The Paved Path — Making the Clean Way the Easy Way](#the-paved-path--making-the-clean-way-the-easy-way)
-8. [Dependency and Version Debt — Keeping the Floor Moving](#dependency-and-version-debt--keeping-the-floor-moving)
-9. [Knowledge Debt — Bus Factor and Context Spread](#knowledge-debt--bus-factor-and-context-spread)
-10. [The Limits of Gates — You Can't Lint Your Way to Good Design](#the-limits-of-gates--you-cant-lint-your-way-to-good-design)
-11. [Mental Models](#mental-models)
-12. [Common Mistakes](#common-mistakes)
-13. [Test Yourself](#test-yourself)
-14. [Cheat Sheet](#cheat-sheet)
-15. [Summary](#summary)
-16. [Further Reading](#further-reading)
-17. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Preventing the debt that compounds fastest and pays down slowest — architectural drift — by making intent executable and the clean path the path of least resistance.**

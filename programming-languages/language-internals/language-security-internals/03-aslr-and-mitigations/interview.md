@@ -14,15 +14,6 @@ canaries, and CET into a coherent exploitation-mitigation story. Everything here
 is conceptual and defensive — the goal is to reason about *why* attacks get hard,
 not to construct them.
 
-## Table of Contents
-
-- [Conceptual](#conceptual)
-- [Platform-Specific](#platform-specific)
-- [Tricky / Trap](#tricky--trap)
-- [Design](#design)
-
----
-
 ## Conceptual
 
 ## Question 1

@@ -7,28 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [When to Write a Doc — and When to Just Spike](#when-to-write-a-doc-and-when-to-just-spike)
-3. [The RFC Lifecycle](#the-rfc-lifecycle)
-4. [Running a Comment Period](#running-a-comment-period)
-5. [The RFC Header / Status Block](#the-rfc-header-status-block)
-6. [A Review-Comment Thread, Annotated](#a-review-comment-thread-annotated)
-7. [Async Written Review vs Meeting-Driven Decisions](#async-written-review-vs-meeting-driven-decisions)
-8. [Disagree and Commit](#disagree-and-commit)
-9. [From Resolved Doc to Implementable Plan + ADR](#from-resolved-doc-to-implementable-plan--adr)
-10. [Cross-Cutting Concerns Are Not Optional](#cross-cutting-concerns-are-not-optional)
-11. [Trade-offs](#trade-offs)
-12. [Edge Cases](#edge-cases)
-13. [Tricky Points](#tricky-points)
-14. [Best Practices](#best-practices)
-15. [Test Yourself](#test-yourself)
-16. [Summary](#summary)
-17. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **Why** and **When**

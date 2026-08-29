@@ -6,15 +6,6 @@ A curated set of interview questions on manual memory management, spanning funda
 
 ---
 
-## Table of Contents
-
-- [Conceptual](#conceptual)
-- [Tool-Specific](#tool-specific)
-- [Tricky / Trap](#tricky--trap)
-- [Design](#design)
-
----
-
 ## Conceptual
 
 ## Question 1

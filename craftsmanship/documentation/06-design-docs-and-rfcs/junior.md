@@ -4,32 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Why Write Anything Before Coding?](#why-write-anything-before-coding)
-5. ["Writing Is Thinking"](#writing-is-thinking)
-6. [The Anatomy of a Design Doc](#the-anatomy-of-a-design-doc)
-7. [The Two Highest-Value Sections](#the-two-highest-value-sections)
-8. [A Filled Design-Doc Excerpt](#a-filled-design-doc-excerpt)
-9. [What Is an RFC?](#what-is-an-rfc)
-10. [Design Doc vs RFC vs ADR](#design-doc-vs-rfc-vs-adr)
-11. [Right-Sizing the Doc](#right-sizing-the-doc)
-12. [A Minimal Template You Can Copy](#a-minimal-template-you-can-copy)
-13. [Best Practices](#best-practices)
-14. [Common Mistakes](#common-mistakes)
-15. [Tricky Points](#tricky-points)
-16. [Test Yourself](#test-yourself)
-17. [Cheat Sheet](#cheat-sheet)
-18. [Summary](#summary)
-19. [Further Reading](#further-reading)
-20. [Related Topics](#related-topics)
-21. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **What is it?** and **How to use it?**

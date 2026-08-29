@@ -5,27 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Turning the Quadrant into Policy](#turning-the-quadrant-into-policy)
-4. [Diagnosing the Systemic Cause Behind Each Cell](#diagnosing-the-systemic-cause-behind-each-cell)
-5. [The Quadrant as Shared Language with Product](#the-quadrant-as-shared-language-with-product)
-6. [Avoiding the Blame Trap](#avoiding-the-blame-trap)
-7. [The Quadrant in Postmortems and Planning](#the-quadrant-in-postmortems-and-planning)
-8. [War Stories](#war-stories)
-9. [Decision Frameworks](#decision-frameworks)
-10. [Mental Models](#mental-models)
-11. [Common Mistakes](#common-mistakes)
-12. [Test Yourself](#test-yourself)
-13. [Cheat Sheet](#cheat-sheet)
-14. [Summary](#summary)
-15. [Further Reading](#further-reading)
-16. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Using the four-cell classification to drive organizational policy, culture, and accountability — and to diagnose the system, not the individual.**

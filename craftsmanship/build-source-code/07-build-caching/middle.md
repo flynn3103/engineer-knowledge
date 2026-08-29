@@ -5,27 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Content-Addressable Storage — Fetch by What's Inside](#content-addressable-storage--fetch-by-whats-inside)
-4. [What Belongs in a Cache Key (and Why Missing One Is Dangerous)](#what-belongs-in-a-cache-key-and-why-missing-one-is-dangerous)
-5. [Local vs Remote Caches](#local-vs-remote-caches)
-6. [Sharing a Cache Across a Team and CI](#sharing-a-cache-across-a-team-and-ci)
-7. [ccache and sccache, Configured](#ccache-and-sccache-configured)
-8. [Gradle and Bazel Cache Basics](#gradle-and-bazel-cache-basics)
-9. [Caching vs Timestamp Incrementality, Mechanically](#caching-vs-timestamp-incrementality-mechanically)
-10. [Mental Models](#mental-models)
-11. [Common Mistakes](#common-mistakes)
-12. [Test Yourself](#test-yourself)
-13. [Cheat Sheet](#cheat-sheet)
-14. [Summary](#summary)
-15. [Further Reading](#further-reading)
-16. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **What exactly goes into a cache key, and how do a team and CI share one cache safely?**

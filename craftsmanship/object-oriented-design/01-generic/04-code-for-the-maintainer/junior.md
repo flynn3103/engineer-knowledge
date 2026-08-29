@@ -4,32 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [The Principle](#the-principle)
-5. [Why This Matters: Code Is Read Far More Than It's Written](#why-this-matters-code-is-read-far-more-than-its-written)
-6. [The 3 a.m. Maintainer](#the-3-am-maintainer)
-7. [Real-World Analogies](#real-world-analogies)
-8. [Mental Models](#mental-models)
-9. [Concrete Practices](#concrete-practices)
-10. [Code Examples](#code-examples)
-11. [Comments That Explain WHY, Not WHAT](#comments-that-explain-why-not-what)
-12. [Error Messages and Logging for the On-Call Engineer](#error-messages-and-logging-for-the-on-call-engineer)
-13. [Best Practices](#best-practices)
-14. [Common Mistakes](#common-mistakes)
-15. [Tricky Points](#tricky-points)
-16. [Test Yourself](#test-yourself)
-17. [Cheat Sheet](#cheat-sheet)
-18. [Summary](#summary)
-19. [Further Reading](#further-reading)
-20. [Related Topics](#related-topics)
-21. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **What is it?** and **How to use it?**

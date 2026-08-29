@@ -7,22 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Enforcing the Principle in Code Review](#enforcing-the-principle-in-code-review)
-3. [Measuring Volatility to Locate the Real Axes](#measuring-volatility-to-locate-the-real-axes)
-4. [Team Conventions](#team-conventions)
-5. [Introducing Seams into Legacy Systems](#introducing-seams-into-legacy-systems)
-6. [Real Incidents](#real-incidents)
-7. [The Politics of Seams](#the-politics-of-seams)
-8. [Review Checklist](#review-checklist)
-9. [Cheat Sheet](#cheat-sheet)
-10. [Diagrams](#diagrams)
-11. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **production** — getting the axes of variation right across a large, multi-contributor codebase over years.

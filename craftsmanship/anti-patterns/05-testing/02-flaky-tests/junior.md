@@ -5,24 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [What "flaky" actually means](#what-flaky-actually-means)
-4. [The classic flake: `sleep(100)`](#the-classic-flake-sleep100)
-5. [Why "just re-run it" is poison](#why-just-re-run-it-is-poison)
-6. [The seven sources of non-determinism](#the-seven-sources-of-non-determinism)
-7. [The one rule: await a condition, never a duration](#the-one-rule-await-a-condition-never-a-duration)
-8. [Common Mistakes](#common-mistakes)
-9. [Test Yourself](#test-yourself)
-10. [Cheat Sheet](#cheat-sheet)
-11. [Summary](#summary)
-12. [Further Reading](#further-reading)
-13. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **What flaky is and why it's poison.**

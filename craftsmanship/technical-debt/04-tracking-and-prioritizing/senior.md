@@ -5,28 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Severity-Sorting Is the Wrong Axis](#severity-sorting-is-the-wrong-axis)
-4. [The Expected-Interest Model](#the-expected-interest-model)
-5. [Fusing the Hotspot Map with the Quadrant](#fusing-the-hotspot-map-with-the-quadrant)
-6. [A Worked Ranking — Six Debts, One Spreadsheet](#a-worked-ranking--six-debts-one-spreadsheet)
-7. [Cost of Delay, WSJF, and CD3 at Depth](#cost-of-delay-wsjf-and-cd3-at-depth)
-8. [The Backlog-Rot Problem — Why Separate Debt Lists Die](#the-backlog-rot-problem--why-separate-debt-lists-die)
-9. [Deciding the Paydown Budget](#deciding-the-paydown-budget)
-10. [Prioritization Anti-Patterns](#prioritization-anti-patterns)
-11. [Mental Models](#mental-models)
-12. [Common Mistakes](#common-mistakes)
-13. [Test Yourself](#test-yourself)
-14. [Cheat Sheet](#cheat-sheet)
-15. [Summary](#summary)
-16. [Further Reading](#further-reading)
-17. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Ranking debt by the money it actually costs, and keeping a backlog that survives contact with a real roadmap.**

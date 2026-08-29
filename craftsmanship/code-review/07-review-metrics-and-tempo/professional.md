@@ -5,29 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concept 1 — The Central Tension: Flow Insight Without Individual Surveillance](#core-concept-1--the-central-tension-flow-insight-without-individual-surveillance)
-5. [Core Concept 2 — What to Measure at the System and Team Level](#core-concept-2--what-to-measure-at-the-system-and-team-level)
-6. [Core Concept 3 — Every Speed Metric Needs a Quality Counter-Metric](#core-concept-3--every-speed-metric-needs-a-quality-counter-metric)
-7. [Core Concept 4 — What Not to Measure, and the Conversation With Leadership](#core-concept-4--what-not-to-measure-and-the-conversation-with-leadership)
-8. [Core Concept 5 — Improving Tempo at Scale](#core-concept-5--improving-tempo-at-scale)
-9. [Core Concept 6 — Using the Data: Diagnose, Don't Manage People](#core-concept-6--using-the-data-diagnose-dont-manage-people)
-10. [War Stories](#war-stories)
-11. [Decision Frameworks](#decision-frameworks)
-12. [Mental Models](#mental-models)
-13. [Common Mistakes](#common-mistakes)
-14. [Test Yourself](#test-yourself)
-15. [Cheat Sheet](#cheat-sheet)
-16. [Summary](#summary)
-17. [Further Reading](#further-reading)
-18. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Instrumenting and improving review tempo across an org while refusing the metrics that corrupt the behavior you're trying to improve.**

@@ -4,25 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [When Multiple Assertions in One Test Are Correct](#when-multiple-assertions-in-one-test-are-correct)
-4. [The Cost of Over-Splitting](#the-cost-of-over-splitting)
-5. [Soft-Assert vs Fail-Fast: a Real Trade-Off](#soft-assert-vs-fail-fast-a-real-trade-off)
-6. [Assertion-Message Discipline at Scale](#assertion-message-discipline-at-scale)
-7. [The Diagnostic Value of Good Failure Output](#the-diagnostic-value-of-good-failure-output)
-8. [A Decision Framework](#a-decision-framework)
-9. [Common Mistakes](#common-mistakes)
-10. [Test Yourself](#test-yourself)
-11. [Cheat Sheet](#cheat-sheet)
-12. [Summary](#summary)
-13. [Further Reading](#further-reading)
-14. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **The trade-offs.** When several assertions in one test are not a smell but the *right* design; the measurable cost of over-splitting; soft-assert vs fail-fast as a genuine engineering choice; and treating failure output as a product you owe your future self.

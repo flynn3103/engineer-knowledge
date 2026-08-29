@@ -7,24 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Orthogonality as a System-Level Property](#orthogonality-as-a-system-level-property)
-3. [Perfect Orthogonality Is Unattainable — and Some Coupling Is Healthy](#perfect-orthogonality-is-unattainable--and-some-coupling-is-healthy)
-4. [Over-Orthogonalizing: The Symmetric Failure](#over-orthogonalizing-the-symmetric-failure)
-5. [The Orthogonality–DRY Tension, Resolved](#the-orthogonalitydry-tension-resolved)
-6. [Where to Spend Orthogonality: The Axes of Likely Change](#where-to-spend-orthogonality-the-axes-of-likely-change)
-7. [AOP and the Limits of Mechanical Orthogonality](#aop-and-the-limits-of-mechanical-orthogonality)
-8. [Orthogonality at Architectural Scale](#orthogonality-at-architectural-scale)
-9. [Code Example — Earning vs. Speculating an Axis](#code-example--earning-vs-speculating-an-axis)
-10. [Liabilities](#liabilities)
-11. [Pros & Cons at the System Level](#pros--cons-at-the-system-level)
-12. [Diagrams](#diagrams)
-13. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **design trade-offs** and **system-level reasoning**

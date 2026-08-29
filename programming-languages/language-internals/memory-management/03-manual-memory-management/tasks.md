@@ -8,16 +8,6 @@ These tasks build manual-memory intuition the only way it sticks: by writing cod
 
 ---
 
-## Table of Contents
-
-- [Warm-Up](#warm-up)
-- [Core](#core)
-- [Advanced](#advanced)
-- [Capstone](#capstone)
-- [Self-Assessment](#self-assessment)
-
----
-
 ## Warm-Up
 
 ### Task 1 — The balanced ledger

@@ -7,25 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Diagrams as Code vs. GUI Tools: The Real Trade-off](#diagrams-as-code-vs-gui-tools-the-real-trade-off)
-3. [Auto-Layout: The Defining Limitation](#auto-layout-the-defining-limitation)
-4. [Generated vs. Hand-Authored Diagrams](#generated-vs-hand-authored-diagrams)
-5. [C4 at the System Level: Modeling vs. Drawing](#c4-at-the-system-level-modeling-vs-drawing)
-6. [The "Big Ball of Mud" Diagram and How to Avoid It](#the-big-ball-of-mud-diagram-and-how-to-avoid-it)
-7. [Diagrams Rot Too: The Maintenance Strategy](#diagrams-rot-too-the-maintenance-strategy)
-8. [When NOT to Use Diagrams as Code](#when-not-to-use-diagrams-as-code)
-9. [Rendering Architecture and CI Pipelines](#rendering-architecture-and-ci-pipelines)
-10. [Notation Discipline at Scale](#notation-discipline-at-scale)
-11. [Liabilities](#liabilities)
-12. [Pros & Cons at the System Level](#pros--cons-at-the-system-level)
-13. [Diagrams](#diagrams)
-14. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **design trade-offs** and **system-level reasoning**

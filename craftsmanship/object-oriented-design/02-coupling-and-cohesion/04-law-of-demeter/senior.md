@@ -7,24 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [LoD as a Connascence-Reduction Tool](#lod-as-a-connascence-reduction-tool)
-3. [The Real Cost: When Delegation Becomes Worse Than the Chain](#the-real-cost-when-delegation-becomes-worse-than-the-chain)
-4. [Stamp Coupling and the Hidden Cousin of LoD](#stamp-coupling-and-the-hidden-cousin-of-lod)
-5. [LoD vs. Encapsulation: Why Getters Are the Real Problem](#lod-vs-encapsulation-why-getters-are-the-real-problem)
-6. [The Objects-vs-Data-Structures Boundary at System Scale](#the-objects-vs-data-structures-boundary-at-system-scale)
-7. [Tell, Don't Ask vs. CQS and Functional Style](#tell-dont-ask-vs-cqs-and-functional-style)
-8. [Where LoD Stops Applying](#where-lod-stops-applying)
-9. [Code Examples — Advanced](#code-examples--advanced)
-10. [Liabilities](#liabilities)
-11. [Pros & Cons at the System Level](#pros--cons-at-the-system-level)
-12. [Diagrams](#diagrams)
-13. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **design trade-offs** and **system-level reasoning**

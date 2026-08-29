@@ -5,20 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [String Impedance in Production](#string-impedance-in-production)
-3. [The Allocator Boundary: Who Frees What](#the-allocator-boundary-who-frees-what)
-4. [GC Moved the Buffer: Pinning and Keep-Alive Under Load](#gc-moved-the-buffer-pinning-and-keep-alive-under-load)
-5. [Numeric and Boolean Width Traps](#numeric-and-boolean-width-traps)
-6. [Out-Parameters and Error-Code Conventions](#out-parameters-and-error-code-conventions)
-7. [Designing a Safe Marshalling Layer](#designing-a-safe-marshalling-layer)
-8. [War Stories](#war-stories)
-9. [Summary](#summary)
-
----
-
 ## Introduction
 
 > Focus: **The production failure modes of marshalling — string encoding/ownership impedance, allocator mismatch, GC relocation, integer-width drift — and the architecture of a marshalling layer that makes those failures impossible rather than merely unlikely.**

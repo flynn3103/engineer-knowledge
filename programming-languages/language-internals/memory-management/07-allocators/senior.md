@@ -5,30 +5,6 @@
 
 ---
 
-## Table of Contents
-
-- [Introduction](#introduction)
-- [Prerequisites](#prerequisites)
-- [Glossary](#glossary)
-- [Core Concepts](#core-concepts)
-  - [The thread-scalability problem](#the-thread-scalability-problem)
-  - [The modern allocator template](#the-modern-allocator-template)
-  - [Fragmentation: internal, external, and blowup](#fragmentation-internal-external-and-blowup)
-  - [RSS vs. virtual size and returning memory to the OS](#rss-vs-virtual-size-and-returning-memory-to-the-os)
-- [Cross-Allocator Comparison](#cross-allocator-comparison)
-- [Language-Level Allocator Hooks](#language-level-allocator-hooks)
-- [Real-World Analogies](#real-world-analogies)
-- [Mental Models](#mental-models)
-- [Code Examples](#code-examples)
-- [Pros & Cons](#pros--cons)
-- [Use Cases](#use-cases)
-- [Coding Patterns](#coding-patterns)
-- [Best Practices](#best-practices)
-- [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-- [Summary](#summary)
-
----
-
 ## Introduction
 
 At scale, the allocator is rarely the *correctness* problem and frequently the *performance* problem. On a 64-core box running a multithreaded service, a naive global-lock allocator serializes every thread through a single mutex and your throughput collapses. Meanwhile a long-running process can see its resident memory creep upward for hours — not because of a leak, but because of *fragmentation* and the allocator's reluctance to give pages back to the OS.

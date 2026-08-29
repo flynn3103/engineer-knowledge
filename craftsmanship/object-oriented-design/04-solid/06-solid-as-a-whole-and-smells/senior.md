@@ -7,24 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [What SOLID Actually Optimizes For](#what-solid-actually-optimizes-for)
-3. [The "SOLID Is Dated" Critique](#the-solid-is-dated-critique)
-4. [Dan North's CUPID](#dan-norths-cupid)
-5. [The Data-Oriented Counterpoint (Muratori)](#the-data-oriented-counterpoint-muratori)
-6. [When SOLID Over-Engineers](#when-solid-over-engineers)
-7. [SOLID in Functional vs. OO Code](#solid-in-functional-vs-oo-code)
-8. [Alternatives and Complements: GRASP, Component Principles, Simple Design](#alternatives-and-complements-grasp-component-principles-simple-design)
-9. [Liabilities](#liabilities)
-10. [Pros & Cons at the System Level](#pros--cons-at-the-system-level)
-11. [The Balanced Senior Position](#the-balanced-senior-position)
-12. [Diagrams](#diagrams)
-13. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **design trade-offs** and **system-level reasoning**

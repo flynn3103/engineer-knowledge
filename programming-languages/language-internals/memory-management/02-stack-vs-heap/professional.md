@@ -4,27 +4,6 @@
 
 ---
 
-## Table of Contents
-- [Introduction](#introduction)
-- [Prerequisites](#prerequisites)
-- [Glossary](#glossary)
-- [Core Concepts](#core-concepts)
-  - [Guard pages, stack limits, and overflow in production](#guard-pages-stack-limits-and-overflow-in-production)
-  - [Hardware: cache, TLB, and why locality dominates](#hardware-cache-tlb-and-why-locality-dominates)
-  - [Thread stacks at scale](#thread-stacks-at-scale)
-  - [Allocator internals you'll actually meet](#allocator-internals-youll-actually-meet)
-- [Profiling Allocation](#profiling-allocation)
-- [Mental Models](#mental-models)
-- [Code Examples](#code-examples)
-- [Production Playbook](#production-playbook)
-- [Pros & Cons](#pros--cons)
-- [Use Cases](#use-cases)
-- [Best Practices](#best-practices)
-- [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-- [Summary](#summary)
-
----
-
 ## Introduction
 
 In production, "stack vs heap" stops being a quiz topic and becomes a diagnosis. Your service's tail latency is spiking — is it GC, triggered by an allocation rate you can cut? A worker is crashing with a segfault on deep input — is it stack overflow past a guard page? Memory climbs steadily until OOM — leak or just a high live-set? A CPU profile shows 20% in `mallocgc` — which call site, and can it stay on the stack?

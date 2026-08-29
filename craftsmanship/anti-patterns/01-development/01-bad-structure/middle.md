@@ -5,28 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [The Real Question: When Does This Creep In?](#the-real-question-when-does-this-creep-in)
-4. [God Object — How It Forms and How to Stop It](#god-object--how-it-forms-and-how-to-stop-it)
-5. [Spaghetti Code — Untangling Control Flow](#spaghetti-code--untangling-control-flow)
-6. [Lava Flow — Proving Code Is Dead](#lava-flow--proving-code-is-dead)
-7. [Boat Anchor — The Cost of "Just in Case"](#boat-anchor--the-cost-of-just-in-case)
-8. [Arrow Anti-Pattern — Beyond Guard Clauses](#arrow-anti-pattern--beyond-guard-clauses)
-9. [Catching Structure Problems in Review](#catching-structure-problems-in-review)
-10. [Measuring Structure: Metrics That Help](#measuring-structure-metrics-that-help)
-11. [Refactoring Without Breaking Things](#refactoring-without-breaking-things)
-12. [Common Mistakes](#common-mistakes)
-13. [Test Yourself](#test-yourself)
-14. [Cheat Sheet](#cheat-sheet)
-15. [Summary](#summary)
-16. [Further Reading](#further-reading)
-17. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **When does this creep in?** and **What do I do instead?**

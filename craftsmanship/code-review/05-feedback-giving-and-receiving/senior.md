@@ -5,31 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concept 1 — A Comment Is a Typed Request to Change State](#core-concept-1--a-comment-is-a-typed-request-to-change-state)
-5. [Core Concept 2 — Severity as a Decision Protocol](#core-concept-2--severity-as-a-decision-protocol)
-6. [Core Concept 3 — Resolving Disagreement on Objective Criteria](#core-concept-3--resolving-disagreement-on-objective-criteria)
-7. [Core Concept 4 — The Escalation Path and the War of Attrition](#core-concept-4--the-escalation-path-and-the-war-of-attrition)
-8. [Core Concept 5 — Review as the Primary Mentoring Channel](#core-concept-5--review-as-the-primary-mentoring-channel)
-9. [Core Concept 6 — Self-Review as a Quality Gate You Own](#core-concept-6--self-review-as-a-quality-gate-you-own)
-10. [Core Concept 7 — Receiving Well, at Depth](#core-concept-7--receiving-well-at-depth)
-11. [Core Concept 8 — The Reviewer's Restraint](#core-concept-8--the-reviewers-restraint)
-12. [Core Concept 9 — Calibration Across a Team](#core-concept-9--calibration-across-a-team)
-13. [Real-World Examples](#real-world-examples)
-14. [Mental Models](#mental-models)
-15. [Common Mistakes](#common-mistakes)
-16. [Test Yourself](#test-yourself)
-17. [Cheat Sheet](#cheat-sheet)
-18. [Summary](#summary)
-19. [Further Reading](#further-reading)
-20. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Feedback as a system for reaching good decisions efficiently — the engineering side of the conversation, not the interpersonal one.**

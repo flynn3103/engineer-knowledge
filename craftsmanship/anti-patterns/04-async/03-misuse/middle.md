@@ -5,25 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [The Real Question: When Does This Creep In?](#the-real-question-when-does-this-creep-in)
-4. [Promise Constructor — Do You Already Have a Promise?](#promise-constructor--do-you-already-have-a-promise)
-5. [The One Legitimate `new Promise`: Bridging a Non-Promise API](#the-one-legitimate-new-promise-bridging-a-non-promise-api)
-6. [`async` Without `await` — It's Not Always a Bug](#async-without-await--its-not-always-a-bug)
-7. [Python `asyncio` Analogs](#python-asyncio-analogs)
-8. [Tooling: Let the Linter Catch These](#tooling-let-the-linter-catch-these)
-9. [Common Mistakes](#common-mistakes)
-10. [Test Yourself](#test-yourself)
-11. [Cheat Sheet](#cheat-sheet)
-12. [Summary](#summary)
-13. [Further Reading](#further-reading)
-14. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **When does this creep in?** and **What do I do instead?**

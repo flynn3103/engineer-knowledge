@@ -5,26 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concepts](#core-concepts)
-5. [Real-World Analogies](#real-world-analogies)
-6. [Mental Models](#mental-models)
-7. [Code Examples](#code-examples)
-8. [Trade-offs](#trade-offs)
-9. [Use Cases](#use-cases)
-10. [Coding Patterns](#coding-patterns)
-11. [Best Practices](#best-practices)
-12. [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-13. [Test Yourself](#test-yourself)
-14. [Cheat Sheet](#cheat-sheet)
-15. [Summary](#summary)
-
----
-
 ## Introduction
 
 > Focus: **A parser is not a phase you write once. It is a load-bearing component of a platform that compilers, editors, formatters, linters, and refactoring tools all stand on for twenty years.** The professional question is how to architect it so that it survives grammar growth, powers a whole toolchain, runs fast and safe on adversarial input, and never becomes the thing nobody dares to touch.

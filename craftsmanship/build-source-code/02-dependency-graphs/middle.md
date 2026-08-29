@@ -5,27 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Formalizing the DAG and Topological Sort](#formalizing-the-dag-and-topological-sort)
-4. [How Make Computes the Graph from Rules](#how-make-computes-the-graph-from-rules)
-5. [The Header-Dependency Problem and How to Solve It](#the-header-dependency-problem-and-how-to-solve-it)
-6. [Why Timestamps Lie — Clock Skew, touch, and Friends](#why-timestamps-lie--clock-skew-touch-and-friends)
-7. [Content Hashes as the Alternative](#content-hashes-as-the-alternative)
-8. [Parallel Scheduling and the Critical Path](#parallel-scheduling-and-the-critical-path)
-9. [Correctly vs Incorrectly Specified Dependencies](#correctly-vs-incorrectly-specified-dependencies)
-10. [Mental Models](#mental-models)
-11. [Common Mistakes](#common-mistakes)
-12. [Test Yourself](#test-yourself)
-13. [Cheat Sheet](#cheat-sheet)
-14. [Summary](#summary)
-15. [Further Reading](#further-reading)
-16. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **How is the graph actually computed, and what makes incremental rebuilds correct (or wrong)?**

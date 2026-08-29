@@ -10,15 +10,6 @@ These questions probe whether a candidate truly understands variance — the rul
 
 The questions are grouped: Conceptual (the four variances, soundness, the array bug, function variance); Language-Specific (Java wildcards, C# `in`/`out`, Scala `+`/`-`, Kotlin, TypeScript); Tricky/Trap (the places intuition fails); and Design (signatures and API choices that depend on getting variance right).
 
-## Table of Contents
-
-- [Conceptual](#conceptual)
-- [Language-Specific](#language-specific)
-- [Tricky / Trap](#tricky--trap)
-- [Design](#design)
-
----
-
 ## Conceptual
 
 ## Question 1

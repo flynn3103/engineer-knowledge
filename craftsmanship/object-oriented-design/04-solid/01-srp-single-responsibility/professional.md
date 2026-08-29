@@ -7,23 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Enforcing SRP in Code Review](#enforcing-srp-in-code-review)
-3. [Fighting Violations Before They Land](#fighting-violations-before-they-land)
-4. [Measuring SRP](#measuring-srp)
-5. [Team Conventions for SRP](#team-conventions-for-srp)
-6. [Refactoring Legacy God Classes Toward SRP](#refactoring-legacy-god-classes-toward-srp)
-7. [Real Incidents](#real-incidents)
-8. [The Politics of Splitting](#the-politics-of-splitting)
-9. [Review Checklist](#review-checklist)
-10. [Cheat Sheet](#cheat-sheet)
-11. [Diagrams](#diagrams)
-12. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **production** — sustaining single-responsibility boundaries across a large codebase over years.

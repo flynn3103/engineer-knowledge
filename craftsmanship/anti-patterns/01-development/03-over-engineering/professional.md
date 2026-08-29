@@ -5,29 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Measure First: The Tooling Map](#measure-first-the-tooling-map)
-4. [The Performance Irony: Abstraction Layers Cost Cycles](#the-performance-irony-abstraction-layers-cost-cycles)
-5. [Lasagna & Yo-yo at Runtime — Dispatch, Allocation, Pointer-Chasing](#lasagna--yo-yo-at-runtime--dispatch-allocation-pointer-chasing)
-6. [Premature Optimization vs. the Compiler That Already Did It](#premature-optimization-vs-the-compiler-that-already-did-it)
-7. [When Hand-Tuning Actively *Defeats* the Optimizer](#when-hand-tuning-actively-defeats-the-optimizer)
-8. [Soft Coding — The Runtime Cost of Interpreting Rules](#soft-coding--the-runtime-cost-of-interpreting-rules)
-9. [Accidental Complexity & the Garbage Collector](#accidental-complexity--the-garbage-collector)
-10. [Gold Plating & Speculative Generality — Binary, Build, and Warmup Cost](#gold-plating--speculative-generality--binary-build-and-warmup-cost)
-11. [A Combined Worked Example: Proving an Abstraction Costs](#a-combined-worked-example-proving-an-abstraction-costs)
-12. [Bikeshedding About Performance](#bikeshedding-about-performance)
-13. [Common Mistakes](#common-mistakes)
-14. [Test Yourself](#test-yourself)
-15. [Cheat Sheet](#cheat-sheet)
-16. [Summary](#summary)
-17. [Further Reading](#further-reading)
-18. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **What does over-engineering cost the machine** — dispatch, allocation, GC, cache, binary size, warmup — and **how do you prove it**, in both directions: that the abstraction costs something, *and* that removing it actually helps?

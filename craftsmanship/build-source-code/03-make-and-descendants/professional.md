@@ -5,26 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Maintaining a Large Make/CMake Codebase](#maintaining-a-large-makecmake-codebase)
-3. [Migrating Off Recursive Make](#migrating-off-recursive-make)
-4. [CMake at Org Scale: `find_package`, Exported Targets, Package Config](#cmake-at-org-scale-find_package-exported-targets-package-config)
-5. [Cross-Platform Realities](#cross-platform-realities)
-6. [When to Escape to Bazel](#when-to-escape-to-bazel)
-7. [The Build File as a Code-Review Surface](#the-build-file-as-a-code-review-surface)
-8. [War Stories](#war-stories)
-9. [Mental Models](#mental-models)
-10. [Common Mistakes](#common-mistakes)
-11. [Test Yourself](#test-yourself)
-12. [Cheat Sheet](#cheat-sheet)
-13. [Summary](#summary)
-14. [Further Reading](#further-reading)
-15. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **How do you keep a build system alive, correct, and fast over years and across a large team?**

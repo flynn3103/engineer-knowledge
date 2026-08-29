@@ -4,28 +4,6 @@
 
 ---
 
-## Table of Contents
-- [Introduction](#introduction)
-- [Prerequisites](#prerequisites)
-- [Glossary](#glossary)
-- [Core Concepts](#core-concepts)
-  - [Anatomy of a stack frame](#anatomy-of-a-stack-frame)
-  - [Calling conventions](#calling-conventions)
-  - [Why stack allocation is one instruction](#why-stack-allocation-is-one-instruction)
-  - [Why heap allocation costs more](#why-heap-allocation-costs-more)
-  - [Escape analysis](#escape-analysis)
-- [Mental Models](#mental-models)
-- [Code Examples](#code-examples)
-- [Cost Model](#cost-model)
-- [Pros & Cons](#pros--cons)
-- [Use Cases](#use-cases)
-- [Coding Patterns](#coding-patterns)
-- [Best Practices](#best-practices)
-- [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-- [Summary](#summary)
-
----
-
 ## Introduction
 
 At the junior level "stack vs heap" is a story about lifetime. At the middle level it becomes a story about *machine instructions and cost*. You now need to know what a frame actually contains byte-for-byte, why bumping the stack pointer costs roughly one cycle while a heap allocation can cost dozens to thousands, and how a modern compiler can quietly turn a heap allocation into a stack allocation behind your back.

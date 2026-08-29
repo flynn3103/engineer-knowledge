@@ -5,27 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Distributed Rollout Ordering Under Real Constraints](#distributed-rollout-ordering-under-real-constraints)
-4. [Dual-Write Consistency and Partial Failure](#dual-write-consistency-and-partial-failure)
-5. [Dual-Read and Reconciliation](#dual-read-and-reconciliation)
-6. [The Performance Cost of Carrying Both Paths](#the-performance-cost-of-carrying-both-paths)
-7. [Proving the Contract Step Is Safe](#proving-the-contract-step-is-safe)
-8. [Rollback at Each Phase](#rollback-at-each-phase)
-9. [The Dominant Failure: Stuck Forever in Expand](#the-dominant-failure-stuck-forever-in-expand)
-10. [A Worked Example: Splitting a Money Column, End to End](#a-worked-example-splitting-a-money-column-end-to-end)
-11. [Common Mistakes](#common-mistakes)
-12. [Test Yourself](#test-yourself)
-13. [Cheat Sheet](#cheat-sheet)
-14. [Summary](#summary)
-15. [Further Reading](#further-reading)
-16. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Zero-downtime details & failure modes** — distributed rollout ordering, dual-write consistency under partial failure, dual-read reconciliation, the cost of both paths, *proving* the contract phase is safe, rollback, and the dominant failure: getting stuck in "expand" forever.

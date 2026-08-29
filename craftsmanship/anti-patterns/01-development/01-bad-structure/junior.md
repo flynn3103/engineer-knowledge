@@ -5,28 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [The Five at a Glance](#the-five-at-a-glance)
-5. [God Object](#god-object)
-6. [Spaghetti Code](#spaghetti-code)
-7. [Lava Flow](#lava-flow)
-8. [Boat Anchor](#boat-anchor)
-9. [Arrow Anti-Pattern](#arrow-anti-pattern)
-10. [How They Reinforce Each Other](#how-they-reinforce-each-other)
-11. [A Quick Spotting Checklist](#a-quick-spotting-checklist)
-12. [Common Mistakes](#common-mistakes)
-13. [Test Yourself](#test-yourself)
-14. [Cheat Sheet](#cheat-sheet)
-15. [Summary](#summary)
-16. [Further Reading](#further-reading)
-17. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **What does it look like?** and **Why is it bad?**

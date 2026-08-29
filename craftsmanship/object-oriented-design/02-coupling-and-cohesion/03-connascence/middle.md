@@ -7,27 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [The Three Properties: Strength, Degree, Locality](#the-three-properties-strength-degree-locality)
-3. [Page-Jones's Three Guidelines](#page-joness-three-guidelines)
-4. [Locality Changes Everything](#locality-changes-everything)
-5. [The Strength Ladder, Justified](#the-strength-ladder-justified)
-6. [Working Through the Dynamic Forms](#working-through-the-dynamic-forms)
-7. [Connascence vs. DRY: What "Duplication" Really Is](#connascence-vs-dry-what-duplication-really-is)
-8. [Using It in Code Review](#using-it-in-code-review)
-9. [When *Not* to Weaken Connascence](#when-not-to-weaken-connascence)
-10. [Trade-offs](#trade-offs)
-11. [Edge Cases](#edge-cases)
-12. [Tricky Points](#tricky-points)
-13. [Best Practices](#best-practices)
-14. [Test Yourself](#test-yourself)
-15. [Summary](#summary)
-16. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **Why** and **When**

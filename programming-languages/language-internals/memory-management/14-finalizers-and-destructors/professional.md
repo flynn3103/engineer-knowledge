@@ -5,21 +5,6 @@
 
 ---
 
-## Table of Contents
-
-- [Introduction](#introduction)
-- [Core Concepts](#core-concepts)
-  - [The two-tier pattern](#the-two-tier-pattern)
-  - [What belongs in each tier](#what-belongs-in-each-tier)
-- [Production Patterns by Language](#production-patterns-by-language)
-- [War Stories](#war-stories)
-- [Pros & Cons](#pros--cons)
-- [Best Practices](#best-practices)
-- [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-- [Summary](#summary)
-
----
-
 ## Introduction
 
 In production, the failure mode of getting teardown wrong is not "memory grows." It is "the service stops accepting connections at 3 a.m. because every file descriptor, every connection-pool slot, and every advisory lock is held by an object the GC has not gotten around to collecting." Heap memory is abundant and elastic; OS handles are scarce and hard-capped. A finalizer reclaims memory eventually, which masks the leak of the *real* scarce resource until the limit hits.

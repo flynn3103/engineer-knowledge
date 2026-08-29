@@ -7,25 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Applying ISP to Real Code](#applying-isp-to-real-code)
-3. [Finding the Split Lines](#finding-the-split-lines)
-4. [ISP vs. SRP — Drawing the Line Precisely](#isp-vs-srp--drawing-the-line-precisely)
-5. [Header Interfaces vs. Role Interfaces](#header-interfaces-vs-role-interfaces)
-6. [The Recompilation / Redeployment Cost](#the-recompilation--redeployment-cost)
-7. [Structural Typing Makes ISP Cheap](#structural-typing-makes-isp-cheap)
-8. [Trade-offs](#trade-offs)
-9. [Edge Cases](#edge-cases)
-10. [Tricky Points](#tricky-points)
-11. [Best Practices](#best-practices)
-12. [Test Yourself](#test-yourself)
-13. [Summary](#summary)
-14. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **Why** and **When**

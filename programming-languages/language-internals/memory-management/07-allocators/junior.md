@@ -5,23 +5,6 @@
 
 ---
 
-## Table of Contents
-
-- [Introduction](#introduction)
-- [Prerequisites](#prerequisites)
-- [Glossary](#glossary)
-- [Core Concepts](#core-concepts)
-- [Real-World Analogies](#real-world-analogies)
-- [Mental Models](#mental-models)
-- [Code Examples](#code-examples)
-- [Pros & Cons](#pros--cons)
-- [Use Cases](#use-cases)
-- [Best Practices](#best-practices)
-- [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-- [Summary](#summary)
-
----
-
 ## Introduction
 
 When your program needs memory at runtime — an array whose size you only learn from user input, a linked list that grows, a string of unknown length — it calls something like `malloc` (C), `new` (C++), or just creates an object (Java, Python, Go) and the runtime does it for you. Somewhere underneath all of those is a **memory allocator**: a piece of software whose entire job is to hand out and reclaim chunks of memory.

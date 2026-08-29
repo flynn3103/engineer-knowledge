@@ -5,27 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Parallelism and the Critical Path](#parallelism-and-the-critical-path)
-4. [Incrementality, Recapped — and Where It Leaks](#incrementality-recapped--and-where-it-leaks)
-5. [Measuring Build Time Properly](#measuring-build-time-properly)
-6. [Profiling: Where Is the Time Going?](#profiling-where-is-the-time-going)
-7. [The Cost of Fan-Out and Heavy Headers](#the-cost-of-fan-out-and-heavy-headers)
-8. [Cutting the Work: Forward Declarations, PCH, Unity Builds](#cutting-the-work-forward-declarations-pch-unity-builds)
-9. [Link Time as a Bottleneck](#link-time-as-a-bottleneck)
-10. [Mental Models](#mental-models)
-11. [Common Mistakes](#common-mistakes)
-12. [Test Yourself](#test-yourself)
-13. [Cheat Sheet](#cheat-sheet)
-14. [Summary](#summary)
-15. [Further Reading](#further-reading)
-16. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Where does build time actually go, and what determines the floor that parallelism can't beat?**

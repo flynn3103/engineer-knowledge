@@ -5,20 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [The Decision in Production Terms](#the-decision-in-production-terms)
-3. [Cold Start & Native Image: The Forcing Functions](#cold-start--native-image-the-forcing-functions)
-4. [Build Economics](#build-economics)
-5. [Migrating Runtime Magic to Compile Time](#migrating-runtime-magic-to-compile-time)
-6. [Best Practices](#best-practices)
-7. [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-8. [War Stories](#war-stories)
-9. [Summary](#summary)
-
----
-
 ## Introduction
 
 At the professional tier the compile-time/runtime choice is an architecture decision with

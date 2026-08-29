@@ -5,24 +5,6 @@
 
 ---
 
-## Table of Contents
-
-- [Introduction](#introduction)
-- [Prerequisites](#prerequisites)
-- [Glossary](#glossary)
-- [Core Concepts](#core-concepts)
-- [Real-World Analogies](#real-world-analogies)
-- [Mental Models](#mental-models)
-- [Code Examples](#code-examples)
-- [Pros & Cons](#pros--cons)
-- [Use Cases](#use-cases)
-- [Coding Patterns](#coding-patterns)
-- [Best Practices](#best-practices)
-- [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-- [Summary](#summary)
-
----
-
 ## Introduction
 
 At organizational scale, memory safety is not a checkbox on a language choice — it's a multi-year strategy spanning tooling in CI, hardware mitigations in production, prioritized migration of a legacy C/C++ estate, and sandboxing what can't be rewritten yet. The professional question isn't "is this language safe?" but "given a 20-million-line C++ codebase, finite engineers, and active attackers, how do I drive memory-safety vulnerabilities toward zero — and prove I'm making progress?"

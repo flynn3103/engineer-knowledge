@@ -5,26 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [The Real Question: When Does This Creep In?](#the-real-question-when-does-this-creep-in)
-4. [The One Idea You Must Hold: Happens-Before](#the-one-idea-you-must-hold-happens-before)
-5. [Race-Prone Lazy Init — The Source of the Family](#race-prone-lazy-init--the-source-of-the-family)
-6. [Double-Checked Locking — The Performance Temptation](#double-checked-locking--the-performance-temptation)
-7. [Volatile Misuse / Wrong Memory Ordering — The Trap](#volatile-misuse--wrong-memory-ordering--the-trap)
-8. [Choosing the Right Primitive](#choosing-the-right-primitive)
-9. [Detecting It: Race Detectors and Concurrency Stress Tools](#detecting-it-race-detectors-and-concurrency-stress-tools)
-10. [Common Mistakes](#common-mistakes)
-11. [Test Yourself](#test-yourself)
-12. [Cheat Sheet](#cheat-sheet)
-13. [Summary](#summary)
-14. [Further Reading](#further-reading)
-15. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **When does this creep in?** and **What do I do instead?**

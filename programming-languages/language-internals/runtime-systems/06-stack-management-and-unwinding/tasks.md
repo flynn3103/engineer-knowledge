@@ -24,15 +24,6 @@ A note on platforms: examples assume Linux x86-64 with GCC/Clang and
 GDB/LLDB unless stated. Most translate directly to macOS (use LLDB) and, with
 effort, to Windows (use the Visual Studio debugger / `dumpbin`).
 
-## Table of Contents
-
-- [Warm-Up](#warm-up)
-- [Core](#core)
-- [Advanced](#advanced)
-- [Capstone](#capstone)
-
----
-
 ## Warm-Up
 
 These rebuild the mental model. Short, but each introduces a tool or failure

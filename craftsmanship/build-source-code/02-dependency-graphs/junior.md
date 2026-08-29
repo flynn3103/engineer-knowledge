@@ -5,28 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concept 1 — A Build Is a Graph, Not a List](#core-concept-1--a-build-is-a-graph-not-a-list)
-5. [Core Concept 2 — Nodes, Edges, and the DAG](#core-concept-2--nodes-edges-and-the-dag)
-6. [Core Concept 3 — Topological Order: a Valid Build Schedule](#core-concept-3--topological-order-a-valid-build-schedule)
-7. [Core Concept 4 — Incremental Rebuilds: Only Redo What's Affected](#core-concept-4--incremental-rebuilds-only-redo-whats-affected)
-8. [Core Concept 5 — How the Build Knows What Changed](#core-concept-5--how-the-build-knows-what-changed)
-9. [Core Concept 6 — The Diamond and Why Cycles Are Illegal](#core-concept-6--the-diamond-and-why-cycles-are-illegal)
-10. [Real-World Examples](#real-world-examples)
-11. [Mental Models](#mental-models)
-12. [Common Mistakes](#common-mistakes)
-13. [Test Yourself](#test-yourself)
-14. [Cheat Sheet](#cheat-sheet)
-15. [Summary](#summary)
-16. [Further Reading](#further-reading)
-17. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Why does a build behave like a web of dependencies instead of a straight line?**

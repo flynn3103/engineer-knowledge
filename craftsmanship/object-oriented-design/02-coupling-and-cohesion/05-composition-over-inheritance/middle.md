@@ -7,26 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [The Fragile Base Class Problem, In Depth](#the-fragile-base-class-problem-in-depth)
-3. [Bloch's Broken Subclass: the HashSet Counting Bug](#blochs-broken-subclass-the-hashset-counting-bug)
-4. [Substitutability Is the Real is-a Test](#substitutability-is-the-real-is-a-test)
-5. [The Mechanisms of Composition](#the-mechanisms-of-composition)
-6. [The Canonical Refactor: a Logger Hierarchy Collapsed](#the-canonical-refactor-a-logger-hierarchy-collapsed)
-7. [Strategy and Decorator Are This Principle](#strategy-and-decorator-are-this-principle)
-8. [When Inheritance Earns Its Place](#when-inheritance-earns-its-place)
-9. [Trade-offs](#trade-offs)
-10. [Edge Cases](#edge-cases)
-11. [Tricky Points](#tricky-points)
-12. [Best Practices](#best-practices)
-13. [Test Yourself](#test-yourself)
-14. [Summary](#summary)
-15. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **Why** and **When**

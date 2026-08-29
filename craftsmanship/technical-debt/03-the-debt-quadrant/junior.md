@@ -5,27 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concept 1 — Why One Word Hides Four Different Problems](#core-concept-1--why-one-word-hides-four-different-problems)
-5. [Core Concept 2 — Axis One: Deliberate vs Inadvertent](#core-concept-2--axis-one-deliberate-vs-inadvertent)
-6. [Core Concept 3 — Axis Two: Prudent vs Reckless](#core-concept-3--axis-two-prudent-vs-reckless)
-7. [Core Concept 4 — The Four Cells](#core-concept-4--the-four-cells)
-8. [Core Concept 5 — Why the Quadrant Changes What You Do](#core-concept-5--why-the-quadrant-changes-what-you-do)
-9. [Real-World Examples](#real-world-examples)
-10. [Mental Models](#mental-models)
-11. [Common Mistakes](#common-mistakes)
-12. [Test Yourself](#test-yourself)
-13. [Cheat Sheet](#cheat-sheet)
-14. [Summary](#summary)
-15. [Further Reading](#further-reading)
-16. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Not "is there debt?" but "what *kind* of debt?"**

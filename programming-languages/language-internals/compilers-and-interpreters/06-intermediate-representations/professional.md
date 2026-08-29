@@ -5,29 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concepts](#core-concepts)
-5. [Architecting a Multi-Level IR](#architecting-a-multi-level-ir)
-6. [Mental Models](#mental-models)
-7. [Code & Design Examples](#code--design-examples)
-8. [Pros & Cons](#pros--cons)
-9. [Use Cases](#use-cases)
-10. [Coding Patterns](#coding-patterns)
-11. [Best Practices](#best-practices)
-12. [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-13. [Common Mistakes](#common-mistakes)
-14. [Tricky Points](#tricky-points)
-15. [War Stories](#war-stories)
-16. [Test Yourself](#test-yourself)
-17. [Cheat Sheet](#cheat-sheet)
-18. [Summary](#summary)
-
----
-
 ## Introduction
 
 > Focus: **At this level the IR is not a data structure you build once — it is infrastructure you design, version, verify, fuzz, document, and defend for a decade against pressure from a dozen teams.** The questions stop being "what is SSA" and become "how many IR levels, where does each piece of information live, what is the stability contract, and who gets to change it."

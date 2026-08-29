@@ -7,23 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [A README Standard Across an Organization](#a-readme-standard-across-an-organization)
-3. [Enforcing the Front Door in CI](#enforcing-the-front-door-in-ci)
-4. [Onboarding Metrics That Matter](#onboarding-metrics-that-matter)
-5. [The Onboarding Buddy and the Doc-Bug Loop](#the-onboarding-buddy-and-the-doc-bug-loop)
-6. [Reviewing READMEs and Setup Docs](#reviewing-readmes-and-setup-docs)
-7. [Real Incidents](#real-incidents)
-8. [The Politics of the Front Door](#the-politics-of-the-front-door)
-9. [Checklists](#checklists)
-10. [Cheat Sheet](#cheat-sheet)
-11. [Diagrams](#diagrams)
-12. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **production** — keeping the front door working across many repos, many contributors, and years.

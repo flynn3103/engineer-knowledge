@@ -12,23 +12,6 @@ A strong candidate refuses the false binary of "compiled vs interpreted." They s
 
 The questions are grouped: **Conceptual** (the spectrum and its mechanics), **Language-Specific** (JVM HotSpot, V8, CPython, .NET, GraalVM, Go), **Tricky/Trap** (where the obvious answer is wrong), and **Design** (apply the model to a system).
 
-## Table of Contents
-
-- [Conceptual / Foundational](#conceptual--foundational)
-- [Language-Specific](#language-specific)
-  - [JVM / HotSpot](#jvm--hotspot)
-  - [JavaScript / V8](#javascript--v8)
-  - [Python / CPython & PyPy](#python--cpython--pypy)
-  - [.NET / RyuJIT, ReadyToRun, NativeAOT](#net--ryujit-readytorun-nativeaot)
-  - [GraalVM](#graalvm)
-  - [Go](#go)
-- [Tricky / Trap Questions](#tricky--trap-questions)
-- [Design Scenarios](#design-scenarios)
-- [Cheat Sheet](#cheat-sheet)
-- [Further Reading](#further-reading)
-
----
-
 ## Conceptual / Foundational
 
 ## Question 1

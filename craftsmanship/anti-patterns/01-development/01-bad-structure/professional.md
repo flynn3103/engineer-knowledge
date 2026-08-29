@@ -5,26 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Measure First: The Tooling Map](#measure-first-the-tooling-map)
-4. [God Object — Heap Footprint, Cache Locality, and the JIT](#god-object--heap-footprint-cache-locality-and-the-jit)
-5. [Spaghetti Code — How Tangle Defeats the Optimizer](#spaghetti-code--how-tangle-defeats-the-optimizer)
-6. [Arrow / Deep Branching — The Branch Predictor and the I-Cache](#arrow--deep-branching--the-branch-predictor-and-the-i-cache)
-7. [Lava Flow & Boat Anchor — What Dead Code Costs the Toolchain](#lava-flow--boat-anchor--what-dead-code-costs-the-toolchain)
-8. [When "Ugly" Is the Fast Path — and How to Box It In](#when-ugly-is-the-fast-path--and-how-to-box-it-in)
-9. [A Combined Worked Example](#a-combined-worked-example)
-10. [Common Mistakes](#common-mistakes)
-11. [Test Yourself](#test-yourself)
-12. [Cheat Sheet](#cheat-sheet)
-13. [Summary](#summary)
-14. [Further Reading](#further-reading)
-15. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **What do these shapes cost the machine** — memory, the garbage collector, the optimizer, the branch predictor, and the build/deploy toolchain — and **how do you measure that cost** before you touch anything?

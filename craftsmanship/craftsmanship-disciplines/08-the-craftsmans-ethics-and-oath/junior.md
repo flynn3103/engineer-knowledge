@@ -4,28 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concepts](#core-concepts)
-5. [The Programmer's Oath — A First Look](#the-programmers-oath-a-first-look)
-6. [The Software Craftsmanship Manifesto — A First Look](#the-software-craftsmanship-manifesto-a-first-look)
-7. [Real-World Analogies](#real-world-analogies)
-8. [Mental Models](#mental-models)
-9. [Why "It Compiles" Isn't Enough](#why-it-compiles-isnt-enough)
-10. [Pros & Cons of Holding Yourself to an Ethic](#pros-cons-of-holding-yourself-to-an-ethic)
-11. [Best Practices](#best-practices)
-12. [Common Mistakes](#common-mistakes)
-13. [Test Yourself](#test-yourself)
-14. [Summary](#summary)
-15. [Further Reading](#further-reading)
-16. [Related Topics](#related-topics)
-17. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **What is professional ethics for a developer?** and **Why does it exist?**

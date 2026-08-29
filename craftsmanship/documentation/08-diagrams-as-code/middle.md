@@ -7,27 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [The C4 Model: Maps at Different Zoom Levels](#the-c4-model-maps-at-different-zoom-levels)
-3. [The Same System Across C4 Levels](#the-same-system-across-c4-levels)
-4. [Why C4 Beats Ad-Hoc Boxes-and-Lines](#why-c4-beats-ad-hoc-boxes-and-lines)
-5. [C4 as Code: Structurizr and C4-PlantUML](#c4-as-code-structurizr-and-c4-plantuml)
-6. [The Tool Landscape](#the-tool-landscape)
-7. [Choosing a Tool](#choosing-a-tool)
-8. [Which Diagram Type for Which Question](#which-diagram-type-for-which-question)
-9. [Embedding Diagrams in Engineering Docs](#embedding-diagrams-in-engineering-docs)
-10. [Trade-offs](#trade-offs)
-11. [Edge Cases](#edge-cases)
-12. [Tricky Points](#tricky-points)
-13. [Best Practices](#best-practices)
-14. [Test Yourself](#test-yourself)
-15. [Summary](#summary)
-16. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **Why** and **When**

@@ -6,15 +6,6 @@
 
 These questions probe whether you can write and debug a real binding, not just recite definitions. Interviewers in systems, runtime, and infrastructure roles use this topic to separate engineers who have *shipped* FFI code — and seen it crash in production — from those who have only read about it. The questions cluster around four hard problems: string impedance, struct layout, pinning/lifetime, and allocator ownership. The best answers name the precise failure mode ("the GC moved the buffer," "you freed library-static memory," "LP64 vs LLP64") rather than waving at "it's a memory bug."
 
-## Table of Contents
-
-- [Conceptual](#conceptual)
-- [Language-Specific](#language-specific)
-- [Tricky-Trap](#tricky-trap)
-- [Design](#design)
-
----
-
 ## Conceptual
 
 ## Question 1

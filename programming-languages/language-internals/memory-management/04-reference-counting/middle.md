@@ -5,24 +5,6 @@
 
 ---
 
-## Table of Contents
-
-- [Introduction](#introduction)
-- [Prerequisites](#prerequisites)
-- [Glossary](#glossary)
-- [Core Concepts](#core-concepts)
-- [Mental Models](#mental-models)
-- [Code Examples](#code-examples)
-- [The Cost Model](#the-cost-model)
-- [Pros & Cons](#pros--cons)
-- [Use Cases](#use-cases)
-- [Coding Patterns](#coding-patterns)
-- [Best Practices](#best-practices)
-- [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-- [Summary](#summary)
-
----
-
 ## Introduction
 
 At the junior level the rule was "increment on share, decrement on drop, free at zero." That rule is correct but it hides almost every interesting engineering decision. This page opens the box:

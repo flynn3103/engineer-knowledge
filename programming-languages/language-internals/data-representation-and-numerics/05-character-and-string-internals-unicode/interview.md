@@ -10,15 +10,6 @@ These questions test whether a candidate understands what a string *actually is*
 
 The questions are grouped: **Conceptual** (the layered model and encodings), **Language-Specific** (Java, Go, Python, Rust, JavaScript, Swift), **Tricky/Trap** (where the textbook one-liner is wrong), and **Design** (real systems where text internals decide correctness and security).
 
-## Table of Contents
-
-- [Conceptual](#conceptual)
-- [Language-Specific](#language-specific)
-- [Tricky / Trap](#tricky--trap)
-- [Design](#design)
-
----
-
 ## Conceptual
 
 ## Question 1

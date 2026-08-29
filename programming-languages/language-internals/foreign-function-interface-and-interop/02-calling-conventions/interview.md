@@ -13,15 +13,6 @@ These questions are grouped into four bands: **Conceptual** (what a convention i
 
 ---
 
-## Table of Contents
-
-- [Conceptual](#conceptual) — Q1–Q9
-- [Platform-Specific](#platform-specific) — Q10–Q21
-- [Tricky-Trap](#tricky-trap) — Q22–Q28
-- [Design](#design) — Q29–Q32
-
----
-
 ## Conceptual
 
 ### Question 1

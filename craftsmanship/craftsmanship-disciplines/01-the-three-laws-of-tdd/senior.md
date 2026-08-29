@@ -7,25 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [TDD vs Test-After: What Actually Differs](#tdd-vs-test-after-what-actually-differs)
-3. [Design Pressure: Tests as the First Client](#design-pressure-tests-as-the-first-client)
-4. [Double-Loop TDD (Outside-In)](#double-loop-tdd-outside-in)
-5. [Classicist vs Mockist (London vs Detroit)](#classicist-vs-mockist-london-vs-detroit)
-6. [The "Is TDD Dead?" Debate](#the-is-tdd-dead-debate)
-7. [Test-Induced Design Damage](#test-induced-design-damage)
-8. [When the Laws Hurt](#when-the-laws-hurt)
-9. [The Laws vs the Discipline](#the-laws-vs-the-discipline)
-10. [What the Laws Cannot Give You](#what-the-laws-cannot-give-you)
-11. [Pros & Cons at the System Level](#pros-cons-at-the-system-level)
-12. [Liabilities](#liabilities)
-13. [Diagrams](#diagrams)
-14. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **design trade-offs** and **system-level reasoning**

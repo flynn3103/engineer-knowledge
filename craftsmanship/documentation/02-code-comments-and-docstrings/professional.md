@@ -7,22 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Reviewing Docstrings and Comments](#reviewing-docstrings-and-comments)
-3. [Team Conventions for Docstrings](#team-conventions-for-docstrings)
-4. [The Doc-Generation Pipeline in CI](#the-doc-generation-pipeline-in-ci)
-5. [Docstrings in Legacy Systems](#docstrings-in-legacy-systems)
-6. [Real Incidents](#real-incidents)
-7. [The Politics of Documentation](#the-politics-of-documentation)
-8. [Review Checklist](#review-checklist)
-9. [Cheat Sheet](#cheat-sheet)
-10. [Diagrams](#diagrams)
-11. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **production** — keeping a generated reference truthful when hundreds of changes land per week.

@@ -4,30 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Three Things People Confuse: Changelog vs Release Notes vs Git Log](#three-things-people-confuse-changelog-vs-release-notes-vs-git-log)
-5. [Keep a Changelog: The Canonical Format](#keep-a-changelog-the-canonical-format)
-6. [A Real, Well-Formed CHANGELOG.md](#a-real-well-formed-changelogmd)
-7. [Semantic Versioning](#semantic-versioning)
-8. [How Semver Ties to the Changelog Categories](#how-semver-ties-to-the-changelog-categories)
-9. [Writing a Good Changelog Entry](#writing-a-good-changelog-entry)
-10. [Where These Live](#where-these-live)
-11. [Best Practices](#best-practices)
-12. [Common Mistakes](#common-mistakes)
-13. [Tricky Points](#tricky-points)
-14. [Test Yourself](#test-yourself)
-15. [Cheat Sheet](#cheat-sheet)
-16. [Summary](#summary)
-17. [Further Reading](#further-reading)
-18. [Related Topics](#related-topics)
-19. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **What is it?** and **How to use it?**

@@ -7,25 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [The Version Number Is an API Contract](#the-version-number-is-an-api-contract)
-3. [What "Breaking" Actually Means — and Why It's Slippery](#what-breaking-actually-means--and-why-its-slippery)
-4. [Release Cadence and Versioning Strategy](#release-cadence-and-versioning-strategy)
-5. [Monorepo and Multi-Package Changelog Complexity](#monorepo-and-multi-package-changelog-complexity)
-6. [Security Advisories and CVE Linkage](#security-advisories-and-cve-linkage)
-7. [The Automation-vs-Curation Decision, at System Scale](#the-automation-vs-curation-decision-at-system-scale)
-8. [Designing for the Audiences You Actually Have](#designing-for-the-audiences-you-actually-have)
-9. ["Nobody Reads Release Notes Until They Break"](#nobody-reads-release-notes-until-they-break)
-10. [Changelogs as Part of the Doc System](#changelogs-as-part-of-the-doc-system)
-11. [Liabilities](#liabilities)
-12. [Pros & Cons at the System Level](#pros--cons-at-the-system-level)
-13. [Diagrams](#diagrams)
-14. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **design trade-offs** and **system-level reasoning**

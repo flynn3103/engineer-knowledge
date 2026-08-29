@@ -5,27 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Measure First: The Contention Tooling Map](#measure-first-the-contention-tooling-map)
-4. [The Physics of a Lock — Amdahl, Queueing, and the Serial Section](#the-physics-of-a-lock--amdahl-queueing-and-the-serial-section)
-5. [Mutex Internals — What "Take the Lock" Actually Costs](#mutex-internals--what-take-the-lock-actually-costs)
-6. [Holding a Lock During I/O — Every Waiter Pays the Full RTT](#holding-a-lock-during-io--every-waiter-pays-the-full-rtt)
-7. [Wrong Lock Granularity — Coarse, Striped, and the False-Sharing Trap](#wrong-lock-granularity--coarse-striped-and-the-false-sharing-trap)
-8. [Lock Ordering Inconsistency → Deadlock — Zero Throughput](#lock-ordering-inconsistency--deadlock--zero-throughput)
-9. [RWLock — Reader/Writer Cost and Starvation](#rwlock--readerwriter-cost-and-starvation)
-10. [A Combined Worked Example](#a-combined-worked-example)
-11. [Common Mistakes](#common-mistakes)
-12. [Test Yourself](#test-yourself)
-13. [Cheat Sheet](#cheat-sheet)
-14. [Summary](#summary)
-15. [Further Reading](#further-reading)
-16. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **what contention costs the machine** — the serial section under Amdahl's law, the queue that forms behind a held lock, the convoy that forms behind a slow holder — and **how you measure that cost** with mutex/block profiles before you change a single lock.

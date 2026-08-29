@@ -5,19 +5,6 @@
 
 ---
 
-## Table of Contents
-
-- [Conceptual / Foundational](#conceptual--foundational)
-- [Language-Specific](#language-specific)
-  - [Java (annotations + APT)](#java-annotations--apt)
-  - [Python (decorators)](#python-decorators)
-  - [TypeScript / Angular / NestJS](#typescript--angular--nestjs)
-  - [C# (attributes)](#c-attributes)
-- [Tricky / Trap Questions](#tricky--trap-questions)
-- [Design Questions](#design-questions)
-
----
-
 ## Conceptual / Foundational
 
 ## Question 1

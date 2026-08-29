@@ -7,23 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [YAGNI as a Stance on Reversibility](#yagni-as-a-stance-on-reversibility)
-3. [Architecture vs. Design: Two Different Scales](#architecture-vs-design-two-different-scales)
-4. [The Last Responsible Moment](#the-last-responsible-moment)
-5. [Reconciling YAGNI with OCP and Encapsulate-What-Changes](#reconciling-yagni-with-ocp-and-encapsulate-what-changes)
-6. [The Wrong Abstraction: Why Speculation Is Net-Negative](#the-wrong-abstraction-why-speculation-is-net-negative)
-7. [When YAGNI Backfires: A One-Way-Door Failure](#when-yagni-backfires-a-one-way-door-failure)
-8. [Code Examples — Advanced](#code-examples-advanced)
-9. [Liabilities](#liabilities)
-10. [Pros & Cons at the System Level](#pros-cons-at-the-system-level)
-11. [Diagrams](#diagrams)
-12. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **design trade-offs** and **system-level reasoning**

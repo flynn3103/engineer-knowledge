@@ -5,24 +5,6 @@
 
 ---
 
-## Table of Contents
-
-- [Introduction](#introduction)
-- [Prerequisites](#prerequisites)
-- [Glossary](#glossary)
-- [Core Concepts](#core-concepts)
-- [The Cross-Language Comparison](#the-cross-language-comparison)
-- [Mental Models](#mental-models)
-- [Code Examples](#code-examples)
-- [Coding Patterns](#coding-patterns)
-- [Pros & Cons](#pros--cons)
-- [Use Cases](#use-cases)
-- [Best Practices](#best-practices)
-- [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-- [Summary](#summary)
-
----
-
 ## Introduction
 
 A senior engineer's job is rarely "call `free` correctly." It is to choose a *memory architecture* that makes whole classes of bugs impossible — or at least cheap to detect — and to understand why three major systems languages made radically different bets to get there.

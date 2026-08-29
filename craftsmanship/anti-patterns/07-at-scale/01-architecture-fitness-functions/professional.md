@@ -5,28 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [The Build-Time Budget](#the-build-time-budget)
-4. [Whole-Program vs Incremental Analysis](#whole-program-vs-incremental-analysis)
-5. [Monorepo Scale: Analyzing Only What Changed](#monorepo-scale-analyzing-only-what-changed)
-6. [Caching and Parallelism](#caching-and-parallelism)
-7. [Flaky and Over-Broad Rules](#flaky-and-over-broad-rules)
-8. [The Central Failure: A Rule That Passes But Constrains Nothing](#the-central-failure-a-rule-that-passes-but-constrains-nothing)
-9. [A Worked False-Confidence Example](#a-worked-false-confidence-example)
-10. [Proving the Gate Caught a Real Regression](#proving-the-gate-caught-a-real-regression)
-11. [Mutation-Testing Your Fitness Functions](#mutation-testing-your-fitness-functions)
-12. [Common Mistakes](#common-mistakes)
-13. [Test Yourself](#test-yourself)
-14. [Cheat Sheet](#cheat-sheet)
-15. [Summary](#summary)
-16. [Further Reading](#further-reading)
-17. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Cost & correctness of the checks themselves.**

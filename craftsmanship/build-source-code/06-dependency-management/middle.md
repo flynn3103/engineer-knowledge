@@ -5,26 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Constraint Semantics — `^`, `~`, and the Exact Boundaries](#constraint-semantics----and-the-exact-boundaries)
-4. [Resolution as Constraint Satisfaction](#resolution-as-constraint-satisfaction)
-5. [The Diamond Problem and How Ecosystems Resolve It](#the-diamond-problem-and-how-ecosystems-resolve-it)
-6. [What a Lock File Actually Contains](#what-a-lock-file-actually-contains)
-7. [Newest-Compatible vs Minimum Version Selection](#newest-compatible-vs-minimum-version-selection)
-8. [Reproducible Installs in Practice](#reproducible-installs-in-practice)
-9. [Mental Models](#mental-models)
-10. [Common Mistakes](#common-mistakes)
-11. [Test Yourself](#test-yourself)
-12. [Cheat Sheet](#cheat-sheet)
-13. [Summary](#summary)
-14. [Further Reading](#further-reading)
-15. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **How does a tool turn a pile of version ranges into one concrete set of versions — and why do different ecosystems disagree on the answer?**

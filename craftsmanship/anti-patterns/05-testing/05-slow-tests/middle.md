@@ -4,26 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Measure First: Find the Slow Tests](#measure-first-find-the-slow-tests)
-4. [Cause 1 — Real I/O in Unit Tests → Fakes](#cause-1--real-io-in-unit-tests--fakes)
-5. [Cause 2 — `sleep`-Based Waits → Awaits](#cause-2--sleep-based-waits--awaits)
-6. [Cause 3 — The Inverted Pyramid → Push Tests Down](#cause-3--the-inverted-pyramid--push-tests-down)
-7. [Cause 4 — Per-Test Heavyweight Setup → Share It](#cause-4--per-test-heavyweight-setup--share-it)
-8. [Cause 5 — Oversized Fixtures & Combinatorial Explosion](#cause-5--oversized-fixtures--combinatorial-explosion)
-9. [A Routine for Keeping the Suite Fast](#a-routine-for-keeping-the-suite-fast)
-10. [Common Mistakes](#common-mistakes)
-11. [Test Yourself](#test-yourself)
-12. [Cheat Sheet](#cheat-sheet)
-13. [Summary](#summary)
-14. [Further Reading](#further-reading)
-15. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Causes & fixes** — the full catalogue of what makes a suite slow, and the specific countermove for each.

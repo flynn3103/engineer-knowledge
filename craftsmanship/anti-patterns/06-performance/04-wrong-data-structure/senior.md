@@ -4,25 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Find the Hot Scan First: Profiling, Not Guessing](#find-the-hot-scan-first-profiling-not-guessing)
-4. [Preprocess Once vs Per-Query: Where to Pay the O(n)](#preprocess-once-vs-per-query-where-to-pay-the-on)
-5. [The Cache-Locality Trade-Off: Why Arrays Beat the "Better" Big-O](#the-cache-locality-trade-off-why-arrays-beat-the-better-big-o)
-6. [The Small-n Crossover: When the Worse Big-O Wins](#the-small-n-crossover-when-the-worse-big-o-wins)
-7. [Spotting It in Code Review](#spotting-it-in-code-review)
-8. [Immutable and Streaming Variants](#immutable-and-streaming-variants)
-9. [Common Mistakes](#common-mistakes)
-10. [Test Yourself](#test-yourself)
-11. [Cheat Sheet](#cheat-sheet)
-12. [Summary](#summary)
-13. [Further Reading](#further-reading)
-14. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Choosing well in a real codebase** — finding the hot scan with a profiler, deciding *where* to pay the preprocessing cost, the cache-locality trade-off that makes arrays beat "better" structures, and the small-n crossover where the worse big-O actually wins.

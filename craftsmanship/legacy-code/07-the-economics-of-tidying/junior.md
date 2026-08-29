@@ -4,20 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Tidying is an investment, not a chore](#tidying-is-an-investment-not-a-chore)
-2. [Why cleaner code is cheaper to change](#why-cleaner-code-is-cheaper-to-change)
-3. [A first worked example: cost-now vs cost-later](#a-first-worked-example-cost-now-vs-cost-later)
-4. [The two questions behind every tidying](#the-two-questions-behind-every-tidying)
-5. [Tidying as a bet on the future](#tidying-as-a-bet-on-the-future)
-6. [When tidying is *not* worth it](#when-tidying-is-not-worth-it)
-7. [A picture of the whole idea](#a-picture-of-the-whole-idea)
-8. [Mini Glossary](#mini-glossary)
-9. [Review questions](#review-questions)
-
----
-
 ## Tidying is an investment, not a chore
 
 When you first hear "clean up the code," it sounds like housework: a duty, something you do because a senior told you to, with no real payoff except a tidier feeling. That framing is wrong, and it will steer your career badly if you keep it.

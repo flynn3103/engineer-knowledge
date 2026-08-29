@@ -5,26 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [The Three at a Glance](#the-three-at-a-glance)
-5. [`await` in a Loop](#await-in-a-loop)
-6. [Promise Chain Hell / Callback Pyramid](#promise-chain-hell--callback-pyramid)
-7. [Mixing Callbacks and Promises](#mixing-callbacks-and-promises)
-8. [How They Reinforce Each Other](#how-they-reinforce-each-other)
-9. [Quick Spotting Checklist](#quick-spotting-checklist)
-10. [Common Mistakes](#common-mistakes)
-11. [Test Yourself](#test-yourself)
-12. [Cheat Sheet](#cheat-sheet)
-13. [Summary](#summary)
-14. [Further Reading](#further-reading)
-15. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **What does it look like?** and **Why is it bad?** — plus the one basic fix for each.

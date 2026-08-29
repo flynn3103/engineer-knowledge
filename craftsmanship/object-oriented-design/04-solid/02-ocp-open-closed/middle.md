@@ -7,25 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Applying OCP to Real Code](#applying-ocp-to-real-code)
-3. [Choosing the Axis of Variation](#choosing-the-axis-of-variation)
-4. [Mechanisms Across Paradigms](#mechanisms-across-paradigms)
-5. [OCP and the Open/Closed via Dependency Injection](#ocp-and-the-openclosed-via-dependency-injection)
-6. [The Rule of Three: Earning the Abstraction](#the-rule-of-three-earning-the-abstraction)
-7. [When a Simple `if` Is the Right Answer](#when-a-simple-if-is-the-right-answer)
-8. [Trade-offs](#trade-offs)
-9. [Edge Cases](#edge-cases)
-10. [Tricky Points](#tricky-points)
-11. [Best Practices](#best-practices)
-12. [Test Yourself](#test-yourself)
-13. [Summary](#summary)
-14. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **Why** and **When**

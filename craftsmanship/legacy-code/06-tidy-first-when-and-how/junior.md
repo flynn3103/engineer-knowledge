@@ -4,27 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [What is a "tidying"?](#what-is-a-tidying)
-2. [Tidying vs. big refactoring](#tidying-vs-big-refactoring)
-3. [The one rule that makes tidying safe](#the-one-rule-that-makes-tidying-safe)
-4. [The simplest tidyings, with before → after](#the-simplest-tidyings-with-before--after)
-   - [Guard Clauses](#guard-clauses)
-   - [Dead Code](#dead-code)
-   - [Explaining Variables](#explaining-variables)
-   - [Explaining Constants](#explaining-constants)
-   - [Chunk Statements](#chunk-statements)
-   - [Move Declaration and Initialization Together](#move-declaration-and-initialization-together)
-   - [Delete Redundant Comments](#delete-redundant-comments)
-5. [When do I tidy?](#when-do-i-tidy)
-6. [How to keep a tidying safe](#how-to-keep-a-tidying-safe)
-7. [Diagrams](#diagrams)
-8. [Mini Glossary](#mini-glossary)
-9. [Review questions](#review-questions)
-
----
-
 ## What is a "tidying"?
 
 A **tidying** is a small, safe change to the *structure* of code that makes the next change easier — without changing what the code *does*.

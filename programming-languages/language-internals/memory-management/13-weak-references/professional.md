@@ -5,25 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [The Production Contract of Each Tier](#the-production-contract-of-each-tier)
-3. [Caches: Why Soft References Are a Bad Policy](#caches-why-soft-references-are-a-bad-policy)
-4. [Registries and the Lapsed-Listener Leak](#registries-and-the-lapsed-listener-leak)
-5. [Canonicalizing and Interning Maps in Production](#canonicalizing-and-interning-maps-in-production)
-6. [Weak-Keyed vs Weak-Valued and the Self-Pinning Trap](#weak-keyed-vs-weak-valued-and-the-self-pinning-trap)
-7. [Cycle Breaking in Trees and Graphs](#cycle-breaking-in-trees-and-graphs)
-8. [The Use-After-Check Race, Across Languages](#the-use-after-check-race-across-languages)
-9. [Cleanup: ReferenceQueue, Cleaner, AddCleanup, FinalizationRegistry](#cleanup-referencequeue-cleaner-addcleanup-finalizationregistry)
-10. [Diagnosing Reference-Related Leaks](#diagnosing-reference-related-leaks)
-11. [Best Practices](#best-practices)
-12. [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-13. [War Stories](#war-stories)
-14. [Summary](#summary)
-
----
-
 ## Introduction
 
 In production, weak references are not a curiosity — they are the load-bearing mechanism behind self-cleaning caches, leak-free observer registries, off-object metadata tables, and cycle-free graphs. They are also a reliable source of two opposite failure modes: a weak reference that is *too weak* (your data vanishes between two lookups, your cache hit rate collapses to zero) and a weak reference that is *not actually weak* (a back-door strong reference pins the referent, and you have shipped a slow memory leak that only manifests after days of uptime).

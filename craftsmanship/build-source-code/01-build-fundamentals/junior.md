@@ -5,27 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concept 1 — A Build Is a Pipeline](#core-concept-1--a-build-is-a-pipeline)
-5. [Core Concept 2 — Compile: Source → Object Code](#core-concept-2--compile-source--object-code)
-6. [Core Concept 3 — Link: Stitching Objects Into One Program](#core-concept-3--link-stitching-objects-into-one-program)
-7. [Core Concept 4 — Static vs Dynamic Linking](#core-concept-4--static-vs-dynamic-linking)
-8. [Core Concept 5 — Interpreted, Compiled, and In-Between](#core-concept-5--interpreted-compiled-and-in-between)
-9. [Real-World Examples](#real-world-examples)
-10. [Mental Models](#mental-models)
-11. [Common Mistakes](#common-mistakes)
-12. [Test Yourself](#test-yourself)
-13. [Cheat Sheet](#cheat-sheet)
-14. [Summary](#summary)
-15. [Further Reading](#further-reading)
-16. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **What is a build, and why should you care?**

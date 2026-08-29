@@ -5,24 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [The Real Question: When Does This Creep In?](#the-real-question-when-does-this-creep-in)
-4. [Lock Ordering Inconsistency — Establishing a Global Order](#lock-ordering-inconsistency--establishing-a-global-order)
-5. [Holding a Lock During I/O — Copy Out, Then Call](#holding-a-lock-during-io--copy-out-then-call)
-6. [Wrong Lock Granularity — Right-Sizing the Critical Section](#wrong-lock-granularity--right-sizing-the-critical-section)
-7. [Detection: Deadlock and Contention Tooling](#detection-deadlock-and-contention-tooling)
-8. [Common Mistakes](#common-mistakes)
-9. [Test Yourself](#test-yourself)
-10. [Cheat Sheet](#cheat-sheet)
-11. [Summary](#summary)
-12. [Further Reading](#further-reading)
-13. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **When does this creep in?** and **What do I do instead?**

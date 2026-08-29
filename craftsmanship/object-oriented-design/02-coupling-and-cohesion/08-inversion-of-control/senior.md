@@ -7,24 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [The Precise Theory: Inverting the Runtime Call Graph](#the-precise-theory-inverting-the-runtime-call-graph)
-3. [IoC vs DI vs DIP vs Service Locator — The Airtight Table](#ioc-vs-di-vs-dip-vs-service-locator--the-airtight-table)
-4. [Service Locator vs Dependency Injection](#service-locator-vs-dependency-injection)
-5. [DI Containers and the Composition Root at Scale](#di-containers-and-the-composition-root-at-scale)
-6. [Plugin Architecture: IoC at Module Scale](#plugin-architecture-ioc-at-module-scale)
-7. [The Cost of Inversion: Where Does Execution Actually Start?](#the-cost-of-inversion-where-does-execution-actually-start)
-8. [When IoC Is the Wrong Move](#when-ioc-is-the-wrong-move)
-9. [Code Examples — Advanced](#code-examples--advanced)
-10. [Liabilities](#liabilities)
-11. [Pros & Cons at the System Level](#pros--cons-at-the-system-level)
-12. [Diagrams](#diagrams)
-13. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **design trade-offs** and **system-level reasoning**

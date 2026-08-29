@@ -4,30 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [The Core Definition](#the-core-definition)
-5. [Why "Coupling" Wasn't Enough](#why-coupling-wasnt-enough)
-6. [The Static Forms (weak → strong)](#the-static-forms-weak--strong)
-7. [The Dynamic Forms (visible only at runtime)](#the-dynamic-forms-visible-only-at-runtime)
-8. [Real-World Analogies](#real-world-analogies)
-9. [Mental Models](#mental-models)
-10. [Three Refactorings That Lower Connascence](#three-refactorings-that-lower-connascence)
-11. [Best Practices](#best-practices)
-12. [Common Mistakes](#common-mistakes)
-13. [Tricky Points](#tricky-points)
-14. [Test Yourself](#test-yourself)
-15. [Cheat Sheet](#cheat-sheet)
-16. [Summary](#summary)
-17. [Further Reading](#further-reading)
-18. [Related Topics](#related-topics)
-19. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **What is it?** and **How to use it?**

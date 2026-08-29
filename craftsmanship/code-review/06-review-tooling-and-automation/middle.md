@@ -5,28 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concept 1 — The Layered Automation Stack](#core-concept-1--the-layered-automation-stack)
-5. [Core Concept 2 — Shift the Mechanical Left](#core-concept-2--shift-the-mechanical-left)
-6. [Core Concept 3 — Review Infrastructure (CODEOWNERS, Templates, Suggestions)](#core-concept-3--review-infrastructure-codeowners-templates-suggestions)
-7. [Core Concept 4 — Codifying Review Rules (reviewdog & Danger)](#core-concept-4--codifying-review-rules-reviewdog--danger)
-8. [Core Concept 5 — AI-Assisted Review as a Triage Layer](#core-concept-5--ai-assisted-review-as-a-triage-layer)
-9. [Core Concept 6 — Async vs Synchronous Review](#core-concept-6--async-vs-synchronous-review)
-10. [Real-World Examples](#real-world-examples)
-11. [Mental Models](#mental-models)
-12. [Common Mistakes](#common-mistakes)
-13. [Test Yourself](#test-yourself)
-14. [Cheat Sheet](#cheat-sheet)
-15. [Summary](#summary)
-16. [Further Reading](#further-reading)
-17. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **What should a machine do before a human looks, and how do I spend that automation to protect the reviewer's attention?**

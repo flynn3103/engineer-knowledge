@@ -1,27 +1,5 @@
 # Dependency-Breaking Techniques — Middle
 
-## Table of Contents
-
-- [The working catalog](#the-working-catalog)
-- [A shared example to break apart](#a-shared-example-to-break-apart)
-- [1. Parameterize Constructor](#1-parameterize-constructor)
-- [2. Parameterize Method](#2-parameterize-method)
-- [3. Extract Interface](#3-extract-interface)
-- [4. Extract and Override Call](#4-extract-and-override-call)
-- [5. Extract and Override Factory Method](#5-extract-and-override-factory-method)
-- [6. Subclass and Override Method](#6-subclass-and-override-method)
-- [7. Introduce Instance Delegator](#7-introduce-instance-delegator)
-- [8. Introduce Static Setter / replace singleton](#8-introduce-static-setter--replace-singleton)
-- [9. Adapt Parameter](#9-adapt-parameter)
-- [10. Break Out Method Object](#10-break-out-method-object)
-- [11. Encapsulate Global References](#11-encapsulate-global-references)
-- [The rest of the catalog, briefly](#the-rest-of-the-catalog-briefly)
-- [How to pick one](#how-to-pick-one)
-- [Mini Glossary](#mini-glossary)
-- [Review questions](#review-questions)
-
----
-
 ## The working catalog
 
 The [junior page](./junior.md) covered four techniques and the core idea: every move introduces a *seam* so you can substitute a fake to **sense** or **separate**. This page is the working catalog — roughly the moves you will actually reach for, each with a before→after and a clear "use when." Treat it as a lookup table you return to while you are elbow-deep in a method that will not test.

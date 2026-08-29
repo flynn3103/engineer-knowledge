@@ -5,29 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Building Org-Wide Debt Visibility](#building-org-wide-debt-visibility)
-4. [The Debt Dashboard — Signals, Not Vanity Metrics](#the-debt-dashboard--signals-not-vanity-metrics)
-5. [The Politics of Measurement — Who Owns the Number](#the-politics-of-measurement--who-owns-the-number)
-6. [Goodhart in Practice — Every Debt Metric Gets Gamed](#goodhart-in-practice--every-debt-metric-gets-gamed)
-7. [From Measurement to an ROI Model Leadership Funds](#from-measurement-to-an-roi-model-leadership-funds)
-8. [Connecting Debt Signals to Business Outcomes](#connecting-debt-signals-to-business-outcomes)
-9. [When a Measurement Program Backfires](#when-a-measurement-program-backfires)
-10. [War Stories](#war-stories)
-11. [Decision Frameworks](#decision-frameworks)
-12. [Mental Models](#mental-models)
-13. [Common Mistakes](#common-mistakes)
-14. [Test Yourself](#test-yourself)
-15. [Cheat Sheet](#cheat-sheet)
-16. [Summary](#summary)
-17. [Further Reading](#further-reading)
-18. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Running debt measurement as a durable organizational practice, and using the numbers to drive funding and roadmap decisions — without the metric corrupting the work it measures.**

@@ -10,20 +10,6 @@ These questions probe whether a candidate truly understands macros — *code tha
 
 A strong candidate distinguishes textual substitution (C preprocessor) from syntactic transformation (Lisp, Rust), explains **hygiene** precisely and names which systems provide it, reasons about *when* expansion happens versus when evaluation happens, and — crucially — knows *when not to reach for a macro*. A weaker candidate calls everything "a macro," cannot explain why `i++` breaks `MAX(a,b)`, and thinks `volatile`-style "it's compile-time magic" covers it. The questions move from concepts, through language-specific surfaces (C preprocessor, Lisp/Scheme, Rust, Elixir, C++), into traps where the textbook answer is wrong, and finally to design judgment.
 
-## Table of Contents
-
-- [Conceptual](#conceptual)
-- [Language-Specific](#language-specific)
-  - [C Preprocessor](#c-preprocessor)
-  - [Lisp / Scheme](#lisp--scheme)
-  - [Rust](#rust)
-  - [Elixir](#elixir)
-  - [C++ (templates as macros)](#c-templates-as-macros)
-- [Tricky / Trap](#tricky--trap)
-- [Design](#design)
-
----
-
 ## Conceptual
 
 ### Question 1

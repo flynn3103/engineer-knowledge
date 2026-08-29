@@ -7,25 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [From Personal Virtue to Team Culture](#from-personal-virtue-to-team-culture)
-3. [Formal Codes: ACM and IEEE](#formal-codes-acm-and-ieee)
-4. [Estimation Honesty in Practice](#estimation-honesty-in-practice)
-5. [Owning Mistakes & Blameless Culture](#owning-mistakes-blameless-culture)
-6. [Mentoring Juniors Into the Ethic](#mentoring-juniors-into-the-ethic)
-7. [Building a Craftsmanship Culture](#building-a-craftsmanship-culture)
-8. [The Leader's Specific Duties](#the-leaders-specific-duties)
-9. [Career-Long Responsibility](#career-long-responsibility)
-10. [Anti-Patterns of Ethical Leadership](#anti-patterns-of-ethical-leadership)
-11. [A Maturity Model](#a-maturity-model)
-12. [Test Yourself](#test-yourself)
-13. [Summary](#summary)
-14. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: the ethic stops being a thing *you* hold and becomes a thing the *team* and the *organization* hold.

@@ -5,28 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [The Migration Plan on One Page](#the-migration-plan-on-one-page)
-4. [The Routing Facade: One Door, Two Houses](#the-routing-facade-one-door-two-houses)
-5. [Slicing: Choosing the Cutover Unit](#slicing-choosing-the-cutover-unit)
-6. [Parallel-Run: Calling Both and Comparing](#parallel-run-calling-both-and-comparing)
-7. [Measuring Equivalence](#measuring-equivalence)
-8. [Data and State Coexistence](#data-and-state-coexistence)
-9. [Per-Slice Cutover Lifecycle](#per-slice-cutover-lifecycle)
-10. [When to Delete the Old Path](#when-to-delete-the-old-path)
-11. [Ties to the Sibling Topics](#ties-to-the-sibling-topics)
-12. [Common Mistakes](#common-mistakes)
-13. [Test Yourself](#test-yourself)
-14. [Cheat Sheet](#cheat-sheet)
-15. [Summary](#summary)
-16. [Further Reading](#further-reading)
-17. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Plan a strangler migration of a subsystem.**

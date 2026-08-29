@@ -7,24 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [The Programmer's Oath, Promise by Promise](#the-programmers-oath-promise-by-promise)
-3. [The Two Halves of the Oath](#the-two-halves-of-the-oath)
-4. [The Craftsmanship Manifesto vs the Agile Manifesto](#the-craftsmanship-manifesto-vs-the-agile-manifesto)
-5. [What "Well-Crafted" Actually Means](#what-well-crafted-actually-means)
-6. [The Oath's Limits and Criticisms](#the-oaths-limits-and-criticisms)
-7. [Putting the Promises Into Daily Practice](#putting-the-promises-into-daily-practice)
-8. [Trade-offs](#trade-offs)
-9. [Common Misreadings](#common-misreadings)
-10. [Best Practices](#best-practices)
-11. [Test Yourself](#test-yourself)
-12. [Summary](#summary)
-13. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **Why** each promise exists and **when** it bites.

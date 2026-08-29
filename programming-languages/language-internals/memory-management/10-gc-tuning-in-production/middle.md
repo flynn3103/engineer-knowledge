@@ -4,24 +4,6 @@
 
 ---
 
-## Table of Contents
-- [Introduction](#introduction)
-- [Prerequisites](#prerequisites)
-- [Glossary](#glossary)
-- [Core Concepts](#core-concepts)
-- [The JVM Knobs](#the-jvm-knobs)
-- [The Go Knobs](#the-go-knobs)
-- [Reading a GC Log](#reading-a-gc-log)
-- [Mental Models](#mental-models)
-- [Code Examples](#code-examples)
-- [Pros & Cons](#pros--cons)
-- [Coding Patterns](#coding-patterns)
-- [Best Practices](#best-practices)
-- [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-- [Summary](#summary)
-
----
-
 ## Introduction
 
 The junior tier established the trade-off triangle (latency / throughput / footprint) and the two big levers: reduce allocation, and size the heap. This tier turns those into concrete knobs you can set and logs you can read. We focus on the two runtimes you are most likely to operate: the **JVM** and **Go**. They sit at opposite ends of a philosophy spectrum — the JVM gives you dozens of knobs; Go deliberately gives you about two — and seeing both teaches the mechanism better than either alone.

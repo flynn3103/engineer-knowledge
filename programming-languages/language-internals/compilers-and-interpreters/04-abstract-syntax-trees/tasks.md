@@ -5,18 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [How to Use These Tasks](#how-to-use-these-tasks)
-2. [Warm-Up Tasks](#warm-up-tasks)
-3. [Core Tasks](#core-tasks)
-4. [Advanced Tasks](#advanced-tasks)
-5. [Capstone Project](#capstone-project)
-6. [Self-Assessment Checklist](#self-assessment-checklist)
-7. [Related Topics](#related-topics)
-
----
-
 ## How to Use These Tasks
 
 Work top to bottom — each tier assumes the previous one. Try every task before reading its hint, and write the hint's idea in your own words before reading the (sparse) solution sketch. Pick **one** implementation language and stick with it across a tier so the AST type carries over. Most tasks take 20–90 minutes; the capstone is a multi-session build. Where a task says "verify," actually run it — an AST bug that "looks right" is the norm, not the exception.

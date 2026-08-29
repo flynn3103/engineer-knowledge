@@ -7,23 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Enforcing LoD in Code Review](#enforcing-lod-in-code-review)
-3. [Automated Detection — and Its Limits](#automated-detection--and-its-limits)
-4. [Team Conventions That Make LoD Answerable](#team-conventions-that-make-lod-answerable)
-5. [Refactoring Train Wrecks in Legacy Systems](#refactoring-train-wrecks-in-legacy-systems)
-6. [The NPE / Null-Safety Angle](#the-npe--null-safety-angle)
-7. [Real Incidents](#real-incidents)
-8. [The Politics: "It's Just One More Getter"](#the-politics-its-just-one-more-getter)
-9. [Review Checklist](#review-checklist)
-10. [Cheat Sheet](#cheat-sheet)
-11. [Diagrams](#diagrams)
-12. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **production** — keeping object coupling low across a large, multi-contributor codebase over years.

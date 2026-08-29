@@ -4,23 +4,6 @@
 
 ---
 
-## Table of Contents
-- [Introduction](#introduction)
-- [Prerequisites](#prerequisites)
-- [Glossary](#glossary)
-- [Core Concepts](#core-concepts)
-- [Real-World Analogies](#real-world-analogies)
-- [Mental Models](#mental-models)
-- [Code Examples](#code-examples)
-- [Pros & Cons](#pros--cons)
-- [Use Cases](#use-cases)
-- [Coding Patterns](#coding-patterns)
-- [Best Practices](#best-practices)
-- [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-- [Summary](#summary)
-
----
-
 ## Introduction
 
 The lower tiers treated one struct at a time: how to order its fields, when to pack, how to avoid false sharing. The senior tier changes the unit of analysis from the *struct* to the **data structure** and the **access pattern**. Once you have millions of records and a loop that touches them, the dominant question is no longer "how is this struct laid out" but "how is the *collection* laid out relative to how the code traverses it."

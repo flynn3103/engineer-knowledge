@@ -4,16 +4,6 @@
 
 A progression of hands-on exercises that move from observing the system allocator, to building your own (bump, pool, free-list), to tuning and profiling a production allocator. Build in any systems language (C, C++, Rust, or Zig); the prompts are language-agnostic where possible. Work top to bottom — later tasks assume the muscle memory of earlier ones.
 
-## Table of Contents
-
-- [Warm-Up](#warm-up)
-- [Core](#core)
-- [Advanced](#advanced)
-- [Capstone](#capstone)
-- [Self-Assessment](#self-assessment)
-
----
-
 ## Warm-Up
 
 ### Task 1 — Measure allocation overhead

@@ -5,25 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Reproducibility Is a Toolchain Property](#reproducibility-is-a-toolchain-property)
-3. [The Hard Cases: LTO, PGO, and Parallelism](#the-hard-cases-lto-pgo-and-parallelism)
-4. [Compiler and Linker Determinism](#compiler-and-linker-determinism)
-5. [Bootstrappable Builds and Trusting Trust](#bootstrappable-builds-and-trusting-trust)
-6. [Reproducibility and Caching Are the Same Property](#reproducibility-and-caching-are-the-same-property)
-7. [Gating CI on Rebuild-and-Diff](#gating-ci-on-rebuild-and-diff)
-8. [Mental Models](#mental-models)
-9. [Common Mistakes](#common-mistakes)
-10. [Test Yourself](#test-yourself)
-11. [Cheat Sheet](#cheat-sheet)
-12. [Summary](#summary)
-13. [Further Reading](#further-reading)
-14. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **What makes reproducibility *systemically* achievable — and what makes it genuinely hard at the limit?**

@@ -10,22 +10,6 @@ These questions probe whether a candidate truly understands algebraic data types
 
 A strong candidate distinguishes product from sum instantly, reaches for the "count the inhabitants" trick to reason about equivalence, knows that exhaustiveness checking is the killer feature and *why* it requires a closed variant set, and can name the trade-off they're making (the expression problem) rather than treating sums as universally superior. A weaker candidate conflates `void` with the empty type, thinks `null` and `Option` are the same thing with different syntax, or can't say why a struct-with-flags is worse than a sum. The questions move from conceptual foundations, to language-specific surfaces (Rust, Haskell, TypeScript, Swift, Java), to traps where the obvious answer is wrong, to design scenarios.
 
-## Table of Contents
-
-- [Conceptual / Foundational](#conceptual--foundational)
-- [Language-Specific](#language-specific)
-  - [Rust (enums)](#rust-enums)
-  - [Haskell (ADTs)](#haskell-adts)
-  - [TypeScript (discriminated unions)](#typescript-discriminated-unions)
-  - [Swift (enums)](#swift-enums)
-  - [Java (sealed + records)](#java-sealed--records)
-- [Tricky / Trap Questions](#tricky--trap-questions)
-- [Design Scenarios](#design-scenarios)
-- [Cheat Sheet](#cheat-sheet)
-- [Further Reading](#further-reading)
-
----
-
 ## Conceptual / Foundational
 
 ## Question 1

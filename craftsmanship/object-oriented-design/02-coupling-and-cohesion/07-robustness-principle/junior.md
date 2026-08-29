@@ -4,32 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [The Principle, Stated Precisely](#the-principle-stated-precisely)
-5. [Where It Came From: The Early Internet](#where-it-came-from-the-early-internet)
-6. [Why It Mattered: Interoperability](#why-it-mattered-interoperability)
-7. [Real-World Analogies](#real-world-analogies)
-8. [Mental Models](#mental-models)
-9. [Everyday Examples You Already Use](#everyday-examples-you-already-use)
-10. [Code Examples](#code-examples)
-11. [The Two Halves Are Not Equal](#the-two-halves-are-not-equal)
-12. [A First Taste of the Controversy](#a-first-taste-of-the-controversy)
-13. [Best Practices](#best-practices)
-14. [Common Mistakes](#common-mistakes)
-15. [Tricky Points](#tricky-points)
-16. [Test Yourself](#test-yourself)
-17. [Cheat Sheet](#cheat-sheet)
-18. [Summary](#summary)
-19. [Further Reading](#further-reading)
-20. [Related Topics](#related-topics)
-21. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **What is it?** and **How to use it?**

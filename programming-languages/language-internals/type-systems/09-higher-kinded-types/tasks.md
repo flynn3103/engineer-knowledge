@@ -5,20 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [How to Use This Page](#how-to-use-this-page)
-2. [Track A — Kinds & Counting Holes (Warm-up)](#track-a--kinds--counting-holes-warm-up)
-3. [Track B — Functor / Applicative / Monad by Hand](#track-b--functor--applicative--monad-by-hand)
-4. [Track C — The Laws](#track-c--the-laws)
-5. [Track D — `traverse` and Effect-Polymorphism](#track-d--traverse-and-effect-polymorphism)
-6. [Track E — Hitting the Language Walls (Rust / TypeScript)](#track-e--hitting-the-language-walls-rust--typescript)
-7. [Track F — Engineering Judgment](#track-f--engineering-judgment)
-8. [Capstone Projects](#capstone-projects)
-9. [Self-Assessment Checklist](#self-assessment-checklist)
-
----
-
 ## How to Use This Page
 
 Each task has a **self-check** (how you know you're right), a **hint** (collapsed-by-thought; read only when stuck), and, for a *minority* of tasks, a **sparse solution** (the key step, not a full copy-paste answer). Do the work first. If you can read `:kind`, write a lawful `Monad` instance, explain why Rust can't host a `Functor`, and produce a defensible adopt/avoid memo, you've mastered the topic.

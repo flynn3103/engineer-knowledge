@@ -5,29 +5,6 @@
 
 ---
 
-## Table of Contents
-
-- [Introduction](#introduction)
-- [Prerequisites](#prerequisites)
-- [Glossary](#glossary)
-- [Core Concepts](#core-concepts)
-  - [Mark-Sweep and Fragmentation](#mark-sweep-and-fragmentation)
-  - [Mark-Compact](#mark-compact)
-  - [Copying / Semispace and Cheney's Algorithm](#copying--semispace-and-cheneys-algorithm)
-  - [Generational GC](#generational-gc)
-  - [Write Barriers and Remembered Sets](#write-barriers-and-remembered-sets)
-  - [The Tri-Color Abstraction](#the-tri-color-abstraction)
-- [Mental Models](#mental-models)
-- [Code Examples](#code-examples)
-- [Pros & Cons](#pros--cons)
-- [Use Cases](#use-cases)
-- [Coding Patterns](#coding-patterns)
-- [Best Practices](#best-practices)
-- [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-- [Summary](#summary)
-
----
-
 ## Introduction
 
 At the junior tier, "the GC" was a single algorithm: mark, then sweep. In reality there is a small family of tracing algorithms, each making a different trade among **pause time**, **throughput**, **memory overhead**, and **allocation speed**. This tier walks the four canonical algorithms — mark-sweep, mark-compact, copying, and generational — and then introduces the **tri-color abstraction**, the conceptual tool every modern concurrent collector is built on. Master these and you can read the design of *any* real collector.

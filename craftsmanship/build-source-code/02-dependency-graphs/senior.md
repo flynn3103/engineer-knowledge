@@ -5,28 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Approximation: the One Tradeoff Behind All the Others](#approximation-the-one-tradeoff-behind-all-the-others)
-4. [Minimal Incremental Correctness](#minimal-incremental-correctness)
-5. [Dynamic Dependencies — Discovered During the Build](#dynamic-dependencies--discovered-during-the-build)
-6. [Early Cutoff and Content-Addressed Graphs](#early-cutoff-and-content-addressed-graphs)
-7. [Newer-Than vs Content-Addressed — Two Build Philosophies](#newer-than-vs-content-addressed--two-build-philosophies)
-8. [The Build Graph at Monorepo Scale](#the-build-graph-at-monorepo-scale)
-9. [Querying the Graph — bazel query and buck query](#querying-the-graph--bazel-query-and-buck-query)
-10. [How a Bad Graph Causes Flaky and Stale Builds](#how-a-bad-graph-causes-flaky-and-stale-builds)
-11. [Mental Models](#mental-models)
-12. [Common Mistakes](#common-mistakes)
-13. [Test Yourself](#test-yourself)
-14. [Cheat Sheet](#cheat-sheet)
-15. [Summary](#summary)
-16. [Further Reading](#further-reading)
-17. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **What does it mean for an incremental build to be *correct*, and how do real systems guarantee it at scale?**

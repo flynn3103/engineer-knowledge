@@ -5,27 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concept 1 — The Everyday Signs of Debt](#core-concept-1--the-everyday-signs-of-debt)
-5. [Core Concept 2 — Make It Visible](#core-concept-2--make-it-visible)
-6. [Core Concept 3 — Hotspots: Where Debt Actually Hurts](#core-concept-3--hotspots-where-debt-actually-hurts)
-7. [Core Concept 4 — Simple Signals Anyone Can Read](#core-concept-4--simple-signals-anyone-can-read)
-8. [Core Concept 5 — "No Tests" Is Debt You Can Feel](#core-concept-5--no-tests-is-debt-you-can-feel)
-9. [Real-World Examples](#real-world-examples)
-10. [Mental Models](#mental-models)
-11. [Common Mistakes](#common-mistakes)
-12. [Test Yourself](#test-yourself)
-13. [Cheat Sheet](#cheat-sheet)
-14. [Summary](#summary)
-15. [Further Reading](#further-reading)
-16. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **How do you even find technical debt?**

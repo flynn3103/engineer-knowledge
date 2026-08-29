@@ -5,31 +5,6 @@
 
 ---
 
-## Table of Contents
-
-- [Introduction](#introduction)
-- [Prerequisites](#prerequisites)
-- [Glossary](#glossary)
-- [Core Concepts](#core-concepts)
-  - [A diagnosis workflow for allocator problems](#a-diagnosis-workflow-for-allocator-problems)
-  - [Tuning glibc malloc](#tuning-glibc-malloc)
-  - [Tuning and profiling jemalloc](#tuning-and-profiling-jemalloc)
-  - [Tuning and profiling tcmalloc](#tuning-and-profiling-tcmalloc)
-  - [Fragmentation metrics that matter](#fragmentation-metrics-that-matter)
-  - [Container-aware sizing](#container-aware-sizing)
-- [Security Hardening](#security-hardening)
-- [Real-World Analogies](#real-world-analogies)
-- [Mental Models](#mental-models)
-- [Code Examples](#code-examples)
-- [Pros & Cons](#pros--cons)
-- [Use Cases](#use-cases)
-- [Coding Patterns](#coding-patterns)
-- [Best Practices](#best-practices)
-- [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-- [Summary](#summary)
-
----
-
 ## Introduction
 
 In production, allocator work is mostly *operations*: a service whose RSS climbs until the OOM killer fires, a p99 latency spike traced to a `malloc` slow path, a container that mysteriously uses 4× the memory of the same binary on a laptop. None of these are fixed by rewriting `malloc`. They're fixed by *choosing* the right allocator, *configuring* it via environment variables, and *profiling* it with the tooling each allocator ships.

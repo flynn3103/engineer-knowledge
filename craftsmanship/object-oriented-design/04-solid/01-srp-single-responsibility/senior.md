@@ -7,24 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [SRP, Cohesion, and the Closure of Reasons-to-Change](#srp-cohesion-and-the-closure-of-reasons-to-change)
-3. [SRP Through Connascence](#srp-through-connascence)
-4. [SRP vs. Coupling: Two Forces in Tension](#srp-vs-coupling-two-forces-in-tension)
-5. [Why "Reason to Change" Is Ambiguous — and How Actors Fix It](#why-reason-to-change-is-ambiguous--and-how-actors-fix-it)
-6. [The Conway's Law Connection](#the-conways-law-connection)
-7. [SRP at the Module and Service Boundary](#srp-at-the-module-and-service-boundary)
-8. [SRP vs. Simplicity and Locality](#srp-vs-simplicity-and-locality)
-9. [Advanced Examples](#advanced-examples)
-10. [Liabilities](#liabilities)
-11. [Pros & Cons at the System Level](#pros--cons-at-the-system-level)
-12. [Diagrams](#diagrams)
-13. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **theory** and **system-level reasoning**

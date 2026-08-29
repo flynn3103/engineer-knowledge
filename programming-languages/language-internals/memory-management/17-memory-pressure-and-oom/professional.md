@@ -4,26 +4,6 @@
 
 ---
 
-## Table of Contents
-- [Introduction](#introduction)
-- [Core Concepts](#core-concepts)
-  - [Requests vs limits, and why limits should equal requests for memory](#requests-vs-limits-and-why-limits-should-equal-requests-for-memory)
-  - [QoS classes and eviction order](#qos-classes-and-eviction-order)
-  - [Two ways a pod dies: OOMKilled vs node-pressure eviction](#two-ways-a-pod-dies-oomkilled-vs-node-pressure-eviction)
-  - [Noisy neighbors and node-level pressure](#noisy-neighbors-and-node-level-pressure)
-- [War Stories](#war-stories)
-  - [The CrashLoopBackOff from a too-low limit](#war-story-1-the-crashloopbackoff-from-a-too-low-limit)
-  - [The swap-thrash livelock](#war-story-2-the-swap-thrash-livelock)
-  - [The GC death spiral at the limit](#war-story-3-the-gc-death-spiral-at-the-limit)
-  - [Off-heap blew the cgroup while the heap looked fine](#war-story-4-off-heap-blew-the-cgroup-while-the-heap-looked-fine)
-- [Diagnosis Playbook](#diagnosis-playbook)
-- [Config Recipes](#config-recipes)
-- [Best Practices](#best-practices)
-- [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-- [Summary](#summary)
-
----
-
 ## Introduction
 
 In production, memory pressure stops being a kernel abstraction and becomes a pager going off at 3am with `CrashLoopBackOff`, a dashboard of exit code 137s, and a customer-facing latency spike. The professional level is about operating real systems — almost always containerized, usually orchestrated by Kubernetes — where the failure modes from the lower tiers compound with scheduler decisions, multi-tenant nodes, and runtimes that don't know how much memory they actually have.

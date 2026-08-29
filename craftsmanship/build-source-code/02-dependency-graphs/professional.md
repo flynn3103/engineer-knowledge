@@ -5,26 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Debugging "Why Did This Rebuild?"](#debugging-why-did-this-rebuild)
-3. [Debugging "Why Didn't This Rebuild?"](#debugging-why-didnt-this-rebuild)
-4. [Graph Hygiene at Org Scale](#graph-hygiene-at-org-scale)
-5. [The Dependency Graph as an Architecture Signal](#the-dependency-graph-as-an-architecture-signal)
-6. [Incrementality as a CI Cost Lever](#incrementality-as-a-ci-cost-lever)
-7. [Tooling: Reading the Action Graph](#tooling-reading-the-action-graph)
-8. [War Stories](#war-stories)
-9. [Mental Models](#mental-models)
-10. [Common Mistakes](#common-mistakes)
-11. [Test Yourself](#test-yourself)
-12. [Cheat Sheet](#cheat-sheet)
-13. [Summary](#summary)
-14. [Further Reading](#further-reading)
-15. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **How do you run, debug, and govern a build graph in production — and turn it into leverage?**

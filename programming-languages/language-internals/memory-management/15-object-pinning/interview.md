@@ -6,15 +6,6 @@ A movable heap is one of the cleaner ways an interviewer can probe whether you u
 
 ---
 
-## Table of Contents
-
-- [Conceptual](#conceptual)
-- [Tool-Specific](#tool-specific)
-- [Tricky / Trap](#tricky--trap)
-- [Design](#design)
-
----
-
 ## Conceptual
 
 ## Question 1

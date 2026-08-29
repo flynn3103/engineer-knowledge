@@ -7,24 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Connascence as the Unifying Theory of Coupling](#connascence-as-the-unifying-theory-of-coupling)
-3. [Mapping the Classic Coupling Taxonomy onto Connascence](#mapping-the-classic-coupling-taxonomy-onto-connascence)
-4. [Connascence Gives Refactoring a *Direction*](#connascence-gives-refactoring-a-direction)
-5. [Static Connascence at Architectural Scale](#static-connascence-at-architectural-scale)
-6. [Dynamic Connascence Across Services: The Distributed Trap](#dynamic-connascence-across-services-the-distributed-trap)
-7. [Connascence, Cohesion, and the Single Responsibility Principle](#connascence-cohesion-and-the-single-responsibility-principle)
-8. [The Limits of the Theory](#the-limits-of-the-theory)
-9. [Code Examples — Advanced](#code-examples--advanced)
-10. [Liabilities](#liabilities)
-11. [Pros & Cons at the System Level](#pros--cons-at-the-system-level)
-12. [Diagrams](#diagrams)
-13. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **design trade-offs** and **system-level reasoning**

@@ -5,27 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concept 1 — Why Rebuild Work You Already Did?](#core-concept-1--why-rebuild-work-you-already-did)
-5. [Core Concept 2 — The Cache Key Is a Fingerprint of the Inputs](#core-concept-2--the-cache-key-is-a-fingerprint-of-the-inputs)
-6. [Core Concept 3 — Cache Hit vs Cache Miss](#core-concept-3--cache-hit-vs-cache-miss)
-7. [Core Concept 4 — A Changed Input Busts the Cache](#core-concept-4--a-changed-input-busts-the-cache)
-8. [Core Concept 5 — Caching Is Not the Same as Incrementality](#core-concept-5--caching-is-not-the-same-as-incrementality)
-9. [Real-World Examples](#real-world-examples)
-10. [Mental Models](#mental-models)
-11. [Common Mistakes](#common-mistakes)
-12. [Test Yourself](#test-yourself)
-13. [Cheat Sheet](#cheat-sheet)
-14. [Summary](#summary)
-15. [Further Reading](#further-reading)
-16. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Why do builds get faster the second time, and what is actually doing the remembering?**

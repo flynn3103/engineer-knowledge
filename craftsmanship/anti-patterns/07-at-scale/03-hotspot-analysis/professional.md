@@ -5,26 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Mining Huge, Long-Lived Repos](#mining-huge-long-lived-repos)
-4. [The Normalization Pitfalls That Skew Churn](#the-normalization-pitfalls-that-skew-churn)
-5. [Filtering: What to Exclude Before You Rank](#filtering-what-to-exclude-before-you-rank)
-6. [Statistical Care: Confidence, Windows, Normalization](#statistical-care-confidence-windows-normalization)
-7. [Combining Hotspots with Coverage and Production Incidents](#combining-hotspots-with-coverage-and-production-incidents)
-8. [Automating a Hotspot Dashboard](#automating-a-hotspot-dashboard)
-9. [The Limits: When Churn Is Not Badness](#the-limits-when-churn-is-not-badness)
-10. [Common Mistakes](#common-mistakes)
-11. [Test Yourself](#test-yourself)
-12. [Cheat Sheet](#cheat-sheet)
-13. [Summary](#summary)
-14. [Further Reading](#further-reading)
-15. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Scaling and rigor.** Mining a 15-year, million-commit monorepo without the answer being dominated by renames, vendored code, and bulk-format commits; treating churn as a *noisy statistic* not a verdict; fusing it with coverage and real incidents; automating a dashboard; and respecting the hard limit — *churn alone is never badness.*

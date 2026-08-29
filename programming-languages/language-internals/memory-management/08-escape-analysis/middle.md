@@ -5,25 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [How the Analysis Works](#how-the-analysis-works)
-5. [The Escape Triggers (Catalog)](#the-escape-triggers-catalog)
-6. [Reading Go's `-gcflags=-m` Output](#reading-gos--gcflags-m-output)
-7. [Code Examples](#code-examples)
-8. [Java / HotSpot Mechanisms](#java--hotspot-mechanisms)
-9. [Mental Models](#mental-models)
-10. [Pros & Cons](#pros--cons)
-11. [Coding Patterns](#coding-patterns)
-12. [Best Practices](#best-practices)
-13. [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-14. [Summary](#summary)
-
----
-
 ## Introduction
 
 At the junior level, escape analysis was a yes/no question: *does this value outlive its function?* Now we open the hood. This tier is about **mechanism**: how the compiler reasons about reachability, the precise set of constructs that trigger an escape, and how to read the diagnostic output that tells you what happened.

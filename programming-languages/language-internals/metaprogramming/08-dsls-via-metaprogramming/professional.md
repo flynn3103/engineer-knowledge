@@ -5,20 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [The Production DSL Families](#the-production-dsl-families)
-3. [Compile-Checked vs Runtime DSLs](#compile-checked-vs-runtime-dsls)
-4. [The Things That Decide Whether a DSL Survives](#the-things-that-decide-whether-a-dsl-survives)
-5. [Code Examples](#code-examples)
-6. [Best Practices](#best-practices)
-7. [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-8. [War Stories](#war-stories)
-9. [Summary](#summary)
-
----
-
 ## Introduction
 
 An internal DSL is a library designed so that using it reads like a small language for

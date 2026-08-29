@@ -5,25 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [The Comparison Matrix](#the-comparison-matrix)
-3. [Reproducibility and Hermeticity, Per Tool](#reproducibility-and-hermeticity-per-tool)
-4. [Why Go Is Reproducible and npm Historically Wasn't](#why-go-is-reproducible-and-npm-historically-wasnt)
-5. [The Supply-Chain Surface of Each Tool](#the-supply-chain-surface-of-each-tool)
-6. [Caching Internals — What the Cache Key Actually Hashes](#caching-internals--what-the-cache-key-actually-hashes)
-7. [When a Language Tool Stops Scaling](#when-a-language-tool-stops-scaling)
-8. [Mental Models](#mental-models)
-9. [Common Mistakes](#common-mistakes)
-10. [Test Yourself](#test-yourself)
-11. [Cheat Sheet](#cheat-sheet)
-12. [Summary](#summary)
-13. [Further Reading](#further-reading)
-14. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Comparing the tools along the axes that actually decide architecture — determinism, hermeticity, supply-chain surface, and scaling ceiling.**

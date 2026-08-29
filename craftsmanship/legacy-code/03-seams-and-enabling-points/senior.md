@@ -1,20 +1,5 @@
 # Seams and Enabling Points — Senior
 
-## Table of Contents
-
-- [Seams as a property of design, not a testing trick](#seams-as-a-property-of-design-not-a-testing-trick)
-- [Testability is a design property you can measure](#testability-is-a-design-property-you-can-measure)
-- [The trade-off space between seam types](#the-trade-off-space-between-seam-types)
-- [How the language and runtime shape your available seams](#how-the-language-and-runtime-shape-your-available-seams)
-- [The hidden cost of link and preprocessor seams](#the-hidden-cost-of-link-and-preprocessor-seams)
-- [Seams vs. proper dependency injection](#seams-vs-proper-dependency-injection)
-- [When the enabling point is in the wrong place](#when-the-enabling-point-is-in-the-wrong-place)
-- [Judgment: choosing a seam under real constraints](#judgment-choosing-a-seam-under-real-constraints)
-- [Heuristics a senior carries](#heuristics-a-senior-carries)
-- [Related Topics](#related-topics)
-
----
-
 ## Seams as a property of design, not a testing trick
 
 The junior and middle pages teach seams as a mechanism: find the join, slot in a fake, test the logic. That framing is correct but incomplete. At senior level the deeper truth is that **a seam is the observable shadow of a design decision about coupling.** Code that is full of natural seams is code whose dependencies were made *explicit and replaceable*; code with no seams welded its dependencies in. So when you ask "where are the seams here?" you are really asking "where did the original author make coupling explicit, and where did they hide it?"

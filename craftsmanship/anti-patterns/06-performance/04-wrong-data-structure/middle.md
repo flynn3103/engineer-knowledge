@@ -4,26 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [The Cost-Table Cheat Sheet](#the-cost-table-cheat-sheet)
-4. [Mismatch 1 — Membership: List → Set](#mismatch-1--membership-list--set)
-5. [Mismatch 2 — Find by Key: Repeated Scan → Map](#mismatch-2--find-by-key-repeated-scan--map)
-6. [Mismatch 3 — Repeated Min/Max & Top-K: Re-sort → Heap](#mismatch-3--repeated-minmax--top-k-re-sort--heap)
-7. [Mismatch 4 — Queue: List Pop-Front → Deque](#mismatch-4--queue-list-pop-front--deque)
-8. [Mismatch 5 — Nested-Loop Join → Hash Join](#mismatch-5--nested-loop-join--hash-join)
-9. [The Decision Procedure](#the-decision-procedure)
-10. [Common Mistakes](#common-mistakes)
-11. [Test Yourself](#test-yourself)
-12. [Cheat Sheet](#cheat-sheet)
-13. [Summary](#summary)
-14. [Further Reading](#further-reading)
-15. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **The common mismatches and the right pick** — for each everyday access pattern, the structure that fits, with the big-O and a benchmark to prove it.

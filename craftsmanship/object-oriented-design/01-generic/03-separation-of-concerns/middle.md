@@ -7,27 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Identifying Concerns: The Axes of Change](#identifying-concerns-the-axes-of-change)
-3. [Layered Architecture, Concretely](#layered-architecture-concretely)
-4. [Separating I/O from Computation: Functional Core, Imperative Shell](#separating-io-from-computation-functional-core-imperative-shell)
-5. [Policy vs. Mechanism](#policy-vs-mechanism)
-6. [Cross-Cutting Concerns: Tangling and Scattering](#cross-cutting-concerns-tangling-and-scattering)
-7. [Addressing Cross-Cutting Concerns: Decorators, Middleware, AOP](#addressing-cross-cutting-concerns-decorators-middleware-aop)
-8. [SoC, Cohesion, and Coupling](#soc-cohesion-and-coupling)
-9. [When to Separate — and When Not To](#when-to-separate-and-when-not-to)
-10. [Trade-offs](#trade-offs)
-11. [Edge Cases](#edge-cases)
-12. [Tricky Points](#tricky-points)
-13. [Best Practices](#best-practices)
-14. [Test Yourself](#test-yourself)
-15. [Summary](#summary)
-16. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **Why** and **When**

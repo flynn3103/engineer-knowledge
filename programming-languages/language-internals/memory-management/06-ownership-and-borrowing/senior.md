@@ -5,24 +5,6 @@
 
 ---
 
-## Table of Contents
-
-- [Introduction](#introduction)
-- [Prerequisites](#prerequisites)
-- [Glossary](#glossary)
-- [Core Concepts](#core-concepts)
-- [Ownership vs Garbage Collection](#ownership-vs-garbage-collection)
-- [The Ownership Family of Languages](#the-ownership-family-of-languages)
-- [Mental Models](#mental-models)
-- [Code Examples](#code-examples)
-- [Design Trade-offs](#design-trade-offs)
-- [Pros & Cons](#pros--cons)
-- [Best Practices](#best-practices)
-- [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-- [Summary](#summary)
-
----
-
 ## Introduction
 
 By now the mechanics are familiar. The senior question is *architectural*: ownership is a specific point in the design space of memory management, and choosing it (or rejecting it) has consequences that ripple through an entire codebase. This page treats ownership as a language-design decision. We compare it honestly against tracing garbage collection — not as "Rust good, GC bad," but as two different answers to the same problem with different bills. We place Rust in the lineage of ownership-influenced languages (Cyclone, C++ `unique_ptr`, Swift, Val/Hylo). And we confront the model's structural limits: cyclic graphs, self-referential data, and the cases where the zero-cost guarantee genuinely costs you in expressiveness or developer time.

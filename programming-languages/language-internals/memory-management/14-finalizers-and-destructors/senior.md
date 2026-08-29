@@ -5,21 +5,6 @@
 
 ---
 
-## Table of Contents
-
-- [Introduction](#introduction)
-- [Core Concepts](#core-concepts)
-  - [The deterministic / non-deterministic split](#the-deterministic--non-deterministic-split)
-  - [Destructors: scope-bound teardown](#destructors-scope-bound-teardown)
-  - [Finalizers: GC-bound teardown](#finalizers-gc-bound-teardown)
-- [Cross-Language Comparison](#cross-language-comparison)
-- [Pros & Cons](#pros--cons)
-- [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-- [Best Practices](#best-practices)
-- [Summary](#summary)
-
----
-
 ## Introduction
 
 Every object that owns a resource — heap memory, a file descriptor, a socket, a mutex, a database connection, a GPU buffer — eventually needs to release it. The language gives you a hook to run code at the end of an object's life. The single most consequential design question is **when** that hook fires, and **whether it fires at all**.

@@ -4,23 +4,6 @@
 
 ---
 
-## Table of Contents
-- [Introduction](#introduction)
-- [Core Concepts](#core-concepts)
-  - [The three deaths: heap OOM vs native OOM vs cgroup OOM-kill](#the-three-deaths-heap-oom-vs-native-oom-vs-cgroup-oom-kill)
-  - [Soft limits vs hard limits as a design primitive](#soft-limits-vs-hard-limits-as-a-design-primitive)
-  - [Making the runtime aware of the container limit](#making-the-runtime-aware-of-the-container-limit)
-  - [The GC death spiral](#the-gc-death-spiral)
-  - [Graceful degradation: load shedding, backpressure, bounded resources](#graceful-degradation-load-shedding-backpressure-bounded-resources)
-  - [Admission control and circuit breakers](#admission-control-and-circuit-breakers)
-  - [Spill-to-disk and reducing concurrency](#spill-to-disk-and-reducing-concurrency)
-- [Pros & Cons](#pros--cons)
-- [Best Practices](#best-practices)
-- [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-- [Summary](#summary)
-
----
-
 ## Introduction
 
 The middle tier covered the mechanisms the kernel uses under pressure. Senior engineering is about *not being a passive victim of them*. A service that simply runs until the cgroup OOM-kills it has made a design choice — usually unintentionally — to convert memory pressure into the worst possible outcome: an abrupt, uncatchable death with in-flight requests dropped and no chance to shed load or restart cleanly.

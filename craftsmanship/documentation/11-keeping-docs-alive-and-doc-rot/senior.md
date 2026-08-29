@@ -7,24 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Doc Rot as Technical Debt](#doc-rot-as-technical-debt)
-3. [The Generation Boundary: What You Can and Can't Derive](#the-generation-boundary-what-you-cant-derive)
-4. [Designing for Single Source of Truth at the System Level](#designing-for-single-source-of-truth-at-the-system-level)
-5. [The Maintenance-Cost vs Doc-Value Calculus](#the-maintenance-cost-vs-doc-value-calculus)
-6. [Freshness as a Signal, Not a Guarantee](#freshness-as-a-signal-not-a-guarantee)
-7. [When the Anti-Rot Machinery Itself Rots](#when-the-anti-rot-machinery-itself-rots)
-8. [Architecting Docs So Rot Surfaces Loudly](#architecting-docs-so-rot-surfaces-loudly)
-9. [Code Examples — Advanced](#code-examples-advanced)
-10. [Liabilities](#liabilities)
-11. [Pros & Cons at the System Level](#pros-cons-at-the-system-level)
-12. [Diagrams](#diagrams)
-13. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **design trade-offs** and **system-level reasoning**

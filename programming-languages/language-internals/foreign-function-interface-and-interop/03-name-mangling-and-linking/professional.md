@@ -5,38 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concepts](#core-concepts)
-   - [Symbol Visibility as ABI-Surface Control](#symbol-visibility-as-abi-surface-control)
-   - [Why Hiding Symbols Speeds Load and Shrinks the ABI](#why-hiding-symbols-speeds-load-and-shrinks-the-abi)
-   - [Version Scripts and Module Definition Files](#version-scripts-and-module-definition-files)
-   - [Weak Symbols, COMDAT, and Vague-Linkage Folding](#weak-symbols-comdat-and-vague-linkage-folding)
-   - [ODR Violations That Silently Pick a Definition](#odr-violations-that-silently-pick-a-definition)
-   - [glibc Symbol Versioning](#glibc-symbol-versioning)
-   - [Reading Linker Diagnostics](#reading-linker-diagnostics)
-   - [Demangling in Stack Traces and Profilers](#demangling-in-stack-traces-and-profilers)
-   - [Exposing Rust and C++ Through a C ABI](#exposing-rust-and-c-through-a-c-abi)
-   - [strip and the Production Symbol Footprint](#strip-and-the-production-symbol-footprint)
-5. [Real-World Analogies](#real-world-analogies)
-6. [Mental Models](#mental-models)
-7. [Code Examples](#code-examples)
-8. [Pros & Cons](#pros--cons)
-9. [Use Cases](#use-cases)
-10. [Coding Patterns](#coding-patterns)
-11. [Best Practices](#best-practices)
-12. [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-13. [Operational Checklist](#operational-checklist)
-14. [Test Yourself](#test-yourself)
-15. [Cheat Sheet](#cheat-sheet)
-16. [Summary](#summary)
-17. [Further Reading](#further-reading)
-
----
-
 ## Introduction
 
 At the professional tier, name mangling and linking stop being a thing the toolchain does to you and become a thing you do to the toolchain. A library that ships to thousands of consumers is, in linker terms, a *contract printed in a symbol table*. Every symbol you export is a promise; every promise you cannot keep forever is a future ABI break, a future `undefined reference`, a future support ticket from a downstream team whose binary loaded yours and found the function gone. The senior tier taught you how mangling encodes types and how the linker folds vague-linkage duplicates. This tier is about governing that surface: deciding which symbols are public, versioning the ones that must evolve, hiding the rest, and reading the toolchain's diagnostics fluently enough to debug a corrupted production binary at 3 a.m.

@@ -4,24 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [What the Failure Looks Like](#what-the-failure-looks-like)
-4. [Why You Can't Tell Which Assert Blew Up](#why-you-cant-tell-which-assert-blew-up)
-5. [The First Fix: Give Every Assertion a Voice](#the-first-fix-give-every-assertion-a-voice)
-6. [The Better Fix: Stop Cramming](#the-better-fix-stop-cramming)
-7. [Fail-Fast Hides the Rest](#fail-fast-hides-the-rest)
-8. [Common Mistakes](#common-mistakes)
-9. [Test Yourself](#test-yourself)
-10. [Cheat Sheet](#cheat-sheet)
-11. [Summary](#summary)
-12. [Further Reading](#further-reading)
-13. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **What does it look like?** and **Why is it bad?**

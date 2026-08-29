@@ -5,26 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [The Rebuild-and-Diff Gate as Standing Infrastructure](#the-rebuild-and-diff-gate-as-standing-infrastructure)
-3. [How the Big Projects Actually Do It](#how-the-big-projects-actually-do-it)
-4. [Independent Rebuilders and Verifiable Builds](#independent-rebuilders-and-verifiable-builds)
-5. [The Supply-Chain Framing: SLSA, Provenance, and the SolarWinds Lesson](#the-supply-chain-framing-slsa-provenance-and-the-solarwinds-lesson)
-6. [Signing Reproducible Artifacts](#signing-reproducible-artifacts)
-7. [Cost/Benefit: Where Reproducibility Earns Its Keep](#costbenefit-where-reproducibility-earns-its-keep)
-8. [War Stories](#war-stories)
-9. [Mental Models](#mental-models)
-10. [Common Mistakes](#common-mistakes)
-11. [Test Yourself](#test-yourself)
-12. [Cheat Sheet](#cheat-sheet)
-13. [Summary](#summary)
-14. [Further Reading](#further-reading)
-15. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Operationalizing reproducibility at org and distro scale — gates, rebuilders, the supply-chain threat model, signing, and the cost/benefit calculus of when to bother.**

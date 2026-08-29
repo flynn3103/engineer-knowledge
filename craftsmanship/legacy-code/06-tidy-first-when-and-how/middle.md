@@ -4,28 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Recap: the structure / behavior line](#recap-the-structure--behavior-line)
-2. [The fuller catalog of tidyings](#the-fuller-catalog-of-tidyings)
-   - [Normalize Symmetries](#normalize-symmetries)
-   - [New Interface, Old Implementation](#new-interface-old-implementation)
-   - [Reading Order](#reading-order)
-   - [Cohesion Order](#cohesion-order)
-   - [Explicit Parameters](#explicit-parameters)
-   - [Extract Helper](#extract-helper)
-   - [One Pile](#one-pile)
-   - [Explaining Comments](#explaining-comments)
-3. [Keeping tidyings small](#keeping-tidyings-small)
-4. [Separating structure from behavior in practice](#separating-structure-from-behavior-in-practice)
-5. [The discipline of separate commits and PRs](#the-discipline-of-separate-commits-and-prs)
-6. [Worked example: tidy first, then change](#worked-example-tidy-first-then-change)
-7. [Diagrams](#diagrams)
-8. [Mini Glossary](#mini-glossary)
-9. [Review questions](#review-questions)
-
----
-
 ## Recap: the structure / behavior line
 
 A **tidying** changes the *structure* of code — how it reads — and never its *behavior* — what it computes or causes. The junior level covered the simplest seven (guard clauses, dead code, explaining variables, explaining constants, chunk statements, move declaration to initialization, delete redundant comments). This level adds the rest of Beck's catalog and, more importantly, the *discipline* that makes tidying a team-grade practice: keep each one small, and keep structure and behavior in separate commits.

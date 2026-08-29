@@ -10,15 +10,6 @@ These exercises take you from "I can read `dis` output" to "I built a stack VM w
 
 How to use this file: read the task, write code, *run it*, and only then check the hints. The self-check boxes are for when you can *explain* the result to someone else, not when the program merely runs. Solutions are sparse and appear only where the canonical answer teaches more than your first attempt would. Wherever the task says "disassemble," actually run `dis.dis` / `javap -c` — reading real bytecode is half the learning.
 
-## Table of Contents
-
-- [Warm-Up](#warm-up)
-- [Core](#core)
-- [Advanced](#advanced)
-- [Capstone: Build a Stack VM](#capstone-build-a-stack-vm)
-
----
-
 ## Warm-Up
 
 These rebuild the mental model with real tools before you write any VM code.

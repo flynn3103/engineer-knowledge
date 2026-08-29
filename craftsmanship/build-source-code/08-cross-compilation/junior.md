@@ -5,27 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concept 1 — Host vs Target: Two Different Machines](#core-concept-1--host-vs-target-two-different-machines)
-5. [Core Concept 2 — Why You'd Ever Want To](#core-concept-2--why-youd-ever-want-to)
-6. [Core Concept 3 — Go's GOOS/GOARCH: The Easy Case](#core-concept-3--gos-goosgoarch-the-easy-case)
-7. [Core Concept 4 — The Target Triple](#core-concept-4--the-target-triple)
-8. [Core Concept 5 — Why C Is Harder Than Go](#core-concept-5--why-c-is-harder-than-go)
-9. [Real-World Examples](#real-world-examples)
-10. [Mental Models](#mental-models)
-11. [Common Mistakes](#common-mistakes)
-12. [Test Yourself](#test-yourself)
-13. [Cheat Sheet](#cheat-sheet)
-14. [Summary](#summary)
-15. [Further Reading](#further-reading)
-16. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Building a program on one kind of machine so it runs on a different kind of machine.**

@@ -1,24 +1,5 @@
 # Seams and Enabling Points — Middle
 
-## Table of Contents
-
-- [Recap and goal](#recap-and-goal)
-- [Object seams in depth](#object-seams-in-depth)
-  - [Interface injection](#interface-injection)
-  - [Subclass and override](#subclass-and-override)
-  - [Parameterize the method](#parameterize-the-method)
-- [Link seams](#link-seams)
-- [Preprocessor seams](#preprocessor-seams)
-- [Text and configuration seams](#text-and-configuration-seams)
-- [How to find seams in unfamiliar code](#how-to-find-seams-in-unfamiliar-code)
-- [Enabling points: where the decision lives](#enabling-points-where-the-decision-lives)
-- [Choosing the right seam](#choosing-the-right-seam)
-- [Worked example: putting it together](#worked-example-putting-it-together)
-- [Mini Glossary](#mini-glossary)
-- [Review questions](#review-questions)
-
----
-
 ## Recap and goal
 
 From the [junior](./junior.md) page: a **seam** is a place where you can alter behavior without editing in that place, and its **enabling point** is where you choose which behavior runs. The reason you want one is **testability** — you slot a fake in at the enabling point so you can test the surrounding logic in isolation.

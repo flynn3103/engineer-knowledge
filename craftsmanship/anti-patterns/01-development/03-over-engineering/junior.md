@@ -5,31 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [The Eight at a Glance](#the-eight-at-a-glance)
-5. [Premature Optimization](#premature-optimization)
-6. [Speculative Generality](#speculative-generality)
-7. [Gold Plating](#gold-plating)
-8. [Yo-yo Problem](#yo-yo-problem)
-9. [Lasagna Code](#lasagna-code)
-10. [Accidental Complexity](#accidental-complexity)
-11. [Soft Coding](#soft-coding)
-12. [Bikeshedding](#bikeshedding)
-13. [How They Reinforce Each Other](#how-they-reinforce-each-other)
-14. [A Quick Spotting Checklist](#a-quick-spotting-checklist)
-15. [Common Mistakes](#common-mistakes)
-16. [Test Yourself](#test-yourself)
-17. [Cheat Sheet](#cheat-sheet)
-18. [Summary](#summary)
-19. [Further Reading](#further-reading)
-20. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **What does it look like?** and **Why is it bad?**

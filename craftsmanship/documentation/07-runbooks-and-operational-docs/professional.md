@@ -7,24 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Running an Operational-Docs Program](#running-an-operational-docs-program)
-3. [Enforcing Runbook Quality in Review](#enforcing-runbook-quality-in-review)
-4. [Measuring Operational-Doc Health](#measuring-operational-doc-health)
-5. [On-Call Health and the Human Cost](#on-call-health-and-the-human-cost)
-6. [The Postmortem Program](#the-postmortem-program)
-7. [Operational Docs for Legacy Systems](#operational-docs-for-legacy-systems)
-8. [Real Incidents](#real-incidents)
-9. [The Politics of Operational Docs](#the-politics-of-operational-docs)
-10. [Review Checklist](#review-checklist)
-11. [Cheat Sheet](#cheat-sheet)
-12. [Diagrams](#diagrams)
-13. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **production** — keeping operational knowledge correct and usable across many services, teams, and years.

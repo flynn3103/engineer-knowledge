@@ -5,28 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [The Four Funding Models, Compared](#the-four-funding-models-compared)
-4. [How Each Model Fails — and Who Kills It](#how-each-model-fails--and-who-kills-it)
-5. [Making the ROI Case Leadership Funds and Keeps Funding](#making-the-roi-case-leadership-funds-and-keeps-funding)
-6. [Running a Multi-Quarter Modernization Without Losing the Room](#running-a-multi-quarter-modernization-without-losing-the-room)
-7. [The People Dimension](#the-people-dimension)
-8. [When Leadership Says No](#when-leadership-says-no)
-9. [War Stories](#war-stories)
-10. [Decision Frameworks](#decision-frameworks)
-11. [Mental Models](#mental-models)
-12. [Common Mistakes](#common-mistakes)
-13. [Test Yourself](#test-yourself)
-14. [Cheat Sheet](#cheat-sheet)
-15. [Summary](#summary)
-16. [Further Reading](#further-reading)
-17. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Funding, leading, and sustaining debt paydown at organizational scale — where the technique is solved and the constraint is money, attention, and politics.**

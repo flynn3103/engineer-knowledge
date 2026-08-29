@@ -7,27 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Spec-Driven Reference: The Single Source of Truth](#spec-driven-reference-the-single-source-of-truth)
-3. [A Slice of OpenAPI → Its Rendered Reference](#a-slice-of-openapi--its-rendered-reference)
-4. [Design-First vs. Code-First](#design-first-vs-code-first)
-5. [GraphQL, gRPC, and AsyncAPI](#graphql-grpc-and-asyncapi)
-6. [Why Spec-Driven Reference Can't Drift](#why-spec-driven-reference-cant-drift)
-7. [Writing the Reference Well](#writing-the-reference-well)
-8. [Error Documentation as a First-Class Concern](#error-documentation-as-a-first-class-concern)
-9. [Recipes: The Bridge Between Reference and Guides](#recipes-the-bridge-between-reference-and-guides)
-10. [When to Choose Generated vs. Hand-Written](#when-to-choose-generated-vs-hand-written)
-11. [Trade-offs](#trade-offs)
-12. [Tricky Points](#tricky-points)
-13. [Best Practices](#best-practices)
-14. [Test Yourself](#test-yourself)
-15. [Summary](#summary)
-16. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **Why** and **When**

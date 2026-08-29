@@ -5,27 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concept 1 — Why Build Speed Actually Matters](#core-concept-1--why-build-speed-actually-matters)
-5. [Core Concept 2 — The Three Big Levers](#core-concept-2--the-three-big-levers)
-6. [Core Concept 3 — Parallelism: `make -j`](#core-concept-3--parallelism-make--j)
-7. [Core Concept 4 — Clean vs Incremental Builds](#core-concept-4--clean-vs-incremental-builds)
-8. [Core Concept 5 — "Why Is My Build Slow?" — First Questions](#core-concept-5--why-is-my-build-slow--first-questions)
-9. [Real-World Examples](#real-world-examples)
-10. [Mental Models](#mental-models)
-11. [Common Mistakes](#common-mistakes)
-12. [Test Yourself](#test-yourself)
-13. [Cheat Sheet](#cheat-sheet)
-14. [Summary](#summary)
-15. [Further Reading](#further-reading)
-16. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Why are builds slow, and what are the basic moves that make them fast?**

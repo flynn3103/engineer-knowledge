@@ -5,27 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [How Did the Codebase Get Here? — Root-Cause Forces](#how-did-the-codebase-get-here--root-cause-forces)
-4. [Eliminating Duplication at Scale — and the Cost of the Wrong Shared Dependency](#eliminating-duplication-at-scale--and-the-cost-of-the-wrong-shared-dependency)
-5. [Configuration & Secrets Strategy Across Many Services](#configuration--secrets-strategy-across-many-services)
-6. [Designing a Codebase-Wide Error-Handling Strategy](#designing-a-codebase-wide-error-handling-strategy)
-7. [Rolling Out Type-Driven Design into a Stringly-Typed Legacy](#rolling-out-type-driven-design-into-a-stringly-typed-legacy)
-8. [Running Safe Campaigns: De-Magic-Numbering and Secret-Purge](#running-safe-campaigns-de-magic-numbering-and-secret-purge)
-9. [When a Shortcut Is the Right Call](#when-a-shortcut-is-the-right-call)
-10. [Prevention: Lint Gates, Scanners, CODEOWNERS, Conventions](#prevention-lint-gates-scanners-codeowners-conventions)
-11. [Common Mistakes](#common-mistakes)
-12. [Test Yourself](#test-yourself)
-13. [Cheat Sheet](#cheat-sheet)
-14. [Summary](#summary)
-15. [Further Reading](#further-reading)
-16. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **How did the codebase get here?** and **How do I fix it safely at scale?**

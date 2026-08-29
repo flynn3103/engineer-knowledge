@@ -5,27 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [The Translation Unit — the True Atom of Compilation](#the-translation-unit--the-true-atom-of-compilation)
-4. [Symbols, the Symbol Table, and Linkage](#symbols-the-symbol-table-and-linkage)
-5. [Relocation — How the Linker Actually Patches Addresses](#relocation--how-the-linker-actually-patches-addresses)
-6. [Static Libraries vs Shared Objects, Mechanically](#static-libraries-vs-shared-objects-mechanically)
-7. [The ABI — the Contract Beneath the Build](#the-abi--the-contract-beneath-the-build)
-8. [Load Time vs Run Time — Two Promises](#load-time-vs-run-time--two-promises)
-9. [Worked Example — Reading nm, ldd, and objdump](#worked-example--reading-nm-ldd-and-objdump)
-10. [Mental Models](#mental-models)
-11. [Common Mistakes](#common-mistakes)
-12. [Test Yourself](#test-yourself)
-13. [Cheat Sheet](#cheat-sheet)
-14. [Summary](#summary)
-15. [Further Reading](#further-reading)
-16. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **How does the build machinery actually work, and how do I inspect it?**

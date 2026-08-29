@@ -21,15 +21,6 @@ not when the program merely compiles. Solutions are intentionally sparse —
 they appear only where the canonical answer is more instructive than your
 first attempt would be.
 
-## Table of Contents
-
-- [Warm-Up](#warm-up)
-- [Core](#core)
-- [Advanced](#advanced)
-- [Capstone](#capstone)
-
----
-
 ## Warm-Up
 
 These tasks rebuild the mental model: a macro receives unevaluated code and

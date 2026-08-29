@@ -5,24 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [The Real Question: When Does This Creep In?](#the-real-question-when-does-this-creep-in)
-4. [Shared Mutable State — Confine, Communicate, or Lock](#shared-mutable-state--confine-communicate-or-lock)
-5. [Busy Waiting — Wake on the Event, Don't Poll](#busy-waiting--wake-on-the-event-dont-poll)
-6. [Thread-Per-Request — Bound the Concurrency](#thread-per-request--bound-the-concurrency)
-7. [Detection: Race Detectors and CPU Profiles](#detection-race-detectors-and-cpu-profiles)
-8. [Common Mistakes](#common-mistakes)
-9. [Test Yourself](#test-yourself)
-10. [Cheat Sheet](#cheat-sheet)
-11. [Summary](#summary)
-12. [Further Reading](#further-reading)
-13. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **When does this creep in?** and **What do I do instead?**

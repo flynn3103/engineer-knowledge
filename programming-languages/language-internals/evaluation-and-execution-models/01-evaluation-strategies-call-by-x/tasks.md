@@ -20,15 +20,6 @@ you can explain the result to someone else, not when the program merely
 compiles. Sample solutions are intentionally sparse — they appear only where the
 canonical answer is more instructive than your first attempt.
 
-## Table of Contents
-
-- [Warm-Up](#warm-up)
-- [Core](#core)
-- [Advanced](#advanced)
-- [Capstone](#capstone)
-
----
-
 ## Warm-Up
 
 These tasks rebuild the mental model. Short, but each one isolates one rule you

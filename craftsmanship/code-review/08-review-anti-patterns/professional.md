@@ -5,29 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concept 1 — The Diagnostic: Reading Review Health From Signals](#core-concept-1--the-diagnostic-reading-review-health-from-signals)
-5. [Core Concept 2 — Root Causes, Not Symptoms](#core-concept-2--root-causes-not-symptoms)
-6. [Core Concept 3 — The Remediation Program, In Dependency Order](#core-concept-3--the-remediation-program-in-dependency-order)
-7. [Core Concept 4 — Review Theatre: The Org-Level Danger](#core-concept-4--review-theatre-the-org-level-danger)
-8. [Core Concept 5 — The Culture Layer: Making Good Review Valued](#core-concept-5--the-culture-layer-making-good-review-valued)
-9. [Core Concept 6 — Durable Artifacts: The Charter and Calibration](#core-concept-6--durable-artifacts-the-charter-and-calibration)
-10. [War Stories](#war-stories)
-11. [Decision Frameworks](#decision-frameworks)
-12. [Mental Models](#mental-models)
-13. [Common Mistakes](#common-mistakes)
-14. [Test Yourself](#test-yourself)
-15. [Cheat Sheet](#cheat-sheet)
-16. [Summary](#summary)
-17. [Further Reading](#further-reading)
-18. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Diagnosing and remediating review dysfunction across an org, and synthesizing the whole section into one claim about what makes review excellent.**

@@ -4,33 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concepts](#core-concepts)
-5. [Real-World Analogies](#real-world-analogies)
-6. [Mental Models](#mental-models)
-7. [Pros & Cons](#pros-cons)
-8. [Use Cases](#use-cases)
-9. [Code Examples](#code-examples)
-10. [Anatomy of a Scenario](#anatomy-of-a-scenario)
-11. [The Outer Loop](#the-outer-loop)
-12. [Clean Code](#clean-code)
-13. [Best Practices](#best-practices)
-14. [Edge Cases & Pitfalls](#edge-cases-pitfalls)
-15. [Common Mistakes](#common-mistakes)
-16. [Tricky Points](#tricky-points)
-17. [Test Yourself](#test-yourself)
-18. [Cheat Sheet](#cheat-sheet)
-19. [Summary](#summary)
-20. [Further Reading](#further-reading)
-21. [Related Topics](#related-topics)
-22. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **What is it?** and **How to use it?**

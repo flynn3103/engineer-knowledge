@@ -7,25 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Specification by Example](#specification-by-example)
-3. [Living Documentation](#living-documentation)
-4. [The Test Pyramid — Economics](#the-test-pyramid-economics)
-5. [The Ice-Cream-Cone Anti-Pattern](#the-ice-cream-cone-anti-pattern)
-6. [Why UI-Driven Acceptance Tests Rot](#why-ui-driven-acceptance-tests-rot)
-7. [Testing Through the Right Layer](#testing-through-the-right-layer)
-8. [When ATDD Adds Value vs. Wastes Effort](#when-atdd-adds-value-vs-wastes-effort)
-9. [ATDD and Contract Testing](#atdd-and-contract-testing)
-10. [Designing for Testability from the Outside In](#designing-for-testability-from-the-outside-in)
-11. [The Cost Model of an Acceptance Suite](#the-cost-model-of-an-acceptance-suite)
-12. [Liabilities](#liabilities)
-13. [Diagrams](#diagrams)
-14. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **design trade-offs** and **system-level reasoning**

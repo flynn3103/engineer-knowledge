@@ -7,21 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Enforcing "What to Document" in Code Review](#enforcing-what-to-document-in-code-review)
-3. [Team Conventions for Documentation](#team-conventions-for-documentation)
-4. [Fixing Documentation Gaps in Legacy Systems](#fixing-documentation-gaps-in-legacy-systems)
-5. [Real Incidents](#real-incidents)
-6. [The Politics of Documentation](#the-politics-of-documentation)
-7. [Review Checklist](#review-checklist)
-8. [Cheat Sheet](#cheat-sheet)
-9. [Diagrams](#diagrams)
-10. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **production** — sustaining the right documentation across a large team over years.

@@ -5,25 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Memory-model and async races in tests](#memory-model-and-async-races-in-tests)
-3. [Deterministic simulation: control time and scheduling](#deterministic-simulation-control-time-and-scheduling)
-4. [When a retry is legitimate vs masking a bug](#when-a-retry-is-legitimate-vs-masking-a-bug)
-5. [The flaky test is telling you the *system* is flaky](#the-flaky-test-is-telling-you-the-system-is-flaky)
-6. [The cost of flakiness on CI throughput](#the-cost-of-flakiness-on-ci-throughput)
-7. [Eliminating order-dependence at scale](#eliminating-order-dependence-at-scale)
-8. [Trade-offs, summarized](#trade-offs-summarized)
-9. [Common Mistakes](#common-mistakes)
-10. [Test Yourself](#test-yourself)
-11. [Cheat Sheet](#cheat-sheet)
-12. [Summary](#summary)
-13. [Further Reading](#further-reading)
-14. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Hard cases and trade-offs.**

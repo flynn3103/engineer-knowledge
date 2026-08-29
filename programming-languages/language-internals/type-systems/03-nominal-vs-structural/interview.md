@@ -10,19 +10,6 @@ These questions probe whether a candidate understands *how a type system decides
 
 A strong candidate distinguishes type *identity* from type *compatibility*, names which mainstream languages sit where (Java/C#/C++/Rust/Swift nominal; TypeScript/Go-interfaces/OCaml-objects/Scala-structural structural), and reasons about the *trade*: nominal gives intentionality, distinct types for same-shaped data, and controlled API evolution; structural gives flexibility, retroactive conformance, and easy mocking. A weaker candidate treats the two as interchangeable, can't explain why two same-shaped types might be incompatible, or thinks `type UserId = string` actually prevents passing a plain string. The questions go from concepts, to language-specific surfaces, to traps, to design.
 
-## Table of Contents
-
-- [Conceptual](#conceptual)
-- [Language-Specific](#language-specific)
-  - [Java / C# (Nominal)](#java--c-nominal)
-  - [TypeScript / Go (Structural)](#typescript--go-structural)
-  - [Scala](#scala)
-  - [Rust Traits](#rust-traits)
-- [Tricky / Trap Questions](#tricky--trap-questions)
-- [Design Questions](#design-questions)
-
----
-
 ## Conceptual
 
 ## Question 1

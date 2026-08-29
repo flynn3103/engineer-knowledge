@@ -7,25 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [TDD in CI/CD](#tdd-in-cicd)
-3. [The Test Pyramid and Where the Laws Live](#the-test-pyramid-and-where-the-laws-live)
-4. [Coverage Politics](#coverage-politics)
-5. [Mutation Testing: Auditing the Suite the Laws Produced](#mutation-testing)
-6. [TDD on Legacy Code](#tdd-on-legacy-code)
-7. [Code Review Standards for TDD](#code-review-standards-for-tdd)
-8. [Metrics That Matter (and That Mislead)](#metrics-that-matter)
-9. [Rolling Out TDD to a Team](#rolling-out-tdd-to-a-team)
-10. [Real Incidents](#real-incidents)
-11. [Team Conventions](#team-conventions)
-12. [Cheat Sheet](#cheat-sheet)
-13. [Diagrams](#diagrams)
-14. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **production** — what the three laws cost and protect once a whole team lives by them, under CI, with managers reading dashboards.

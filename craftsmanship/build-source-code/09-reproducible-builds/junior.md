@@ -5,27 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concept 1 — What "Reproducible" Actually Means](#core-concept-1--what-reproducible-actually-means)
-5. [Core Concept 2 — Why Anyone Cares: The Trust Problem](#core-concept-2--why-anyone-cares-the-trust-problem)
-6. [Core Concept 3 — Build Twice, Compare the Bytes](#core-concept-3--build-twice-compare-the-bytes)
-7. [Core Concept 4 — The Usual Culprit: Embedded Timestamps](#core-concept-4--the-usual-culprit-embedded-timestamps)
-8. [Core Concept 5 — Your First Fix: SOURCE_DATE_EPOCH](#core-concept-5--your-first-fix-source_date_epoch)
-9. [Real-World Examples](#real-world-examples)
-10. [Mental Models](#mental-models)
-11. [Common Mistakes](#common-mistakes)
-12. [Test Yourself](#test-yourself)
-13. [Cheat Sheet](#cheat-sheet)
-14. [Summary](#summary)
-15. [Further Reading](#further-reading)
-16. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **If I build the same code twice, do I get the same file? And why does that matter?**

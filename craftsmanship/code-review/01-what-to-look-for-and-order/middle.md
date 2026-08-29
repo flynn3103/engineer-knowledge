@@ -5,28 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concept 1 — The Order Is Defect-Yield Optimization](#core-concept-1--the-order-is-defect-yield-optimization)
-5. [Core Concept 2 — The Full "What to Look For" Checklist](#core-concept-2--the-full-what-to-look-for-checklist)
-6. [Core Concept 3 — Read the Tests First](#core-concept-3--read-the-tests-first)
-7. [Core Concept 4 — The Diff Is Not the Change](#core-concept-4--the-diff-is-not-the-change)
-8. [Core Concept 5 — Severity Discipline and Labeled Comments](#core-concept-5--severity-discipline-and-labeled-comments)
-9. [Core Concept 6 — Time-Boxing and the Fatigue Ceiling](#core-concept-6--time-boxing-and-the-fatigue-ceiling)
-10. [Real-World Examples](#real-world-examples)
-11. [Mental Models](#mental-models)
-12. [Common Mistakes](#common-mistakes)
-13. [Test Yourself](#test-yourself)
-14. [Cheat Sheet](#cheat-sheet)
-15. [Summary](#summary)
-16. [Further Reading](#further-reading)
-17. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Why is the review order optimal, and what are the two judgments that make a review more than a glance?**

@@ -5,19 +5,6 @@
 
 ---
 
-## Table of Contents
-
-- [How to Use This Page](#how-to-use-this-page)
-- [Tier 1 — Foundations](#tier-1--foundations)
-- [Tier 2 — Mechanisms](#tier-2--mechanisms)
-- [Tier 3 — Inline Caches](#tier-3--inline-caches)
-- [Tier 4 — Devirtualization & the JIT](#tier-4--devirtualization--the-jit)
-- [Tier 5 — Production Diagnosis](#tier-5--production-diagnosis)
-- [Capstone Projects](#capstone-projects)
-- [Self-Assessment Checklist](#self-assessment-checklist)
-
----
-
 ## How to Use This Page
 
 Each task has a **goal**, a **self-check** (how to know you got it right), and a collapsible **hint**. Solutions are intentionally sparse — for the conceptual tasks the self-check *is* the answer key, and for the coding tasks you learn far more by building it than by reading a finished version. Do the tiers in order; later tiers assume earlier mechanics. Where a task says "run with `--trace-ic`" or `perf`, actually run it — the entire point of this topic is that dispatch is invisible until you instrument it.

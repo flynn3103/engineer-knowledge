@@ -5,35 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concepts](#core-concepts)
-5. [War Stories: Real Incidents](#war-stories-real-incidents)
-6. [Security: Overflow as an Exploit Primitive](#security-overflow-as-an-exploit-primitive)
-7. [Mental Models](#mental-models)
-8. [Code Examples](#code-examples)
-9. [Performance](#performance)
-10. [Detection & Tooling](#detection--tooling)
-11. [Pros & Cons](#pros--cons)
-12. [Use Cases](#use-cases)
-13. [Coding Patterns](#coding-patterns)
-14. [Best Practices](#best-practices)
-15. [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-16. [Common Mistakes](#common-mistakes)
-17. [Debugging Playbook](#debugging-playbook)
-18. [Test Yourself](#test-yourself)
-19. [Tricky Questions](#tricky-questions)
-20. [Cheat Sheet](#cheat-sheet)
-21. [Summary](#summary)
-22. [Further Reading](#further-reading)
-23. [Related Topics](#related-topics)
-24. [Diagrams & Visual Aids](#diagrams--visual-aids)
-
----
-
 ## Introduction
 
 > Focus: **Integer overflow is not an academic curiosity — it has grounded aircraft, destroyed a rocket, broken planet-scale services, and is the root cause behind an entire taxonomy of memory-corruption vulnerabilities (CWE-190).** At the professional level, you must recognize the *shapes* of these failures in code review, exploit-mitigate them in security-sensitive code, and have a debugging playbook for when one slips into production.

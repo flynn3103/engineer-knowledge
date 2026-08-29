@@ -5,26 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Dependency Governance at Org Scale](#dependency-governance-at-org-scale)
-4. [Automated Updates: the Churn vs Security Trade-off](#automated-updates-the-churn-vs-security-trade-off)
-5. [SBOMs, Provenance, and Knowing What You Ship](#sboms-provenance-and-knowing-what-you-ship)
-6. [Dependency Confusion and Typosquatting Defenses](#dependency-confusion-and-typosquatting-defenses)
-7. [Private Registries, Scoping, and License Compliance](#private-registries-scoping-and-license-compliance)
-8. [War Stories](#war-stories)
-9. [Mental Models](#mental-models)
-10. [Common Mistakes](#common-mistakes)
-11. [Test Yourself](#test-yourself)
-12. [Cheat Sheet](#cheat-sheet)
-13. [Summary](#summary)
-14. [Further Reading](#further-reading)
-15. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Running dependency management across an organization — the policy, automation, security, and legal machinery that the per-project view ignores.**

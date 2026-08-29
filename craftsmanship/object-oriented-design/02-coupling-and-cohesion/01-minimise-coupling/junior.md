@@ -4,33 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [What Coupling Is](#what-coupling-is)
-5. [Coupling vs. Cohesion: The Two Halves](#coupling-vs-cohesion-the-two-halves)
-6. [The Taxonomy of Coupling](#the-taxonomy-of-coupling)
-7. [Symptoms of High Coupling](#symptoms-of-high-coupling)
-8. [How to Reduce Coupling](#how-to-reduce-coupling)
-9. [Loose ≠ Decoupled ≠ Zero](#loose--decoupled--zero)
-10. [Real-World Analogies](#real-world-analogies)
-11. [Mental Models](#mental-models)
-12. [A Worked Example](#a-worked-example)
-13. [Code Examples](#code-examples)
-14. [Best Practices](#best-practices)
-15. [Common Mistakes](#common-mistakes)
-16. [Tricky Points](#tricky-points)
-17. [Test Yourself](#test-yourself)
-18. [Cheat Sheet](#cheat-sheet)
-19. [Summary](#summary)
-20. [Further Reading](#further-reading)
-21. [Related Topics](#related-topics)
-22. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **What is it?** and **How to use it?**

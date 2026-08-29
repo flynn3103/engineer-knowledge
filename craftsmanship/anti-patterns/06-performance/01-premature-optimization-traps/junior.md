@@ -4,26 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [The Full Knuth Quote](#the-full-knuth-quote)
-5. [What the Trap Looks Like](#what-the-trap-looks-like)
-6. [Worked Example: A Loop Turned Into Bit-Tricks](#worked-example-a-loop-turned-into-bit-tricks)
-7. [Make It Correct and Clear First](#make-it-correct-and-clear-first)
-8. [More Shapes of the Same Trap](#more-shapes-of-the-same-trap)
-9. [The One Distinction That Saves You](#the-one-distinction-that-saves-you)
-10. [Common Mistakes](#common-mistakes)
-11. [Test Yourself](#test-yourself)
-12. [Cheat Sheet](#cheat-sheet)
-13. [Summary](#summary)
-14. [Further Reading](#further-reading)
-15. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **What does it look like?** and **Why is it bad?**

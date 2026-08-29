@@ -5,17 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [How to Use These Tasks](#how-to-use-these-tasks)
-2. [Warm-Up](#warm-up)
-3. [Core](#core)
-4. [Advanced](#advanced)
-5. [Capstone](#capstone)
-6. [Self-Assessment Checklist](#self-assessment-checklist)
-
----
-
 ## How to Use These Tasks
 
 These tasks build one small analyzer incrementally. Each task states a **goal**, a **self-check** (how to know you're done), and a **hint** (folded). Solutions are given **sparsely** — only where a concrete answer prevents going down the wrong path; elsewhere the self-check is the answer.

@@ -7,23 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Docstrings as a Versioned Contract](#docstrings-as-a-versioned-contract)
-3. [The Toolchain as Build Infrastructure](#the-toolchain-as-build-infrastructure)
-4. [Generators Compared](#generators-compared)
-5. [Doc-Tests as Executable Documentation](#doc-tests-as-executable-documentation)
-6. [Docstrings and the Diátaxis Reference Mode](#docstrings-and-the-diataxis-reference-mode)
-7. [Comment Philosophy at the Senior Level](#comment-philosophy-at-the-senior-level)
-8. [Advanced: Cross-References, Stability, and Doc Coverage Gates](#advanced-cross-references-stability-and-doc-coverage-gates)
-9. [Liabilities](#liabilities)
-10. [Pros & Cons at the System Level](#pros--cons-at-the-system-level)
-11. [Diagrams](#diagrams)
-12. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **design trade-offs** and **system-level reasoning**

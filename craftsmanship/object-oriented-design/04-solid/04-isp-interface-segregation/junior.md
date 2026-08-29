@@ -4,30 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [The Principle](#the-principle)
-5. [The Origin Story: The Xerox Printer](#the-origin-story-the-xerox-printer)
-6. [The Fat-Interface Smell](#the-fat-interface-smell)
-7. [Real-World Analogies](#real-world-analogies)
-8. [Mental Models](#mental-models)
-9. [A Worked Example: The Worker Interface](#a-worked-example-the-worker-interface)
-10. [Code Examples](#code-examples)
-11. [Best Practices](#best-practices)
-12. [Common Mistakes](#common-mistakes)
-13. [Tricky Points](#tricky-points)
-14. [Test Yourself](#test-yourself)
-15. [Cheat Sheet](#cheat-sheet)
-16. [Summary](#summary)
-17. [Further Reading](#further-reading)
-18. [Related Topics](#related-topics)
-19. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **What is it?** and **How to use it?**

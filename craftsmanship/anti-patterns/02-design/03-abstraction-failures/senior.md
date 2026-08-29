@@ -5,26 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [How Did the Codebase Get Here? — Root-Cause Forces](#how-did-the-codebase-get-here--root-cause-forces)
-4. [Golden Hammer: Breaking a Team Monoculture](#golden-hammer-breaking-a-team-monoculture)
-5. [Inner-Platform Effect: Config → Rule Engine → DSL](#inner-platform-effect-config--rule-engine--dsl)
-6. [Interface Bloat: Segregating Fat Interfaces at Scale](#interface-bloat-segregating-fat-interfaces-at-scale)
-7. [Premature Abstraction: Inlining the Wrong Abstraction](#premature-abstraction-inlining-the-wrong-abstraction)
-8. [When These Are Acceptable](#when-these-are-acceptable)
-9. [Prevention: Design It Twice, Reviews, ADRs](#prevention-design-it-twice-reviews-adrs)
-10. [Common Mistakes](#common-mistakes)
-11. [Test Yourself](#test-yourself)
-12. [Cheat Sheet](#cheat-sheet)
-13. [Summary](#summary)
-14. [Further Reading](#further-reading)
-15. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **How did the codebase get here?** and **How do I fix the wrong abstraction safely at scale?**

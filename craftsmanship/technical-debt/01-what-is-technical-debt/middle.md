@@ -5,26 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Principal, Interest, and the Interest Rate](#principal-interest-and-the-interest-rate)
-4. [A Working Taxonomy — The Seven Types of Debt](#a-working-taxonomy--the-seven-types-of-debt)
-5. [Debt vs Its Impostors — Cruft, Bugs, Gold-Plating, Over-Engineering](#debt-vs-its-impostors--cruft-bugs-gold-plating-over-engineering)
-6. [What Cunningham Actually Said](#what-cunningham-actually-said)
-7. [Deliberate vs Accidental Debt](#deliberate-vs-accidental-debt)
-8. [Cost of Delay — When the Shortcut Is the Cheap Option](#cost-of-delay--when-the-shortcut-is-the-cheap-option)
-9. [Mental Models](#mental-models)
-10. [Common Mistakes](#common-mistakes)
-11. [Test Yourself](#test-yourself)
-12. [Cheat Sheet](#cheat-sheet)
-13. [Summary](#summary)
-14. [Further Reading](#further-reading)
-15. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **What precisely is debt, what are its kinds, and what is it *not*?**

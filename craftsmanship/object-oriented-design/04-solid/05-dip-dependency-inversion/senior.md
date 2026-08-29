@@ -7,23 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [The Precise Theory: Inverting the Compile-Time Graph](#the-precise-theory-inverting-the-compile-time-graph)
-3. [DIP, DI, and IoC — The Airtight Distinction](#dip-di-and-ioc--the-airtight-distinction)
-4. [Stable-Dependencies and the Volatility Heuristic](#stable-dependencies-and-the-volatility-heuristic)
-5. [DIP and the Other SOLID Principles](#dip-and-the-other-solid-principles)
-6. [The Over-Abstraction Failure Mode](#the-over-abstraction-failure-mode)
-7. [Where to Put the Abstraction: Packaging Strategies](#where-to-put-the-abstraction-packaging-strategies)
-8. [Advanced Examples](#advanced-examples)
-9. [Liabilities](#liabilities)
-10. [Pros & Cons at the System Level](#pros--cons-at-the-system-level)
-11. [Diagrams](#diagrams)
-12. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **design trade-offs** and **system-level reasoning**

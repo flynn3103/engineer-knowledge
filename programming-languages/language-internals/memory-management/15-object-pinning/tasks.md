@@ -8,16 +8,6 @@ Work the self-checks honestly — for pinning, "it ran without crashing once" is
 
 ---
 
-## Table of Contents
-
-- [Warm-Up](#warm-up)
-- [Core](#core)
-- [Advanced](#advanced)
-- [Capstone](#capstone)
-- [Self-Assessment](#self-assessment)
-
----
-
 ## Warm-Up
 
 ### Task 1 — Catch the heap moving an object

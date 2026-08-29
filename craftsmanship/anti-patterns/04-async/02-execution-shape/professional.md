@@ -5,29 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Measure First: The Async Tooling Map](#measure-first-the-async-tooling-map)
-4. [The Latency Math — Serial vs Parallel vs Bounded](#the-latency-math--serial-vs-parallel-vs-bounded)
-5. [`await` in a Loop — When Serialization Is the Bug (and When It Isn't)](#await-in-a-loop--when-serialization-is-the-bug-and-when-it-isnt)
-6. [Parallel Isn't Free — The Countervailing Cost of Unbounded `Promise.all`](#parallel-isnt-free--the-countervailing-cost-of-unbounded-promiseall)
-7. [Bounded Concurrency — Little's Law and Optimal Pool Size](#bounded-concurrency--littles-law-and-optimal-pool-size)
-8. [`Promise.all` vs `allSettled` vs `race` — Semantics and Memory](#promiseall-vs-allsettled-vs-race--semantics-and-memory)
-9. [Promise Chain Hell — Microtask Scheduling Cost](#promise-chain-hell--microtask-scheduling-cost)
-10. [Mixing Callbacks and Promises — Bridging Cost and Releasing Zalgo](#mixing-callbacks-and-promises--bridging-cost-and-releasing-zalgo)
-11. [Streaming vs Buffering — Async Iterators and Backpressure](#streaming-vs-buffering--async-iterators-and-backpressure)
-12. [A Combined Worked Example](#a-combined-worked-example)
-13. [Common Mistakes](#common-mistakes)
-14. [Test Yourself](#test-yourself)
-15. [Cheat Sheet](#cheat-sheet)
-16. [Summary](#summary)
-17. [Further Reading](#further-reading)
-18. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **what does the *shape* of async control flow cost the runtime** — wall-clock latency, the event loop, the microtask queue, heap-resident promises, and the connection pool — and **how do you measure it** before you "just add `Promise.all`"?

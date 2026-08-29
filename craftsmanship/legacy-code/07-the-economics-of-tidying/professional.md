@@ -4,20 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [The professional problem: tidying is a budget negotiation](#the-professional-problem-tidying-is-a-budget-negotiation)
-2. [Making the economic case to a manager](#making-the-economic-case-to-a-manager)
-3. [Sequencing investment under a deadline](#sequencing-investment-under-a-deadline)
-4. [Portfolio thinking across a codebase](#portfolio-thinking-across-a-codebase)
-5. [Measuring: what to track and what to ignore](#measuring-what-to-track-and-what-to-ignore)
-6. [The pitfalls: gold-plating and speculative generality](#the-pitfalls-gold-plating-and-speculative-generality)
-7. [How staff engineers justify and bound cleanup work](#how-staff-engineers-justify-and-bound-cleanup-work)
-8. [A complete worked case](#a-complete-worked-case)
-9. [Related Topics](#related-topics)
-
----
-
 ## The professional problem: tidying is a budget negotiation
 
 At the individual level, the economics of tidying is a private decision: weigh `T` against discounted `S` and act. At the professional level it becomes a **negotiation over a shared, scarce budget** — engineering time that a product manager would rather spend on features, a director would rather spend on the roadmap, and on-call would rather spend not getting paged. The math doesn't change; the *audience* does. Your job shifts from making the right call to **making and bounding the right call in front of people who don't share your information.**

@@ -5,31 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concepts](#core-concepts)
-5. [Real-World Analogies](#real-world-analogies)
-6. [Mental Models](#mental-models)
-7. [Code Examples](#code-examples)
-8. [Trade-offs](#trade-offs)
-9. [Use Cases](#use-cases)
-10. [Coding Patterns](#coding-patterns)
-11. [Best Practices](#best-practices)
-12. [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-13. [Common Mistakes](#common-mistakes)
-14. [Tricky Points](#tricky-points)
-15. [Test Yourself](#test-yourself)
-16. [Cheat Sheet](#cheat-sheet)
-17. [Summary](#summary)
-18. [What You Can Build](#what-you-can-build)
-19. [Further Reading](#further-reading)
-20. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > 🎓 At middle level you learned how a single AST is *represented* (sum type vs class hierarchy) and *traversed* (visitors, transformers, spans). At senior level the question changes: **there is rarely one AST.** A production compiler threads a *sequence* of trees — surface AST, desugared AST, one or more lowered intermediate representations — each one a deliberately narrower language than the last, and the AST's real job is to be the **stable interface between phases**.

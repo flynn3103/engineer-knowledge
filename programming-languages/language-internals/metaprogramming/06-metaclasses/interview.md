@@ -14,15 +14,6 @@ metaclass of everything" and "a callable class factory," distinguish
 class-creation-time from instance-creation-time code, and reach for the lightest tool
 that works.
 
-## Table of Contents
-
-- [Conceptual](#conceptual)
-- [Language-Specific](#language-specific)
-- [Tricky / Trap](#tricky--trap)
-- [Design](#design)
-
----
-
 ## Conceptual
 
 ## Question 1

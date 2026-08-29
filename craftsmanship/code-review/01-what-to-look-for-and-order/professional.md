@@ -5,29 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concept 1 — Codifying the Order Into Artifacts](#core-concept-1--codifying-the-order-into-artifacts)
-5. [Core Concept 2 — Calibration: The Consistency Problem](#core-concept-2--calibration-the-consistency-problem)
-6. [Core Concept 3 — Moving Design Review Left](#core-concept-3--moving-design-review-left)
-7. [Core Concept 4 — Teaching the Order to Juniors](#core-concept-4--teaching-the-order-to-juniors)
-8. [Core Concept 5 — Protecting the Order From Volume](#core-concept-5--protecting-the-order-from-volume)
-9. [Core Concept 6 — The Author-Growth Lens](#core-concept-6--the-author-growth-lens)
-10. [War Stories](#war-stories)
-11. [Decision Frameworks](#decision-frameworks)
-12. [Mental Models](#mental-models)
-13. [Common Mistakes](#common-mistakes)
-14. [Test Yourself](#test-yourself)
-15. [Cheat Sheet](#cheat-sheet)
-16. [Summary](#summary)
-17. [Further Reading](#further-reading)
-18. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Raising the review bar across a team or org — turning a personal review order into shared artifacts, calibrating reviewers so the bar is the same regardless of who picks up the PR, and defending that bar under volume.**

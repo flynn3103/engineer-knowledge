@@ -23,15 +23,6 @@ appear only where the canonical shape is more instructive than your first
 attempt would be. You will need a C compiler (`cc`/`clang`/`gcc`) for almost
 every task.
 
-## Table of Contents
-
-- [Warm-Up](#warm-up)
-- [Core](#core)
-- [Advanced](#advanced)
-- [Capstone](#capstone)
-
----
-
 ## Warm-Up
 
 These tasks establish the mechanics of a single downcall in each major

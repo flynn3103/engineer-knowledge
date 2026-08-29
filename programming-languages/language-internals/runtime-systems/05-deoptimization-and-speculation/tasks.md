@@ -25,15 +25,6 @@ answer.** Every program in this file prints the correct result; the exercises
 are purely about *speed* and *why the engine bailed*. If you ever think a
 deopt corrupted your output, you have a logic bug, not a deopt.
 
-## Table of Contents
-
-- [Warm-Up](#warm-up)
-- [Core](#core)
-- [Advanced](#advanced)
-- [Capstone](#capstone)
-
----
-
 ## Warm-Up
 
 These tasks rebuild the mental model and get the tooling working. Short, but

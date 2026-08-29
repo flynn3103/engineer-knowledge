@@ -5,29 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concept 1 — Let the Formatter Own Style](#core-concept-1--let-the-formatter-own-style)
-5. [Core Concept 2 — Let the Linter Catch the Obvious Bugs](#core-concept-2--let-the-linter-catch-the-obvious-bugs)
-6. [Core Concept 3 — CI Must Be Green Before a Human Looks](#core-concept-3--ci-must-be-green-before-a-human-looks)
-7. [Core Concept 4 — PR Templates & CODEOWNERS: Routing and Context](#core-concept-4--pr-templates--codeowners-routing-and-context)
-8. [Core Concept 5 — Code Suggestions, Draft PRs, and Preview Apps](#core-concept-5--code-suggestions-draft-prs-and-preview-apps)
-9. [Core Concept 6 — Async vs Synchronous Review](#core-concept-6--async-vs-synchronous-review)
-10. [Core Concept 7 — AI-Assisted Review: A Helper, Not the Reviewer](#core-concept-7--ai-assisted-review-a-helper-not-the-reviewer)
-11. [Real-World Examples](#real-world-examples)
-12. [Mental Models](#mental-models)
-13. [Common Mistakes](#common-mistakes)
-14. [Test Yourself](#test-yourself)
-15. [Cheat Sheet](#cheat-sheet)
-16. [Summary](#summary)
-17. [Further Reading](#further-reading)
-18. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **What should a machine do, and what should a human do?**

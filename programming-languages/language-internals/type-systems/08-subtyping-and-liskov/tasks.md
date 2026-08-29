@@ -19,15 +19,6 @@ self-check box when you can *explain* the result to someone else, not when the
 program merely compiles. Solutions are intentionally sparse — they appear only
 where the canonical answer is more instructive than your first attempt.
 
-## Table of Contents
-
-- [Warm-Up](#warm-up)
-- [Core](#core)
-- [Advanced](#advanced)
-- [Capstone](#capstone)
-
----
-
 ## Warm-Up
 
 These rebuild the mental model. Short, but each introduces a rule or failure

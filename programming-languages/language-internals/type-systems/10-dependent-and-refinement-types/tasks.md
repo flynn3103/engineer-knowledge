@@ -19,15 +19,6 @@ boxes only when you can *explain* the result to someone else — not merely
 when it compiles. Sample solutions are intentionally sparse; they appear
 only where the canonical answer teaches more than your first attempt would.
 
-## Table of Contents
-
-- [Warm-Up](#warm-up)
-- [Core](#core)
-- [Advanced](#advanced)
-- [Capstone](#capstone)
-
----
-
 ## Warm-Up
 
 These rebuild the mental model. Short, but each introduces a primitive or

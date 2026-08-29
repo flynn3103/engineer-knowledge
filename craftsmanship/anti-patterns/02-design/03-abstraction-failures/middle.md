@@ -5,26 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [The Real Question: When Does This Creep In?](#the-real-question-when-does-this-creep-in)
-4. [Golden Hammer — Widening the Toolkit Without Chasing Novelty](#golden-hammer--widening-the-toolkit-without-chasing-novelty)
-5. [Inner-Platform Effect — Use the Platform, Build Minimal Extensibility](#inner-platform-effect--use-the-platform-build-minimal-extensibility)
-6. [Interface Bloat — Segregation Without Fragmentation](#interface-bloat--segregation-without-fragmentation)
-7. [Premature Abstraction — The Rule of Three (and Not Under-Abstracting)](#premature-abstraction--the-rule-of-three-and-not-under-abstracting)
-8. [Catching Abstraction Failures in Review](#catching-abstraction-failures-in-review)
-9. [Tooling That Helps](#tooling-that-helps)
-10. [Common Mistakes](#common-mistakes)
-11. [Test Yourself](#test-yourself)
-12. [Cheat Sheet](#cheat-sheet)
-13. [Summary](#summary)
-14. [Further Reading](#further-reading)
-15. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **When does this creep in?** and **What do I do instead?**

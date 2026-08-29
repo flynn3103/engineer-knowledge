@@ -7,27 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Smells → Refactorings: The Mapping](#smells-refactorings-the-mapping)
-3. [Small Safe Steps in Practice](#small-safe-steps-in-practice)
-4. [The Refactor Step in TDD](#the-refactor-step-in-tdd)
-5. [Automated IDE Refactorings](#automated-ide-refactorings)
-6. [Commit Discipline](#commit-discipline)
-7. [Preparatory vs Comprehension vs Litter-Pickup Refactoring](#preparatory-vs-comprehension-vs-litter-pickup-refactoring)
-8. [When to Refactor and When to Stop](#when-to-refactor-and-when-to-stop)
-9. [Real-World Cases](#real-world-cases)
-10. [Trade-offs](#trade-offs)
-11. [Edge Cases](#edge-cases)
-12. [Tricky Points](#tricky-points)
-13. [Best Practices](#best-practices)
-14. [Test Yourself](#test-yourself)
-15. [Summary](#summary)
-16. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **Why** and **When**

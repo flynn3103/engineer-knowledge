@@ -5,24 +5,6 @@
 
 ---
 
-## Table of Contents
-
-- [Introduction](#introduction)
-- [Prerequisites](#prerequisites)
-- [Glossary](#glossary)
-- [Core Concepts](#core-concepts)
-- [Real-World Analogies](#real-world-analogies)
-- [Mental Models](#mental-models)
-- [Code Examples](#code-examples)
-- [Pros & Cons](#pros--cons)
-- [Use Cases](#use-cases)
-- [Coding Patterns](#coding-patterns)
-- [Best Practices](#best-practices)
-- [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-- [Summary](#summary)
-
----
-
 ## Introduction
 
 A senior engineer doesn't just *use* a memory-safe language — they can reason about *what the safety guarantee actually is*, where its edges are, and what it costs. "Memory-safe" is a precise claim about the language's *safe subset*, not a vague reassurance. This tier examines the design space: how different languages draw the safety boundary, what soundness means, why Rust's affine type system buys safety without a GC, and the uncomfortable truths (safe Rust can still deadlock, leak, and panic; safety guarantees end at the FFI boundary; data races break Go's safety).

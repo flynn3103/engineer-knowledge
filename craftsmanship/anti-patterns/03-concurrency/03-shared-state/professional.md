@@ -5,25 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Measure First: The Tooling Map](#measure-first-the-tooling-map)
-4. [Shared Mutable State — The Hardware Bill for a Contended Word](#shared-mutable-state--the-hardware-bill-for-a-contended-word)
-5. [Busy Waiting — Burning a Core to Wait Slower](#busy-waiting--burning-a-core-to-wait-slower)
-6. [Thread-Per-Request — When the Scheduler Becomes the Bottleneck](#thread-per-request--when-the-scheduler-becomes-the-bottleneck)
-7. [Queueing Theory: Why Unbounded Anything Eventually Falls Over](#queueing-theory-why-unbounded-anything-eventually-falls-over)
-8. [A Combined Worked Example](#a-combined-worked-example)
-9. [Common Mistakes](#common-mistakes)
-10. [Test Yourself](#test-yourself)
-11. [Cheat Sheet](#cheat-sheet)
-12. [Summary](#summary)
-13. [Further Reading](#further-reading)
-14. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **What does shared state cost the machine** — cache-coherence traffic, wasted cores, OS thread memory, scheduler churn — and **how do you measure that cost** before you "fix" it by adding a lock, a spin, or another thread?

@@ -5,27 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concepts](#core-concepts)
-5. [The Nine Trade-Off Dimensions](#the-nine-trade-off-dimensions)
-6. [Real-World Analogies](#real-world-analogies)
-7. [Mental Models](#mental-models)
-8. [Code Examples](#code-examples)
-9. [Pros & Cons](#pros--cons)
-10. [Use Cases](#use-cases)
-11. [Coding Patterns](#coding-patterns)
-12. [Best Practices](#best-practices)
-13. [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-14. [Test Yourself](#test-yourself)
-15. [Cheat Sheet](#cheat-sheet)
-16. [Summary](#summary)
-
----
-
 ## Introduction
 
 > Focus: **Stop talking about compile-time vs runtime as one fuzzy "fast vs flexible" trade-off. Break it into the nine concrete dimensions a senior engineer actually weighs.**

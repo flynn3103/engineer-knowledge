@@ -7,23 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Meyer's OCP vs. Martin's OCP](#meyers-ocp-vs-martins-ocp)
-3. [The Expression Problem: OCP Can Only Protect One Axis](#the-expression-problem-ocp-can-only-protect-one-axis)
-4. [The Cost of Premature Abstraction](#the-cost-of-premature-abstraction)
-5. [OCP as a Consequence, Not a Goal](#ocp-as-a-consequence-not-a-goal)
-6. [OCP, DIP, and the Direction of Dependencies](#ocp-dip-and-the-direction-of-dependencies)
-7. [Plugin Architectures: OCP at System Scale](#plugin-architectures-ocp-at-system-scale)
-8. [Code Examples — Advanced](#code-examples-advanced)
-9. [Liabilities](#liabilities)
-10. [Pros & Cons at the System Level](#pros-cons-at-the-system-level)
-11. [Diagrams](#diagrams)
-12. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **design trade-offs** and **system-level reasoning**

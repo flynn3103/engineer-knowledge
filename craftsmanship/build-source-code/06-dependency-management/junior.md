@@ -5,27 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concept 1 — What a Dependency Actually Is](#core-concept-1--what-a-dependency-actually-is)
-5. [Core Concept 2 — Semantic Versioning: the Version Is a Promise](#core-concept-2--semantic-versioning-the-version-is-a-promise)
-6. [Core Concept 3 — Why Version Ranges Exist](#core-concept-3--why-version-ranges-exist)
-7. [Core Concept 4 — Transitive Dependencies: the Iceberg](#core-concept-4--transitive-dependencies-the-iceberg)
-8. [Core Concept 5 — The Lock File and Why You Commit It](#core-concept-5--the-lock-file-and-why-you-commit-it)
-9. [Real-World Examples](#real-world-examples)
-10. [Mental Models](#mental-models)
-11. [Common Mistakes](#common-mistakes)
-12. [Test Yourself](#test-yourself)
-13. [Cheat Sheet](#cheat-sheet)
-14. [Summary](#summary)
-15. [Further Reading](#further-reading)
-16. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **What are dependencies, and why does the same code build differently on two machines?**

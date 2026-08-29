@@ -5,29 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concept 1 — Bikeshedding](#core-concept-1--bikeshedding)
-5. [Core Concept 2 — Rubber-Stamping](#core-concept-2--rubber-stamping)
-6. [Core Concept 3 — Blocking on Personal Preference](#core-concept-3--blocking-on-personal-preference)
-7. [Core Concept 4 — The Nitpick Pile-On & Ego Comments](#core-concept-4--the-nitpick-pile-on--ego-comments)
-8. [Core Concept 5 — Scope Creep](#core-concept-5--scope-creep)
-9. [Core Concept 6 — The Slow / Ghost Reviewer](#core-concept-6--the-slow--ghost-reviewer)
-10. [Core Concept 7 — Gatekeeping](#core-concept-7--gatekeeping)
-11. [Real-World Examples](#real-world-examples)
-12. [Mental Models](#mental-models)
-13. [Common Mistakes](#common-mistakes)
-14. [Test Yourself](#test-yourself)
-15. [Cheat Sheet](#cheat-sheet)
-16. [Summary](#summary)
-17. [Further Reading](#further-reading)
-18. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **What does a *bad* review look like, and how do I avoid being the reviewer who causes it?**

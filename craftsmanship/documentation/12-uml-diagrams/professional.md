@@ -4,30 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Standardizing on Diagrams-as-Code](#standardizing-on-diagrams-as-code)
-5. [UML Literacy as a Baseline Skill](#uml-literacy-as-a-baseline-skill)
-6. [Anti-BDUF Governance](#anti-bduf-governance)
-7. [What Lives in Long-Lived Docs](#what-lives-in-long-lived-docs)
-8. [An Org Diagramming Standard](#an-org-diagramming-standard)
-9. [Tooling and Pipeline at Scale](#tooling-and-pipeline-at-scale)
-10. [Measuring Without Goodharting](#measuring-without-goodharting)
-11. [Best Practices](#best-practices)
-12. [Common Mistakes](#common-mistakes)
-13. [Mental Models](#mental-models)
-14. [Test Yourself](#test-yourself)
-15. [Cheat Sheet](#cheat-sheet)
-16. [Summary](#summary)
-17. [Further Reading](#further-reading)
-18. [Related Topics](#related-topics)
-19. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **Org-level systems** — standards, literacy, governance, tooling.

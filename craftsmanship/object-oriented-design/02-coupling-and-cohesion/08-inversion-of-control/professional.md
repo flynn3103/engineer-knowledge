@@ -7,23 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Reviewing IoC: Where Inversion Helps and Where It Hides](#reviewing-ioc-where-inversion-helps-and-where-it-hides)
-3. [Framework Adoption as an IoC Decision](#framework-adoption-as-an-ioc-decision)
-4. [Keeping Business Logic Out of the Framework's Reach](#keeping-business-logic-out-of-the-frameworks-reach)
-5. [DI Container Governance](#di-container-governance)
-6. [Team Conventions for IoC](#team-conventions-for-ioc)
-7. [Introducing IoC into a Legacy System](#introducing-ioc-into-a-legacy-system)
-8. [Real Incidents](#real-incidents)
-9. [Review Checklist](#review-checklist)
-10. [Cheat Sheet](#cheat-sheet)
-11. [Diagrams](#diagrams)
-12. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **production** — sustaining sane control flow in a large, framework-heavy, multi-contributor codebase.

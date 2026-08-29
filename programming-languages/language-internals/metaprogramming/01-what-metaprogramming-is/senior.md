@@ -5,26 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concepts](#core-concepts)
-5. [Real-World Analogies](#real-world-analogies)
-6. [Mental Models](#mental-models)
-7. [Code Examples](#code-examples)
-8. [Pros & Cons](#pros--cons)
-9. [Use Cases](#use-cases)
-10. [Coding Patterns](#coding-patterns)
-11. [Best Practices](#best-practices)
-12. [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-13. [Cheat Sheet](#cheat-sheet)
-14. [Summary](#summary)
-15. [Diagrams & Visual Aids](#diagrams--visual-aids)
-
----
-
 ## Introduction
 
 > Focus: **When you own the architecture, metaprogramming stops being a feature you use and becomes a budget you allocate.** How do you decide *whether*, *which technique*, and *which stage* — and how do you keep the cost from compounding?

@@ -5,27 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [From One Edge to a Layered Contract](#from-one-edge-to-a-layered-contract)
-4. [Rule 1: Layering (No Upward or Skip Imports)](#rule-1-layering-no-upward-or-skip-imports)
-5. [Rule 2: No Cycles](#rule-2-no-cycles)
-6. [Rule 3: Naming & Annotation Conventions](#rule-3-naming--annotation-conventions)
-7. [Rule 4: Package Containment](#rule-4-package-containment)
-8. [Making It a *Failing* Test](#making-it-a-failing-test)
-9. [Wiring It Into CI](#wiring-it-into-ci)
-10. [Reading a Violation Report](#reading-a-violation-report)
-11. [Common Mistakes](#common-mistakes)
-12. [Test Yourself](#test-yourself)
-13. [Cheat Sheet](#cheat-sheet)
-14. [Summary](#summary)
-15. [Further Reading](#further-reading)
-16. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Writing real rules and wiring them into CI.**

@@ -11,16 +11,6 @@ These questions probe whether a candidate understands subtyping as the *substitu
 
 The questions run Conceptual → Language-Specific → Tricky/Trap → Design. The traps are where it gets interesting: several "obviously fine" overrides are LSP violations, and several "obviously is-a" relationships are not subtypes.
 
-## Table of Contents
-
-- [Conceptual / Foundational](#conceptual--foundational)
-- [Language-Specific](#language-specific)
-- [Tricky / Trap Questions](#tricky--trap-questions)
-- [Design Scenarios](#design-scenarios)
-- [Cheat Sheet](#cheat-sheet)
-
----
-
 ## Conceptual / Foundational
 
 ## Question 1

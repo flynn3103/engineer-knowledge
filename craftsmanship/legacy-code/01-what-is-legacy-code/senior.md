@@ -1,21 +1,5 @@
 # What Is Legacy Code — Senior
 
-## Table of Contents
-
-- [Legacy code as a system property, not a file property](#legacy-code-as-a-system-property-not-a-file-property)
-- [Fear, risk, and feedback as first-class design forces](#fear-risk-and-feedback-as-first-class-design-forces)
-- [The compounding cost model](#the-compounding-cost-model)
-- [Lehman's laws and the inevitability of legacy](#lehmans-laws-and-the-inevitability-of-legacy)
-- [Knowledge decay and key-person risk](#knowledge-decay-and-key-person-risk)
-- [Design tensions you must hold](#design-tensions-you-must-hold)
-- [Edge cases the simple definition misses](#edge-cases-the-simple-definition-misses)
-- [Behavior preservation as the prime directive](#behavior-preservation-as-the-prime-directive)
-- [Scale and cross-team dynamics](#scale-and-cross-team-dynamics)
-- [The rewrite trap](#the-rewrite-trap)
-- [Related Topics](#related-topics)
-
----
-
 ## Legacy code as a system property, not a file property
 
 Junior and middle framing treats legacy code as a property of a *function or file*: this method has tests, that one doesn't. That framing is correct but incomplete. At senior scale, "legacy" becomes a property of the **system's change dynamics** — a measure of how the organization's ability to change the software degrades over time.

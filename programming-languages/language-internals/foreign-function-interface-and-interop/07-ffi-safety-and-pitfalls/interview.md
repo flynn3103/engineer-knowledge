@@ -12,15 +12,6 @@ The discriminator between a mid-level and a senior answer here is *specificity*.
 
 All security content here is **defensive**: the goal is to engineer against failure shapes, never to weaponize them.
 
-## Table of Contents
-
-- [Conceptual](#conceptual)
-- [Language-Specific](#language-specific)
-- [Tricky / Trap](#tricky--trap)
-- [Design](#design)
-
----
-
 ## Conceptual
 
 ### Question 1: What guarantees do you lose when you cross an FFI boundary?

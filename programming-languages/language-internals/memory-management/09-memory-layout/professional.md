@@ -4,22 +4,6 @@
 
 ---
 
-## Table of Contents
-- [Introduction](#introduction)
-- [Prerequisites](#prerequisites)
-- [Glossary](#glossary)
-- [Core Concepts](#core-concepts)
-- [Mental Models](#mental-models)
-- [Code Examples](#code-examples)
-- [Pros & Cons](#pros--cons)
-- [Use Cases](#use-cases)
-- [Coding Patterns](#coding-patterns)
-- [Best Practices](#best-practices)
-- [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-- [Summary](#summary)
-
----
-
 ## Introduction
 
 Everything in the lower tiers was a *hypothesis*: "reorder these fields and the struct shrinks," "split hot from cold and the scan speeds up," "pad this counter and contention disappears." The professional tier is about **proving it with instruments** — and, just as often, discovering that the obvious layout change made no difference (or made things worse) on real hardware.

@@ -5,28 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concept 1 — Follow the Untrusted Input](#core-concept-1--follow-the-untrusted-input)
-5. [Core Concept 2 — Input Validation](#core-concept-2--input-validation)
-6. [Core Concept 3 — Authentication vs Authorization (and IDOR)](#core-concept-3--authentication-vs-authorization-and-idor)
-7. [Core Concept 4 — Injection](#core-concept-4--injection)
-8. [Core Concept 5 — Secrets and Sensitive Data](#core-concept-5--secrets-and-sensitive-data)
-9. [Core Concept 6 — Performance You Can See in the Diff](#core-concept-6--performance-you-can-see-in-the-diff)
-10. [Real-World Examples](#real-world-examples)
-11. [Mental Models](#mental-models)
-12. [Common Mistakes](#common-mistakes)
-13. [Test Yourself](#test-yourself)
-14. [Cheat Sheet](#cheat-sheet)
-15. [Summary](#summary)
-16. [Further Reading](#further-reading)
-17. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Two specialist lenses every reviewer runs over a diff — security and performance.**

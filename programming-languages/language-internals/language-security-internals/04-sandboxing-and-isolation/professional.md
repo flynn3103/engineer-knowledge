@@ -5,20 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [The Isolation-Strength / Cost Curve](#the-isolation-strength--cost-curve)
-3. [Core Concepts in Production](#core-concepts-in-production)
-4. [Code Examples](#code-examples)
-5. [Use Cases](#use-cases)
-6. [Best Practices](#best-practices)
-7. [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-8. [War Stories](#war-stories)
-9. [Summary](#summary)
-
----
-
 ## Introduction
 
 By the professional tier the question is never "should we sandbox?" but "which

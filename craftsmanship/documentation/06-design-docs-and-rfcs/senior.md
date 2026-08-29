@@ -7,24 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [The Doc as a Decision-Forcing Function](#the-doc-as-a-decision-forcing-function)
-3. [The Reversibility Lens: Which Decisions Deserve a Doc](#the-reversibility-lens-which-decisions-deserve-a-doc)
-4. [Designing the Alternatives Section as the Real Work](#designing-the-alternatives-section-as-the-real-work)
-5. [Goals/Non-Goals as a Scope Contract](#goalsnon-goals-as-a-scope-contract)
-6. [Design Review as a Culture](#design-review-as-a-culture)
-7. [The Shepherd / Decider Role](#the-shepherd--decider-role)
-8. [The Doc Is a Point-in-Time Artifact](#the-doc-is-a-point-in-time-artifact)
-9. [Failure Modes: Theater, Paralysis, Over-Process](#failure-modes-theater-paralysis-over-process)
-10. [Liabilities](#liabilities)
-11. [Pros & Cons at the System Level](#pros--cons-at-the-system-level)
-12. [Diagrams](#diagrams)
-13. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **design trade-offs** and **system-level reasoning**

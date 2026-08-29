@@ -5,27 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [The Correctness Spectrum: Text → Syntax → Types](#the-correctness-spectrum-text--syntax--types)
-4. [Why OpenRewrite's LST Beats Text for Java](#why-openrewrites-lst-beats-text-for-java)
-5. [The Edge Cases That Silently Corrupt](#the-edge-cases-that-silently-corrupt)
-6. [A Worked Edge Case: How a Confident Codemod Goes Wrong](#a-worked-edge-case-how-a-confident-codemod-goes-wrong)
-7. [Verification at Scale: Compile, Test, Diff-Review](#verification-at-scale-compile-test-diff-review)
-8. [Determinism: A Codemod That Isn't Reproducible Can't Be Verified](#determinism-a-codemod-that-isnt-reproducible-cant-be-verified)
-9. [Performance, Parallelism, and Failure Quarantine on Millions of LOC](#performance-parallelism-and-failure-quarantine-on-millions-of-loc)
-10. [The Confident-but-Wrong Codemod: The Core Professional Hazard](#the-confident-but-wrong-codemod-the-core-professional-hazard)
-11. [Common Mistakes](#common-mistakes)
-12. [Test Yourself](#test-yourself)
-13. [Cheat Sheet](#cheat-sheet)
-14. [Summary](#summary)
-15. [Further Reading](#further-reading)
-16. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Correctness and scale** — the difference between a transform that's *plausible* and one that's *provably right* across millions of lines, where a confident-but-wrong codemod can silently corrupt hundreds of files in a single mechanical-looking diff that every reviewer waves through.

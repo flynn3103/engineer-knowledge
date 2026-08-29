@@ -5,26 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [The Wrong Targets: "Biggest" and "Ugliest"](#the-wrong-targets-biggest-and-ugliest)
-5. [What a Hotspot Is: Churn × Complexity](#what-a-hotspot-is-churn--complexity)
-6. [Reading `git log`: Where Churn Lives](#reading-git-log-where-churn-lives)
-7. [The Quadrant Map](#the-quadrant-map)
-8. [A First Look at One File's History](#a-first-look-at-one-files-history)
-9. [Why This Beats Intuition](#why-this-beats-intuition)
-10. [Common Mistakes](#common-mistakes)
-11. [Test Yourself](#test-yourself)
-12. [Cheat Sheet](#cheat-sheet)
-13. [Summary](#summary)
-14. [Further Reading](#further-reading)
-15. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **What is a hotspot?** and **Why is the biggest/ugliest file the wrong thing to fix first?**

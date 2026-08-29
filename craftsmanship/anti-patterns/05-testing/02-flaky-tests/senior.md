@@ -5,26 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Detecting flakiness on purpose](#detecting-flakiness-on-purpose)
-4. [Root-causing: from "it failed once" to a named cause](#root-causing-from-it-failed-once-to-a-named-cause)
-5. [Test isolation and parallelism](#test-isolation-and-parallelism)
-6. [The quarantine workflow](#the-quarantine-workflow)
-7. [Flake rate as a tracked metric](#flake-rate-as-a-tracked-metric)
-8. [CI signal vs noise](#ci-signal-vs-noise)
-9. [A team policy that actually holds](#a-team-policy-that-actually-holds)
-10. [Common Mistakes](#common-mistakes)
-11. [Test Yourself](#test-yourself)
-12. [Cheat Sheet](#cheat-sheet)
-13. [Summary](#summary)
-14. [Further Reading](#further-reading)
-15. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Hunting flakiness in a real suite.**

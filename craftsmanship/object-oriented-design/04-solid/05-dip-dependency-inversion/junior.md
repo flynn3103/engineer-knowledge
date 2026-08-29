@@ -4,30 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [What DIP Actually Says](#what-dip-actually-says)
-5. [The "Inversion": What Gets Inverted](#the-inversion-what-gets-inverted)
-6. [DIP vs DI vs IoC — Three Things People Confuse](#dip-vs-di-vs-ioc--three-things-people-confuse)
-7. [Real-World Analogies](#real-world-analogies)
-8. [Mental Models](#mental-models)
-9. [A Worked Example: The Copy Program](#a-worked-example-the-copy-program)
-10. [Code Examples](#code-examples)
-11. [Best Practices](#best-practices)
-12. [Common Mistakes](#common-mistakes)
-13. [Tricky Points](#tricky-points)
-14. [Test Yourself](#test-yourself)
-15. [Cheat Sheet](#cheat-sheet)
-16. [Summary](#summary)
-17. [Further Reading](#further-reading)
-18. [Related Topics](#related-topics)
-19. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **What is it?** and **How to use it?**

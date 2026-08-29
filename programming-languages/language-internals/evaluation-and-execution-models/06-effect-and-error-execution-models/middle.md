@@ -5,25 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concepts](#core-concepts)
-5. [Real-World Analogies](#real-world-analogies)
-6. [Mental Models](#mental-models)
-7. [Code Examples](#code-examples)
-8. [Pros & Cons](#pros--cons)
-9. [Use Cases](#use-cases)
-10. [Coding Patterns](#coding-patterns)
-11. [Best Practices](#best-practices)
-12. [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-13. [Summary](#summary)
-14. [Further Reading](#further-reading)
-
----
-
 ## Introduction
 
 > Focus: **When you write `throw new RuntimeException()`, what does the machine actually do?** It does *not* "go to a catch." Catches don't have addresses the throw knows about. Something has to *find* the handler, *unwind* the intervening frames, and *run cleanup* on the way. This page is about that something.

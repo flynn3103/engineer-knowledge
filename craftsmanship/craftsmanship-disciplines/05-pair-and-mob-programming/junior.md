@@ -4,28 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concepts](#core-concepts)
-5. [The Two Roles: Driver and Navigator](#the-two-roles-driver-and-navigator)
-6. [Real-World Analogies](#real-world-analogies)
-7. [Mental Models](#mental-models)
-8. [Your First Pairing Session](#your-first-pairing-session)
-9. [Pairing Etiquette](#pairing-etiquette)
-10. [Pros & Cons](#pros-cons)
-11. [Best Practices](#best-practices)
-12. [Common Mistakes](#common-mistakes)
-13. [Test Yourself](#test-yourself)
-14. [Summary](#summary)
-15. [Further Reading](#further-reading)
-16. [Related Topics](#related-topics)
-17. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **What is it?** and **How to use it?**

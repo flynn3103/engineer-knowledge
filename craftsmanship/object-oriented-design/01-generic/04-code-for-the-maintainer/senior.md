@@ -7,23 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Maintainability as an Architectural Quality Attribute](#maintainability-as-an-architectural-quality-attribute)
-3. [Designing for the Incident: Observability as a First-Class Concern](#designing-for-the-incident-observability-as-a-first-class-concern)
-4. [The Cleverness/Readability/Performance Frontier](#the-clevernessreadabilityperformance-frontier)
-5. [When Maintainability Trades Against Other Goods](#when-maintainability-trades-against-other-goods)
-6. [Local Reasoning, Coupling, and Deletability](#local-reasoning-coupling-and-deletability)
-7. [The Relationship to KISS, PoLA, and the Craftsmanship Ethos](#the-relationship-to-kiss-pola-and-the-craftsmanship-ethos)
-8. [Code Examples — Advanced](#code-examples-advanced)
-9. [Liabilities](#liabilities)
-10. [Pros & Cons at the System Level](#pros-cons-at-the-system-level)
-11. [Diagrams](#diagrams)
-12. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **design trade-offs** and **system-level reasoning**

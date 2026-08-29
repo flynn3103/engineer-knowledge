@@ -5,28 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concept 1 — Human Review Is a Layer, Not a Control](#core-concept-1--human-review-is-a-layer-not-a-control)
-5. [Core Concept 2 — The Paved Road: Make the Safe Path the Default](#core-concept-2--the-paved-road-make-the-safe-path-the-default)
-6. [Core Concept 3 — Security at Scale: Routing, Triggers, and Champions](#core-concept-3--security-at-scale-routing-triggers-and-champions)
-7. [Core Concept 4 — Performance at Scale: Gates, Observability, and the Two Failure Modes](#core-concept-4--performance-at-scale-gates-observability-and-the-two-failure-modes)
-8. [Core Concept 5 — Threat Modeling at Design Time, Not PR Time](#core-concept-5--threat-modeling-at-design-time-not-pr-time)
-9. [War Stories](#war-stories)
-10. [Decision Frameworks](#decision-frameworks)
-11. [Mental Models](#mental-models)
-12. [Common Mistakes](#common-mistakes)
-13. [Test Yourself](#test-yourself)
-14. [Cheat Sheet](#cheat-sheet)
-15. [Summary](#summary)
-16. [Further Reading](#further-reading)
-17. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Building a system where security and performance review is one layer atop automation, ownership, and safe-by-default tooling — not the heroics of a sharp-eyed reviewer.**

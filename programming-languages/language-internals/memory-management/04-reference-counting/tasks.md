@@ -8,16 +8,6 @@ Work top-to-bottom: Warm-Up builds intuition, Core builds the mechanism, Advance
 
 ---
 
-## Table of Contents
-
-- [Warm-Up](#warm-up)
-- [Core](#core)
-- [Advanced](#advanced)
-- [Capstone](#capstone)
-- [Self-Assessment](#self-assessment)
-
----
-
 ## Warm-Up
 
 ### Task 1 — Watch a count move

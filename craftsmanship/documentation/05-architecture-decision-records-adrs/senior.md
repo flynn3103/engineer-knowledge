@@ -7,24 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Architecture as a Stream of Decisions](#architecture-as-a-stream-of-decisions)
-3. [What Makes a Decision Worth Recording](#what-makes-a-decision-worth-recording)
-4. [The Consequences Section Is the Whole Point](#the-consequences-section-is-the-whole-point)
-5. [ADRs as the Distillation of an RFC](#adrs-as-the-distillation-of-an-rfc)
-6. [Where ADRs Live: Repo-Local vs. Centralized](#where-adrs-live-repo-local-vs-centralized)
-7. [ADRs and Architectural Governance](#adrs-and-architectural-governance)
-8. [The Immutability Discipline at System Scale](#the-immutability-discipline-at-system-scale)
-9. [ADRs, Clean Architecture, and System Design](#adrs-clean-architecture-and-system-design)
-10. [Liabilities](#liabilities)
-11. [Pros & Cons at the System Level](#pros--cons-at-the-system-level)
-12. [Diagrams](#diagrams)
-13. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **design trade-offs** and **system-level reasoning**

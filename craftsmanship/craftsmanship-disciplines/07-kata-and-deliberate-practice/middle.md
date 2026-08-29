@@ -4,28 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Deliberate Practice, Applied](#deliberate-practice-applied)
-4. [Repeating a Kata With Constraints](#repeating-a-kata-with-constraints)
-5. [The Transformation Priority Premise](#the-transformation-priority-premise)
-6. [A Constrained String Calculator Walkthrough](#a-constrained-string-calculator-walkthrough)
-7. [Coding Dojos and Their Formats](#coding-dojos-and-their-formats)
-8. [The Randori Rotation](#the-randori-rotation)
-9. [Picking a Kata for a Skill Gap](#picking-a-kata-for-a-skill-gap)
-10. [Best Practices](#best-practices)
-11. [Common Mistakes](#common-mistakes)
-12. [Tricky Points](#tricky-points)
-13. [Test Yourself](#test-yourself)
-14. [Cheat Sheet](#cheat-sheet)
-15. [Summary](#summary)
-16. [Further Reading](#further-reading)
-17. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **How do I make practice actually improve me?** and **How do groups practice together?**

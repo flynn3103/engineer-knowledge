@@ -5,26 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Remote Caching and Remote Execution (RBE)](#remote-caching-and-remote-execution-rbe)
-3. [Toolchains and Platforms — Clean Cross-Compilation](#toolchains-and-platforms--clean-cross-compilation)
-4. [Rules, Providers, and Aspects](#rules-providers-and-aspects)
-5. [Bazel vs Buck2 vs Pants](#bazel-vs-buck2-vs-pants)
-6. [Third-Party Dependencies — the Real Cost Center](#third-party-dependencies--the-real-cost-center)
-7. [Hermeticity Leaks and How to Find Them](#hermeticity-leaks-and-how-to-find-them)
-8. [Correctness vs Convenience — the Tradeoffs](#correctness-vs-convenience--the-tradeoffs)
-9. [Mental Models](#mental-models)
-10. [Common Mistakes](#common-mistakes)
-11. [Test Yourself](#test-yourself)
-12. [Cheat Sheet](#cheat-sheet)
-13. [Summary](#summary)
-14. [Further Reading](#further-reading)
-15. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **How do you scale a hermetic build to a cluster, build cleanly for any platform, extend it correctly, and keep it honest?**

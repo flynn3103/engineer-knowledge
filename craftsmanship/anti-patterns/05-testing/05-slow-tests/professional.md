@@ -4,27 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [The Real Trade-Off: Speed vs Realism](#the-real-trade-off-speed-vs-realism)
-4. [Pyramid vs Trophy vs Honeycomb](#pyramid-vs-trophy-vs-honeycomb)
-5. [Test-Time Budgets as an SLO](#test-time-budgets-as-an-slo)
-6. [The Fast-vs-Flaky Tension at Scale](#the-fast-vs-flaky-tension-at-scale)
-7. [CI Cost Economics](#ci-cost-economics)
-8. [Amortizing an Expensive Shared Container](#amortizing-an-expensive-shared-container)
-9. [Selective Testing: Run Less, Not Just Faster](#selective-testing-run-less-not-just-faster)
-10. [A Decision Framework](#a-decision-framework)
-11. [Common Mistakes](#common-mistakes)
-12. [Test Yourself](#test-yourself)
-13. [Cheat Sheet](#cheat-sheet)
-14. [Summary](#summary)
-15. [Further Reading](#further-reading)
-16. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Trade-offs & scale** — when fast-but-shallow loses to slow-but-realistic, how to budget test time like an SLO, and the economics of CI.

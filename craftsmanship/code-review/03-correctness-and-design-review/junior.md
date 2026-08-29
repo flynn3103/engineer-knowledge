@@ -5,27 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concept 1 — Correctness Is Catching the Cases the Author Didn't Try](#core-concept-1--correctness-is-catching-the-cases-the-author-didnt-try)
-5. [Core Concept 2 — The Bug-Hunt Checklist](#core-concept-2--the-bug-hunt-checklist)
-6. [Core Concept 3 — The Edge-Case Habit](#core-concept-3--the-edge-case-habit)
-7. [Core Concept 4 — Design Review: Is It Built Sensibly?](#core-concept-4--design-review-is-it-built-sensibly)
-8. [Core Concept 5 — Block vs Suggest, and Say the Big Thing First](#core-concept-5--block-vs-suggest-and-say-the-big-thing-first)
-9. [Real-World Examples](#real-world-examples)
-10. [Mental Models](#mental-models)
-11. [Common Mistakes](#common-mistakes)
-12. [Test Yourself](#test-yourself)
-13. [Cheat Sheet](#cheat-sheet)
-14. [Summary](#summary)
-15. [Further Reading](#further-reading)
-16. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **How do I find the actual bugs in a change, and judge whether it's built well?**

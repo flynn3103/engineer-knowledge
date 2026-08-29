@@ -5,27 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Measure First: The Tooling Map](#measure-first-the-tooling-map)
-4. [Singletonitis — Global Contention, False Sharing, and Init Races](#singletonitis--global-contention-false-sharing-and-init-races)
-5. [Circular Dependency — Init Order Hazards and the Build Graph](#circular-dependency--init-order-hazards-and-the-build-graph)
-6. [Action at a Distance — Shared Mutable Global State Under Concurrency](#action-at-a-distance--shared-mutable-global-state-under-concurrency)
-7. [Hidden Dependencies — How They Defeat Caching, Parallelism, and the Optimizer](#hidden-dependencies--how-they-defeat-caching-parallelism-and-the-optimizer)
-8. [Sequential Coupling — Order-Dependent State at Runtime](#sequential-coupling--order-dependent-state-at-runtime)
-9. [When a Process-Wide Singleton Is the Right, Fast Choice](#when-a-process-wide-singleton-is-the-right-fast-choice)
-10. [A Combined Worked Example](#a-combined-worked-example)
-11. [Common Mistakes](#common-mistakes)
-12. [Test Yourself](#test-yourself)
-13. [Cheat Sheet](#cheat-sheet)
-14. [Summary](#summary)
-15. [Further Reading](#further-reading)
-16. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **what coupling and shared state cost the running machine and the build pipeline** — lock contention, cache-line ping-pong, init-order deadlocks, broken incremental builds, defeated caches and optimizers — and **how you measure that cost** before you change a thing.

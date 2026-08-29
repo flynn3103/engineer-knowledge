@@ -7,27 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [The Economics: Why the Reader Wins](#the-economics-why-the-reader-wins)
-3. [Clever Code Is a Liability](#clever-code-is-a-liability)
-4. [Debuggability as a First-Class Design Goal](#debuggability-as-a-first-class-design-goal)
-5. [The Principle of Least Astonishment in Practice](#the-principle-of-least-astonishment-in-practice)
-6. [When Terseness Is Actually Clearer](#when-terseness-is-actually-clearer)
-7. [The Comment Trade-off: Helpful vs. Rot](#the-comment-trade-off-helpful-vs-rot)
-8. [Readability vs. Performance](#readability-vs-performance)
-9. [Local Reasoning: Coupling and the Maintainer](#local-reasoning-coupling-and-the-maintainer)
-10. [Trade-offs](#trade-offs)
-11. [Edge Cases](#edge-cases)
-12. [Tricky Points](#tricky-points)
-13. [Best Practices](#best-practices)
-14. [Test Yourself](#test-yourself)
-15. [Summary](#summary)
-16. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **Why** and **When**

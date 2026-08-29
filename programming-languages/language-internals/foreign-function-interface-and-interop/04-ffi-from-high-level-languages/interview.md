@@ -12,21 +12,6 @@ A strong candidate reasons in terms of the ABI, ownership of memory across the b
 
 The questions below move from the conceptual vocabulary that every binding author needs, through the five major language surfaces (Python, Java, Go, Rust, Node), into the traps where the obvious answer is wrong, and finish with design scenarios that reveal whether the candidate has actually shipped a binding.
 
-## Table of Contents
-
-- [Conceptual / Foundational](#conceptual--foundational)
-- [Language-Specific](#language-specific)
-  - [Python (ctypes / cffi / C-API / GIL)](#python-ctypes--cffi--c-api--gil)
-  - [Java (JNI / Panama)](#java-jni--panama)
-  - [Go (cgo)](#go-cgo)
-  - [Rust (extern / bindgen)](#rust-extern--bindgen)
-  - [Node (N-API)](#node-n-api)
-- [Tricky / Trap Questions](#tricky--trap-questions)
-- [Design Scenarios](#design-scenarios)
-- [Cheat Sheet](#cheat-sheet)
-
----
-
 ## Conceptual / Foundational
 
 ### Question 1: What is an FFI, and what exactly does crossing the boundary cost you?

@@ -7,25 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Reading the Taxonomy in Real Code](#reading-the-taxonomy-in-real-code)
-3. [Mechanisms for Decoupling, and What Each Costs](#mechanisms-for-decoupling-and-what-each-costs)
-4. [The Coupling/Cohesion Trade-off](#the-couplingcohesion-trade-off)
-5. [Measuring Coupling: Ca, Ce, and Instability](#measuring-coupling-ca-ce-and-instability)
-6. [Temporal Coupling in Depth](#temporal-coupling-in-depth)
-7. [How Much to Decouple: The Reversibility Question](#how-much-to-decouple-the-reversibility-question)
-8. [Trade-offs](#trade-offs)
-9. [Edge Cases](#edge-cases)
-10. [Tricky Points](#tricky-points)
-11. [Best Practices](#best-practices)
-12. [Test Yourself](#test-yourself)
-13. [Summary](#summary)
-14. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **Why** and **When**

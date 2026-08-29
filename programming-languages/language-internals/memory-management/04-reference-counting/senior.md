@@ -5,24 +5,6 @@
 
 ---
 
-## Table of Contents
-
-- [Introduction](#introduction)
-- [Prerequisites](#prerequisites)
-- [Glossary](#glossary)
-- [Refcounting vs Tracing GC: The Real Trade-off](#refcounting-vs-tracing-gc-the-real-trade-off)
-- [Advanced Optimizations](#advanced-optimizations)
-- [Cross-Language Implementation Survey](#cross-language-implementation-survey)
-- [Mental Models](#mental-models)
-- [Code Examples](#code-examples)
-- [When Refcounting Wins, When It Loses](#when-refcounting-wins-when-it-loses)
-- [Coding Patterns](#coding-patterns)
-- [Best Practices](#best-practices)
-- [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-- [Summary](#summary)
-
----
-
 ## Introduction
 
 A senior engineer's job is not to recite "refcounting frees at zero" but to make defensible decisions: *Should this subsystem use reference counting or tracing GC? Which refcount flavor? Where is the cost hiding, and is it worth an optimization that complicates the code?* That requires understanding the deep duality between reference counting and tracing garbage collection — they are, in a precise sense, two ends of the same spectrum — and the catalogue of optimizations (deferred, coalesced, biased) that production systems use to claw back the per-reference cost.

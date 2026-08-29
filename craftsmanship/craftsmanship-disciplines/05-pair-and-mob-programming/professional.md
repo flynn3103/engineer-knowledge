@@ -7,25 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Rolling Pairing Out to a Team](#rolling-pairing-out-to-a-team)
-3. [Handling Manager Objections](#handling-manager-objections)
-4. [Measuring Impact (Without Lying)](#measuring-impact-without-lying)
-5. [Psychological Safety: The Load-Bearing Wall](#psychological-safety-the-load-bearing-wall)
-6. [Remote-First Pairing Conventions](#remote-first-pairing-conventions)
-7. [Pairing Interviews (Hiring)](#pairing-interviews-hiring)
-8. [Pairing as Onboarding Infrastructure](#pairing-as-onboarding-infrastructure)
-9. [Team Conventions & Charter](#team-conventions-charter)
-10. [Anti-Patterns at Team Scale](#anti-patterns-at-team-scale)
-11. [Real Scenarios](#real-scenarios)
-12. [Checklist](#checklist)
-13. [Diagrams](#diagrams)
-14. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **production** — what it takes to make pairing and mobbing work for a real team, observed by managers, sustained over years.

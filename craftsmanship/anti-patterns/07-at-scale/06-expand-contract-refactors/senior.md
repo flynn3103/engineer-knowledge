@@ -5,25 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [The Core Problem: Two Things Deploy Separately](#the-core-problem-two-things-deploy-separately)
-4. [Deployment Ordering: Who Deploys First](#deployment-ordering-who-deploys-first)
-5. [Deprecation Windows and Tracking the Last Callers](#deprecation-windows-and-tracking-the-last-callers)
-6. [The Canonical DB Column Rename, Step by Step](#the-canonical-db-column-rename-step-by-step)
-7. [Communicating the Migration](#communicating-the-migration)
-8. [How This Ties to Strangler, Fitness Functions, and Ratcheting](#how-this-ties-to-strangler-fitness-functions-and-ratcheting)
-9. [Common Mistakes](#common-mistakes)
-10. [Test Yourself](#test-yourself)
-11. [Cheat Sheet](#cheat-sheet)
-12. [Summary](#summary)
-13. [Further Reading](#further-reading)
-14. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Coordinating across producer & consumer** — who deploys first, how long the deprecation window runs, how you track the last remaining callers, and the full canonical column rename.

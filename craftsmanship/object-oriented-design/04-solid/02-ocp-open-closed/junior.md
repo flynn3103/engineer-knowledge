@@ -4,31 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [What the Principle Says](#what-the-principle-says)
-5. [Why "Closed" and "Open" at the Same Time?](#why-closed-and-open-at-the-same-time)
-6. [The Mechanism: Abstraction + Polymorphism](#the-mechanism-abstraction--polymorphism)
-7. [Real-World Analogies](#real-world-analogies)
-8. [Mental Models](#mental-models)
-9. [A Worked Example: The Area Calculator](#a-worked-example-the-area-calculator)
-10. [Code Examples](#code-examples)
-11. ["Closed Against What?"](#closed-against-what)
-12. [Best Practices](#best-practices)
-13. [Common Mistakes](#common-mistakes)
-14. [Tricky Points](#tricky-points)
-15. [Test Yourself](#test-yourself)
-16. [Cheat Sheet](#cheat-sheet)
-17. [Summary](#summary)
-18. [Further Reading](#further-reading)
-19. [Related Topics](#related-topics)
-20. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **What is it?** and **How to use it?**

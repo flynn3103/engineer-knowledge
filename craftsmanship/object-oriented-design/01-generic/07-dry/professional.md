@@ -7,23 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Enforcing DRY in Code Review](#enforcing-dry-in-code-review)
-3. [Tooling: What Duplication Detectors Can and Can't See](#tooling-what-duplication-detectors-can-and-cant-see)
-4. [The Single-Source-of-Truth Patterns That Pay Off](#the-single-source-of-truth-patterns-that-pay-off)
-5. [Team Conventions for DRY](#team-conventions-for-dry)
-6. [Removing a Wrong Abstraction in a Legacy System](#removing-a-wrong-abstraction-in-a-legacy-system)
-7. [Real Incidents](#real-incidents)
-8. [The Politics of DRY](#the-politics-of-dry)
-9. [Review Checklist](#review-checklist)
-10. [Cheat Sheet](#cheat-sheet)
-11. [Diagrams](#diagrams)
-12. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **production** — keeping knowledge single-sourced across a large, multi-contributor codebase over years.

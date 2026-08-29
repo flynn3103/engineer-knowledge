@@ -5,29 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [The Catalog of Nondeterminism](#the-catalog-of-nondeterminism)
-4. [SOURCE_DATE_EPOCH in Depth](#source_date_epoch-in-depth)
-5. [Build Paths — the Second-Worst Offender](#build-paths--the-second-worst-offender)
-6. [Ordering — Filesystems, Hashmaps, and Parallelism](#ordering--filesystems-hashmaps-and-parallelism)
-7. [Locale, Timezone, and the Environment Leak](#locale-timezone-and-the-environment-leak)
-8. [Randomness and Uninitialized Bytes](#randomness-and-uninitialized-bytes)
-9. [Normalizing Archives](#normalizing-archives)
-10. [Why Hermeticity Multiplies Your Effort](#why-hermeticity-multiplies-your-effort)
-11. [Verifying with diffoscope](#verifying-with-diffoscope)
-12. [Mental Models](#mental-models)
-13. [Common Mistakes](#common-mistakes)
-14. [Test Yourself](#test-yourself)
-15. [Cheat Sheet](#cheat-sheet)
-16. [Summary](#summary)
-17. [Further Reading](#further-reading)
-18. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **What are *all* the ways a build can become nondeterministic, and how do I fix each one?**

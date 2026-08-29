@@ -7,24 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [CQS as a Theory of Referential Transparency](#cqs-as-a-theory-of-referential-transparency)
-3. [The Functional Core, Imperative Shell](#the-functional-core-imperative-shell)
-4. [CQS and Immutability](#cqs-and-immutability)
-5. [The Atomicity Exception, Rigorously](#the-atomicity-exception-rigorously)
-6. [When Strict CQS Is the Wrong Call](#when-strict-cqs-is-the-wrong-call)
-7. [CQS → CQRS: The Scaling Argument and Its Costs](#cqs--cqrs-the-scaling-argument-and-its-costs)
-8. [CQS, SRP, and Tell-Don't-Ask: Reconciling the Principles](#cqs-srp-and-tell-dont-ask-reconciling-the-principles)
-9. [Code Examples — Advanced](#code-examples--advanced)
-10. [Liabilities](#liabilities)
-11. [Pros & Cons at the System Level](#pros--cons-at-the-system-level)
-12. [Diagrams](#diagrams)
-13. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **design trade-offs** and **system-level reasoning**

@@ -4,33 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [What Is a "Concern"?](#what-is-a-concern)
-5. [The Principle, Stated Plainly](#the-principle-stated-plainly)
-6. [Where the Idea Comes From: Dijkstra, 1974](#where-the-idea-comes-from-dijkstra-1974)
-7. [Tangled vs. Separated: A Worked Example](#tangled-vs-separated-a-worked-example)
-8. [Common Manifestations You Already Use](#common-manifestations-you-already-use)
-9. [Horizontal vs. Vertical Separation](#horizontal-vs-vertical-separation)
-10. [Real-World Analogies](#real-world-analogies)
-11. [Mental Models](#mental-models)
-12. [Benefits](#benefits)
-13. [SoC vs. SRP: A First Look](#soc-vs-srp-a-first-look)
-14. [Best Practices](#best-practices)
-15. [Common Mistakes](#common-mistakes)
-16. [Tricky Points](#tricky-points)
-17. [Test Yourself](#test-yourself)
-18. [Cheat Sheet](#cheat-sheet)
-19. [Summary](#summary)
-20. [Further Reading](#further-reading)
-21. [Related Topics](#related-topics)
-22. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **What is it?** and **How to use it?**

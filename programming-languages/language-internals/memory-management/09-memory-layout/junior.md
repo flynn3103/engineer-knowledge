@@ -4,22 +4,6 @@
 
 ---
 
-## Table of Contents
-- [Introduction](#introduction)
-- [Prerequisites](#prerequisites)
-- [Glossary](#glossary)
-- [Core Concepts](#core-concepts)
-- [Real-World Analogies](#real-world-analogies)
-- [Mental Models](#mental-models)
-- [Code Examples](#code-examples)
-- [Pros & Cons](#pros--cons)
-- [Use Cases](#use-cases)
-- [Best Practices](#best-practices)
-- [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-- [Summary](#summary)
-
----
-
 ## Introduction
 
 When you declare a struct with three fields, you might assume the computer stores those fields back-to-back, using exactly as many bytes as the fields need. It does not. The compiler inserts invisible gaps — **padding** — between and after fields so each one lands on an address the hardware likes. The result: a struct can be noticeably larger than the sum of its fields, and simply **reordering the fields** can shrink it without changing what it stores.

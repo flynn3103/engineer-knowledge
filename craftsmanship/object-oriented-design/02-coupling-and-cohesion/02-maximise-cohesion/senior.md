@@ -7,23 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [The Theory: Cohesion and Coupling Are Dual](#the-theory-cohesion-and-coupling-are-dual)
-3. [Cohesion Through Connascence](#cohesion-through-connascence)
-4. [The Common Closure Principle and Change-Alignment](#the-common-closure-principle-and-change-alignment)
-5. [Cohesion vs. Coupling: The Fundamental Tension](#cohesion-vs-coupling-the-fundamental-tension)
-6. [When Maximal Cohesion Is Wrong](#when-maximal-cohesion-is-wrong)
-7. [Cohesion at the Architectural Scale](#cohesion-at-the-architectural-scale)
-8. [Advanced Examples](#advanced-examples)
-9. [Liabilities](#liabilities)
-10. [Pros & Cons at the System Level](#pros--cons-at-the-system-level)
-11. [Diagrams](#diagrams)
-12. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **design trade-offs** and **system-level reasoning**

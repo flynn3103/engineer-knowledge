@@ -7,23 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Coupling Is Multi-Dimensional, Not a Scalar](#coupling-is-multi-dimensional-not-a-scalar)
-3. [The Taxonomy Reframed Through Connascence](#the-taxonomy-reframed-through-connascence)
-4. [Afferent/Efferent Coupling and the Main Sequence](#afferentefferent-coupling-and-the-main-sequence)
-5. [Coupling Is Conserved: You Move It, You Don't Delete It](#coupling-is-conserved-you-move-it-you-dont-delete-it)
-6. [The Distributed Monolith: Coupling on the Network](#the-distributed-monolith-coupling-on-the-network)
-7. [When Decoupling Is the Wrong Move](#when-decoupling-is-the-wrong-move)
-8. [Advanced Examples](#advanced-examples)
-9. [Liabilities](#liabilities)
-10. [Pros & Cons at the System Level](#pros--cons-at-the-system-level)
-11. [Diagrams](#diagrams)
-12. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **design trade-offs** and **system-level reasoning**

@@ -13,15 +13,6 @@ articulate the few cases where the magic genuinely pays. Strong answers cite the
 simplicity ladder, the rule of three, fail-fast vs fail-late, and the framework-level vs
 app-level distinction. Weak answers treat "it's possible" as "it's a good idea."
 
-## Table of Contents
-
-- [Conceptual](#conceptual)
-- [Scenario / Judgment](#scenario--judgment)
-- [Tricky / Trap](#tricky--trap)
-- [Design](#design)
-
----
-
 ## Conceptual
 
 ## Question 1

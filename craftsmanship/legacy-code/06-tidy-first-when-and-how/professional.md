@@ -4,21 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Tidying on a team is a social problem](#tidying-on-a-team-is-a-social-problem)
-2. [PR hygiene: structure-only pull requests](#pr-hygiene-structure-only-pull-requests)
-3. [Getting structure PRs reviewed fast](#getting-structure-prs-reviewed-fast)
-4. [Sequencing: First / After / Later / Never on a team](#sequencing-first--after--later--never-on-a-team)
-5. [Tidying under a deadline](#tidying-under-a-deadline)
-6. [Dealing with reviewers](#dealing-with-reviewers)
-7. [War stories](#war-stories)
-8. [Checklists](#checklists)
-9. [Pitfalls](#pitfalls)
-10. [Related Topics](#related-topics)
-
----
-
 ## Tidying on a team is a social problem
 
 Alone, tidying is a personal habit. On a team, it becomes a *negotiation* with reviewers, a *contention* over the same files, and a *budget* line that competes with features. The professional skill isn't knowing the catalog — you knew that two levels ago. It's making the practice frictionless enough that the team actually does it, and disciplined enough that it never becomes a vector for incidents or a source of merge pain.

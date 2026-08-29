@@ -5,27 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concept 1 — Be Specific and Actionable](#core-concept-1--be-specific-and-actionable)
-5. [Core Concept 2 — Label Severity (Conventional Comments)](#core-concept-2--label-severity-conventional-comments)
-6. [Core Concept 3 — Give the Why, and Ask Instead of Command](#core-concept-3--give-the-why-and-ask-instead-of-command)
-7. [Core Concept 4 — Suggest Code, and Praise the Good](#core-concept-4--suggest-code-and-praise-the-good)
-8. [Core Concept 5 — Receiving: Self-Review First, Respond to Everything](#core-concept-5--receiving-self-review-first-respond-to-everything)
-9. [Real-World Examples](#real-world-examples)
-10. [Mental Models](#mental-models)
-11. [Common Mistakes](#common-mistakes)
-12. [Test Yourself](#test-yourself)
-13. [Cheat Sheet](#cheat-sheet)
-14. [Summary](#summary)
-15. [Further Reading](#further-reading)
-16. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **How do you write a review comment that actually helps — and take one well?**

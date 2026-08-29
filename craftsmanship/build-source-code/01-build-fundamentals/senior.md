@@ -5,29 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Object File Anatomy — ELF, Mach-O, PE](#object-file-anatomy--elf-mach-o-pe)
-4. [Sections vs Segments — Two Views of the Same Bytes](#sections-vs-segments--two-views-of-the-same-bytes)
-5. [The Dynamic Linker (ld.so) From `execve` to `main`](#the-dynamic-linker-ldso-from-execve-to-main)
-6. [GOT and PLT — Indirection as a Design Choice](#got-and-plt--indirection-as-a-design-choice)
-7. [Symbol Versioning and Visibility](#symbol-versioning-and-visibility)
-8. [RPATH, RUNPATH, and the Search-Order Minefield](#rpath-runpath-and-the-search-order-minefield)
-9. [Link-Time Optimization — Full and Thin](#link-time-optimization--full-and-thin)
-10. [Dead-Code Elimination at Link](#dead-code-elimination-at-link)
-11. [Toolchain Design — GCC vs Clang, BFD vs gold vs lld vs mold](#toolchain-design--gcc-vs-clang-bfd-vs-gold-vs-lld-vs-mold)
-12. [Mental Models](#mental-models)
-13. [Common Mistakes](#common-mistakes)
-14. [Test Yourself](#test-yourself)
-15. [Cheat Sheet](#cheat-sheet)
-16. [Summary](#summary)
-17. [Further Reading](#further-reading)
-18. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **The structures and tradeoffs a senior engineer reasons about when the build itself becomes the bottleneck or the liability.**

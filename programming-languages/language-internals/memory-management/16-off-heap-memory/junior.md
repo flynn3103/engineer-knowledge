@@ -5,23 +5,6 @@
 
 ---
 
-## Table of Contents
-
-- [Introduction](#introduction)
-- [Prerequisites](#prerequisites)
-- [Glossary](#glossary)
-- [Core Concepts](#core-concepts)
-- [Real-World Analogies](#real-world-analogies)
-- [Mental Models](#mental-models)
-- [Code Examples](#code-examples)
-- [Pros & Cons](#pros--cons)
-- [Use Cases](#use-cases)
-- [Best Practices](#best-practices)
-- [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-- [Summary](#summary)
-
----
-
 ## Introduction
 
 When you write `new byte[1024]` in Java, `make([]byte, 1024)` in Go, or `new` anything in C#, the bytes live on the **managed heap**: a region of memory owned and controlled by the language runtime's **garbage collector (GC)**. The GC decides where those bytes sit, whether to move them around to fight fragmentation, and when to reclaim them once nothing points to them. You never call `free`. This is the whole selling point of a managed language.

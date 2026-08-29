@@ -4,28 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [The Science of Expertise](#the-science-of-expertise)
-4. [The 10,000-Hours Myth](#the-10000-hours-myth)
-5. [Designing Your Own Practice Regimen](#designing-your-own-practice-regimen)
-6. [Practicing Design and Refactoring, Not Just Algorithms](#practicing-design-and-refactoring-not-just-algorithms)
-7. [Plateaus and How to Break Them](#plateaus-and-how-to-break-them)
-8. [Transfer: Making Practice Show Up at Work](#transfer-making-practice-show-up-at-work)
-9. [Leading a Dojo](#leading-a-dojo)
-10. [Best Practices](#best-practices)
-11. [Common Mistakes](#common-mistakes)
-12. [Tricky Points](#tricky-points)
-13. [Test Yourself](#test-yourself)
-14. [Cheat Sheet](#cheat-sheet)
-15. [Summary](#summary)
-16. [Further Reading](#further-reading)
-17. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Why does practice work?**, **How do I design practice for myself?**, and **How do I lead others?**

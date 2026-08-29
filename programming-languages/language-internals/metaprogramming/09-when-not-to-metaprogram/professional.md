@@ -5,20 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [The Magic Budget](#the-magic-budget)
-3. [The Real Costs, Priced Out](#the-real-costs-priced-out)
-4. [The Decision Framework](#the-decision-framework)
-5. [Anti-Patterns Seen in Production](#anti-patterns-seen-in-production)
-6. [When Metaprogramming IS Justified](#when-metaprogramming-is-justified)
-7. [Best Practices](#best-practices)
-8. [War Stories](#war-stories)
-9. [Summary](#summary)
-
----
-
 ## Introduction
 
 Every metaprogramming technique in this section is a power tool, and the professional

@@ -7,23 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Enforcing Simplicity in Code Review](#enforcing-simplicity-in-code-review)
-3. [Fighting Gold-Plating](#fighting-gold-plating)
-4. [Measuring Complexity](#measuring-complexity)
-5. [Team Conventions for Simple Design](#team-conventions-for-simple-design)
-6. [Refactoring Toward Simple Design in Legacy Systems](#refactoring-toward-simple-design-in-legacy-systems)
-7. [Real Incidents](#real-incidents)
-8. [The Politics of Simplicity](#the-politics-of-simplicity)
-9. [Review Checklist](#review-checklist)
-10. [Cheat Sheet](#cheat-sheet)
-11. [Diagrams](#diagrams)
-12. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **production** — keeping a large, multi-contributor codebase simple over years.

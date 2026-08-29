@@ -5,29 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concept 1 — The Size→Quality Curve, With Numbers](#core-concept-1--the-sizequality-curve-with-numbers)
-5. [Core Concept 2 — Size→Latency→WIP, the Second-Order Cost](#core-concept-2--sizelatencywip-the-second-order-cost)
-6. [Core Concept 3 — The Cardinal Rule: Separate Refactor From Behaviour](#core-concept-3--the-cardinal-rule-separate-refactor-from-behaviour)
-7. [Core Concept 4 — Splitting Techniques](#core-concept-4--splitting-techniques)
-8. [Core Concept 5 — Feature Flags: the Enabler of Small PRs](#core-concept-5--feature-flags-the-enabler-of-small-prs)
-9. [Core Concept 6 — Stacked PRs / Stacked Diffs](#core-concept-6--stacked-prs--stacked-diffs)
-10. [Core Concept 7 — Scope Discipline and the Author's Contract](#core-concept-7--scope-discipline-and-the-authors-contract)
-11. [Real-World Examples](#real-world-examples)
-12. [Mental Models](#mental-models)
-13. [Common Mistakes](#common-mistakes)
-14. [Test Yourself](#test-yourself)
-15. [Cheat Sheet](#cheat-sheet)
-16. [Summary](#summary)
-17. [Further Reading](#further-reading)
-18. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **How big is "too big," why, and what do I do about a change that genuinely is large?**

@@ -5,19 +5,6 @@
 
 ---
 
-## Table of Contents
-
-- [How to Use This Page](#how-to-use-this-page)
-- [Warm-Up (Junior)](#warm-up-junior)
-- [Core (Middle)](#core-middle)
-- [Advanced (Senior)](#advanced-senior)
-- [Production-Grade (Professional)](#production-grade-professional)
-- [Self-Check Quiz](#self-check-quiz)
-- [Hints](#hints)
-- [Sparse Solutions](#sparse-solutions)
-
----
-
 ## How to Use This Page
 
 Work top to bottom; tiers build on each other. For each task: try it cold, check your output against the **Self-Check**, and only then peek at **Hints**. Full solutions are deliberately sparse — the goal is that you can derive them. Use any language you're comfortable in unless a task names one. Where it helps, dump bytes in hex (`xxd`, `hexdump -C`, `printf("%02X")`, `fmt.Printf("% X")`) and *look* at the layout — seeing the bytes is half the lesson.

@@ -1,21 +1,5 @@
 # Seams and Enabling Points — Junior
 
-## Table of Contents
-
-- [Why this idea matters](#why-this-idea-matters)
-- [The fabric analogy](#the-fabric-analogy)
-- [A precise definition](#a-precise-definition)
-- [What an enabling point is](#what-an-enabling-point-is)
-- [The first concrete example](#the-first-concrete-example)
-- [The basic types of seam](#the-basic-types-of-seam)
-- [Why seams exist: testing](#why-seams-exist-testing)
-- [Seams you already use without knowing](#seams-you-already-use-without-knowing)
-- [How this connects to the rest of legacy work](#how-this-connects-to-the-rest-of-legacy-work)
-- [Mini Glossary](#mini-glossary)
-- [Review questions](#review-questions)
-
----
-
 ## Why this idea matters
 
 When you join a real team, you will spend more time changing code that already exists than writing code from scratch. Much of that existing code has no tests. To change it safely, you first need to get it under test — and to get it under test, you usually need to *substitute* one of its parts with something fake that you control during the test.

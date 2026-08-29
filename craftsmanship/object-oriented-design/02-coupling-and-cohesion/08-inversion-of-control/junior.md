@@ -4,31 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [The Core Idea: Who Is in Charge?](#the-core-idea-who-is-in-charge)
-5. [Library vs. Framework](#library-vs-framework)
-6. [The Hollywood Principle](#the-hollywood-principle)
-7. [A Worked Example: Inverting a CLI Loop](#a-worked-example-inverting-a-cli-loop)
-8. [The Forms of IoC](#the-forms-of-ioc)
-9. [Code Examples](#code-examples)
-10. [IoC vs DI vs DIP — First Contact](#ioc-vs-di-vs-dip--first-contact)
-11. [Why IoC Lowers Coupling](#why-ioc-lowers-coupling)
-12. [Best Practices](#best-practices)
-13. [Common Mistakes](#common-mistakes)
-14. [Tricky Points](#tricky-points)
-15. [Test Yourself](#test-yourself)
-16. [Cheat Sheet](#cheat-sheet)
-17. [Summary](#summary)
-18. [Further Reading](#further-reading)
-19. [Related Topics](#related-topics)
-20. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **What is it?** and **How to use it?**

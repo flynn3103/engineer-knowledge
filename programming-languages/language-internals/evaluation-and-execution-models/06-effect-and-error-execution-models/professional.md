@@ -5,25 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concepts](#core-concepts)
-5. [Real-World Analogies](#real-world-analogies)
-6. [Mental Models](#mental-models)
-7. [Code Examples](#code-examples)
-8. [Pros & Cons](#pros--cons)
-9. [Use Cases](#use-cases)
-10. [Coding Patterns](#coding-patterns)
-11. [Best Practices](#best-practices)
-12. [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-13. [Summary](#summary)
-14. [Further Reading](#further-reading)
-
----
-
 ## Introduction
 
 > Focus: **There is one control-flow primitive underneath all of it.** Stack unwinding, `yield`, `await`, `recover`, dependency injection, backtracking search, transactional retry — they are the same operation parameterized by *what the handler does with the continuation.* This page builds that primitive from the ground (delimited continuations), shows the surface that exposes it (algebraic effect handlers), and works through the operational, performance, and resource-safety engineering of using it in anger.

@@ -5,30 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concept 1 — The Flow Economics of PR Size](#core-concept-1--the-flow-economics-of-pr-size)
-5. [Core Concept 2 — The Defect-Detection Curve and the Attention Budget](#core-concept-2--the-defect-detection-curve-and-the-attention-budget)
-6. [Core Concept 3 — Decomposition as the Senior Skill](#core-concept-3--decomposition-as-the-senior-skill)
-7. [Core Concept 4 — Mechanical vs Semantic, and Why It Halves Review Cost](#core-concept-4--mechanical-vs-semantic-and-why-it-halves-review-cost)
-8. [Core Concept 5 — The Big-Migration Patterns](#core-concept-5--the-big-migration-patterns)
-9. [Core Concept 6 — Stacked Diffs in Real Depth](#core-concept-6--stacked-diffs-in-real-depth)
-10. [Core Concept 7 — Trunk-Based Development and Feature Flags as the Enabler](#core-concept-7--trunk-based-development-and-feature-flags-as-the-enabler)
-11. [Core Concept 8 — When Big PRs Are Unavoidable](#core-concept-8--when-big-prs-are-unavoidable)
-12. [Real-World Examples](#real-world-examples)
-13. [Mental Models](#mental-models)
-14. [Common Mistakes](#common-mistakes)
-15. [Test Yourself](#test-yourself)
-16. [Cheat Sheet](#cheat-sheet)
-17. [Summary](#summary)
-18. [Further Reading](#further-reading)
-19. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Why size is the single highest-leverage variable in review quality, and the concrete decomposition and stacking techniques a senior uses to ship hard changes as small, reviewable units.**

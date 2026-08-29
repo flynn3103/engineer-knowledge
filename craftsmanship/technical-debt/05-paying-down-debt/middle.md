@@ -5,28 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [The Menu of Paydown Strategies](#the-menu-of-paydown-strategies)
-4. [Continuous vs Fix-on-Touch vs Dedicated vs Big-Bang](#continuous-vs-fix-on-touch-vs-dedicated-vs-big-bang)
-5. [Refactor vs Rewrite vs Leave](#refactor-vs-rewrite-vs-leave)
-6. [The Safety Net — Characterization Tests First](#the-safety-net--characterization-tests-first)
-7. [Tidy First — Separating Tidyings from Behaviour](#tidy-first--separating-tidyings-from-behaviour)
-8. [The Strangler Fig — Replacing a Module Without a Big-Bang](#the-strangler-fig--replacing-a-module-without-a-big-bang)
-9. [Measuring That Paydown Actually Helped](#measuring-that-paydown-actually-helped)
-10. [Worked Example — Strangling a Pricing Module](#worked-example--strangling-a-pricing-module)
-11. [Mental Models](#mental-models)
-12. [Common Mistakes](#common-mistakes)
-13. [Test Yourself](#test-yourself)
-14. [Cheat Sheet](#cheat-sheet)
-15. [Summary](#summary)
-16. [Further Reading](#further-reading)
-17. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **What are the ways to actually pay debt down, and how do I pick the right one for this debt?**

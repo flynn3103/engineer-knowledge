@@ -4,31 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [What Doc Rot Looks Like](#what-doc-rot-looks-like)
-5. [Why Stale Docs Are Worse Than No Docs](#why-stale-docs-are-worse-than-no-docs)
-6. [Why Docs Rot](#why-docs-rot)
-7. [The Strategies, From Most to Least Powerful](#the-strategies-from-most-to-least-powerful)
-8. [Real-World Analogies](#real-world-analogies)
-9. [Mental Models](#mental-models)
-10. [A Worked Example: Killing a Rotting Setup Doc](#a-worked-example-killing-a-rotting-setup-doc)
-11. [Code Examples](#code-examples)
-12. [Best Practices](#best-practices)
-13. [Common Mistakes](#common-mistakes)
-14. [Tricky Points](#tricky-points)
-15. [Test Yourself](#test-yourself)
-16. [Cheat Sheet](#cheat-sheet)
-17. [Summary](#summary)
-18. [Further Reading](#further-reading)
-19. [Related Topics](#related-topics)
-20. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **What is it?** and **How to fight it?**

@@ -7,23 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Spotting Inheritance Misuse in Review](#spotting-inheritance-misuse-in-review)
-3. [Refactoring a Deep Hierarchy to Composition](#refactoring-a-deep-hierarchy-to-composition)
-4. [Replace Inheritance with Delegation, Safely](#replace-inheritance-with-delegation-safely)
-5. [Team Conventions](#team-conventions)
-6. [Measuring Hierarchy Health](#measuring-hierarchy-health)
-7. [Real Incidents](#real-incidents)
-8. [The Politics of "But Inheritance Is Less Code"](#the-politics-of-but-inheritance-is-less-code)
-9. [Review Checklist](#review-checklist)
-10. [Cheat Sheet](#cheat-sheet)
-11. [Diagrams](#diagrams)
-12. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **production** — keeping inheritance from calcifying a large codebase, and unwinding it where it already has.

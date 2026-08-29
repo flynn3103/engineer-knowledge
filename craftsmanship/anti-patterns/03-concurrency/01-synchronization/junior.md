@@ -5,26 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [The Three at a Glance](#the-three-at-a-glance)
-5. [Race-Prone Lazy Init](#race-prone-lazy-init)
-6. [Double-Checked Locking](#double-checked-locking)
-7. [Volatile Misuse / Wrong Memory Ordering](#volatile-misuse--wrong-memory-ordering)
-8. [How They Reinforce Each Other](#how-they-reinforce-each-other)
-9. [A Quick Spotting Checklist](#a-quick-spotting-checklist)
-10. [Common Mistakes](#common-mistakes)
-11. [Test Yourself](#test-yourself)
-12. [Cheat Sheet](#cheat-sheet)
-13. [Summary](#summary)
-14. [Further Reading](#further-reading)
-15. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **What does it look like?** and **Why is it bad?** — plus the safe basic fix you can reach for today.

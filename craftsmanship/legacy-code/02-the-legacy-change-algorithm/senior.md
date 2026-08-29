@@ -1,20 +1,5 @@
 # The Legacy Change Algorithm — Senior
 
-## Table of Contents
-
-- [The algorithm is a default, not a law](#the-algorithm-is-a-default-not-a-law)
-- [Judgment under uncertainty: what you are actually optimizing](#judgment-under-uncertainty-what-you-are-actually-optimizing)
-- [Reading the five steps as a risk-management protocol](#reading-the-five-steps-as-a-risk-management-protocol)
-- [When to deviate from the strict order](#when-to-deviate-from-the-strict-order)
-- [The interplay between steps: where the real work hides](#the-interplay-between-steps-where-the-real-work-hides)
-- [Sprout and Wrap as risk-routing decisions, not fallbacks](#sprout-and-wrap-as-risk-routing-decisions-not-fallbacks)
-- [Scaling to large, unfamiliar codebases](#scaling-to-large-unfamiliar-codebases)
-- [The "no time for tests" argument, answered with numbers](#the-no-time-for-tests-argument-answered-with-numbers)
-- [Heuristics a senior carries into every legacy change](#heuristics-a-senior-carries-into-every-legacy-change)
-- [Related Topics](#related-topics)
-
----
-
 ## The algorithm is a default, not a law
 
 By the middle level you can run all five steps mechanically on a tangled method: identify the change point, find a sensing point, break the dependencies that block separation, pin the current behavior, change it, refactor. That competence is the price of entry. What distinguishes senior work is knowing *which steps to compress, which to expand, which to skip, and which to reorder* — and being able to defend each of those decisions in terms of risk and cost, not habit.

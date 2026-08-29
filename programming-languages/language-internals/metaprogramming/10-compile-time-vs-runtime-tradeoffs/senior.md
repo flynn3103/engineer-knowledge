@@ -5,20 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [The Two Camps](#the-two-camps)
-3. [The Trade-off Dimensions, Head to Head](#the-trade-off-dimensions-head-to-head)
-4. [The Modern Shift Toward Compile Time](#the-modern-shift-toward-compile-time)
-5. [Mental Models](#mental-models)
-6. [Code Examples](#code-examples)
-7. [Best Practices](#best-practices)
-8. [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-9. [Summary](#summary)
-
----
-
 ## Introduction
 
 This is the synthesis topic of the section. Every technique covered so far —

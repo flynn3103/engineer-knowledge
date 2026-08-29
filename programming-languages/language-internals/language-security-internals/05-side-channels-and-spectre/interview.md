@@ -10,17 +10,6 @@ These questions probe whether a candidate truly understands the defining feature
 
 The questions progress from conceptual foundations, to variant-specific mechanism questions (Spectre v1/v2/v4, Meltdown, MDS/RIDL, L1TF, retbleed/PACMAN-class), to traps where the textbook answer is subtly wrong, and finally to design scenarios that test whether the candidate has actually had to defend a real system.
 
-## Table of Contents
-
-- [Conceptual / Foundational](#conceptual--foundational)
-- [Variant-Specific](#variant-specific)
-- [Tricky / Trap Questions](#tricky--trap-questions)
-- [Design Scenarios](#design-scenarios)
-- [Cheat Sheet](#cheat-sheet)
-- [Further Reading](#further-reading)
-
----
-
 ## Conceptual / Foundational
 
 ## Question 1

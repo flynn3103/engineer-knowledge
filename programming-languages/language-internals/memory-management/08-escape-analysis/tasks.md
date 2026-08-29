@@ -8,16 +8,6 @@ Practical exercises to build escape-analysis intuition: predict the decision, re
 
 ---
 
-## Table of Contents
-
-- [Warm-Up](#warm-up)
-- [Core](#core)
-- [Advanced](#advanced)
-- [Capstone](#capstone)
-- [Self-Assessment](#self-assessment)
-
----
-
 ## Warm-Up
 
 ### Task 1 — Predict, then verify (stack vs heap)

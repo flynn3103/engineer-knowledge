@@ -4,30 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [What the Principle Actually Says](#what-the-principle-actually-says)
-5. [IS-A Is Not Enough: IS-SUBSTITUTABLE-FOR](#is-a-is-not-enough-is-substitutable-for)
-6. [Real-World Analogies](#real-world-analogies)
-7. [Mental Models](#mental-models)
-8. [A Worked Example: The Rectangle/Square Problem](#a-worked-example-the-rectanglesquare-problem)
-9. [Code Examples](#code-examples)
-10. [The Tell-Tale Smell: instanceof in the Client](#the-tell-tale-smell-instanceof-in-the-client)
-11. [Best Practices](#best-practices)
-12. [Common Mistakes](#common-mistakes)
-13. [Tricky Points](#tricky-points)
-14. [Test Yourself](#test-yourself)
-15. [Cheat Sheet](#cheat-sheet)
-16. [Summary](#summary)
-17. [Further Reading](#further-reading)
-18. [Related Topics](#related-topics)
-19. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **What is it?** and **How to use it?**

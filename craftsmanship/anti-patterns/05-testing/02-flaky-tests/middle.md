@@ -5,28 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [The diagnostic table](#the-diagnostic-table)
-4. [Cause 1 — Timing: `sleep` → poll / await a condition](#cause-1--timing-sleep--poll--await-a-condition)
-5. [Cause 2 — Async races: synchronize, don't guess](#cause-2--async-races-synchronize-dont-guess)
-6. [Cause 3 — Shared mutable state: isolate and reset](#cause-3--shared-mutable-state-isolate-and-reset)
-7. [Cause 4 — Unseeded randomness: seed it](#cause-4--unseeded-randomness-seed-it)
-8. [Cause 5 — The real clock: inject a fake](#cause-5--the-real-clock-inject-a-fake)
-9. [Cause 6 — External dependencies: fake the boundary](#cause-6--external-dependencies-fake-the-boundary)
-10. [Cause 7 — Ordering assumptions: don't depend on iteration order](#cause-7--ordering-assumptions-dont-depend-on-iteration-order)
-11. [The pattern behind every fix](#the-pattern-behind-every-fix)
-12. [Common Mistakes](#common-mistakes)
-13. [Test Yourself](#test-yourself)
-14. [Cheat Sheet](#cheat-sheet)
-15. [Summary](#summary)
-16. [Further Reading](#further-reading)
-17. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **The common causes and the fix for each.**

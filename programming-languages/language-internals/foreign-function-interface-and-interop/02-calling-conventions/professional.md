@@ -5,29 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Variadic ABI in Production](#variadic-abi-in-production)
-5. [Struct-by-Value Classification Surprises](#struct-by-value-classification-surprises)
-6. [`sret` and RVO: The Hidden Return Pointer](#sret-and-rvo-the-hidden-return-pointer)
-7. [Caller- vs Callee-Saved Discipline](#caller--vs-callee-saved-discipline)
-8. [Stack Alignment and `movaps` Faults](#stack-alignment-and-movaps-faults)
-9. [The Red Zone vs Windows Shadow Space](#the-red-zone-vs-windows-shadow-space)
-10. [Convention Mismatch: stdcall as cdecl](#convention-mismatch-stdcall-as-cdecl)
-11. [Mixing ABIs in One Binary: `ms_abi` / `sysv_abi`](#mixing-abis-in-one-binary-ms_abi--sysv_abi)
-12. [How FFI Glue Must Know the Convention](#how-ffi-glue-must-know-the-convention)
-13. [Production War Stories](#production-war-stories)
-14. [Best Practices](#best-practices)
-15. [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-16. [Cheat Sheet](#cheat-sheet)
-17. [Summary](#summary)
-18. [Further Reading](#further-reading)
-
----
-
 ## Introduction
 
 > Focus: **At this tier the calling convention is a production liability you own, not a textbook curiosity.** The bugs that reach you do not crash at the call site; they corrupt a struct field, scramble a `double`, smash the stack two frames down, or fault on a SIMD store inside `memcpy` — and they reproduce only on one OS, one optimization level, or one core count.

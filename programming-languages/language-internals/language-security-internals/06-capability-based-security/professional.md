@@ -5,40 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concepts](#core-concepts)
-   - [Retrofitting Least-Authority Into a Real Codebase](#retrofitting-least-authority-into-a-real-codebase)
-   - [Object-Capability Discipline in Practice](#object-capability-discipline-in-practice)
-   - [WASI Capability Filesystem for Plugin and Edge Sandboxing](#wasi-capability-filesystem-for-plugin-and-edge-sandboxing)
-   - [Macaroons and Capability Tokens in Distributed Systems](#macaroons-and-capability-tokens-in-distributed-systems)
-   - [Revocation: The Caretaker and Membrane Patterns](#revocation-the-caretaker-and-membrane-patterns)
-   - [Supply-Chain Defense Through Capability Confinement](#supply-chain-defense-through-capability-confinement)
-   - [Migrating an ACL/RBAC System Toward Capabilities](#migrating-an-aclrbac-system-toward-capabilities)
-   - [Production Capability Systems: seL4 and Fuchsia Handles](#production-capability-systems-sel4-and-fuchsia-handles)
-5. [Real-World Analogies](#real-world-analogies)
-6. [Mental Models](#mental-models)
-7. [Code Examples](#code-examples)
-8. [Pros & Cons](#pros--cons)
-9. [Use Cases](#use-cases)
-10. [Coding Patterns](#coding-patterns)
-11. [Best Practices](#best-practices)
-12. [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-13. [War Stories](#war-stories)
-14. [Common Mistakes](#common-mistakes)
-15. [Tricky Points](#tricky-points)
-16. [Test Yourself](#test-yourself)
-17. [Cheat Sheet](#cheat-sheet)
-18. [Summary](#summary)
-19. [What You Can Build](#what-you-can-build)
-20. [Further Reading](#further-reading)
-21. [Diagrams & Visual Aids](#diagrams--visual-aids)
-
----
-
 ## Introduction
 
 At the senior tier you learned *where* capabilities are enforced — the kernel, the language realm, the sandbox ABI — and the machinery (membranes, macaroons, derivation trees) that keeps the model sound. At the professional tier the question changes from "what enforces it" to "how do I retrofit this into a hundred-thousand-line service without halting feature work, and how do I justify the cost to the people who pay for it."

@@ -8,15 +8,6 @@
 
 These questions probe whether you understand weak references as a *lifetime-decoupling tool* rather than a "maybe-pointer" trick. Interviewers look for three things: that you can name the clearing contract of each strength tier, that you can spot the strong reference that secretly defeats a weak one (self-pinning, lapsed-listener), and that you reflexively handle the use-after-check race by capturing into a strong local. Concrete language details (Java tiers, Rust `upgrade()`, Swift `weak`/`unowned`, Python weak dicts, JS/Go non-determinism) separate people who have read about weak refs from people who have shipped them.
 
-## Table of Contents
-
-- [Conceptual](#conceptual)
-- [Tool-Specific](#tool-specific)
-- [Tricky / Trap](#tricky--trap)
-- [Design](#design)
-
----
-
 ## Conceptual
 
 ## Question 1

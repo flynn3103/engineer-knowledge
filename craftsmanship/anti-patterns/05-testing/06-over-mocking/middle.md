@@ -4,25 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [The One Question: Is This a Boundary?](#the-one-question-is-this-a-boundary)
-4. [What to Mock — and What Not To](#what-to-mock--and-what-not-to)
-5. [Don't Mock What You Don't Own](#dont-mock-what-you-dont-own)
-6. [Fakes Over Mocks for Stateful Collaborators](#fakes-over-mocks-for-stateful-collaborators)
-7. [Side by Side: Mock-Heavy vs Fake-Based](#side-by-side-mock-heavy-vs-fake-based)
-8. [Assert Outcomes, Not Interactions](#assert-outcomes-not-interactions)
-9. [Common Mistakes](#common-mistakes)
-10. [Test Yourself](#test-yourself)
-11. [Cheat Sheet](#cheat-sheet)
-12. [Summary](#summary)
-13. [Further Reading](#further-reading)
-14. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **When to mock and when NOT to.** Mock at boundaries; fake your repositories; never mock value objects or what you don't own; assert outcomes.

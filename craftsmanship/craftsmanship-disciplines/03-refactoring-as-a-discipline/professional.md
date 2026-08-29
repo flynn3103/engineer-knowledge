@@ -7,24 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Refactoring Is Not a Ticket](#refactoring-is-not-a-ticket)
-3. [Selling Refactoring Time to Management](#selling-refactoring-time-to-management)
-4. [Refactoring in Code Review](#refactoring-in-code-review)
-5. [Metrics That Track the Discipline](#metrics-that-track-the-discipline)
-6. [The Mikado Method](#the-mikado-method)
-7. [Rolling Out the Discipline Across a Team](#rolling-out-the-discipline-across-a-team)
-8. [Avoiding the Refactoring-as-Rewrite Disaster](#avoiding-the-refactoring-as-rewrite-disaster)
-9. [Real Incidents](#real-incidents)
-10. [Team Conventions](#team-conventions)
-11. [Cheat Sheet](#cheat-sheet)
-12. [Diagrams](#diagrams)
-13. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **production** — what refactoring costs and protects once a team, a backlog, and a manager are involved.

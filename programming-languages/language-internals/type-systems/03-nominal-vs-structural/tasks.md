@@ -22,15 +22,6 @@ someone else, not merely when the program compiles. Solutions are sparse and
 appear only where the canonical answer is more instructive than your first
 attempt.
 
-## Table of Contents
-
-- [Warm-Up](#warm-up)
-- [Core](#core)
-- [Advanced](#advanced)
-- [Capstone](#capstone)
-
----
-
 ## Warm-Up
 
 These rebuild the mental model. Short, but each introduces a primitive or a

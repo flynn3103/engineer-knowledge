@@ -4,25 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [The Four Shapes](#the-four-shapes)
-4. [Shape 1 — Per-Item RPC → Bulk Call](#shape-1--per-item-rpc--bulk-call)
-5. [Shape 2 — Query-in-Loop → Preload a Map](#shape-2--query-in-loop--preload-a-map)
-6. [Shape 3 — Invariant Recomputed → Hoist It Out](#shape-3--invariant-recomputed--hoist-it-out)
-7. [Shape 4 — Nested-Loop Membership → Set](#shape-4--nested-loop-membership--set)
-8. [Picking the Right Cure](#picking-the-right-cure)
-9. [Common Mistakes](#common-mistakes)
-10. [Test Yourself](#test-yourself)
-11. [Cheat Sheet](#cheat-sheet)
-12. [Summary](#summary)
-13. [Further Reading](#further-reading)
-14. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Spotting the different shapes, and applying the right fix to each.**

@@ -10,18 +10,6 @@ These exercises build variance intuition by *doing*: predicting compiler decisio
 
 Work top to bottom: the warm-ups establish the four variances, the middle tier drills function variance and PECS, and the final tier puts you in the reviewer's seat diagnosing shipped unsoundness.
 
-## Table of Contents
-
-- [Tier 1 — Foundations](#tier-1--foundations)
-- [Tier 2 — Function Variance & PECS](#tier-2--function-variance--pecs)
-- [Tier 3 — Declaration-Site & Use-Site](#tier-3--declaration-site--use-site)
-- [Tier 4 — Real-World Unsoundness](#tier-4--real-world-unsoundness)
-- [Tier 5 — Design Challenges](#tier-5--design-challenges)
-- [Hints](#hints)
-- [Solutions](#solutions)
-
----
-
 ## Tier 1 — Foundations
 
 ### Task 1.1 — Classify the variance

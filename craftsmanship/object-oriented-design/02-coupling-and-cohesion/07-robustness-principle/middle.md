@@ -7,26 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Why Leniency Is Hidden Coupling](#why-leniency-is-hidden-coupling)
-3. [The Tolerant Reader Pattern — Done Right](#the-tolerant-reader-pattern--done-right)
-4. [Additive vs. Malformed: The Decision That Matters](#additive-vs-malformed-the-decision-that-matters)
-5. [A Parser-Differential Bug, Step by Step](#a-parser-differential-bug-step-by-step)
-6. [Where to Validate Strictly: Trust Boundaries](#where-to-validate-strictly-trust-boundaries)
-7. [Leniency and Versioning](#leniency-and-versioning)
-8. [When Leniency Is Safe vs. Dangerous](#when-leniency-is-safe-vs-dangerous)
-9. [Trade-offs](#trade-offs)
-10. [Edge Cases](#edge-cases)
-11. [Tricky Points](#tricky-points)
-12. [Best Practices](#best-practices)
-13. [Test Yourself](#test-yourself)
-14. [Summary](#summary)
-15. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **Why** and **When**

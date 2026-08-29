@@ -4,21 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Structure and behavior as separable changes](#structure-and-behavior-as-separable-changes)
-2. [Why small reversible steps reduce risk](#why-small-reversible-steps-reduce-risk)
-3. [Reviewability as a first-class property](#reviewability-as-a-first-class-property)
-4. [The deep why: coupling and cohesion](#the-deep-why-coupling-and-cohesion)
-5. [The WHEN decision: First / After / Later / Never](#the-when-decision-first--after--later--never)
-6. [When tidying is premature](#when-tidying-is-premature)
-7. [Tidying as optionality (bridge to economics)](#tidying-as-optionality-bridge-to-economics)
-8. [Worked analysis: a coupling-driven tidying](#worked-analysis-a-coupling-driven-tidying)
-9. [Diagrams](#diagrams)
-10. [Related Topics](#related-topics)
-
----
-
 ## Structure and behavior as separable changes
 
 The entire discipline rests on one claim: **a change to structure and a change to behavior are two different *kinds* of change, and they can — and should — be performed separately.**

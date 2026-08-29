@@ -1,23 +1,5 @@
 # What Is Legacy Code — Professional
 
-## Table of Contents
-
-- [Leading legacy work, not just doing it](#leading-legacy-work-not-just-doing-it)
-- [Reframing "legacy" for stakeholders](#reframing-legacy-for-stakeholders)
-- [The economic framing that gets buy-in](#the-economic-framing-that-gets-buy-in)
-- [A decision framework for legacy investment](#a-decision-framework-for-legacy-investment)
-- [War story 1: the discount that couldn't be touched](#war-story-1-the-discount-that-couldnt-be-touched)
-- [War story 2: the rewrite that ate a year](#war-story-2-the-rewrite-that-ate-a-year)
-- [War story 3: the load-bearing engineer](#war-story-3-the-load-bearing-engineer)
-- [Team dynamics and incentives](#team-dynamics-and-incentives)
-- [Operating checklists](#operating-checklists)
-- [Metrics that actually mean something](#metrics-that-actually-mean-something)
-- [Common pitfalls at the leadership level](#common-pitfalls-at-the-leadership-level)
-- [Preventing new legacy: the inflow problem](#preventing-new-legacy-the-inflow-problem)
-- [Related Topics](#related-topics)
-
----
-
 ## Leading legacy work, not just doing it
 
 By staff and principal level, your relationship to legacy code changes shape. You spend less time personally writing characterization tests and more time on three things: **framing** legacy work so the business funds it, **sequencing** it so it ships value continuously instead of disappearing into a black hole, and **changing the team's habits** so the inflow of new legacy code slows. The technical definition — code without tests — is settled. The hard part is now organizational: legacy code is as much a problem of incentives, communication, and risk management as of engineering technique.

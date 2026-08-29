@@ -5,29 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [How Did the Codebase Get Here? — Root-Cause Forces](#how-did-the-codebase-get-here--root-cause-forces)
-4. [Designing Concurrency Shape: The Four Axes](#designing-concurrency-shape-the-four-axes)
-5. [`await` in a Loop: Serialization, Bounded Parallelism, Backpressure](#await-in-a-loop-serialization-bounded-parallelism-backpressure)
-6. [When Sequential `await` Is Correct](#when-sequential-await-is-correct)
-7. [The N+1 Async Query Problem and DataLoader Batching](#the-n1-async-query-problem-and-dataloader-batching)
-8. [Streaming vs Buffering Large Fan-Outs](#streaming-vs-buffering-large-fan-outs)
-9. [Cancellation and Timeouts Across Fan-Out](#cancellation-and-timeouts-across-fan-out)
-10. [Promise Chain Hell: Flattening at Scale](#promise-chain-hell-flattening-at-scale)
-11. [Migrating a Legacy Callback Codebase at Scale](#migrating-a-legacy-callback-codebase-at-scale)
-12. [Preventing Shape Decay: Lint, Review, Perf Budgets](#preventing-shape-decay-lint-review-perf-budgets)
-13. [Common Mistakes](#common-mistakes)
-14. [Test Yourself](#test-yourself)
-15. [Cheat Sheet](#cheat-sheet)
-16. [Summary](#summary)
-17. [Further Reading](#further-reading)
-18. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **How did the codebase get here?** and **How do I fix the shape safely at scale?**

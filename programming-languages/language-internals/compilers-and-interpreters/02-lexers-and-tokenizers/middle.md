@@ -5,21 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Tokens as a Regular Language](#tokens-as-a-regular-language)
-3. [From Regex to a Scanning Automaton](#from-regex-to-a-scanning-automaton)
-4. [Maximal Munch](#maximal-munch)
-5. [Keywords, Identifiers, and Interning](#keywords-identifiers-and-interning)
-6. [Generators vs Hand-Written](#generators-vs-hand-written)
-7. [Code Examples](#code-examples)
-8. [Best Practices](#best-practices)
-9. [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-10. [Summary](#summary)
-
----
-
 ## Introduction
 
 A lexer turns a flat stream of characters into a stream of tokens — the atoms the

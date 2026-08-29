@@ -5,27 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [The Problem You Inherit: A Wrong Abstraction With 200 Callers](#the-problem-you-inherit-a-wrong-abstraction-with-200-callers)
-4. [Why a Shared Abstraction *Is* Coupling](#why-a-shared-abstraction-is-coupling)
-5. [Metz's Path: Inline It Back to Duplication First](#metzs-path-inline-it-back-to-duplication-first)
-6. [A Worked Unwind, Step by Step](#a-worked-unwind-step-by-step)
-7. [The Inline IS a Codemod: Doing It Across the Codebase](#the-inline-is-a-codemod-doing-it-across-the-codebase)
-8. [Where to Aim: Hotspots, Not Every Abstraction](#where-to-aim-hotspots-not-every-abstraction)
-9. [Extract-vs-Wait: The Senior Judgment Call](#extract-vs-wait-the-senior-judgment-call)
-10. [Keeping It From Regrowing: Fitness Functions](#keeping-it-from-regrowing-fitness-functions)
-11. [Common Mistakes](#common-mistakes)
-12. [Test Yourself](#test-yourself)
-13. [Cheat Sheet](#cheat-sheet)
-14. [Summary](#summary)
-15. [Further Reading](#further-reading)
-16. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Unwinding a wrong abstraction at scale** — when the premature design is no longer a clever class but a load-bearing dependency that hundreds of files import, and the cure is to go *backwards*: inline it to duplication so the real seams reveal themselves.

@@ -4,28 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Building a Practice Culture on a Team](#building-a-practice-culture-on-a-team)
-4. [Running Dojos at Work](#running-dojos-at-work)
-5. [Learning Hours and Protected Time](#learning-hours-and-protected-time)
-6. [Mentoring Through Practice](#mentoring-through-practice)
-7. [Measuring Growth (Without Gaming It)](#measuring-growth-without-gaming-it)
-8. [Sustaining the Habit](#sustaining-the-habit)
-9. [Conferences, Coderetreats, and the Global Day](#conferences-coderetreats-and-the-global-day)
-10. [Best Practices](#best-practices)
-11. [Common Mistakes](#common-mistakes)
-12. [Tricky Points](#tricky-points)
-13. [Test Yourself](#test-yourself)
-14. [Cheat Sheet](#cheat-sheet)
-15. [Summary](#summary)
-16. [Further Reading](#further-reading)
-17. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **How do I make practice a sustained team and organizational habit?**

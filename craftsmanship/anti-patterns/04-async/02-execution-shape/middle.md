@@ -5,26 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [The Real Question: When Does This Creep In?](#the-real-question-when-does-this-creep-in)
-4. [`await` in a Loop — Parallel vs Sequential](#await-in-a-loop--parallel-vs-sequential)
-5. [The Trap: Unbounded `Promise.all` Is a DoS on Yourself](#the-trap-unbounded-promiseall-is-a-dos-on-yourself)
-6. [Bounded Fan-Out — The Concurrency You Actually Want](#bounded-fan-out--the-concurrency-you-actually-want)
-7. [Promise Chain Hell / Callback Pyramid — Flattening to `async/await`](#promise-chain-hell--callback-pyramid--flattening-to-asyncawait)
-8. [Mixing Callbacks and Promises — Standardize at the Boundary](#mixing-callbacks-and-promises--standardize-at-the-boundary)
-9. [Tooling and Lint](#tooling-and-lint)
-10. [Common Mistakes](#common-mistakes)
-11. [Test Yourself](#test-yourself)
-12. [Cheat Sheet](#cheat-sheet)
-13. [Summary](#summary)
-14. [Further Reading](#further-reading)
-15. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **When does this creep in?** and **What do I do instead?**

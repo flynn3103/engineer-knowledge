@@ -5,27 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concept 1 — Security Review Is Data-Flow Review Across Trust Boundaries](#core-concept-1--security-review-is-data-flow-review-across-trust-boundaries)
-5. [Core Concept 2 — The OWASP-Aligned Review Checklist](#core-concept-2--the-owasp-aligned-review-checklist)
-6. [Core Concept 3 — When to Escalate, and Threat-Modeling Lite for a PR](#core-concept-3--when-to-escalate-and-threat-modeling-lite-for-a-pr)
-7. [Core Concept 4 — Performance Review Is the Read-vs-Measure Discipline](#core-concept-4--performance-review-is-the-read-vs-measure-discipline)
-8. [Core Concept 5 — The Structural Perf Bugs You Can Flag by Reading](#core-concept-5--the-structural-perf-bugs-you-can-flag-by-reading)
-9. [Real-World Examples](#real-world-examples)
-10. [Mental Models](#mental-models)
-11. [Common Mistakes](#common-mistakes)
-12. [Test Yourself](#test-yourself)
-13. [Cheat Sheet](#cheat-sheet)
-14. [Summary](#summary)
-15. [Further Reading](#further-reading)
-16. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Where does untrusted data enter, what does it touch, and which slowness can I see versus which must I measure?**

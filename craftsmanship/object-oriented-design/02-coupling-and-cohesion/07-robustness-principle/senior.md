@@ -7,24 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [The Critique, Stated Fairly: "Considered Harmful"](#the-critique-stated-fairly-considered-harmful)
-3. [Protocol Ossification: How Tolerance Freezes a System](#protocol-ossification-how-tolerance-freezes-a-system)
-4. [Parser Differentials as a Security Class](#parser-differentials-as-a-security-class)
-5. [The HTML5 Reaction: Specify the Leniency](#the-html5-reaction-specify-the-leniency)
-6. [The Coupling Theory Underneath](#the-coupling-theory-underneath)
-7. [The Counter-Movement: Be Strict in What You Accept](#the-counter-movement-be-strict-in-what-you-accept)
-8. [A Defensible Synthesis](#a-defensible-synthesis)
-9. [Code: From Differential to Canonical](#code-from-differential-to-canonical)
-10. [Liabilities](#liabilities)
-11. [Pros & Cons at the System Level](#pros--cons-at-the-system-level)
-12. [Diagrams](#diagrams)
-13. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **design trade-offs** and **system-level reasoning**

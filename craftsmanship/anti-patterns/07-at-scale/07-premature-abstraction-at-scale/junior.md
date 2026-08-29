@@ -5,27 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [The Shapes at a Glance](#the-shapes-at-a-glance)
-5. [The One-Implementation Interface](#the-one-implementation-interface)
-6. [A Config Option Nobody Sets](#a-config-option-nobody-sets)
-7. [A Generic Framework for a Single Use Case](#a-generic-framework-for-a-single-use-case)
-8. [Wrapper-itis: Layers That Only Forward](#wrapper-itis-layers-that-only-forward)
-9. [The Rule You Will Hear Most: "Duplication Is Cheaper Than the Wrong Abstraction"](#the-rule-you-will-hear-most-duplication-is-cheaper-than-the-wrong-abstraction)
-10. [A Spotting Checklist](#a-spotting-checklist)
-11. [Common Mistakes](#common-mistakes)
-12. [Test Yourself](#test-yourself)
-13. [Cheat Sheet](#cheat-sheet)
-14. [Summary](#summary)
-15. [Further Reading](#further-reading)
-16. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **What premature abstraction looks like.**

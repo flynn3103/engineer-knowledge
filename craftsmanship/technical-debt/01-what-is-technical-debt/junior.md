@@ -5,27 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concept 1 — The Debt Metaphor: Principal and Interest](#core-concept-1--the-debt-metaphor-principal-and-interest)
-5. [Core Concept 2 — Debt Is Not Always Bad](#core-concept-2--debt-is-not-always-bad)
-6. [Core Concept 3 — Debt Is Not Bugs, and Not "Code I Dislike"](#core-concept-3--debt-is-not-bugs-and-not-code-i-dislike)
-7. [Core Concept 4 — The Everyday Debt a Junior Creates](#core-concept-4--the-everyday-debt-a-junior-creates)
-8. [Core Concept 5 — Why Debt Compounds](#core-concept-5--why-debt-compounds)
-9. [Real-World Examples](#real-world-examples)
-10. [Mental Models](#mental-models)
-11. [Common Mistakes](#common-mistakes)
-12. [Test Yourself](#test-yourself)
-13. [Cheat Sheet](#cheat-sheet)
-14. [Summary](#summary)
-15. [Further Reading](#further-reading)
-16. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **What is technical debt, really — and why does the metaphor matter?**

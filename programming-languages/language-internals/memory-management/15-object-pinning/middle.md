@@ -5,24 +5,6 @@
 
 ---
 
-## Table of Contents
-
-- [Introduction](#introduction)
-- [Prerequisites](#prerequisites)
-- [Glossary](#glossary)
-- [Core Concepts](#core-concepts)
-- [Mechanisms by Runtime](#mechanisms-by-runtime)
-- [Mental Models](#mental-models)
-- [Code Examples](#code-examples)
-- [The Cost of Pinning](#the-cost-of-pinning)
-- [Coding Patterns](#coding-patterns)
-- [Pros & Cons](#pros--cons)
-- [Best Practices](#best-practices)
-- [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-- [Summary](#summary)
-
----
-
 ## Introduction
 
 The junior tier established *why* pinning exists: a moving GC relocates live objects, the GC rewrites managed references, but raw addresses held outside the runtime would be left dangling. This tier gets concrete. You will see the actual APIs — .NET's `fixed`, `GCHandle`, and `Memory<T>.Pin()`; the JVM's JNI critical regions; Go's `runtime.Pinner` — and you will understand the **mechanics and the cost**: how a pinned object becomes an immovable island that fragments a compacting heap, and how each runtime tries to limit the damage.

@@ -5,25 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Why "Change It and Fix All Callers" Fails](#why-change-it-and-fix-all-callers-fails)
-5. [What a Contract Is](#what-a-contract-is)
-6. [The Three Steps](#the-three-steps)
-7. [Worked Example: Renaming a Parameter Safely](#worked-example-renaming-a-parameter-safely)
-8. [Why Three Steps Beat One](#why-three-steps-beat-one)
-9. [Common Mistakes](#common-mistakes)
-10. [Test Yourself](#test-yourself)
-11. [Cheat Sheet](#cheat-sheet)
-12. [Summary](#summary)
-13. [Further Reading](#further-reading)
-14. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Why "change the signature and fix all callers in one commit" fails at scale.**

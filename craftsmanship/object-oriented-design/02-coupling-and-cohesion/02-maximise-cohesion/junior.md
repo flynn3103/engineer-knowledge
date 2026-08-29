@@ -4,32 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [What Cohesion Means](#what-cohesion-means)
-5. [Cohesion Is the Complement of Coupling](#cohesion-is-the-complement-of-coupling)
-6. [The Cohesion Spectrum](#the-cohesion-spectrum)
-7. [The `utils` / `helpers` / `misc` Anti-Pattern](#the-utils--helpers--misc-anti-pattern)
-8. [The God Class: Cohesion's Opposite](#the-god-class-cohesions-opposite)
-9. [Real-World Analogies](#real-world-analogies)
-10. [Mental Models](#mental-models)
-11. [A Worked Example: Splitting a Low-Cohesion Class](#a-worked-example-splitting-a-low-cohesion-class)
-12. [Code Examples](#code-examples)
-13. [Best Practices](#best-practices)
-14. [Common Mistakes](#common-mistakes)
-15. [Tricky Points](#tricky-points)
-16. [Test Yourself](#test-yourself)
-17. [Cheat Sheet](#cheat-sheet)
-18. [Summary](#summary)
-19. [Further Reading](#further-reading)
-20. [Related Topics](#related-topics)
-21. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **What is it?** and **How to use it?**

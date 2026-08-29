@@ -9,21 +9,6 @@
 
 These questions test a precise, mechanical understanding of the static/dynamic distinction — not slogans. A strong candidate keeps three things straight that weak candidates blur: (1) *when* types are checked (compile time vs run time) is a different axis from *strong vs weak* (whether the language coerces); (2) static typing's guarantee is **soundness relative to the errors it models**, not "no bugs"; and (3) the real world is mostly **gradual** — dynamic languages with optional static checking — where the `any` escape hatch and erasure decide whether the guarantee survives. The questions move from foundational vocabulary, through language-specific surfaces, into traps where the textbook answer is wrong, and finally to design judgment.
 
-## Table of Contents
-
-- [Conceptual / Foundational](#conceptual--foundational)
-- [Language-Specific](#language-specific)
-  - [Java](#java)
-  - [TypeScript](#typescript)
-  - [Python](#python)
-  - [Go](#go)
-  - [Haskell](#haskell)
-  - [Ruby](#ruby)
-- [Tricky / Trap](#tricky--trap)
-- [Design](#design)
-
----
-
 ## Conceptual / Foundational
 
 ## Question 1

@@ -7,23 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Enforcing the Principle in Code Review](#enforcing-the-principle-in-code-review)
-3. [Performance Budgets as a Team Practice](#performance-budgets-as-a-team-practice)
-4. [Continuous Profiling and Observability](#continuous-profiling-and-observability)
-5. [Team Conventions](#team-conventions)
-6. [Optimizing Legacy Systems Safely](#optimizing-legacy-systems-safely)
-7. [Real Incidents](#real-incidents)
-8. [The Politics of Performance](#the-politics-of-performance)
-9. [Review Checklist](#review-checklist)
-10. [Cheat Sheet](#cheat-sheet)
-11. [Diagrams](#diagrams)
-12. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **production** — keeping a large, multi-contributor codebase correctly optimized over years.

@@ -4,28 +4,6 @@
 
 ---
 
-## Table of Contents
-- [Introduction](#introduction)
-- [Prerequisites](#prerequisites)
-- [Glossary](#glossary)
-- [Core Concepts](#core-concepts)
-  - [Where things live, language by language](#where-things-live-language-by-language)
-  - [Value vs reference semantics](#value-vs-reference-semantics)
-  - [Boxing and the cost of indirection](#boxing-and-the-cost-of-indirection)
-  - [Growable stacks: goroutines and green threads](#growable-stacks-goroutines-and-green-threads)
-  - [Fragmentation is a heap-only problem](#fragmentation-is-a-heap-only-problem)
-- [Mental Models](#mental-models)
-- [Code Examples](#code-examples)
-- [Design Trade-offs](#design-trade-offs)
-- [Pros & Cons](#pros--cons)
-- [Use Cases](#use-cases)
-- [Coding Patterns](#coding-patterns)
-- [Best Practices](#best-practices)
-- [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-- [Summary](#summary)
-
----
-
 ## Introduction
 
 A senior engineer does not ask "stack or heap?" in isolation; they ask "what does *this language's* allocation model commit me to, and how do I design around it?" Rust's borrow checker, Go's escape analysis, Java's everything-is-a-reference object model, and Python's everything-is-a-heap-object model are four very different answers to the same question, each with a coherent set of trade-offs.

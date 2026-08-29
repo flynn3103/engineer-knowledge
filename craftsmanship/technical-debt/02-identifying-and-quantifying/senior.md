@@ -5,29 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Principal vs Interest — The Shift That Changes Everything](#principal-vs-interest--the-shift-that-changes-everything)
-4. [Behavioral Code Analysis — Reading the Version Control](#behavioral-code-analysis--reading-the-version-control)
-5. [Change Coupling — The Debt Static Tools Cannot See](#change-coupling--the-debt-static-tools-cannot-see)
-6. [Complexity Trend — Debt Is a Derivative, Not a Level](#complexity-trend--debt-is-a-derivative-not-a-level)
-7. [Knowledge Maps, Bus Factor, and Abandoned Code](#knowledge-maps-bus-factor-and-abandoned-code)
-8. [Modeling Total Debt Cost — Σ(interest × future change)](#modeling-total-debt-cost--σinterest--future-change)
-9. [The Anti-Metrics — What Not to Measure and Why](#the-anti-metrics--what-not-to-measure-and-why)
-10. [Triangulating a Defensible Estimate](#triangulating-a-defensible-estimate)
-11. [Presenting Uncertainty Honestly](#presenting-uncertainty-honestly)
-12. [Mental Models](#mental-models)
-13. [Common Mistakes](#common-mistakes)
-14. [Test Yourself](#test-yourself)
-15. [Cheat Sheet](#cheat-sheet)
-16. [Summary](#summary)
-17. [Further Reading](#further-reading)
-18. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Producing a debt measurement rigorous enough to fund a refactor — by weighting every signal by how often the code is actually touched, and being honest about the error bars.**

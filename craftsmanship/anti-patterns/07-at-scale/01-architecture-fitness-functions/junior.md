@@ -5,25 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [A Test for the Shape, Not the Output](#a-test-for-the-shape-not-the-output)
-5. [The Simplest Rule: A Forbidden Dependency](#the-simplest-rule-a-forbidden-dependency)
-6. [Hello, World — Three Tools](#hello-world--three-tools)
-7. [Why a Wiki Rule Is Not Enforcement](#why-a-wiki-rule-is-not-enforcement)
-8. [Reading Your First Violation](#reading-your-first-violation)
-9. [Common Mistakes](#common-mistakes)
-10. [Test Yourself](#test-yourself)
-11. [Cheat Sheet](#cheat-sheet)
-12. [Summary](#summary)
-13. [Further Reading](#further-reading)
-14. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **What is a fitness function?** and **Why automate "module A must not import module B"?**

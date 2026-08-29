@@ -7,24 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Standing Up an RFC Process That Survives](#standing-up-an-rfc-process-that-survives)
-3. [The Org-Wide Template](#the-org-wide-template)
-4. [Tooling and Where Docs Live](#tooling-and-where-docs-live)
-5. [Metrics: Measuring a Healthy Process](#metrics-measuring-a-healthy-process)
-6. [Scaling the Decider Role](#scaling-the-decider-role)
-7. [The Doc/RFC/ADR Pipeline in Production](#the-docrfcadr-pipeline-in-production)
-8. [Real Incidents](#real-incidents)
-9. [The Politics of Process](#the-politics-of-process)
-10. [Review Checklist](#review-checklist)
-11. [Cheat Sheet](#cheat-sheet)
-12. [Diagrams](#diagrams)
-13. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **production** — running the design-doc/RFC process across many teams over years.

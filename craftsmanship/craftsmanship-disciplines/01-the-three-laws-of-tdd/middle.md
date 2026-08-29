@@ -7,27 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [The Rhythm: Nano, Micro, Macro Cycles](#the-rhythm-nano-micro-macro-cycles)
-3. [Two Ways Through Green: Fake It vs Obvious Implementation vs Triangulation](#two-ways-through-green)
-4. [The Refactor Step in Practice](#the-refactor-step-in-practice)
-5. [What to Test First — Choosing the Next Test](#what-to-test-first-choosing-the-next-test)
-6. [Mocking the Boundaries](#mocking-the-boundaries)
-7. [When the Laws Bite](#when-the-laws-bite)
-8. [Applying the Laws to a Bug Fix](#applying-the-laws-to-a-bug-fix)
-9. [Mechanics Across Languages](#mechanics-across-languages)
-10. [Trade-offs](#trade-offs)
-11. [Edge Cases](#edge-cases)
-12. [Tricky Points](#tricky-points)
-13. [Best Practices](#best-practices)
-14. [Test Yourself](#test-yourself)
-15. [Summary](#summary)
-16. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **Why** and **When**

@@ -7,27 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [The Double Loop in Depth](#the-double-loop-in-depth)
-3. [BDD and Gherkin Properly](#bdd-and-gherkin-properly)
-4. [The Three Amigos](#the-three-amigos)
-5. [Where Acceptance Tests Plug Into the Stack](#where-acceptance-tests-plug-into-the-stack)
-6. [Tooling: Cucumber, behave, SpecFlow](#tooling-cucumber-behave-specflow)
-7. [Scenario Outlines and Data Tables](#scenario-outlines-and-data-tables)
-8. [Driving a Feature Outside-In](#driving-a-feature-outside-in)
-9. [When to Use ATDD — and When Not](#when-to-use-atdd-and-when-not)
-10. [Trade-offs](#trade-offs)
-11. [Edge Cases](#edge-cases)
-12. [Tricky Points](#tricky-points)
-13. [Best Practices](#best-practices)
-14. [Test Yourself](#test-yourself)
-15. [Summary](#summary)
-16. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **Why** and **When**

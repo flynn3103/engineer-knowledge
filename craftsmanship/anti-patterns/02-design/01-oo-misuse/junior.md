@@ -5,29 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [The Eleven at a Glance](#the-eleven-at-a-glance)
-5. [Anemic Domain Model](#anemic-domain-model)
-6. [Flag Arguments](#flag-arguments)
-7. [Telescoping Constructor](#telescoping-constructor)
-8. [Fragile Base Class](#fragile-base-class)
-9. [Magic Container](#magic-container)
-10. [The Rarer Six](#the-rarer-six)
-11. [How They Reinforce Each Other](#how-they-reinforce-each-other)
-12. [A Quick Spotting Checklist](#a-quick-spotting-checklist)
-13. [Common Mistakes](#common-mistakes)
-14. [Test Yourself](#test-yourself)
-15. [Cheat Sheet](#cheat-sheet)
-16. [Summary](#summary)
-17. [Further Reading](#further-reading)
-18. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **What does it look like?** and **Why is it bad?** — recognition over repair.

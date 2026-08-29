@@ -7,22 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Enforcing Cohesion in Code Review](#enforcing-cohesion-in-code-review)
-3. [Measuring Cohesion at Scale](#measuring-cohesion-at-scale)
-4. [Team Conventions for Cohesion](#team-conventions-for-cohesion)
-5. [Refactoring Toward Cohesion in Legacy Systems](#refactoring-toward-cohesion-in-legacy-systems)
-6. [Real Incidents](#real-incidents)
-7. [The Politics of Cohesion](#the-politics-of-cohesion)
-8. [Review Checklist](#review-checklist)
-9. [Cheat Sheet](#cheat-sheet)
-10. [Diagrams](#diagrams)
-11. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **production** — keeping a large, multi-contributor codebase cohesive over years.

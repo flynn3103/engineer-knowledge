@@ -5,25 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [The Problem: Zero-on-Legacy Doesn't Work](#the-problem-zero-on-legacy-doesnt-work)
-5. [The Idea: A Ratchet](#the-idea-a-ratchet)
-6. [The Simplest Ratchet: A Warning-Count Gate](#the-simplest-ratchet-a-warning-count-gate)
-7. [Why "Down Only" Is the Whole Trick](#why-down-only-is-the-whole-trick)
-8. [The Boy-Scout Tie-In](#the-boy-scout-tie-in)
-9. [Common Mistakes](#common-mistakes)
-10. [Test Yourself](#test-yourself)
-11. [Cheat Sheet](#cheat-sheet)
-12. [Summary](#summary)
-13. [Further Reading](#further-reading)
-14. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **"Don't make it worse."** — the single rule that lets you improve a messy codebase without first cleaning all of it.

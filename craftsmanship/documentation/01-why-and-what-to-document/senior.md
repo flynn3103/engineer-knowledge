@@ -7,22 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Documentation as Risk Management](#documentation-as-risk-management)
-3. [Diátaxis at the System Level: Architecture, Not Just Pages](#diataxis-at-the-system-level-architecture-not-just-pages)
-4. [Comparing Documentation Philosophies](#comparing-documentation-philosophies)
-5. [The Economics of the Why: Decision Capture as Compounding Asset](#the-economics-of-the-why-decision-capture-as-compounding-asset)
-6. [Documentation as a Liability](#documentation-as-a-liability)
-7. [Single Source of Truth and Generated Documentation](#single-source-of-truth-and-generated-documentation)
-8. [Choosing What to Document at Scale](#choosing-what-to-document-at-scale)
-9. [Pros & Cons at the System / Org Level](#pros--cons-at-the-system--org-level)
-10. [Diagrams](#diagrams)
-11. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **documentation strategy** and **system-level reasoning**

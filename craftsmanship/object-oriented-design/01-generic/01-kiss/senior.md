@@ -7,23 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Simple Is Not Easy: Hickey's Distinction](#simple-is-not-easy-hickeys-distinction)
-3. [The Two Ways KISS Fails](#the-two-ways-kiss-fails)
-4. [When KISS Is Weaponized](#when-kiss-is-weaponized)
-5. [The Wrong Abstraction Is Worse Than Duplication](#the-wrong-abstraction-is-worse-than-duplication)
-6. [Worse Is Better](#worse-is-better)
-7. [Deep Modules: Where Simplicity Should Live](#deep-modules-where-simplicity-should-live)
-8. [Code Examples — Advanced](#code-examples-advanced)
-9. [Liabilities](#liabilities)
-10. [Pros & Cons at the System Level](#pros-cons-at-the-system-level)
-11. [Diagrams](#diagrams)
-12. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **design trade-offs** and **system-level reasoning**

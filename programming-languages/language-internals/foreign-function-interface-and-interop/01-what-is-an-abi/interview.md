@@ -11,15 +11,6 @@ These questions probe whether you actually understand the contract that lets a c
 
 The questions are grouped: **Conceptual** (what an ABI is and how it differs from an API), **Platform-Specific** (System V AMD64, Windows x64, AArch64 AAPCS, the C++ Itanium ABI), **Tricky-Trap** (the things that compile fine and crash), and **Design** (how you would build something ABI-stable). Aim to answer in two or three precise sentences; depth beats breadth.
 
-## Table of Contents
-
-- [Conceptual](#conceptual)
-- [Platform-Specific](#platform-specific)
-- [Tricky-Trap](#tricky-trap)
-- [Design](#design)
-
----
-
 ## Conceptual
 
 ## Question 1

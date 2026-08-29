@@ -4,26 +4,6 @@
 
 ---
 
-## Table of Contents
-- [Introduction](#introduction)
-- [Prerequisites](#prerequisites)
-- [Glossary](#glossary)
-- [Core Concepts](#core-concepts)
-  - [The reachability spectrum](#the-reachability-spectrum)
-  - [The clearing lifecycle](#the-clearing-lifecycle)
-  - [ReferenceQueue: getting notified](#referencequeue-getting-notified)
-  - [Weak-keyed vs weak-valued maps](#weak-keyed-vs-weak-valued-maps)
-- [Mental Models](#mental-models)
-- [Code Examples](#code-examples)
-- [Coding Patterns](#coding-patterns)
-- [Pros & Cons](#pros--cons)
-- [Use Cases](#use-cases)
-- [Best Practices](#best-practices)
-- [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-- [Summary](#summary)
-
----
-
 ## Introduction
 
 At the junior level a weak reference was a "maybe-pointer." Now we look at *how* the runtime decides when to clear it, *how* it can tell you that clearing happened, and *how* the standard library packages all of this into ready-made collections (`WeakHashMap`, `WeakValueDictionary`, `WeakMap`). The recurring decision you'll learn to make is **which strength to use** and **which side of a map to make weak** — choosing wrong silently leaks memory or silently loses data.

@@ -7,27 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [The Four-Phase Test](#the-four-phase-test)
-3. [The F.I.R.S.T. Principles](#the-first-principles)
-4. [Fixture Lifecycle: Fresh vs Shared](#fixture-lifecycle-fresh-vs-shared)
-5. [Object Mother vs Test Data Builder](#object-mother-vs-test-data-builder)
-6. [Test Doubles: Dummy, Stub, Spy, Mock, Fake](#test-doubles-dummy-stub-spy-mock-fake)
-7. [One Assert vs One Concept](#one-assert-vs-one-concept)
-8. [Parameterized Tests](#parameterized-tests)
-9. [Naming Tests Well](#naming-tests-well)
-10. [Trade-offs](#trade-offs)
-11. [Edge Cases](#edge-cases)
-12. [Tricky Points](#tricky-points)
-13. [Best Practices](#best-practices)
-14. [Test Yourself](#test-yourself)
-15. [Summary](#summary)
-16. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **Why** and **When**

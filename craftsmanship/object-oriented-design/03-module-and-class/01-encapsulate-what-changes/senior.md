@@ -7,24 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Volatility-Based Decomposition as an Architectural Stance](#volatility-based-decomposition-as-an-architectural-stance)
-3. [The Prediction Problem: Why the Axis Is Hard to Guess](#the-prediction-problem-why-the-axis-is-hard-to-guess)
-4. [The Cost of the Wrong Axis](#the-cost-of-the-wrong-axis)
-5. [The Abstraction Tax: When Encapsulation Is Net-Negative](#the-abstraction-tax-when-encapsulation-is-net-negative)
-6. [Reversibility and the Last Responsible Moment](#reversibility-and-the-last-responsible-moment)
-7. [Encapsulate What Changes as the Root of OCP, DIP, and SRP](#encapsulate-what-changes-as-the-root-of-ocp-dip-and-srp)
-8. [Connascence Across the Boundary](#connascence-across-the-boundary)
-9. [Code Examples — Advanced](#code-examples-advanced)
-10. [Liabilities](#liabilities)
-11. [Pros & Cons at the System Level](#pros-cons-at-the-system-level)
-12. [Diagrams](#diagrams)
-13. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **design trade-offs** and **system-level reasoning**

@@ -5,28 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Classification Is the Input to Strategy, Not the Output](#classification-is-the-input-to-strategy-not-the-output)
-4. [What Each Cell Tells You to Change in Your Process](#what-each-cell-tells-you-to-change-in-your-process)
-5. [The Quadrant as a Forensic Tool](#the-quadrant-as-a-forensic-tool)
-6. [Beyond Fowler — The SEI/Kruchten Debt Landscape](#beyond-fowler--the-seikruchten-debt-landscape)
-7. [McConnell's Taxonomy and Where Contagious Debt Sits](#mcconnells-taxonomy-and-where-contagious-debt-sits)
-8. [Debt That Migrates Cells — The Quadrant Is About Follow-Through](#debt-that-migrates-cells--the-quadrant-is-about-follow-through)
-9. [Classifying Honestly Against Hindsight Bias and Self-Serving Attribution](#classifying-honestly-against-hindsight-bias-and-self-serving-attribution)
-10. [Setting Different Policies Per Cell — Tolerate, Track, Gate](#setting-different-policies-per-cell--tolerate-track-gate)
-11. [Mental Models](#mental-models)
-12. [Common Mistakes](#common-mistakes)
-13. [Test Yourself](#test-yourself)
-14. [Cheat Sheet](#cheat-sheet)
-15. [Summary](#summary)
-16. [Further Reading](#further-reading)
-17. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Using classification to drive different engineering responses — process changes, root-cause analysis, tolerance and gating policy — and reading the richer debt models a senior reasons in.**

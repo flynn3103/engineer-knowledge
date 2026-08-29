@@ -10,15 +10,6 @@ These questions probe whether you understand what the linker actually does with 
 
 ---
 
-## Table of Contents
-
-- [Conceptual (Q1–Q9)](#conceptual)
-- [Toolchain-Specific (Q10–Q20)](#toolchain-specific)
-- [Tricky-Trap (Q21–Q28)](#tricky-trap)
-- [Design (Q29–Q32)](#design)
-
----
-
 ## Conceptual
 
 ## Question 1

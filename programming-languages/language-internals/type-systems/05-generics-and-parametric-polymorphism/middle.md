@@ -5,24 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concepts](#core-concepts)
-5. [Real-World Analogies](#real-world-analogies)
-6. [Mental Models](#mental-models)
-7. [Code Examples](#code-examples)
-8. [Pros & Cons](#pros--cons)
-9. [Use Cases](#use-cases)
-10. [Coding Patterns](#coding-patterns)
-11. [Best Practices](#best-practices)
-12. [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-13. [Summary](#summary)
-
----
-
 ## Introduction
 
 > Focus: **There is exactly one generic *source program* but several possible generic *runtimes*.** Understanding which one your language uses explains almost every practical question you'll have about generics: why Java boxes, why Rust binaries are big, why `new T()` works in C# but not Java, why C++ template errors are pages long, and why Go's generics behave like neither.

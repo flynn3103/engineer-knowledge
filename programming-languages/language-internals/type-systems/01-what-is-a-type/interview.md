@@ -11,20 +11,6 @@ These questions test whether a candidate understands the most foundational conce
 
 The progression below runs from conceptual foundations, through language-specific surfaces (Java, Python, Haskell, TypeScript, Rust), into tricky traps where the textbook answer is wrong, and ends with design scenarios that reveal whether the candidate has actually used types to eliminate bug classes in real systems.
 
-## Table of Contents
-
-- [Conceptual / Foundational](#conceptual--foundational)
-- [Language-Specific](#language-specific)
-  - [Java](#java)
-  - [Python](#python)
-  - [Haskell](#haskell)
-  - [TypeScript](#typescript)
-  - [Rust](#rust)
-- [Tricky / Trap Questions](#tricky--trap-questions)
-- [Design Scenarios](#design-scenarios)
-
----
-
 ## Conceptual / Foundational
 
 ## Question 1

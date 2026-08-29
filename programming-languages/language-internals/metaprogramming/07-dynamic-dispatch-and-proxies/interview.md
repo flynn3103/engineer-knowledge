@@ -13,15 +13,6 @@ proxies, the JS `Proxy`/`Reflect` pairing, Python `__getattr__` vs `__getattribu
 Ruby `method_missing`, and — above all — the self-invocation trap that silently
 disables proxy-based AOP.
 
-## Table of Contents
-
-- [Conceptual](#conceptual)
-- [Language-Specific](#language-specific)
-- [Tricky / Trap](#tricky--trap)
-- [Design](#design)
-
----
-
 ## Conceptual
 
 ## Question 1

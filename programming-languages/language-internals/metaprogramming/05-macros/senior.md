@@ -5,28 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concepts](#core-concepts)
-5. [Real-World Analogies](#real-world-analogies)
-6. [Mental Models](#mental-models)
-7. [Code Examples](#code-examples)
-8. [Trade-offs](#trade-offs)
-9. [Use Cases](#use-cases)
-10. [Coding Patterns](#coding-patterns)
-11. [Best Practices](#best-practices)
-12. [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-13. [Common Mistakes](#common-mistakes)
-14. [Test Yourself](#test-yourself)
-15. [Cheat Sheet](#cheat-sheet)
-16. [Summary](#summary)
-17. [Further Reading](#further-reading)
-
----
-
 ## Introduction
 
 > 🎓 At junior level you saw textual macros and their bugs. At middle level you saw Lisp's homoiconic, syntactic macros and the concept of hygiene. At senior level you must answer the engineering questions: *how do you get hygienic, structured macros into a statically typed language with no homoiconicity?* How do you parse arbitrary syntax inside a macro, generate a hundred lines of trait implementation from a `#[derive]`, and keep the error messages from becoming unreadable? The answer, in the language that took macros most seriously since Lisp, is Rust.

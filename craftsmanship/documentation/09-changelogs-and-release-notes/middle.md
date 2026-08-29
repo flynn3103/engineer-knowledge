@@ -7,27 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Conventional Commits: A Grammar for Commit Messages](#conventional-commits-a-grammar-for-commit-messages)
-3. [How Conventional Commits Encode a Semver Bump](#how-conventional-commits-encode-a-semver-bump)
-4. [The Automation Pipeline](#the-automation-pipeline)
-5. [A Worked Example: Commits to Changelog to Release](#a-worked-example-commits-to-changelog-to-release)
-6. [The Tooling Landscape](#the-tooling-landscape)
-7. [Automated vs Hand-Curated: The Core Trade-off](#automated-vs-hand-curated-the-core-trade-off)
-8. [Release Notes Are Not the Changelog](#release-notes-are-not-the-changelog)
-9. [Writing the Most Valuable Part: Migration Guides](#writing-the-most-valuable-part-migration-guides)
-10. [Deprecation Notices and Timelines](#deprecation-notices-and-timelines)
-11. [Edge Cases](#edge-cases)
-12. [Tricky Points](#tricky-points)
-13. [Best Practices](#best-practices)
-14. [Test Yourself](#test-yourself)
-15. [Summary](#summary)
-16. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **Why** and **When**

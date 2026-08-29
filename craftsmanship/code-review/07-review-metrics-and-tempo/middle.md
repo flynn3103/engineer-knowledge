@@ -5,27 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concept 1 — The Metrics That Matter](#core-concept-1--the-metrics-that-matter)
-5. [Core Concept 2 — Review Is Work in Progress (The Flow Model)](#core-concept-2--review-is-work-in-progress-the-flow-model)
-6. [Core Concept 3 — Fixing Tempo: SLAs, WIP Limits, and Review Windows](#core-concept-3--fixing-tempo-slas-wip-limits-and-review-windows)
-7. [Core Concept 4 — Reviewer Load and the Attention Ceiling](#core-concept-4--reviewer-load-and-the-attention-ceiling)
-8. [Core Concept 5 — Goodhart-Proofing Review Metrics](#core-concept-5--goodhart-proofing-review-metrics)
-9. [Real-World Examples](#real-world-examples)
-10. [Mental Models](#mental-models)
-11. [Common Mistakes](#common-mistakes)
-12. [Test Yourself](#test-yourself)
-13. [Cheat Sheet](#cheat-sheet)
-14. [Summary](#summary)
-15. [Further Reading](#further-reading)
-16. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Which review numbers tell you the truth, and how do you keep them honest?**

@@ -1,21 +1,5 @@
 # The Legacy Change Algorithm — Middle
 
-## Table of Contents
-
-- [From mnemonic to working practice](#from-mnemonic-to-working-practice)
-- [Step 1 — Identifying change points precisely](#step-1--identifying-change-points-precisely)
-- [Step 2 — Finding test points: sensing and interception](#step-2--finding-test-points-sensing-and-interception)
-- [Step 3 — Breaking dependencies to reach the point](#step-3--breaking-dependencies-to-reach-the-point)
-- [Step 4 — Writing characterization tests](#step-4--writing-characterization-tests)
-- [Step 5 — Making the change and refactoring](#step-5--making-the-change-and-refactoring)
-- [A realistic worked example](#a-realistic-worked-example)
-- [When you can't get tests in cheaply: Sprout and Wrap](#when-you-cant-get-tests-in-cheaply-sprout-and-wrap)
-- [What to do when you are stuck](#what-to-do-when-you-are-stuck)
-- [Mini Glossary](#mini-glossary)
-- [Review questions](#review-questions)
-
----
-
 ## From mnemonic to working practice
 
 At the junior level the algorithm is five verbs: Identify, Find, Break, Write, Make. That is enough to *recite*. To *execute* it on a real 400-line method that talks to four external systems, you need each step turned into concrete moves: how to actually locate the right change point, how to find a sensing point when the effect is buried, which dependency to break first, and how to write a test that pins behavior you don't fully understand.

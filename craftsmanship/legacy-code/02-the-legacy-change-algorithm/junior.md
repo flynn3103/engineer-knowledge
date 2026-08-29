@@ -1,21 +1,5 @@
 # The Legacy Change Algorithm — Junior
 
-## Table of Contents
-
-- [Why you need an algorithm at all](#why-you-need-an-algorithm-at-all)
-- [The five steps, memorized](#the-five-steps-memorized)
-- [An analogy: operating with a heart monitor on](#an-analogy-operating-with-a-heart-monitor-on)
-- [What each step actually means](#what-each-step-actually-means)
-- [A tiny worked example, end to end](#a-tiny-worked-example-end-to-end)
-- [The order matters, and here is why](#the-order-matters-and-here-is-why)
-- [What "characterization" means](#what-characterization-means)
-- [The two questions that drive every step](#the-two-questions-that-drive-every-step)
-- [Common beginner mistakes](#common-beginner-mistakes)
-- [Mini Glossary](#mini-glossary)
-- [Review questions](#review-questions)
-
----
-
 ## Why you need an algorithm at all
 
 You have been handed a task: *"Add a 10% discount for premium customers in the checkout code."* You open `OrderProcessor.java`, find a 400-line method, and freeze. Where do you even put the change? If you edit the wrong line, will anything tell you? You have no tests, the method talks to a database and a payment gateway, and the person who wrote it left two years ago.

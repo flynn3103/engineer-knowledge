@@ -5,28 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concept 1 — Why Small PRs Win](#core-concept-1--why-small-prs-win)
-5. [Core Concept 2 — Scope: One Logical Change Per PR](#core-concept-2--scope-one-logical-change-per-pr)
-6. [Core Concept 3 — Separate the Refactor From the Behavior Change](#core-concept-3--separate-the-refactor-from-the-behavior-change)
-7. [Core Concept 4 — How to Split a Big Change](#core-concept-4--how-to-split-a-big-change)
-8. [Core Concept 5 — Feature Flags, Drafts, and Stacked PRs](#core-concept-5--feature-flags-drafts-and-stacked-prs)
-9. [Core Concept 6 — The Author's Responsibility](#core-concept-6--the-authors-responsibility)
-10. [Real-World Examples](#real-world-examples)
-11. [Mental Models](#mental-models)
-12. [Common Mistakes](#common-mistakes)
-13. [Test Yourself](#test-yourself)
-14. [Cheat Sheet](#cheat-sheet)
-15. [Summary](#summary)
-16. [Further Reading](#further-reading)
-17. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Why small, focused pull requests get reviewed faster and catch more bugs — and how to make yours that way.**

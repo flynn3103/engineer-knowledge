@@ -22,15 +22,6 @@ sample solutions are intentionally sparse — they appear only where the
 canonical answer is more instructive than your first attempt would be. Most
 tasks are about *observing the runtime*, not writing clever code.
 
-## Table of Contents
-
-- [Warm-Up](#warm-up)
-- [Core](#core)
-- [Advanced](#advanced)
-- [Capstone](#capstone)
-
----
-
 ## Warm-Up
 
 These tasks build the mental model: warmup is real, the runtime will narrate

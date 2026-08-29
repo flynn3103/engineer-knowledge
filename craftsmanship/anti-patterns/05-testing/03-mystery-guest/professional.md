@@ -4,26 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [The Real Question: Visible vs. Honest](#the-real-question-visible-vs-honest)
-4. [When External Data Is Genuinely Right](#when-external-data-is-genuinely-right)
-5. [The Discipline of Honest External Data](#the-discipline-of-honest-external-data)
-6. [Shared Fixture vs. Fresh Fixture: A Cost Model](#shared-fixture-vs-fresh-fixture-a-cost-model)
-7. [Mystery Guest as a Cause of Fragility and Flakiness](#mystery-guest-as-a-cause-of-fragility-and-flakiness)
-8. [Deliberate Fixtures vs. Mystery Guests](#deliberate-fixtures-vs-mystery-guests)
-9. [Governance: Keeping a Suite Honest at Scale](#governance-keeping-a-suite-honest-at-scale)
-10. [Common Mistakes](#common-mistakes)
-11. [Test Yourself](#test-yourself)
-12. [Cheat Sheet](#cheat-sheet)
-13. [Summary](#summary)
-14. [Further Reading](#further-reading)
-15. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **The trade-offs.** When external/golden data is the *correct* engineering choice (large realistic payloads, contract fixtures), how to keep it non-mysterious, how to reason quantitatively about shared vs. fresh fixtures, and the causal chain from hidden data to fragility and flakiness.

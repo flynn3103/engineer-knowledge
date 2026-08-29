@@ -5,30 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concept 1 — The Big-PR Doom Loop Is a Tempo Problem, Not a Discipline Problem](#core-concept-1--the-big-pr-doom-loop-is-a-tempo-problem-not-a-discipline-problem)
-5. [Core Concept 2 — Trunk-Based Development and Flags Are the Enabler, Not the Goal](#core-concept-2--trunk-based-development-and-flags-are-the-enabler-not-the-goal)
-6. [Core Concept 3 — Stacked Diffs and When the Tooling Investment Pays Off](#core-concept-3--stacked-diffs-and-when-the-tooling-investment-pays-off)
-7. [Core Concept 4 — PR Size as a Tracked Health Metric](#core-concept-4--pr-size-as-a-tracked-health-metric)
-8. [Core Concept 5 — Policy for the Unavoidable Big PR](#core-concept-5--policy-for-the-unavoidable-big-pr)
-9. [Core Concept 6 — Coaching the People Who Default Big](#core-concept-6--coaching-the-people-who-default-big)
-10. [Core Concept 7 — Selling Small PRs to Leadership](#core-concept-7--selling-small-prs-to-leadership)
-11. [War Stories](#war-stories)
-12. [Decision Frameworks](#decision-frameworks)
-13. [Mental Models](#mental-models)
-14. [Common Mistakes](#common-mistakes)
-15. [Test Yourself](#test-yourself)
-16. [Cheat Sheet](#cheat-sheet)
-17. [Summary](#summary)
-18. [Further Reading](#further-reading)
-19. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Making "small" the path of least resistance across an org — through tooling, norms, and metrics — instead of exhorting individuals to be more disciplined.**

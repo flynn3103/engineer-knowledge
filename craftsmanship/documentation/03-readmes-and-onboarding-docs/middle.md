@@ -7,26 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Tailoring the README by Project Type](#tailoring-the-readme-by-project-type)
-3. [README-Driven Development](#readme-driven-development)
-4. [The README as a Diátaxis Blend](#the-readme-as-a-diataxis-blend)
-5. [Designing the Companion-File Set](#designing-the-companion-file-set)
-6. [Onboarding as a Discipline](#onboarding-as-a-discipline)
-7. [Keeping the Quick Start From Rotting](#keeping-the-quick-start-from-rotting)
-8. [Internal vs. Open-Source READMEs](#internal-vs-open-source-readmes)
-9. [Trade-offs](#trade-offs)
-10. [Edge Cases](#edge-cases)
-11. [Tricky Points](#tricky-points)
-12. [Best Practices](#best-practices)
-13. [Test Yourself](#test-yourself)
-14. [Summary](#summary)
-15. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **Why** and **When**

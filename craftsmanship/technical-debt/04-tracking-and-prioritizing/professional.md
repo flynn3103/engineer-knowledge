@@ -5,28 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [The Perennial Fight: One Backlog, Two Masters](#the-perennial-fight-one-backlog-two-masters)
-4. [The Allocation Models — and What Each One Actually Costs](#the-allocation-models--and-what-each-one-actually-costs)
-5. [Getting Debt Onto a Roadmap Product Will Fund](#getting-debt-onto-a-roadmap-product-will-fund)
-6. [Governing the Debt Portfolio](#governing-the-debt-portfolio)
-7. [Aligning Prioritization Across Teams](#aligning-prioritization-across-teams)
-8. [Reporting to Leadership Without Crying Wolf](#reporting-to-leadership-without-crying-wolf)
-9. [War Stories](#war-stories)
-10. [Decision Frameworks](#decision-frameworks)
-11. [Mental Models](#mental-models)
-12. [Common Mistakes](#common-mistakes)
-13. [Test Yourself](#test-yourself)
-14. [Cheat Sheet](#cheat-sheet)
-15. [Summary](#summary)
-16. [Further Reading](#further-reading)
-17. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Managing technical debt as a portfolio across many teams, and winning the org/product negotiation that funds paydown.**

@@ -5,31 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concept 1 — The Leverage Question: Humans Don't Scale as Bug-Grep](#core-concept-1--the-leverage-question-humans-dont-scale-as-bug-grep)
-5. [Core Concept 2 — Make Illegal States Unrepresentable as an Org Strategy](#core-concept-2--make-illegal-states-unrepresentable-as-an-org-strategy)
-6. [Core Concept 3 — Moving Design Review Upstream](#core-concept-3--moving-design-review-upstream)
-7. [Core Concept 4 — Catching Architectural Drift Across PRs](#core-concept-4--catching-architectural-drift-across-prs)
-8. [Core Concept 5 — API & Compatibility Governance](#core-concept-5--api--compatibility-governance)
-9. [Core Concept 6 — Calibration: A Consistent Correctness & Design Bar](#core-concept-6--calibration-a-consistent-correctness--design-bar)
-10. [Core Concept 7 — Teaching the Bug-Hunt and the Design Eye](#core-concept-7--teaching-the-bug-hunt-and-the-design-eye)
-11. [Core Concept 8 — Knowing the Limits of Review](#core-concept-8--knowing-the-limits-of-review)
-12. [War Stories](#war-stories)
-13. [Decision Frameworks](#decision-frameworks)
-14. [Mental Models](#mental-models)
-15. [Common Mistakes](#common-mistakes)
-16. [Test Yourself](#test-yourself)
-17. [Cheat Sheet](#cheat-sheet)
-18. [Summary](#summary)
-19. [Further Reading](#further-reading)
-20. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Scaling correctness and design judgement across an org — pushing mechanical checks to tooling, moving design feedback upstream of code, governing API evolution, and calibrating the bar so it's the same regardless of who reviews.**

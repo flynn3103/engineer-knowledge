@@ -5,28 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [The Real Question: When Does This Creep In?](#the-real-question-when-does-this-creep-in)
-4. [Singletonitis — From Global to Injected](#singletonitis--from-global-to-injected)
-5. [Circular Dependency — Breaking the Cycle Without Merging](#circular-dependency--breaking-the-cycle-without-merging)
-6. [Action at a Distance — Making State Explicit](#action-at-a-distance--making-state-explicit)
-7. [Hidden Dependencies — Honest Signatures](#hidden-dependencies--honest-signatures)
-8. [Sequential Coupling — Encoding Order in the Type](#sequential-coupling--encoding-order-in-the-type)
-9. [The Common Force: Implicit Coupling](#the-common-force-implicit-coupling)
-10. [Catching Coupling Problems in Review](#catching-coupling-problems-in-review)
-11. [Tooling: Letting Machines Find the Coupling](#tooling-letting-machines-find-the-coupling)
-12. [Common Mistakes](#common-mistakes)
-13. [Test Yourself](#test-yourself)
-14. [Cheat Sheet](#cheat-sheet)
-15. [Summary](#summary)
-16. [Further Reading](#further-reading)
-17. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **When does this creep in?** and **What do I do instead — without over-correcting?**

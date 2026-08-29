@@ -4,32 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [The Principle](#the-principle)
-5. [Inheritance vs. Composition, Side by Side](#inheritance-vs-composition-side-by-side)
-6. [The is-a vs. has-a Test](#the-is-a-vs-has-a-test)
-7. [Why Inheritance Gets You in Trouble](#why-inheritance-gets-you-in-trouble)
-8. [A Worked Example: The Class Explosion](#a-worked-example-the-class-explosion)
-9. [How Composition Solves It](#how-composition-solves-it)
-10. [Code Examples](#code-examples)
-11. [Two Kinds of Inheritance](#two-kinds-of-inheritance)
-12. [When Inheritance Is Still Right](#when-inheritance-is-still-right)
-13. [Best Practices](#best-practices)
-14. [Common Mistakes](#common-mistakes)
-15. [Tricky Points](#tricky-points)
-16. [Test Yourself](#test-yourself)
-17. [Cheat Sheet](#cheat-sheet)
-18. [Summary](#summary)
-19. [Further Reading](#further-reading)
-20. [Related Topics](#related-topics)
-21. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **What is it?** and **How to use it?**

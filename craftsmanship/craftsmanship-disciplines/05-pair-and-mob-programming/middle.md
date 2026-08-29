@@ -7,26 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Pairing Styles in Depth](#pairing-styles-in-depth)
-3. [Ping-Pong Pairing (TDD as a Pair)](#ping-pong-pairing-tdd-as-a-pair)
-4. [Strong-Style Pairing](#strong-style-pairing)
-5. [Mob Programming Mechanics](#mob-programming-mechanics)
-6. [Rotation: Timing and Discipline](#rotation-timing-and-discipline)
-7. [When to Pair vs. Mob vs. Solo](#when-to-pair-vs-mob-vs-solo)
-8. [Remote Pairing & Tooling](#remote-pairing-tooling)
-9. [Matching Pairs](#matching-pairs)
-10. [Trade-offs](#trade-offs)
-11. [Common Failure Modes](#common-failure-modes)
-12. [Best Practices](#best-practices)
-13. [Test Yourself](#test-yourself)
-14. [Summary](#summary)
-15. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **Why** and **When**

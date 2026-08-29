@@ -7,24 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [The Research: What Williams & Kessler Actually Found](#the-research-what-williams-kessler-actually-found)
-3. [The Economics: Cost vs. Defect Reduction](#the-economics-cost-vs-defect-reduction)
-4. [Bus Factor, Truck Number, and Knowledge Risk](#bus-factor-truck-number-and-knowledge-risk)
-5. [Flow, Interruptions, and Focus](#flow-interruptions-and-focus)
-6. [The Criticisms, Taken Seriously](#the-criticisms-taken-seriously)
-7. [Introverts, Fatigue, and Sustainability](#introverts-fatigue-and-sustainability)
-8. [Scaling Mobbing](#scaling-mobbing)
-9. [Pairing With TDD](#pairing-with-tdd)
-10. [When Pairing Genuinely Fails](#when-pairing-genuinely-fails)
-11. [System-Level Trade-offs](#system-level-trade-offs)
-12. [Diagrams](#diagrams)
-13. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **the evidence, the economics, and the failure modes**

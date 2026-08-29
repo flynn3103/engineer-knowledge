@@ -1,27 +1,5 @@
 # Dependency-Breaking Techniques — Senior
 
-## Table of Contents
-
-- [The senior framing](#the-senior-framing)
-- [Safety: which moves change behavior, which don't](#safety-which-moves-change-behavior-which-dont)
-- [The "I can't even get the seam in" bootstrap problem](#the-i-cant-even-get-the-seam-in-bootstrap-problem)
-- [Order of application](#order-of-application)
-- [Language constraints that block techniques](#language-constraints-that-block-techniques)
-  - [final and sealed](#final-and-sealed)
-  - [static methods and static state](#static-methods-and-static-state)
-  - [global state and singletons](#global-state-and-singletons)
-  - [constructors that do real work](#constructors-that-do-real-work)
-- [The constructor-override ordering trap](#the-constructor-override-ordering-trap)
-- [Scaffolding vs. destination: from dependency break to real DI](#scaffolding-vs-destination-from-dependency-break-to-real-di)
-- [Sensing vs. separation drives the choice](#sensing-vs-separation-drives-the-choice)
-- [Choosing the fake: stub, spy, fake, or mock](#choosing-the-fake-stub-spy-fake-or-mock)
-- [Cross-language notes: where the catalog bends](#cross-language-notes-where-the-catalog-bends)
-- [Smells in the seam itself](#smells-in-the-seam-itself)
-- [A worked decision on a real-ish class](#a-worked-decision-on-a-real-ish-class)
-- [Related Topics](#related-topics)
-
----
-
 ## The senior framing
 
 At junior and middle level the question is "which technique matches this obstacle?" At senior level the questions are different and harder:

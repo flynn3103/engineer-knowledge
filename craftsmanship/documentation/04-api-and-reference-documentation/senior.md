@@ -7,24 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [The Generated-vs-Hand-Written Trade-off, at System Scale](#the-generated-vs-hand-written-trade-off-at-system-scale)
-3. [Generated Reference Is Complete but Cold](#generated-reference-is-complete-but-cold)
-4. [The Maintenance Cost of Examples](#the-maintenance-cost-of-examples)
-5. [Versioned Reference](#versioned-reference)
-6. [Reference for Internal Services vs. Published APIs](#reference-for-internal-services-vs-published-apis)
-7. [Spec as Contract: Governance and Linting](#spec-as-contract-governance-and-linting)
-8. [Completeness vs. Usability](#completeness-vs-usability)
-9. [Documentation as an Architectural Forcing Function](#documentation-as-an-architectural-forcing-function)
-10. [Liabilities](#liabilities)
-11. [Pros & Cons at the System Level](#pros--cons-at-the-system-level)
-12. [Diagrams](#diagrams)
-13. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **design trade-offs** and **system-level reasoning**

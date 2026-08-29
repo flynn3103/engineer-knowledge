@@ -18,16 +18,6 @@ for when you can explain the result to someone else — not when the code merely
 compiles. Solutions are intentionally sparse; they appear only where the
 canonical answer teaches more than your first attempt would.
 
-## Table of Contents
-
-- [Warm-Up](#warm-up)
-- [Core](#core)
-- [Advanced](#advanced)
-- [Capstone](#capstone)
-- [Related Topics](#related-topics)
-
----
-
 ## Warm-Up
 
 These rebuild the mental model. Short, but each introduces a failure mode you'll

@@ -5,20 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [The Build-vs-Buy Decision for a New Language](#the-build-vs-buy-decision-for-a-new-language)
-3. [Where to Put the Optimizer: AOT, JIT, or Both](#where-to-put-the-optimizer-aot-jit-or-both)
-4. [Diagnostics as a Product](#diagnostics-as-a-product)
-5. [Trust, Reproducibility & Supply Chain](#trust-reproducibility--supply-chain)
-6. [Best Practices](#best-practices)
-7. [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-8. [War Stories](#war-stories)
-9. [Summary](#summary)
-
----
-
 ## Introduction
 
 At the professional tier the compiler pipeline is an engineering and product

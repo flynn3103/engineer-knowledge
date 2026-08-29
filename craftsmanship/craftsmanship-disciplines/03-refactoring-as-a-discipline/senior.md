@@ -7,24 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Refactoring Without a Safety Net: Characterization Tests](#refactoring-without-a-safety-net-characterization-tests)
-3. [Seams: Where to Cut Legacy Code](#seams-where-to-cut-legacy-code)
-4. [Local vs Architectural Refactoring](#local-vs-architectural-refactoring)
-5. [The Strangler Fig: Refactoring at the System Scale](#the-strangler-fig-refactoring-at-the-system-scale)
-6. [Branch by Abstraction](#branch-by-abstraction)
-7. [When Refactoring Is the Wrong Call](#when-refactoring-is-the-wrong-call)
-8. [Refactoring Under Deadline Pressure](#refactoring-under-deadline-pressure)
-9. [Refactor vs Rewrite: The Decision](#refactor-vs-rewrite-the-decision)
-10. [Code Examples — Advanced](#code-examples-advanced)
-11. [Liabilities](#liabilities)
-12. [Diagrams](#diagrams)
-13. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **design trade-offs** and **system-level reasoning**

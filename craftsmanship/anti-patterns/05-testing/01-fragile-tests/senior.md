@@ -4,27 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [How a Suite Becomes Fragile](#how-a-suite-becomes-fragile)
-4. [Finding the Brittle Clusters](#finding-the-brittle-clusters)
-5. [Test Behavior, Not Implementation — at Scale](#test-behavior-not-implementation--at-scale)
-6. [Characterization vs Over-Specification](#characterization-vs-over-specification)
-7. [Reducing Coupling to Internals](#reducing-coupling-to-internals)
-8. [Good Test Design Is the Real Fix](#good-test-design-is-the-real-fix)
-9. [A De-Fragilization Campaign](#a-de-fragilization-campaign)
-10. [When NOT to De-Fragilize](#when-not-to-de-fragilize)
-11. [Common Mistakes](#common-mistakes)
-12. [Test Yourself](#test-yourself)
-13. [Cheat Sheet](#cheat-sheet)
-14. [Summary](#summary)
-15. [Further Reading](#further-reading)
-16. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **De-fragilizing a real suite** — finding the brittle clusters, applying *test behavior not implementation* at scale, and reducing coupling to internals without losing coverage.

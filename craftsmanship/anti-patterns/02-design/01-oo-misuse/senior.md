@@ -5,28 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [How Did the Codebase Get Here? — Root-Cause Forces](#how-did-the-codebase-get-here--root-cause-forces)
-4. [The Senior Refactoring Toolkit](#the-senior-refactoring-toolkit)
-5. [Anemic Domain Model: Migrating to a Rich Model at Scale](#anemic-domain-model-migrating-to-a-rich-model-at-scale)
-6. [Fragile Base Class & the Inheritance Family: Replace Inheritance with Delegation](#fragile-base-class--the-inheritance-family-replace-inheritance-with-delegation)
-7. [Magic Container: Recovering a Type from `Map<String, Object>`](#magic-container-recovering-a-type-from-mapstring-object)
-8. [Constructors & Flags: Builders and Two-Method Splits](#constructors--flags-builders-and-two-method-splits)
-9. [The Remaining Smells — Summary Table](#the-remaining-smells--summary-table)
-10. [When These Are Acceptable](#when-these-are-acceptable)
-11. [Preventing OO Misuse Organizationally](#preventing-oo-misuse-organizationally)
-12. [Common Mistakes](#common-mistakes)
-13. [Test Yourself](#test-yourself)
-14. [Cheat Sheet](#cheat-sheet)
-15. [Summary](#summary)
-16. [Further Reading](#further-reading)
-17. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **How did the codebase get here?** and **How do I refactor safely at scale?**

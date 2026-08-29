@@ -1,21 +1,5 @@
 # Characterization Tests — Middle
 
-## Table of Contents
-
-- [The algorithm, stated precisely](#the-algorithm-stated-precisely)
-- [Worked iteration: characterizing an invoice calculator](#worked-iteration-characterizing-an-invoice-calculator)
-- [Choosing inputs: covering paths, not values](#choosing-inputs-covering-paths-not-values)
-- [Golden Master / Approval Testing](#golden-master--approval-testing)
-- [Combinatorial input generation](#combinatorial-input-generation)
-- [Handling messy output](#handling-messy-output)
-- [Sensing behavior through seams](#sensing-behavior-through-seams)
-- [Characterization vs TDD, made concrete](#characterization-vs-tdd-made-concrete)
-- [A checklist for a solid characterization suite](#a-checklist-for-a-solid-characterization-suite)
-- [Mini Glossary](#mini-glossary)
-- [Review questions](#review-questions)
-
----
-
 ## The algorithm, stated precisely
 
 At the junior level you met the four-step recipe. Now we make it rigorous, because the details are where the value lives.

@@ -10,17 +10,6 @@ These questions probe whether a candidate understands code generation as an engi
 
 The questions are grouped: **Conceptual** (the model and its trade-offs), **Tool-Specific** (protoc/gRPC, `go generate`, Java APT/Lombok/Dagger, OpenAPI, Rust `build.rs`/`bindgen`), **Tricky / Trap** (where the textbook answer is subtly wrong), and **Design** (open-ended scenarios that reveal whether the candidate has actually operated generated systems).
 
-## Table of Contents
-
-- [Conceptual](#conceptual)
-- [Tool-Specific](#tool-specific)
-- [Tricky / Trap Questions](#tricky--trap-questions)
-- [Design](#design)
-- [Cheat Sheet](#cheat-sheet)
-- [Further Reading](#further-reading)
-
----
-
 ## Conceptual
 
 ### Question 1

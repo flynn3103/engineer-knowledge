@@ -4,33 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [The Three Laws, Verbatim](#the-three-laws-verbatim)
-5. [Core Concepts](#core-concepts)
-6. [The Red-Green-Refactor Cycle](#the-red-green-refactor-cycle)
-7. [Real-World Analogies](#real-world-analogies)
-8. [Mental Models](#mental-models)
-9. [Pros & Cons](#pros-cons)
-10. [A First Worked Example](#a-first-worked-example)
-11. [Code Examples](#code-examples)
-12. [Clean Code](#clean-code)
-13. [Best Practices](#best-practices)
-14. [Edge Cases & Pitfalls](#edge-cases-pitfalls)
-15. [Common Mistakes](#common-mistakes)
-16. [Tricky Points](#tricky-points)
-17. [Test Yourself](#test-yourself)
-18. [Cheat Sheet](#cheat-sheet)
-19. [Summary](#summary)
-20. [Further Reading](#further-reading)
-21. [Related Topics](#related-topics)
-22. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **What is it?** and **How to use it?**

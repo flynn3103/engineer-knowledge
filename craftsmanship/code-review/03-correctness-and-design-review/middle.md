@@ -5,28 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concept 1 — The Bug-Pattern Catalog: a Systematic Hunt](#core-concept-1--the-bug-pattern-catalog-a-systematic-hunt)
-5. [Core Concept 2 — The Edge-Case Matrix](#core-concept-2--the-edge-case-matrix)
-6. [Core Concept 3 — Design Review: Is the PR the Right Shape?](#core-concept-3--design-review-is-the-pr-the-right-shape)
-7. [Core Concept 4 — API & Interface Review](#core-concept-4--api--interface-review)
-8. [Core Concept 5 — Invariants: What Must Always Hold](#core-concept-5--invariants-what-must-always-hold)
-9. [Core Concept 6 — The Timing Principle](#core-concept-6--the-timing-principle)
-10. [Real-World Examples](#real-world-examples)
-11. [Mental Models](#mental-models)
-12. [Common Mistakes](#common-mistakes)
-13. [Test Yourself](#test-yourself)
-14. [Cheat Sheet](#cheat-sheet)
-15. [Summary](#summary)
-16. [Further Reading](#further-reading)
-17. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **How do I systematically find the correctness bugs and the design mistakes a casual read misses?**

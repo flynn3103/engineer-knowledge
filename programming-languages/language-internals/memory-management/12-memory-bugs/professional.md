@@ -5,24 +5,6 @@
 
 ---
 
-## Table of Contents
-
-- [Introduction](#introduction)
-- [Prerequisites](#prerequisites)
-- [Glossary](#glossary)
-- [The Incident Playbook](#the-incident-playbook)
-- [War Stories](#war-stories)
-- [Mental Models](#mental-models)
-- [Code & Command Examples](#code--command-examples)
-- [Pros & Cons](#pros--cons)
-- [Use Cases](#use-cases)
-- [Coding Patterns](#coding-patterns)
-- [Best Practices](#best-practices)
-- [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-- [Summary](#summary)
-
----
-
 ## Introduction
 
 Everything before this tier assumed you could reproduce the bug, capture an artifact, and read it at leisure. Production rarely grants that. The professional-level reality is: the leak only manifests under real traffic, the container is memory-limited so a heap dump might kill it, you have one good capture before the next restart, the OOM killer leaves no stack trace, and the dashboard shows a slope measured in hours. The skill is **debugging a memory bug in a live system without making it worse**, under a clock, with partial information.

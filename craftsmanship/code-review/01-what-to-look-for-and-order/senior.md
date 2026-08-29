@@ -5,31 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concept 1 — The Attention Budget and the Inspection-Rate Data](#core-concept-1--the-attention-budget-and-the-inspection-rate-data)
-5. [Core Concept 2 — The Order Is an Expected-Value Optimization](#core-concept-2--the-order-is-an-expected-value-optimization)
-6. [Core Concept 3 — The Layers of Understanding](#core-concept-3--the-layers-of-understanding)
-7. [Core Concept 4 — Context Reconstruction: Reading Beyond the Diff](#core-concept-4--context-reconstruction-reading-beyond-the-diff)
-8. [Core Concept 5 — The Behavioral Change With No Local Diff](#core-concept-5--the-behavioral-change-with-no-local-diff)
-9. [Core Concept 6 — Read the Tests First as Spec Reconstruction](#core-concept-6--read-the-tests-first-as-spec-reconstruction)
-10. [Core Concept 7 — Move Design Review Left](#core-concept-7--move-design-review-left)
-11. [Core Concept 8 — Severity, the Cost of a Comment, and Calibration](#core-concept-8--severity-the-cost-of-a-comment-and-calibration)
-12. [Core Concept 9 — Reviewing What You Cannot Read Line-by-Line](#core-concept-9--reviewing-what-you-cannot-read-line-by-line)
-13. [Real-World Examples](#real-world-examples)
-14. [Mental Models](#mental-models)
-15. [Common Mistakes](#common-mistakes)
-16. [Test Yourself](#test-yourself)
-17. [Cheat Sheet](#cheat-sheet)
-18. [Summary](#summary)
-19. [Further Reading](#further-reading)
-20. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Review as a disciplined defect-detection process — what a finite attention budget should be spent on, in what order, and how to reconstruct the context the diff destroyed.**

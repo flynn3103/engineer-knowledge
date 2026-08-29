@@ -7,24 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [The Reference Pipeline in CI/CD](#the-reference-pipeline-in-cicd)
-3. [Reviewing API Reference in Pull Requests](#reviewing-api-reference-in-pull-requests)
-4. [Governing the Spec Across Many Teams](#governing-the-spec-across-many-teams)
-5. [Keeping Examples Correct at Scale](#keeping-examples-correct-at-scale)
-6. [Measuring Reference Quality](#measuring-reference-quality)
-7. [Deprecation and Sunset in the Reference](#deprecation-and-sunset-in-the-reference)
-8. [Real Incidents](#real-incidents)
-9. [The Politics of Reference Docs](#the-politics-of-reference-docs)
-10. [Review Checklist](#review-checklist)
-11. [Cheat Sheet](#cheat-sheet)
-12. [Diagrams](#diagrams)
-13. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **production** — running reference docs as infrastructure for many APIs, many teams, over years.

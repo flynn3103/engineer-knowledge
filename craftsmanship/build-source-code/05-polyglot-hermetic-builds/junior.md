@@ -5,27 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concept 1 — The Polyglot Monorepo Problem](#core-concept-1--the-polyglot-monorepo-problem)
-5. [Core Concept 2 — What "Hermetic" Actually Means](#core-concept-2--what-hermetic-actually-means)
-6. [Core Concept 3 — Bazel at a Glance](#core-concept-3--bazel-at-a-glance)
-7. [Core Concept 4 — A Tiny BUILD File](#core-concept-4--a-tiny-build-file)
-8. [Core Concept 5 — The Promise: Reproducible and Cacheable](#core-concept-5--the-promise-reproducible-and-cacheable)
-9. [Real-World Examples](#real-world-examples)
-10. [Mental Models](#mental-models)
-11. [Common Mistakes](#common-mistakes)
-12. [Test Yourself](#test-yourself)
-13. [Cheat Sheet](#cheat-sheet)
-14. [Summary](#summary)
-15. [Further Reading](#further-reading)
-16. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **When one build tool must build many languages the same way everywhere, what changes?**

@@ -5,23 +5,6 @@
 
 ---
 
-## Table of Contents
-
-- [Introduction](#introduction)
-- [Prerequisites](#prerequisites)
-- [Glossary](#glossary)
-- [Core Concepts](#core-concepts)
-- [Mental Models](#mental-models)
-- [Code Examples](#code-examples)
-- [Coding Patterns](#coding-patterns)
-- [Pros & Cons](#pros--cons)
-- [Use Cases](#use-cases)
-- [Best Practices](#best-practices)
-- [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-- [Summary](#summary)
-
----
-
 ## Introduction
 
 At the junior level we drew the line between *deterministic* destructors and *non-deterministic* finalizers. Now we look at the **mechanisms**: what actually invokes cleanup, in what order, on which thread, and what can go wrong. The mechanism explains the rules. Once you understand *how* a finalizer gets scheduled — onto a queue, processed later by a dedicated thread, after at least one GC cycle — the "don't release scarce resources in finalizers" rule stops being dogma and becomes obvious.

@@ -5,26 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Measure First: The Tooling Map](#measure-first-the-tooling-map)
-4. [Inner-Platform Effect — The Cost of Interpreting at Runtime](#inner-platform-effect--the-cost-of-interpreting-at-runtime)
-5. [Golden Hammer — When the Familiar Tool Has the Wrong Big-O Constant](#golden-hammer--when-the-familiar-tool-has-the-wrong-big-o-constant)
-6. [Premature / Wrong Abstraction — Indirection the Optimizer Can't See Through](#premature--wrong-abstraction--indirection-the-optimizer-cant-see-through)
-7. [Interface Bloat — Megamorphism, Wide vtables, and the Monomorphic Counter-Move](#interface-bloat--megamorphism-wide-vtables-and-the-monomorphic-counter-move)
-8. [When the "Heavy" Abstraction Is Correct — and How to Prove It](#when-the-heavy-abstraction-is-correct--and-how-to-prove-it)
-9. [A Combined Worked Example](#a-combined-worked-example)
-10. [Common Mistakes](#common-mistakes)
-11. [Test Yourself](#test-yourself)
-12. [Cheat Sheet](#cheat-sheet)
-13. [Summary](#summary)
-14. [Further Reading](#further-reading)
-15. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **what these four abstraction failures cost the machine** — the interpreter loop, the allocator, the GC, the inliner, the devirtualizer, the branch predictor, the cache — and **how you measure that cost** before you re-shape anything.

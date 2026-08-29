@@ -4,32 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Class Diagram: The Notation, Precisely](#class-diagram-the-notation-precisely)
-5. [The Five Relationships](#the-five-relationships)
-6. [Sequence Diagram: Fragments and Activation](#sequence-diagram-fragments-and-activation)
-7. [State-Machine Diagram: Guards and Actions](#state-machine-diagram-guards-and-actions)
-8. [Activity Diagram: Forks, Joins, Swimlanes](#activity-diagram-forks-joins-swimlanes)
-9. [Use-Case Diagram and Its Limits](#use-case-diagram-and-its-limits)
-10. [When Each Diagram Earns Its Keep](#when-each-diagram-earns-its-keep)
-11. [Sketch vs Blueprint vs Programming Language](#sketch-vs-blueprint-vs-programming-language)
-12. [Mermaid and PlantUML, Side by Side](#mermaid-and-plantuml-side-by-side)
-13. [Best Practices](#best-practices)
-14. [Common Mistakes](#common-mistakes)
-15. [Tricky Points](#tricky-points)
-16. [Test Yourself](#test-yourself)
-17. [Cheat Sheet](#cheat-sheet)
-18. [Summary](#summary)
-19. [Further Reading](#further-reading)
-20. [Related Topics](#related-topics)
-21. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **The exact notation** and **when to spend it.**

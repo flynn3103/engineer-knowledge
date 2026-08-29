@@ -7,24 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Essential vs. Accidental Complexity](#essential-vs-accidental-complexity)
-3. [Applying KISS to Real Code](#applying-kiss-to-real-code)
-4. [KISS and YAGNI: Two Sides of One Coin](#kiss-and-yagni-two-sides-of-one-coin)
-5. [The Tension with DRY and Abstraction](#the-tension-with-dry-and-abstraction)
-6. [Measuring Complexity in Practice](#measuring-complexity-in-practice)
-7. [Trade-offs](#trade-offs)
-8. [Edge Cases](#edge-cases)
-9. [Tricky Points](#tricky-points)
-10. [Best Practices](#best-practices)
-11. [Test Yourself](#test-yourself)
-12. [Summary](#summary)
-13. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **Why** and **When**

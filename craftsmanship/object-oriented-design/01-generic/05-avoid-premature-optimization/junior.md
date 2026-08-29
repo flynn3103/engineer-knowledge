@@ -4,31 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [The Knuth Quote — In Full](#the-knuth-quote--in-full)
-5. [Make It Work, Make It Right, Make It Fast](#make-it-work-make-it-right-make-it-fast)
-6. [Why Premature Optimization Harms](#why-premature-optimization-harms)
-7. [Humans Are Terrible at Guessing Hot Spots](#humans-are-terrible-at-guessing-hot-spots)
-8. [Real-World Analogies](#real-world-analogies)
-9. [Mental Models](#mental-models)
-10. [Code Examples](#code-examples)
-11. [The One Optimization That Almost Always Wins: Big-O](#the-one-optimization-that-almost-always-wins-big-o)
-12. [Best Practices](#best-practices)
-13. [Common Mistakes](#common-mistakes)
-14. [Tricky Points](#tricky-points)
-15. [Test Yourself](#test-yourself)
-16. [Cheat Sheet](#cheat-sheet)
-17. [Summary](#summary)
-18. [Further Reading](#further-reading)
-19. [Related Topics](#related-topics)
-20. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **What is it?** and **How to use it?**

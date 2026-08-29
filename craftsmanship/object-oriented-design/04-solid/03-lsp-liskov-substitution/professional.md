@@ -7,22 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Enforcing LSP in Code Review](#enforcing-lsp-in-code-review)
-3. [Contract Tests as a Team Standard](#contract-tests-as-a-team-standard)
-4. [Real Incidents](#real-incidents)
-5. [Team Conventions for Substitutability](#team-conventions-for-substitutability)
-6. [Refactoring Legacy LSP Violations](#refactoring-legacy-lsp-violations)
-7. [Substitutability Beyond Classes: APIs and Services](#substitutability-beyond-classes-apis-and-services)
-8. [Review Checklist](#review-checklist)
-9. [Cheat Sheet](#cheat-sheet)
-10. [Diagrams](#diagrams)
-11. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **production** — keeping subtypes honest across a large, multi-contributor codebase.

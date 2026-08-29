@@ -16,15 +16,6 @@ This file is a question bank, not a tutorial. Questions are grouped:
 
 Each question has a crisp model answer. Treat the answers as the *floor* of a good response; in a real interview you'd add examples and ask clarifying questions.
 
-## Table of Contents
-
-- [Conceptual / Foundational](#conceptual--foundational)
-- [Language-Specific](#language-specific)
-- [Tricky / Trap Questions](#tricky--trap-questions)
-- [Design Questions](#design-questions)
-
----
-
 ## Conceptual / Foundational
 
 ## Question 1

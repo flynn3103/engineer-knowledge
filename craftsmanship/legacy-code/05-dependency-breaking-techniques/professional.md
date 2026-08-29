@@ -1,25 +1,5 @@
 # Dependency-Breaking Techniques — Professional
 
-## Table of Contents
-
-- [The professional reality](#the-professional-reality)
-- [The smallest safe step, under deadline](#the-smallest-safe-step-under-deadline)
-- [A protocol for breaking a dependency on a hot system](#a-protocol-for-breaking-a-dependency-on-a-hot-system)
-- [Reviewing dependency-breaking changes](#reviewing-dependency-breaking-changes)
-- [When *not* to break the dependency](#when-not-to-break-the-dependency)
-- [Coordinating across a team and a shared codebase](#coordinating-across-a-team-and-a-shared-codebase)
-- [Pitfalls and how they bite in production](#pitfalls-and-how-they-bite-in-production)
-  - [Over-introducing interfaces](#over-introducing-interfaces)
-  - [Leaking test seams into production](#leaking-test-seams-into-production)
-  - [Widening visibility you can't take back](#widening-visibility-you-cant-take-back)
-  - [Flaky tests from shared static state](#flaky-tests-from-shared-static-state)
-  - [The over-mock trap](#the-over-mock-trap)
-- [War stories](#war-stories)
-- [Checklists](#checklists)
-- [Related Topics](#related-topics)
-
----
-
 ## The professional reality
 
 On a real system, breaking a dependency is never the whole task — it's the price of admission for a change someone is waiting on. The feature, the bug, the incident is the goal; the dependency break is overhead you incur to do it *safely*. That framing governs every decision:

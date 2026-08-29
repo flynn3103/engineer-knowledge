@@ -5,28 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concept 1 — Severity as a Protocol: Conventional Comments](#core-concept-1--severity-as-a-protocol-conventional-comments)
-5. [Core Concept 2 — Fact vs Preference Discipline](#core-concept-2--fact-vs-preference-discipline)
-6. [Core Concept 3 — Actionable + Rationale: the Shape of a Useful Comment](#core-concept-3--actionable--rationale-the-shape-of-a-useful-comment)
-7. [Core Concept 4 — The Cost of a Comment: Calibrate Volume](#core-concept-4--the-cost-of-a-comment-calibrate-volume)
-8. [Core Concept 5 — Receiving: Self-Review First, Then Resolution](#core-concept-5--receiving-self-review-first-then-resolution)
-9. [Core Concept 6 — The Author ↔ Reviewer Contract](#core-concept-6--the-author--reviewer-contract)
-10. [Real-World Examples](#real-world-examples)
-11. [Mental Models](#mental-models)
-12. [Common Mistakes](#common-mistakes)
-13. [Test Yourself](#test-yourself)
-14. [Cheat Sheet](#cheat-sheet)
-15. [Summary](#summary)
-16. [Further Reading](#further-reading)
-17. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **What system turns scattered review comments into clear, low-friction, teaching feedback — in both directions?**

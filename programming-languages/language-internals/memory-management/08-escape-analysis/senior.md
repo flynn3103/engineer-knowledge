@@ -5,24 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [The Analysis as a Static Lifetime Approximation](#the-analysis-as-a-static-lifetime-approximation)
-3. [Escape to Heap vs Escape to Thread](#escape-to-heap-vs-escape-to-thread)
-4. [Cross-Language Comparison](#cross-language-comparison)
-5. [Partial Escape Analysis](#partial-escape-analysis)
-6. [Fundamental Limits](#fundamental-limits)
-7. [Design Implications](#design-implications)
-8. [Code Examples](#code-examples)
-9. [Mental Models](#mental-models)
-10. [Pros & Cons](#pros--cons)
-11. [Best Practices](#best-practices)
-12. [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-13. [Summary](#summary)
-
----
-
 ## Introduction
 
 Senior-level mastery of escape analysis is less about reading a flag and more about understanding it as **a conservative static approximation of dynamic lifetime and reachability** — and therefore knowing exactly where it breaks, why two languages with "the same" optimization behave so differently, and how to design code and APIs that are allocation-friendly *by construction* rather than by hoping the optimizer cooperates.

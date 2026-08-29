@@ -5,25 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Pin the Behavior First: Characterization Tests](#pin-the-behavior-first-characterization-tests)
-4. [Golden-Master Tests for Tangled Output](#golden-master-tests-for-tangled-output)
-5. [Branch by Abstraction, Step by Step](#branch-by-abstraction-step-by-step)
-6. [A Full Worked Migration](#a-full-worked-migration)
-7. [Why Each Step Is Safe](#why-each-step-is-safe)
-8. [Branch by Abstraction vs Feature Branch](#branch-by-abstraction-vs-feature-branch)
-9. [Common Mistakes](#common-mistakes)
-10. [Test Yourself](#test-yourself)
-11. [Cheat Sheet](#cheat-sheet)
-12. [Summary](#summary)
-13. [Further Reading](#further-reading)
-14. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Introduce a seam; branch by abstraction.**

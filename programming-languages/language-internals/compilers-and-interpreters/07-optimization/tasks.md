@@ -10,15 +10,6 @@ This file takes you from "I know `-O2` makes code faster" to "I can read optimiz
 
 How to use this file: read the task, *predict the answer first*, then run it and compare. The lesson is almost always in the gap between your prediction and the assembly. Use the compiler's own remarks (`-Rpass-missed`, `-fopt-info`) and IR dumps (`-print-after-all`, `-fdump-tree-all`) rather than guessing — the compiler will tell you what it did. Mark a self-check done when you can *explain the mechanism* to someone else, not when the program merely runs. Sample solutions are sparse and appear only where the canonical answer teaches more than your first attempt.
 
-## Table of Contents
-
-- [Warm-Up](#warm-up)
-- [Core](#core)
-- [Advanced](#advanced)
-- [Capstone](#capstone)
-
----
-
 ## Warm-Up
 
 These rebuild intuition for what the optimizer actually does to your code. Short, but each introduces a transformation or a tool you'll reuse.

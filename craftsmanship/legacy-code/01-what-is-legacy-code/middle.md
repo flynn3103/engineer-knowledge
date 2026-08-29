@@ -1,23 +1,5 @@
 # What Is Legacy Code — Middle
 
-## Table of Contents
-
-- [From definition to mechanics](#from-definition-to-mechanics)
-- [Why "no tests" is the right axis](#why-no-tests-is-the-right-axis)
-- [The feedback gap, quantified](#the-feedback-gap-quantified)
-- [Recognizing legacy code: signals and tells](#recognizing-legacy-code-signals-and-tells)
-- [The untestability spectrum](#the-untestability-spectrum)
-- [Worked example: code that fights back](#worked-example-code-that-fights-back)
-- [Characterization vs. specification tests](#characterization-vs-specification-tests)
-- [Triaging legacy code: where to spend effort](#triaging-legacy-code-where-to-spend-effort)
-- [Legacy code vs. technical debt](#legacy-code-vs-technical-debt)
-- [Trade-offs you will actually face](#trade-offs-you-will-actually-face)
-- [The day-to-day reality](#the-day-to-day-reality)
-- [Mini Glossary](#mini-glossary)
-- [Review questions](#review-questions)
-
----
-
 ## From definition to mechanics
 
 At the junior level we settled the definition: **legacy code is code without tests**, because tests are what give you fast feedback about whether a change preserved behavior. That definition is the foundation. At this level we need the mechanics: *why* the absence of tests is so corrosive, *how* to recognize legacy code in the wild beyond the simple "are there tests" check, how to decide *which* legacy code to invest in, and how to keep "legacy" cleanly separated from the related-but-different idea of "technical debt."

@@ -5,26 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Anatomy of a Ratchet](#anatomy-of-a-ratchet)
-4. [Committing a Baseline File](#committing-a-baseline-file)
-5. [A Working Ratchet Script](#a-working-ratchet-script)
-6. [Auto-Tightening on a Decrease](#auto-tightening-on-a-decrease)
-7. [Per-Directory Budgets](#per-directory-budgets)
-8. [Integrating betterer and `--max-warnings`](#integrating-betterer-and---max-warnings)
-9. [Worked Example: Ratcheting `// @ts-ignore`](#worked-example-ratcheting--ts-ignore)
-10. [Common Mistakes](#common-mistakes)
-11. [Test Yourself](#test-yourself)
-12. [Cheat Sheet](#cheat-sheet)
-13. [Summary](#summary)
-14. [Further Reading](#further-reading)
-15. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Setting a baseline and ratcheting it.** Commit the baseline, gate that the count can only decrease, slice it per-directory, and wire in a real tool — on a concrete worked example.

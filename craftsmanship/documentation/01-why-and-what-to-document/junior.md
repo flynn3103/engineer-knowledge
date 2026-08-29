@@ -4,31 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Why Document At All](#why-document-at-all)
-5. [What to Document: The Spectrum and Its Audiences](#what-to-document-the-spectrum-and-its-audiences)
-6. [The Diátaxis Framework](#the-diataxis-framework)
-7. [What *Not* to Over-Document](#what-not-to-over-document)
-8. [Real-World Analogies](#real-world-analogies)
-9. [Mental Models](#mental-models)
-10. [A Worked Example: Documenting a Small Library](#a-worked-example-documenting-a-small-library)
-11. [Examples](#examples)
-12. [Best Practices](#best-practices)
-13. [Common Mistakes](#common-mistakes)
-14. [Tricky Points](#tricky-points)
-15. [Test Yourself](#test-yourself)
-16. [Cheat Sheet](#cheat-sheet)
-17. [Summary](#summary)
-18. [Further Reading](#further-reading)
-19. [Related Topics](#related-topics)
-20. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **What is it?** and **How to use it?**

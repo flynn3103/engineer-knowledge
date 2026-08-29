@@ -5,29 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Automatic Variables — `$@`, `$<`, `$^`](#automatic-variables------)
-4. [Pattern Rules — One Rule for All `.o` Files](#pattern-rules--one-rule-for-all-o-files)
-5. [Variables and Functions](#variables-and-functions)
-6. [The Header Problem and Auto-Generated Dependencies](#the-header-problem-and-auto-generated-dependencies)
-7. [`.PHONY` Correctness and Order-Only Prerequisites](#phony-correctness-and-order-only-prerequisites)
-8. [Recursive Make Considered Harmful](#recursive-make-considered-harmful)
-9. [Why Ninja Exists](#why-ninja-exists)
-10. [Reading a `build.ninja`](#reading-a-buildninja)
-11. [CMake as a Generator](#cmake-as-a-generator)
-12. [Mental Models](#mental-models)
-13. [Common Mistakes](#common-mistakes)
-14. [Test Yourself](#test-yourself)
-15. [Cheat Sheet](#cheat-sheet)
-16. [Summary](#summary)
-17. [Further Reading](#further-reading)
-18. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **How do you write Make that scales — and why did its scaling failures create Ninja and CMake?**

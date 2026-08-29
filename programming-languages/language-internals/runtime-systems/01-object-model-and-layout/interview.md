@@ -10,23 +10,6 @@ These questions probe whether a candidate understands how an object is *physical
 
 A strong candidate speaks in offsets, alignment, cache lines, and headers; explains *why* reordering fields shrinks a struct without hand-waving; knows what's in a JVM mark word, a CPython `PyObject`, and a V8 hidden class; and connects layout to observable production metrics (footprint, GC pauses, cache misses, deopts). A weaker candidate knows that "objects have headers" and "structs have padding" as facts but can't derive a size, can't explain a hidden-class deopt, and treats layout as folklore. The questions run from foundational vocabulary through language-specific internals, then traps where the obvious answer is wrong, then design scenarios that reveal whether the candidate has actually engineered object models at scale.
 
-## Table of Contents
-
-- [Conceptual / Foundational](#conceptual--foundational)
-- [Language-Specific](#language-specific)
-  - [C / C++](#c--c)
-  - [Java](#java)
-  - [Python](#python)
-  - [JavaScript / V8](#javascript--v8)
-  - [Rust](#rust)
-- [Tricky / Trap Questions](#tricky--trap-questions)
-- [System / Design Scenarios](#system--design-scenarios)
-- [Cheat Sheet](#cheat-sheet)
-- [Further Reading](#further-reading)
-- [Related Topics](#related-topics)
-
----
-
 ## Conceptual / Foundational
 
 ## Question 1

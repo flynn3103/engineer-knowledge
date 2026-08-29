@@ -4,25 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [The Idea: Every Structure Is Fast at Some Things, Slow at Others](#the-idea-every-structure-is-fast-at-some-things-slow-at-others)
-5. [The Classic: Membership Check in a List](#the-classic-membership-check-in-a-list)
-6. [Why O(n·m) Sneaks In](#why-onm-sneaks-in)
-7. [The Fix: Pick the Structure That Matches the Dominant Operation](#the-fix-pick-the-structure-that-matches-the-dominant-operation)
-8. [A Few More Everyday Mismatches](#a-few-more-everyday-mismatches)
-9. [Common Mistakes](#common-mistakes)
-10. [Test Yourself](#test-yourself)
-11. [Cheat Sheet](#cheat-sheet)
-12. [Summary](#summary)
-13. [Further Reading](#further-reading)
-14. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **What does it look like?** and **Why is it bad?**

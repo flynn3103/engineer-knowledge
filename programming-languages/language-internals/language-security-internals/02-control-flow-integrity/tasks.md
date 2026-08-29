@@ -25,15 +25,6 @@ boxes mean "I can explain this to another engineer," not "it compiled." Sample
 solutions are intentionally sparse — they appear only where the canonical answer
 teaches more than your first attempt would.
 
-## Table of Contents
-
-- [Warm-Up](#warm-up)
-- [Core](#core)
-- [Advanced](#advanced)
-- [Capstone](#capstone)
-
----
-
 ## Warm-Up
 
 These tasks rebuild the mental model and get you reading mitigations off real

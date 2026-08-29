@@ -5,23 +5,6 @@
 
 ---
 
-## Table of Contents
-
-- [Introduction](#introduction)
-- [Prerequisites](#prerequisites)
-- [Glossary](#glossary)
-- [Core Concepts](#core-concepts)
-- [Real-World Analogies](#real-world-analogies)
-- [Mental Models](#mental-models)
-- [Code Examples](#code-examples)
-- [Pros & Cons](#pros--cons)
-- [Use Cases](#use-cases)
-- [Best Practices](#best-practices)
-- [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-- [Summary](#summary)
-
----
-
 ## Introduction
 
 When you create an object, sometimes it grabs a *resource* from the outside world: a file gets opened, a network socket is connected, a chunk of memory is reserved, a lock is taken. Memory the program allocates is usually cleaned up automatically by the language (a garbage collector or scope rules). But those outside-world resources are different — the operating system handed you a *handle*, and it expects you to hand it back. If you don't, the program "leaks" the resource. Open enough files without closing them and the OS refuses to give you more.

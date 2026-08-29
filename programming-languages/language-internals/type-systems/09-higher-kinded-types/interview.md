@@ -10,22 +10,6 @@ These questions probe whether a candidate truly understands kinds — the "types
 
 A strong candidate speaks in terms of *kinds* and *constructors*, gives concrete `Option`/`List`/`Either` behavior for `flatMap` instead of mysticism, distinguishes higher-kinded from higher-rank and higher-order, and treats "should we use this?" as an engineering trade-off rather than an ideology. The questions below run from foundational vocabulary, through language-specific surfaces (Haskell, Scala, Rust/GATs, TypeScript, Kotlin/Arrow), into traps where the obvious answer is wrong, and finish with design judgment.
 
-## Table of Contents
-
-- [Conceptual / Foundational](#conceptual--foundational)
-- [Language-Specific](#language-specific)
-  - [Haskell](#haskell)
-  - [Scala](#scala)
-  - [Rust (lack of HKTs and GATs)](#rust-lack-of-hkts-and-gats)
-  - [TypeScript (HKT encoding)](#typescript-hkt-encoding)
-  - [Kotlin (Arrow)](#kotlin-arrow)
-- [Tricky / Trap Questions](#tricky--trap-questions)
-- [Design / Judgment](#design--judgment)
-- [Cheat Sheet](#cheat-sheet)
-- [Further Reading](#further-reading)
-
----
-
 ## Conceptual / Foundational
 
 ## Question 1

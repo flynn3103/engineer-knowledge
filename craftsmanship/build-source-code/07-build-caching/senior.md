@@ -5,27 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [The Two-Level Model — Action Cache vs CAS](#the-two-level-model--action-cache-vs-cas)
-3. [Cache Key Design Is Correctness Engineering](#cache-key-design-is-correctness-engineering)
-4. [Hermeticity Is What Makes Caching Safe](#hermeticity-is-what-makes-caching-safe)
-5. [The Poisoned Cache — the Scariest Build Bug](#the-poisoned-cache--the-scariest-build-bug)
-6. [Remote Caching Architecture](#remote-caching-architecture)
-7. [Eviction, Sizing, and the Economics of a Cache](#eviction-sizing-and-the-economics-of-a-cache)
-8. [Measuring and Improving Hit Rate](#measuring-and-improving-hit-rate)
-9. [Caching, Reproducibility, and Remote Execution](#caching-reproducibility-and-remote-execution)
-10. [Mental Models](#mental-models)
-11. [Common Mistakes](#common-mistakes)
-12. [Test Yourself](#test-yourself)
-13. [Cheat Sheet](#cheat-sheet)
-14. [Summary](#summary)
-15. [Further Reading](#further-reading)
-16. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **What makes a build cache provably correct, not just empirically fast?**

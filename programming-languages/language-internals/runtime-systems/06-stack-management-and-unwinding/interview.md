@@ -11,15 +11,6 @@ This file is a bank of interview questions on stack management and unwinding, wr
 
 Treat the model answers as a *floor*, not a script. The strongest candidates connect mechanisms: "no frame pointer → unwinding is a table lookup → that table is `.eh_frame` → which also drives exceptions → which is why stripping it breaks both crash reports and `throw`."
 
-## Table of Contents
-
-- [Conceptual](#conceptual)
-- [Platform-Specific](#platform-specific)
-- [Tricky / Trap](#tricky--trap)
-- [Design](#design)
-
----
-
 ## Conceptual
 
 ## Question 1

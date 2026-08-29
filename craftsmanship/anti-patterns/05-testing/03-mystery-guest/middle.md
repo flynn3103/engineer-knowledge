@@ -4,26 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [The Four Sources of a Mystery Guest](#the-four-sources-of-a-mystery-guest)
-4. [Source 1 — The Shared Fixture and the Far-Away setUp](#source-1--the-shared-fixture-and-the-far-away-setup)
-5. [Source 2 — The Seeded Database Row](#source-2--the-seeded-database-row)
-6. [Source 3 — The Golden File](#source-3--the-golden-file)
-7. [The Cure: Local, Explicit, Minimal](#the-cure-local-explicit-minimal)
-8. [Test Data Builders](#test-data-builders)
-9. [The Test Should Read Top-to-Bottom](#the-test-should-read-top-to-bottom)
-10. [Common Mistakes](#common-mistakes)
-11. [Test Yourself](#test-yourself)
-12. [Cheat Sheet](#cheat-sheet)
-13. [Summary](#summary)
-14. [Further Reading](#further-reading)
-15. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Where does the hidden data come from?** and **What do you do instead?**

@@ -12,15 +12,6 @@ toolchains (LLVM, GCC, JVM, V8, rustc) on that map, and reason about AOT vs JIT,
 bootstrapping, and cross-compilation. Strong answers connect the architecture to its
 payoff (reuse, optimization locality, portability) rather than reciting phase names.
 
-## Table of Contents
-
-- [Conceptual](#conceptual)
-- [Toolchain-Specific](#toolchain-specific)
-- [Tricky / Trap](#tricky--trap)
-- [Design](#design)
-
----
-
 ## Conceptual
 
 ## Question 1

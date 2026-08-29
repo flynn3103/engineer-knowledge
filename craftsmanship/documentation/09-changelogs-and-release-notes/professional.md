@@ -7,23 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Making the Changelog Part of Definition-of-Done](#making-the-changelog-part-of-definition-of-done)
-3. [Enforcing the Pipeline in CI](#enforcing-the-pipeline-in-ci)
-4. [Reviewing Changelog Entries and Version Bumps](#reviewing-changelog-entries-and-version-bumps)
-5. [Team Conventions That Make It Stick](#team-conventions-that-make-it-stick)
-6. [Retrofitting Discipline onto a Legacy Repo](#retrofitting-discipline-onto-a-legacy-repo)
-7. [Real Incidents](#real-incidents)
-8. [The Politics of Versioning](#the-politics-of-versioning)
-9. [Review Checklist](#review-checklist)
-10. [Cheat Sheet](#cheat-sheet)
-11. [Diagrams](#diagrams)
-12. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **production** — keeping versioning honest and changelogs alive across many contributors over years.

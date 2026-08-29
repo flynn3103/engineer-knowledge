@@ -10,17 +10,6 @@ These questions probe whether a candidate understands what a Just-In-Time compil
 
 A weaker candidate says "the JIT makes it faster" and "Java is slow at startup" without explaining the mechanism, conflates the interpreter with the optimizing compiler, or believes an AOT compiler must always beat a JIT because "it had more time." The questions below run from foundational concepts, through engine-specific internals, into traps where the obvious answer is wrong, and finish with design scenarios that reveal whether the candidate has actually operated JIT-based systems.
 
-## Table of Contents
-
-- [Conceptual / Foundational](#conceptual--foundational)
-- [Engine-Specific](#engine-specific)
-- [Tricky / Trap Questions](#tricky--trap-questions)
-- [Design Scenarios](#design-scenarios)
-- [Cheat Sheet](#cheat-sheet)
-- [Further Reading](#further-reading)
-
----
-
 ## Conceptual / Foundational
 
 ## Question 1

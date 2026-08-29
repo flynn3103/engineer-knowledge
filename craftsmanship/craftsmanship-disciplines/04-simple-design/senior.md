@@ -7,25 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Simple Design vs. Architecture and Up-Front Design](#simple-design-vs-architecture-and-up-front-design)
-3. [When Minimalism Becomes Under-Engineering](#when-minimalism-becomes-under-engineering)
-4. [The Cost of Premature Abstraction](#the-cost-of-premature-abstraction)
-5. [Connascence: A Precise Theory of Duplication and Coupling](#connascence-a-precise-theory-of-duplication-and-coupling)
-6. [Corey Haines' Heuristics](#corey-haines-heuristics)
-7. [The Rule of Three, Formalized](#the-rule-of-three-formalized)
-8. [Simple Design and SOLID](#simple-design-and-solid)
-9. [Reversibility and the One-Way-Door Test](#reversibility-and-the-one-way-door-test)
-10. [Code Examples — Advanced](#code-examples-advanced)
-11. [Liabilities](#liabilities)
-12. [Pros & Cons at the System Level](#pros-cons-at-the-system-level)
-13. [Diagrams](#diagrams)
-14. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **design trade-offs** and **system-level reasoning**

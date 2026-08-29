@@ -5,20 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [How to Use This Page](#how-to-use-this-page)
-2. [Warm-Up: Predict the Inferred Type](#warm-up-predict-the-inferred-type)
-3. [Tier 1 — Local Inference (var / auto / := )](#tier-1--local-inference-var--auto--)
-4. [Tier 2 — Hindley-Milner by Hand](#tier-2--hindley-milner-by-hand)
-5. [Tier 3 — Where Inference Breaks](#tier-3--where-inference-breaks)
-6. [Tier 4 — TypeScript Inference](#tier-4--typescript-inference)
-7. [Tier 5 — Diagnose & Annotate](#tier-5--diagnose--annotate)
-8. [Capstone Projects](#capstone-projects)
-9. [Self-Assessment Checklist](#self-assessment-checklist)
-
----
-
 ## How to Use This Page
 
 Each task states a **goal**, gives a **self-check** so you know when you're done, offers a **hint** (collapsed in spirit — read it only if stuck), and — for the harder ones — a **sparse solution** showing the key idea, not the full code. Do the prediction tasks *before* running the compiler: the entire skill is anticipating what inference will do, then confirming. Where a task says "run it," actually run it — inference behavior is exact and your prediction is either right or wrong.

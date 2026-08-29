@@ -3,15 +3,6 @@
 
 These tasks make stack-vs-heap concrete by having you *measure* it. You'll watch escape analysis decide, trigger and diagnose a stack overflow, benchmark allocation cost, and tune a hot path to zero allocations. Prefer Go for the escape-analysis tasks (best tooling), C for the overflow/dangling-pointer tasks, and your choice for the rest. Work through them in order; each builds intuition for the next.
 
-## Table of Contents
-- [Warm-Up](#warm-up)
-- [Core](#core)
-- [Advanced](#advanced)
-- [Capstone](#capstone)
-- [Self-Assessment](#self-assessment)
-
----
-
 ## Warm-Up
 
 ### Task 1 — Make a value escape, then prove it

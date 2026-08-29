@@ -5,31 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concept 1 — Automation as a Signal-to-Noise System](#core-concept-1--automation-as-a-signal-to-noise-system)
-5. [Core Concept 2 — The Automation Hierarchy](#core-concept-2--the-automation-hierarchy)
-6. [Core Concept 3 — The Noise Budget and the Boy-Who-Cried-Wolf Failure](#core-concept-3--the-noise-budget-and-the-boy-who-cried-wolf-failure)
-7. [Core Concept 4 — Inline Annotations vs Comment Spam (reviewdog / Danger)](#core-concept-4--inline-annotations-vs-comment-spam-reviewdog--danger)
-8. [Core Concept 5 — CODEOWNERS and Routing at Scale](#core-concept-5--codeowners-and-routing-at-scale)
-9. [Core Concept 6 — AI-Assisted Review, Measured](#core-concept-6--ai-assisted-review-measured)
-10. [Core Concept 7 — Workflow Tooling: Stacks, Queues, Auto-Merge](#core-concept-7--workflow-tooling-stacks-queues-auto-merge)
-11. [Core Concept 8 — Async vs Sync as a Latency Decision](#core-concept-8--async-vs-sync-as-a-latency-decision)
-12. [Core Concept 9 — The Metrics the Tooling Must Expose](#core-concept-9--the-metrics-the-tooling-must-expose)
-13. [Real-World Examples](#real-world-examples)
-14. [Mental Models](#mental-models)
-15. [Common Mistakes](#common-mistakes)
-16. [Test Yourself](#test-yourself)
-17. [Cheat Sheet](#cheat-sheet)
-18. [Summary](#summary)
-19. [Further Reading](#further-reading)
-20. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Review automation as a system that maximizes the human reviewer's signal-to-noise and throughput — not a pile of bots that each seemed like a good idea.**

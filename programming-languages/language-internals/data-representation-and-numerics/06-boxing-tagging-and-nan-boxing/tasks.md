@@ -17,19 +17,6 @@ Languages: Java and C# for boxing traps, Python for the object model, C for the 
 
 ---
 
-## Table of Contents
-
-- [Section 1 — Boxing Cost & Traps (Junior)](#section-1--boxing-cost--traps-junior)
-- [Section 2 — Language Caches & Identity (Junior–Middle)](#section-2--language-caches--identity-juniormiddle)
-- [Section 3 — Pointer Tagging by Hand (Middle)](#section-3--pointer-tagging-by-hand-middle)
-- [Section 4 — IEEE-754 & NaN-Boxing Bits (Middle–Senior)](#section-4--ieee-754--nan-boxing-bits-middlesenior)
-- [Section 5 — Build a Value Type (Senior)](#section-5--build-a-value-type-senior)
-- [Section 6 — Platform & Production (Professional)](#section-6--platform--production-professional)
-- [Section 7 — Design & Reasoning (Senior–Professional)](#section-7--design--reasoning-seniorprofessional)
-- [Self-Check Answer Key](#self-check-answer-key)
-
----
-
 ## Section 1 — Boxing Cost & Traps (Junior)
 
 ### Task 1.1 — Measure `int[]` vs `ArrayList<Integer>`

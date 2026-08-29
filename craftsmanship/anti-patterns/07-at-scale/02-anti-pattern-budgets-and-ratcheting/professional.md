@@ -5,28 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Baseline Storage: Bare Count vs Hashed Violations](#baseline-storage-bare-count-vs-hashed-violations)
-4. [Merge Conflicts and How Tools Avoid Them](#merge-conflicts-and-how-tools-avoid-them)
-5. [Race Conditions in Baseline Write-Back](#race-conditions-in-baseline-write-back)
-6. [Monorepo Per-Package Budgets at Scale](#monorepo-per-package-budgets-at-scale)
-7. [Statistical Noise and Flaky Counts](#statistical-noise-and-flaky-counts)
-8. [Recompute Performance: Scope, Cache, Incremental](#recompute-performance-scope-cache-incremental)
-9. [Goodhart's Law and Gaming, Mechanized](#goodharts-law-and-gaming-mechanized)
-10. [When a Ratchet Entrenches a Bad Metric](#when-a-ratchet-entrenches-a-bad-metric)
-11. [A Combined Failure-Mode Walkthrough](#a-combined-failure-mode-walkthrough)
-12. [Common Mistakes](#common-mistakes)
-13. [Test Yourself](#test-yourself)
-14. [Cheat Sheet](#cheat-sheet)
-15. [Summary](#summary)
-16. [Further Reading](#further-reading)
-17. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Implementation and failure modes.** The baseline format and why it conflicts; race conditions in write-back; per-package monorepo budgets; flaky/noisy counts; recompute performance; mechanized Goodhart gaming; and the worst failure of all — a ratchet that perfectly enforces the wrong metric.

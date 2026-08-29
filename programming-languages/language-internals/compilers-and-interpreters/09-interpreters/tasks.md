@@ -5,22 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [How to Use These Tasks](#how-to-use-these-tasks)
-2. [Warm-Up Exercises](#warm-up-exercises)
-3. [Core Exercises — Tree-Walking](#core-exercises--tree-walking)
-4. [Core Exercises — Bytecode](#core-exercises--bytecode)
-5. [Advanced Exercises — Dispatch & Performance](#advanced-exercises--dispatch--performance)
-6. [Advanced Exercises — Real Semantics](#advanced-exercises--real-semantics)
-7. [Capstone Project](#capstone-project)
-8. [Reading-Real-VMs Exercises](#reading-real-vms-exercises)
-9. [Self-Assessment Checklist](#self-assessment-checklist)
-10. [Hints](#hints)
-11. [Sparse Solutions](#sparse-solutions)
-
----
-
 ## How to Use These Tasks
 
 Work top to bottom — the tasks build a single language, twice: first as a tree-walker, then as a bytecode VM, so you feel the difference in your own code. Each task has a **goal**, a concrete **self-check** you can run to know you succeeded, and most have a **hint** (see [Hints](#hints)) and a **sparse solution** (see [Sparse Solutions](#sparse-solutions)) — *try the task before reading either*.

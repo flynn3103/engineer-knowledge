@@ -11,15 +11,6 @@ These questions test whether a candidate can reason about the gap between the er
 
 The sections progress: **Conceptual** (the model itself), **Language-Specific** (Java/C++/Go/Rust/Haskell/JS surfaces), **Tricky/Trap** (where the textbook answer is wrong), and **Design** (judgment about failure taxonomies and systems).
 
-## Table of Contents
-
-- [Conceptual](#conceptual)
-- [Language-Specific](#language-specific)
-- [Tricky / Trap](#tricky--trap)
-- [Design](#design)
-
----
-
 ## Conceptual
 
 ## Question 1

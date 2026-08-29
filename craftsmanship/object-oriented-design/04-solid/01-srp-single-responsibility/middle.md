@@ -7,26 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Finding the Actors in Real Code](#finding-the-actors-in-real-code)
-3. [Refactoring a God Class by Actor](#refactoring-a-god-class-by-actor)
-4. [SRP at Three Levels: Function, Class, Module](#srp-at-three-levels-function-class-module)
-5. [SRP Is Cohesion](#srp-is-cohesion)
-6. [The Facade Pattern as the SRP Companion](#the-facade-pattern-as-the-srp-companion)
-7. [Over-Application: The Class Explosion](#over-application-the-class-explosion)
-8. [When NOT to Split](#when-not-to-split)
-9. [Trade-offs](#trade-offs)
-10. [Edge Cases](#edge-cases)
-11. [Tricky Points](#tricky-points)
-12. [Best Practices](#best-practices)
-13. [Test Yourself](#test-yourself)
-14. [Summary](#summary)
-15. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **Why** and **When**

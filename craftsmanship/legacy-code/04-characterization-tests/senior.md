@@ -1,20 +1,5 @@
 # Characterization Tests — Senior
 
-## Table of Contents
-
-- [What characterization tests actually guarantee](#what-characterization-tests-actually-guarantee)
-- [The pinned-bug dilemma](#the-pinned-bug-dilemma)
-- [Brittleness: the cost of photographing too much](#brittleness-the-cost-of-photographing-too-much)
-- [Coverage strategy: where to spend your pins](#coverage-strategy-where-to-spend-your-pins)
-- [Feedback on the net itself: mutation testing](#feedback-on-the-net-itself-mutation-testing)
-- [Non-determinism and hidden inputs](#non-determinism-and-hidden-inputs)
-- [The combinatorial input space](#the-combinatorial-input-space)
-- [Lifecycle: characterization tests are scaffolding](#lifecycle-characterization-tests-are-scaffolding)
-- [When characterization is the wrong tool](#when-characterization-is-the-wrong-tool)
-- [Related Topics](#related-topics)
-
----
-
 ## What characterization tests actually guarantee
 
 A characterization test makes exactly one promise: **"the observed behavior on this input is the same as it was when I captured it."** It says nothing about correctness, completeness, or intent. Senior judgment begins with taking that statement literally and reasoning about its consequences.

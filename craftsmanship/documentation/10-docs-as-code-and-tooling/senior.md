@@ -7,23 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Docs-Next-to-Code vs. Central Docs Repo](#docs-next-to-code-vs-central-docs-repo)
-3. [Multi-Repo Docs and Aggregation](#multi-repo-docs-and-aggregation)
-4. [Information Architecture as a System](#information-architecture-as-a-system)
-5. [Single-Sourcing and Generated/Hand-Written Merge](#single-sourcing-and-generatedhand-written-merge)
-6. [The Non-Engineer Contributor Problem](#the-non-engineer-contributor-problem)
-7. [Choosing a Generator You Won't Outgrow](#choosing-a-generator-you-wont-outgrow)
-8. [Designing the Pipeline as a Quality System](#designing-the-pipeline-as-a-quality-system)
-9. [Trade-offs at the System Level](#trade-offs-at-the-system-level)
-10. [Liabilities](#liabilities)
-11. [Diagrams](#diagrams)
-12. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **design trade-offs** and **system-level reasoning**

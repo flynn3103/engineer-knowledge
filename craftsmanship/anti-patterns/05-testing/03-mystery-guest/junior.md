@@ -4,24 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [What a Mystery Guest Looks Like](#what-a-mystery-guest-looks-like)
-4. [Why It's Bad](#why-its-bad)
-5. [Where the Hidden Data Hides](#where-the-hidden-data-hides)
-6. [The Fix: Make the Input Visible](#the-fix-make-the-input-visible)
-7. [Name the Meaningful Values](#name-the-meaningful-values)
-8. [Common Mistakes](#common-mistakes)
-9. [Test Yourself](#test-yourself)
-10. [Cheat Sheet](#cheat-sheet)
-11. [Summary](#summary)
-12. [Further Reading](#further-reading)
-13. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **What does it look like?** and **Why is it bad?**

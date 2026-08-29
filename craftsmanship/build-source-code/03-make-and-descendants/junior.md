@@ -5,29 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concept 1 — What Make Actually Does](#core-concept-1--what-make-actually-does)
-5. [Core Concept 2 — Anatomy of a Rule: Target, Prerequisites, Recipe](#core-concept-2--anatomy-of-a-rule-target-prerequisites-recipe)
-6. [Core Concept 3 — The Tab Gotcha (Read This Before You Lose an Hour)](#core-concept-3--the-tab-gotcha-read-this-before-you-lose-an-hour)
-7. [Core Concept 4 — Why Make Only Rebuilds What Changed](#core-concept-4--why-make-only-rebuilds-what-changed)
-8. [Core Concept 5 — Phony Targets: `all`, `clean`, and Friends](#core-concept-5--phony-targets-all-clean-and-friends)
-9. [Core Concept 6 — Running Builds in Parallel: `make -j`](#core-concept-6--running-builds-in-parallel-make--j)
-10. [Core Concept 7 — Make's Children at a Glance: Ninja, CMake, Meson](#core-concept-7--makes-children-at-a-glance-ninja-cmake-meson)
-11. [Real-World Examples](#real-world-examples)
-12. [Mental Models](#mental-models)
-13. [Common Mistakes](#common-mistakes)
-14. [Test Yourself](#test-yourself)
-15. [Cheat Sheet](#cheat-sheet)
-16. [Summary](#summary)
-17. [Further Reading](#further-reading)
-18. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **What is Make, and why does almost every build tool descend from it?**

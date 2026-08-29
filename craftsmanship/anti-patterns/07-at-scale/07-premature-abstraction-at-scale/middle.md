@@ -5,27 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [The Real Skill: Telling a Seam From a Speculation](#the-real-skill-telling-a-seam-from-a-speculation)
-4. [Speculative Parameters: Flexibility on Spec](#speculative-parameters-flexibility-on-spec)
-5. [Deep Wrapper Layers: When Indirection Pays and When It Doesn't](#deep-wrapper-layers-when-indirection-pays-and-when-it-doesnt)
-6. [Pattern-for-Pattern's-Sake](#pattern-for-patterns-sake)
-7. [The Rule of Three — and the Trap Inside It](#the-rule-of-three--and-the-trap-inside-it)
-8. [When an Abstraction Has Earned Its Keep](#when-an-abstraction-has-earned-its-keep)
-9. [The Decision: A Flowchart You Can Run](#the-decision-a-flowchart-you-can-run)
-10. [Resisting It in Review](#resisting-it-in-review)
-11. [Common Mistakes](#common-mistakes)
-12. [Test Yourself](#test-yourself)
-13. [Cheat Sheet](#cheat-sheet)
-14. [Summary](#summary)
-15. [Further Reading](#further-reading)
-16. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Spotting it & resisting it** — and the harder skill of knowing when an abstraction has genuinely earned its keep.

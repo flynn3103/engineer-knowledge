@@ -7,24 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Test Data in CI](#test-data-in-ci)
-3. [Database Fixtures in Practice](#database-fixtures-in-practice)
-4. [Factory Libraries: FactoryBoy, Faker, and Friends](#factory-libraries-factoryboy-faker-and-friends)
-5. [Flaky-Test Triage](#flaky-test-triage)
-6. [The Maintenance Cost of Fixtures](#the-maintenance-cost-of-fixtures)
-7. [Team Standards for Test Design](#team-standards-for-test-design)
-8. [Parallelism and Isolation in CI](#parallelism-and-isolation-in-ci)
-9. [Real Incidents](#real-incidents)
-10. [Code Review Standards](#code-review-standards)
-11. [Cheat Sheet](#cheat-sheet)
-12. [Diagrams](#diagrams)
-13. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **production** — what test design costs and protects once a suite runs thousands of times a day in CI, maintained by a whole team.

@@ -5,29 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [The Hazard Playbook](#the-hazard-playbook)
-   - [Hazard 1: Memory Ownership and Lifetime](#hazard-1-memory-ownership-and-lifetime)
-   - [Hazard 2: Type and ABI Mismatch](#hazard-2-type-and-abi-mismatch)
-   - [Hazard 3: Error Handling Across the Boundary](#hazard-3-error-handling-across-the-boundary)
-   - [Hazard 4: Threading and Reentrancy](#hazard-4-threading-and-reentrancy)
-   - [Hazard 5: Resource Leaks and Robustness](#hazard-5-resource-leaks-and-robustness)
-   - [Hazard 6: Security at the Boundary](#hazard-6-security-at-the-boundary)
-5. [The Discipline: A Thin, Audited Boundary](#the-discipline-a-thin-audited-boundary)
-6. [Tooling: How You Actually Catch These](#tooling-how-you-actually-catch-these)
-7. [Process Isolation as an Architectural Tool](#process-isolation-as-an-architectural-tool)
-8. [Code Examples](#code-examples)
-9. [Best Practices](#best-practices)
-10. [War Stories](#war-stories)
-11. [Review Checklist](#review-checklist)
-12. [Summary](#summary)
-
----
-
 ## Introduction
 
 At the professional tier you are not the engineer who *uses* an FFI binding; you are the engineer who *owns* it. You decide whether a team may link a native library at all, you design the boundary so that the next ten people who touch it cannot introduce undefined behavior, you write the CI gates that catch the bugs review misses, and you are the one paged when a binding corrupts memory in production at three in the morning and the stack trace points into a `.so` you do not have symbols for.

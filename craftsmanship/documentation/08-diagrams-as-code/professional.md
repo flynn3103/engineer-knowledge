@@ -7,24 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Reviewing Diagrams in Pull Requests](#reviewing-diagrams-in-pull-requests)
-3. [The CI Pipeline for Diagrams](#the-ci-pipeline-for-diagrams)
-4. [Team Conventions for Diagrams as Code](#team-conventions-for-diagrams-as-code)
-5. [Keeping Diagrams in Sync at Scale](#keeping-diagrams-in-sync-at-scale)
-6. [Migrating a Legacy Diagram Estate](#migrating-a-legacy-diagram-estate)
-7. [Measuring Whether It's Working](#measuring-whether-its-working)
-8. [Real Incidents](#real-incidents)
-9. [The Politics of Diagrams](#the-politics-of-diagrams)
-10. [Review Checklist](#review-checklist)
-11. [Cheat Sheet](#cheat-sheet)
-12. [Diagrams](#diagrams)
-13. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **production** — running diagrams-as-code across a large org over years.

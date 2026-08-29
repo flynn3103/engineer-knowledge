@@ -5,28 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Toolchain Pinning and Hermeticity at the Fundamentals Layer](#toolchain-pinning-and-hermeticity-at-the-fundamentals-layer)
-4. [The glibc Floor — manylinux and the Symbol-Version Tax](#the-glibc-floor--manylinux-and-the-symbol-version-tax)
-5. [glibc vs musl — A Real Decision, Not a Religion](#glibc-vs-musl--a-real-decision-not-a-religion)
-6. [Static vs Dynamic as a Supply-Chain Decision](#static-vs-dynamic-as-a-supply-chain-decision)
-7. [Security Hardening as Build-Time Flags](#security-hardening-as-build-time-flags)
-8. [Debugging Production Link and Load Failures](#debugging-production-link-and-load-failures)
-9. [War Stories](#war-stories)
-10. [Decision Frameworks](#decision-frameworks)
-11. [Mental Models](#mental-models)
-12. [Common Mistakes](#common-mistakes)
-13. [Test Yourself](#test-yourself)
-14. [Cheat Sheet](#cheat-sheet)
-15. [Summary](#summary)
-16. [Further Reading](#further-reading)
-17. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Operating builds across a fleet and a supply chain, where the linking model is a security, compliance, and incident-response concern.**

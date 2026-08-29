@@ -1,21 +1,5 @@
 # Characterization Tests — Professional
 
-## Table of Contents
-
-- [The scenario: a legacy pricing engine under deadline](#the-scenario-a-legacy-pricing-engine-under-deadline)
-- [Step 0 — establish a beachhead](#step-0--establish-a-beachhead)
-- [Step 1 — broad golden master before any surgery](#step-1--broad-golden-master-before-any-surgery)
-- [Approval-testing tooling in practice](#approval-testing-tooling-in-practice)
-- [Taming non-determinism in the real module](#taming-non-determinism-in-the-real-module)
-- [CI integration](#ci-integration)
-- [Reviewing and maintaining golden masters](#reviewing-and-maintaining-golden-masters)
-- [Team workflow and conventions](#team-workflow-and-conventions)
-- [Pitfalls from the field](#pitfalls-from-the-field)
-- [Retiring the scaffolding](#retiring-the-scaffolding)
-- [Related Topics](#related-topics)
-
----
-
 ## The scenario: a legacy pricing engine under deadline
 
 You own a change to `PricingEngine`, a 1,400-line class at the center of a checkout system. It has three tests, all trivial. Product needs a new "loyalty tier" discount shipped in two weeks. The class reads the clock, hits a currency-rate service, formats money by locale, and produces a `PriceBreakdown` object with two dozen fields. Nobody on the current team wrote it, and the original author left.

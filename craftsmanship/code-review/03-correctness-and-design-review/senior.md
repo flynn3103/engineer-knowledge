@@ -5,32 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concept 1 — Reasoning About Correctness: Invariants and the Valid-State Set](#core-concept-1--reasoning-about-correctness-invariants-and-the-valid-state-set)
-5. [Core Concept 2 — Make Illegal States Unrepresentable, as a Review Lens](#core-concept-2--make-illegal-states-unrepresentable-as-a-review-lens)
-6. [Core Concept 3 — Concurrency Bug Classes, Named Precisely](#core-concept-3--concurrency-bug-classes-named-precisely)
-7. [Core Concept 4 — Error and Failure Paths: the Least-Tested, Most-Buggy Code](#core-concept-4--error-and-failure-paths-the-least-tested-most-buggy-code)
-8. [Core Concept 5 — Boundary, Numeric, Aliasing, and Time](#core-concept-5--boundary-numeric-aliasing-and-time)
-9. [Core Concept 6 — Reviewing What Is *Not* in the Diff](#core-concept-6--reviewing-what-is-not-in-the-diff)
-10. [Core Concept 7 — Design Review as Evolvability](#core-concept-7--design-review-as-evolvability)
-11. [Core Concept 8 — API and Contract Review: Hyrum's Law and Reversibility](#core-concept-8--api-and-contract-review-hyrums-law-and-reversibility)
-12. [Core Concept 9 — The Timing and Leverage of Design Feedback](#core-concept-9--the-timing-and-leverage-of-design-feedback)
-13. [Core Concept 10 — When a Concern Needs a Test, Not a Code Change](#core-concept-10--when-a-concern-needs-a-test-not-a-code-change)
-14. [Real-World Examples](#real-world-examples)
-15. [Mental Models](#mental-models)
-16. [Common Mistakes](#common-mistakes)
-17. [Test Yourself](#test-yourself)
-18. [Cheat Sheet](#cheat-sheet)
-19. [Summary](#summary)
-20. [Further Reading](#further-reading)
-21. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Reasoning about correctness from invariants and valid states rather than pattern-matching, the deep bug classes a senior reviewer holds in working memory, and design feedback judged on evolvability and delivered while it is still cheap.**

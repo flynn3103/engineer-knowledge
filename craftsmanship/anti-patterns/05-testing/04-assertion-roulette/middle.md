@@ -4,25 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [The Root Cause: the Eager Test](#the-root-cause-the-eager-test)
-4. [Cure 1 — One Behavior per Test](#cure-1--one-behavior-per-test)
-5. [Cure 2 — Descriptive Assertion Messages](#cure-2--descriptive-assertion-messages)
-6. [Cure 3 — Rich Matcher Libraries](#cure-3--rich-matcher-libraries)
-7. [Cure 4 — Soft Assertions to Reveal Every Failure](#cure-4--soft-assertions-to-reveal-every-failure)
-8. [Choosing a Cure](#choosing-a-cure)
-9. [Common Mistakes](#common-mistakes)
-10. [Test Yourself](#test-yourself)
-11. [Cheat Sheet](#cheat-sheet)
-12. [Summary](#summary)
-13. [Further Reading](#further-reading)
-14. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Why does the roulette wheel get built**, and **what do you do instead** — concretely, in Go, Java, and Python.

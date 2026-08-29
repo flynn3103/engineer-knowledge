@@ -5,34 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concepts](#core-concepts)
-5. [Real-World Analogies](#real-world-analogies)
-6. [Mental Models](#mental-models)
-7. [Code Examples](#code-examples)
-8. [Pros & Cons](#pros--cons)
-9. [Use Cases](#use-cases)
-10. [Coding Patterns](#coding-patterns)
-11. [Clean Code](#clean-code)
-12. [Best Practices](#best-practices)
-13. [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-14. [Common Mistakes](#common-mistakes)
-15. [Tricky Points](#tricky-points)
-16. [Test Yourself](#test-yourself)
-17. [Tricky Questions](#tricky-questions)
-18. [Cheat Sheet](#cheat-sheet)
-19. [Summary](#summary)
-20. [What You Can Build](#what-you-can-build)
-21. [Further Reading](#further-reading)
-22. [Related Topics](#related-topics)
-23. [Diagrams & Visual Aids](#diagrams--visual-aids)
-
----
-
 ## Introduction
 
 > Focus: **At the senior level, "it overflows" is not an answer — the question is *what the specification permits the compiler to assume*, and *what the hardware actually does*.** Those two layers diverge most sharply in C/C++, where signed overflow is undefined behavior, and the gap between "what you wrote" and "what runs" is wide enough to hide both performance wins and security holes.

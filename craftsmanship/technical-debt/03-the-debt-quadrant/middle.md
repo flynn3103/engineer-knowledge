@@ -5,26 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [The Two Axes, Precisely](#the-two-axes-precisely)
-4. [A Response Per Cell — the Whole Point of the Grid](#a-response-per-cell--the-whole-point-of-the-grid)
-5. [Cunningham's Original Debt Was Inadvertent + Prudent](#cunninghams-original-debt-was-inadvertent--prudent)
-6. [Classifying Real Debt — Worked Examples](#classifying-real-debt--worked-examples)
-7. [Where the Quadrant Breaks Down](#where-the-quadrant-breaks-down)
-8. [Other Taxonomies, Briefly](#other-taxonomies-briefly)
-9. [Mental Models](#mental-models)
-10. [Common Mistakes](#common-mistakes)
-11. [Test Yourself](#test-yourself)
-12. [Cheat Sheet](#cheat-sheet)
-13. [Summary](#summary)
-14. [Further Reading](#further-reading)
-15. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **How do I use the quadrant to decide what to actually *do* about a piece of debt?**

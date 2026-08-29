@@ -7,23 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Running Docs as an Engineering Program](#running-docs-as-an-engineering-program)
-3. [Enforcing Doc Freshness in Review and CI](#enforcing-doc-freshness-in-review-and-ci)
-4. [Doc Health Metrics That Don't Lie](#doc-health-metrics-that-dont-lie)
-5. [Doc Gardening: Ongoing Work, Not a Project](#doc-gardening-ongoing-work-not-a-project)
-6. [Making It Cheap to Update and Expensive to Skip](#making-it-cheap-to-update-and-expensive-to-skip)
-7. [Real Incidents](#real-incidents)
-8. [The Politics of Deleting Docs](#the-politics-of-deleting-docs)
-9. [Review Checklist](#review-checklist)
-10. [Cheat Sheet](#cheat-sheet)
-11. [Diagrams](#diagrams)
-12. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **production** — keeping docs true across many teams, many repos, and years.

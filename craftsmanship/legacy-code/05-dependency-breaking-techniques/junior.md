@@ -1,22 +1,5 @@
 # Dependency-Breaking Techniques — Junior
 
-## Table of Contents
-
-- [Why we break dependencies](#why-we-break-dependencies)
-- [Sense and separate: the two reasons](#sense-and-separate-the-two-reasons)
-- [What a dependency-breaking technique actually is](#what-a-dependency-breaking-technique-actually-is)
-- [Technique 1: Parameterize Constructor](#technique-1-parameterize-constructor)
-- [Technique 2: Parameterize Method](#technique-2-parameterize-method)
-- [Technique 3: Extract Interface](#technique-3-extract-interface)
-- [Technique 4: Subclass and Override Method](#technique-4-subclass-and-override-method)
-- [A picture of the whole idea](#a-picture-of-the-whole-idea)
-- [These are scaffolding, not the goal](#these-are-scaffolding-not-the-goal)
-- [How this connects to the rest of legacy work](#how-this-connects-to-the-rest-of-legacy-work)
-- [Mini Glossary](#mini-glossary)
-- [Review questions](#review-questions)
-
----
-
 ## Why we break dependencies
 
 When you join a real team you will mostly change code that already exists, and a lot of that code has no tests. To change it safely you want to put it under test first — to wrap it in a *test harness* so you can run a small piece of it in isolation and check what it does. But you usually cannot, because the piece you care about is *tangled up with* things you cannot run in a test:

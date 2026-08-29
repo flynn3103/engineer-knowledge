@@ -5,27 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concept 1 — The Boy Scout Rule](#core-concept-1--the-boy-scout-rule)
-5. [Core Concept 2 — Test Before You Change](#core-concept-2--test-before-you-change)
-6. [Core Concept 3 — Refactor in Tiny Steps](#core-concept-3--refactor-in-tiny-steps)
-7. [Core Concept 4 — Fix on Touch, Not on Schedule](#core-concept-4--fix-on-touch-not-on-schedule)
-8. [Core Concept 5 — When NOT to Pay Debt Down](#core-concept-5--when-not-to-pay-debt-down)
-9. [Real-World Examples](#real-world-examples)
-10. [Mental Models](#mental-models)
-11. [Common Mistakes](#common-mistakes)
-12. [Test Yourself](#test-yourself)
-13. [Cheat Sheet](#cheat-sheet)
-14. [Summary](#summary)
-15. [Further Reading](#further-reading)
-16. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **How do you actually reduce debt — safely, and without grand gestures?**

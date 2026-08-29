@@ -5,25 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Build Performance as an Org Investment](#build-performance-as-an-org-investment)
-3. [Setting Build-Time Budgets and SLOs](#setting-build-time-budgets-and-slos)
-4. [Instrumenting Builds: You Can't Manage What You Don't Measure](#instrumenting-builds-you-cant-manage-what-you-dont-measure)
-5. [Where to Spend the Effort](#where-to-spend-the-effort)
-6. [Rolling Out Distributed and Remote Execution](#rolling-out-distributed-and-remote-execution)
-7. [War Stories](#war-stories)
-8. [Mental Models](#mental-models)
-9. [Common Mistakes](#common-mistakes)
-10. [Test Yourself](#test-yourself)
-11. [Cheat Sheet](#cheat-sheet)
-12. [Summary](#summary)
-13. [Further Reading](#further-reading)
-14. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **How do you justify, budget, measure, and roll out build-performance work at organizational scale?**

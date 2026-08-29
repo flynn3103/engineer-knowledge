@@ -6,16 +6,6 @@ These tasks build muscle memory for the one distinction that matters: **determin
 
 ---
 
-## Table of Contents
-
-- [Warm-Up](#warm-up)
-- [Core](#core)
-- [Advanced](#advanced)
-- [Capstone](#capstone)
-- [Self-Assessment](#self-assessment)
-
----
-
 ## Warm-Up
 
 ### Task 1 — Observe destructor timing vs. finalizer timing

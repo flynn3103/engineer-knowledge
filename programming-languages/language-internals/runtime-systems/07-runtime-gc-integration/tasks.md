@@ -5,21 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [How To Use These Tasks](#how-to-use-these-tasks)
-2. [Track A — Roots & Scanning](#track-a--roots--scanning)
-3. [Track B — Safepoints & Time-To-Safepoint](#track-b--safepoints--time-to-safepoint)
-4. [Track C — Write & Read Barriers](#track-c--write--read-barriers)
-5. [Track D — Moving GC, Handles, Pinning](#track-d--moving-gc-handles-pinning)
-6. [Track E — Allocation Fast Path](#track-e--allocation-fast-path)
-7. [Track F — Engine-Specific Investigations](#track-f--engine-specific-investigations)
-8. [Track G — Incident Simulations](#track-g--incident-simulations)
-9. [Capstone Challenges](#capstone-challenges)
-10. [Self-Assessment Checklist](#self-assessment-checklist)
-
----
-
 ## How To Use These Tasks
 
 Each task has a **Goal**, **Steps**, a **Self-Check** (how to know you succeeded), a **Hint** (collapsed reasoning to try first), and, for harder tasks, a **Sparse Solution** (the key idea, not a full walk-through). Do the Self-Check *before* reading the Hint.

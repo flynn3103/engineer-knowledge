@@ -1,22 +1,5 @@
 # What Is Legacy Code — Junior
 
-## Table of Contents
-
-- [The one-sentence definition that changes everything](#the-one-sentence-definition-that-changes-everything)
-- [Why the everyday definition fails you](#why-the-everyday-definition-fails-you)
-- [A vivid analogy: rewiring a house with the power on](#a-vivid-analogy-rewiring-a-house-with-the-power-on)
-- [Edit and pray vs. cover and modify](#edit-and-pray-vs-cover-and-modify)
-- [A first concrete example](#a-first-concrete-example)
-- [Fear: the real cost of legacy code](#fear-the-real-cost-of-legacy-code)
-- [Legacy code is normal, not a failure](#legacy-code-is-normal-not-a-failure)
-- [What "tests" actually buy you](#what-tests-actually-buy-you)
-- [The legacy dilemma in one picture](#the-legacy-dilemma-in-one-picture)
-- [What this section will teach you](#what-this-section-will-teach-you)
-- [Mini Glossary](#mini-glossary)
-- [Review questions](#review-questions)
-
----
-
 ## The one-sentence definition that changes everything
 
 If you ask ten engineers what "legacy code" means, you will hear ten variations of the same vague idea: *old code, written by someone who left, that nobody wants to touch.* That definition feels right, but it is useless. It tells you nothing about what to **do**. You cannot act on "old." You cannot act on "someone else wrote it."

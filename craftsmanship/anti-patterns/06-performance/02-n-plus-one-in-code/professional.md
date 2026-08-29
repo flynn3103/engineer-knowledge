@@ -4,26 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Batch Size Has Limits — and Pagination](#batch-size-has-limits--and-pagination)
-4. [The Preload-Everything Trap (Over-Fetch)](#the-preload-everything-trap-over-fetch)
-5. [Latency vs Throughput: Batching vs Fan-Out](#latency-vs-throughput-batching-vs-fan-out)
-6. [Bounded-Concurrency Fan-Out](#bounded-concurrency-fan-out)
-7. [Backpressure and the Downstream](#backpressure-and-the-downstream)
-8. [When N Small Calls Are Actually Fine](#when-n-small-calls-are-actually-fine)
-9. [The Connection to Wrong Data Structure](#the-connection-to-wrong-data-structure)
-10. [Common Mistakes](#common-mistakes)
-11. [Test Yourself](#test-yourself)
-12. [Cheat Sheet](#cheat-sheet)
-13. [Summary](#summary)
-14. [Further Reading](#further-reading)
-15. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **The trade-offs that appear when "just batch it" meets real scale.**

@@ -7,28 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Template Variants and When to Use Them](#template-variants-and-when-to-use-them)
-3. [MADR: Options Considered with Pros and Cons](#madr-options-considered-with-pros-and-cons)
-4. [Y-Statements: The One-Sentence ADR](#y-statements-the-one-sentence-adr)
-5. [Tyree & Akerman: The Fuller Template](#tyree--akerman-the-fuller-template)
-6. [Immutability and Superseding](#immutability-and-superseding)
-7. [A Worked Superseding ADR](#a-worked-superseding-adr)
-8. [The Decision Log / Index](#the-decision-log--index)
-9. [ADR vs. Design Doc vs. RFC](#adr-vs-design-doc-vs-rfc)
-10. [Calibrating "Architecturally Significant"](#calibrating-architecturally-significant)
-11. [Trade-offs](#trade-offs)
-12. [Edge Cases](#edge-cases)
-13. [Tricky Points](#tricky-points)
-14. [Best Practices](#best-practices)
-15. [Test Yourself](#test-yourself)
-16. [Summary](#summary)
-17. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **Why** and **When**

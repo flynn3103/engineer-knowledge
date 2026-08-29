@@ -5,24 +5,6 @@
 
 ---
 
-## Table of Contents
-
-- [Introduction](#introduction)
-- [Prerequisites](#prerequisites)
-- [Glossary](#glossary)
-- [Core Concepts](#core-concepts)
-- [The Latency Pyramid With Real Numbers](#the-latency-pyramid-with-real-numbers)
-- [Real-World Analogies](#real-world-analogies)
-- [Mental Models](#mental-models)
-- [Code Examples](#code-examples)
-- [Pros & Cons of Each Level](#pros--cons-of-each-level)
-- [Use Cases](#use-cases)
-- [Best Practices](#best-practices)
-- [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-- [Summary](#summary)
-
----
-
 ## Introduction
 
 When you write `x = arr[i]`, you imagine the CPU just "reading memory." In reality, the value might come from a tiny register inside the CPU, from a cache a few nanometers away, from a DRAM chip on a stick across the motherboard, or from an SSD a thousand times slower. These are not interchangeable. Reading the same byte can take **less than a nanosecond or tens of microseconds** depending on where it currently sits.

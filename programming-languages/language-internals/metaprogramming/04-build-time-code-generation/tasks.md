@@ -20,15 +20,6 @@ another engineer, not when the command merely succeeds. The sample solutions
 are deliberately sparse — they appear only where the canonical answer is more
 instructive than your first attempt would be.
 
-## Table of Contents
-
-- [Warm-Up](#warm-up)
-- [Core](#core)
-- [Advanced](#advanced)
-- [Capstone](#capstone)
-
----
-
 ## Warm-Up
 
 These rebuild the mental model. Each introduces one primitive or one failure

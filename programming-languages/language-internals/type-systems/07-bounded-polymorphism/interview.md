@@ -11,17 +11,6 @@ These questions probe whether a candidate understands *why* a plain `<T>` can on
 
 The questions move from conceptual foundations, through language-specific surfaces (Java bounds, Rust trait bounds, Haskell typeclasses, Swift protocols, C++ concepts), into traps where the obvious answer is wrong, and finally to design scenarios that reveal whether the candidate has built and evolved bounded-generic APIs.
 
-## Table of Contents
-
-- [Conceptual / Foundational](#conceptual--foundational)
-- [Language-Specific](#language-specific)
-- [Tricky / Trap Questions](#tricky--trap-questions)
-- [Design Questions](#design-questions)
-- [Cheat Sheet](#cheat-sheet)
-- [Further Reading](#further-reading)
-
----
-
 ## Conceptual / Foundational
 
 ## Question 1

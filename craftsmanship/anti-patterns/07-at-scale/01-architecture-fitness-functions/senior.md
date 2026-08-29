@@ -5,29 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [The Reality: You Inherit Violations](#the-reality-you-inherit-violations)
-4. [Baseline, Freeze, Forbid New](#baseline-freeze-forbid-new)
-5. [The Four Rule Categories](#the-four-rule-categories)
-6. [Metric Thresholds as Fitness Functions](#metric-thresholds-as-fitness-functions)
-7. [Presence / Absence Rules](#presence--absence-rules)
-8. [False Positives and How to Bound Them](#false-positives-and-how-to-bound-them)
-9. [Targeting Rules at Hotspots](#targeting-rules-at-hotspots)
-10. [Governance: Where Rules Live and Who Owns Them](#governance-where-rules-live-and-who-owns-them)
-11. [Evolving Rules as the Architecture Changes](#evolving-rules-as-the-architecture-changes)
-12. [A Worked Suite Design](#a-worked-suite-design)
-13. [Common Mistakes](#common-mistakes)
-14. [Test Yourself](#test-yourself)
-15. [Cheat Sheet](#cheat-sheet)
-16. [Summary](#summary)
-17. [Further Reading](#further-reading)
-18. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Designing a fitness-function suite for an existing codebase.**

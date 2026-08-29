@@ -4,24 +4,6 @@
 
 ---
 
-## Table of Contents
-- [Introduction](#introduction)
-- [Core Concepts](#core-concepts)
-  - [Virtual vs Resident: why your process "uses" memory it never touches](#virtual-vs-resident-why-your-process-uses-memory-it-never-touches)
-  - [Overcommit: why malloc almost never fails](#overcommit-why-malloc-almost-never-fails)
-  - [Page cache, the working set, and reclaimable memory](#page-cache-the-working-set-and-reclaimable-memory)
-  - [Reclaim: kswapd and direct-reclaim stalls](#reclaim-kswapd-and-direct-reclaim-stalls)
-  - [Swap and thrashing](#swap-and-thrashing)
-  - [PSI: measuring pressure directly](#psi-measuring-pressure-directly)
-  - [The OOM killer](#the-oom-killer)
-  - [cgroups: per-group memory accounting](#cgroups-per-group-memory-accounting)
-- [Pros & Cons](#pros--cons)
-- [Best Practices](#best-practices)
-- [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-- [Summary](#summary)
-
----
-
 ## Introduction
 
 "Memory pressure" is the state where demand for physical memory approaches or exceeds what is available, forcing the kernel to do work it would rather not: reclaim pages, swap, stall threads, and — as a last resort — kill a process. The frustrating part for engineers moving up from the junior level is that none of this is a clean `malloc returned NULL` boundary. Linux deliberately blurs the line between "you have memory" and "you don't," and the failure mode is usually a process getting `SIGKILL`'d with no stack trace, no exception, and a one-line message buried in `dmesg`.

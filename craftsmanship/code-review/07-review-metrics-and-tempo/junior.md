@@ -5,28 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concept 1 — Review Latency: The Pain You Already Feel](#core-concept-1--review-latency-the-pain-you-already-feel)
-5. [Core Concept 2 — The Virtuous Cycle and the Doom Loop](#core-concept-2--the-virtuous-cycle-and-the-doom-loop)
-6. [Core Concept 3 — Reviewer Attention Is Finite](#core-concept-3--reviewer-attention-is-finite)
-7. [Core Concept 4 — A Few Metrics Worth Knowing](#core-concept-4--a-few-metrics-worth-knowing)
-8. [Core Concept 5 — Goodhart's Law: Why Metrics Turn Toxic](#core-concept-5--goodharts-law-why-metrics-turn-toxic)
-9. [Core Concept 6 — Tempo Habits You Can Start Today](#core-concept-6--tempo-habits-you-can-start-today)
-10. [Real-World Examples](#real-world-examples)
-11. [Mental Models](#mental-models)
-12. [Common Mistakes](#common-mistakes)
-13. [Test Yourself](#test-yourself)
-14. [Cheat Sheet](#cheat-sheet)
-15. [Summary](#summary)
-16. [Further Reading](#further-reading)
-17. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **How fast and how steadily does review happen — and how do you measure that without wrecking it?**

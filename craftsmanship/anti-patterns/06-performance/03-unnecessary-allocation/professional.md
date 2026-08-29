@@ -4,27 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Why Allocation Rate Drives GC CPU](#why-allocation-rate-drives-gc-cpu)
-4. [GC Models and What They Punish](#gc-models-and-what-they-punish)
-5. [Stack vs Heap: Escape Analysis Pitfalls](#stack-vs-heap-escape-analysis-pitfalls)
-6. [Layout, Cache, and False Sharing](#layout-cache-and-false-sharing)
-7. [When Pooling Backfires](#when-pooling-backfires)
-8. [Arenas and Value-Type Approaches](#arenas-and-value-type-approaches)
-9. [Benchmarking Allocation Honestly](#benchmarking-allocation-honestly)
-10. [A Thousand Cuts vs One Hot Allocation](#a-thousand-cuts-vs-one-hot-allocation)
-11. [Common Mistakes](#common-mistakes)
-12. [Test Yourself](#test-yourself)
-13. [Cheat Sheet](#cheat-sheet)
-14. [Summary](#summary)
-15. [Further Reading](#further-reading)
-16. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Deep mechanics and trade-offs** — how the GC turns allocation rate into CPU, why escape analysis fails, when pooling makes things worse, and how to benchmark allocation without lying to yourself.

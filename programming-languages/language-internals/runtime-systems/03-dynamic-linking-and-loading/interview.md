@@ -10,15 +10,6 @@ These questions probe whether a candidate understands what happens between `exec
 
 The questions are grouped: **Conceptual** (the model that's true everywhere), **Platform-Specific** (Linux ELF/`ld.so`, Windows DLLs, macOS `dyld`/Mach-O, JVM classloaders), **Tricky / Trap** (where the obvious answer is wrong), and **Design** (scenarios that test whether the candidate has actually shipped and debugged this).
 
-## Table of Contents
-
-- [Conceptual](#conceptual)
-- [Platform-Specific](#platform-specific)
-- [Tricky / Trap](#tricky--trap)
-- [Design](#design)
-
----
-
 ## Conceptual
 
 ## Question 1

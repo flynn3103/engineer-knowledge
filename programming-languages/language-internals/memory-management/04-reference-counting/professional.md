@@ -5,22 +5,6 @@
 
 ---
 
-## Table of Contents
-
-- [Introduction](#introduction)
-- [Prerequisites](#prerequisites)
-- [Diagnosing Cycle Leaks in Production](#diagnosing-cycle-leaks-in-production)
-- [Profiling Refcount Overhead and Contention](#profiling-refcount-overhead-and-contention)
-- [Free-Threaded Python: What Changes for You](#free-threaded-python-what-changes-for-you)
-- [Production War Stories & Patterns](#production-war-stories--patterns)
-- [Tooling Reference](#tooling-reference)
-- [Coding Patterns](#coding-patterns)
-- [Best Practices](#best-practices)
-- [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-- [Summary](#summary)
-
----
-
 ## Introduction
 
 In production, reference counting fails in two characteristic ways and is slow in one characteristic way. It **leaks** (a cycle or a forgotten strong reference keeps memory alive), it **double-frees / use-after-frees** (an unbalanced count, mostly in manual or FFI code), and it **costs CPU** (atomic count contention on hot shared objects). This page is about catching all three with real tools, and about the two production realities you actually ship against today: free-threaded Python's refcount story and Swift/ARC's retain-cycle diagnosis.

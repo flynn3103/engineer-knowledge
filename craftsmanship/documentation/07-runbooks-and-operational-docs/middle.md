@@ -7,28 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [The Incident Lifecycle and Where Docs Fit](#the-incident-lifecycle-and-where-docs-fit)
-3. [Severity Definitions](#severity-definitions)
-4. [Incident Roles and the Process Doc](#incident-roles-and-the-process-doc)
-5. [The Incident Timeline](#the-incident-timeline)
-6. [The Blameless Postmortem](#the-blameless-postmortem)
-7. [A Postmortem Template + Filled Excerpt](#a-postmortem-template--filled-excerpt)
-8. [Closing the Loop: Postmortems Feed Runbooks](#closing-the-loop-postmortems-feed-runbooks)
-9. [Disaster Recovery: RTO, RPO, and Backup-Restore](#disaster-recovery-rto-rpo-and-backup-restore)
-10. [When to Write a Runbook (and When Not To)](#when-to-write-a-runbook-and-when-not-to)
-11. [Trade-offs](#trade-offs)
-12. [Edge Cases](#edge-cases)
-13. [Tricky Points](#tricky-points)
-14. [Best Practices](#best-practices)
-15. [Test Yourself](#test-yourself)
-16. [Summary](#summary)
-17. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **Why** and **When**

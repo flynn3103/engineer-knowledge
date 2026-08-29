@@ -5,29 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concepts](#core-concepts)
-5. [Real-World Analogies](#real-world-analogies)
-6. [Mental Models](#mental-models)
-7. [Code Examples & Configs](#code-examples--configs)
-8. [Pros & Cons](#pros--cons)
-9. [Use Cases](#use-cases)
-10. [Operational Patterns](#operational-patterns)
-11. [Best Practices](#best-practices)
-12. [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-13. [Security](#security)
-14. [War Stories](#war-stories)
-15. [Test Yourself](#test-yourself)
-16. [Cheat Sheet](#cheat-sheet)
-17. [Summary](#summary)
-18. [Further Reading](#further-reading)
-
----
-
 ## Introduction
 
 > Focus: **What does reflection cost — and risk — once it's running in production, behind a module system, inside a native image, and on a CVE list?**

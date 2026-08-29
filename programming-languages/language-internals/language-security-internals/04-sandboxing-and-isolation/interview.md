@@ -13,15 +13,6 @@ isolation) on that curve, and articulate why "it runs in a container" is not a
 security claim. Strong answers always start from a threat model and end with
 defense-in-depth.
 
-## Table of Contents
-
-- [Conceptual](#conceptual)
-- [Technology-Specific](#technology-specific)
-- [Tricky / Trap](#tricky--trap)
-- [Design](#design)
-
----
-
 ## Conceptual
 
 ## Question 1

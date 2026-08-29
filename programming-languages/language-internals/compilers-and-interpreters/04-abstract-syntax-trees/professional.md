@@ -5,31 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concepts](#core-concepts)
-5. [Real-World Analogies](#real-world-analogies)
-6. [Mental Models](#mental-models)
-7. [Code Examples](#code-examples)
-8. [Trade-offs](#trade-offs)
-9. [Use Cases](#use-cases)
-10. [Coding Patterns](#coding-patterns)
-11. [Best Practices](#best-practices)
-12. [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-13. [Common Mistakes](#common-mistakes)
-14. [Tricky Points](#tricky-points)
-15. [Test Yourself](#test-yourself)
-16. [Cheat Sheet](#cheat-sheet)
-17. [Summary](#summary)
-18. [What You Can Build](#what-you-can-build)
-19. [Further Reading](#further-reading)
-20. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > 🎓 At senior level the AST was a *pipeline of trees* and a *phase interface*. At professional level the question is about the bytes: **how is the tree laid out in memory, and what does that layout cost?** For a hobby interpreter the answer is "who cares — `Box<Expr>` everywhere." For a compiler that must parse a million-line crate, or an IDE that must re-analyze on every keystroke, the layout *is* the architecture. The difference between a pointer-chasing tree and a flat, index-addressed arena is the difference between a tool that feels instant and one that doesn't.

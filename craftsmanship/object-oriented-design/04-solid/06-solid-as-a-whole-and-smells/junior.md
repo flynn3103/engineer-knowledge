@@ -6,29 +6,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [The Five at a Glance](#the-five-at-a-glance)
-5. [How They Interlock](#how-they-interlock)
-6. [Real-World Analogies](#real-world-analogies)
-7. [Mental Models](#mental-models)
-8. [The Smells That Signal a Violation](#the-smells-that-signal-a-violation)
-9. [A Worked Example: One Module, All Five](#a-worked-example-one-module-all-five)
-10. [Best Practices](#best-practices)
-11. [Common Mistakes](#common-mistakes)
-12. [Tricky Points](#tricky-points)
-13. [Test Yourself](#test-yourself)
-14. [Cheat Sheet](#cheat-sheet)
-15. [Summary](#summary)
-16. [Further Reading](#further-reading)
-17. [Related Topics](#related-topics)
-18. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **What is it?** and **How to use it?**

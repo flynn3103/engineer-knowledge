@@ -5,27 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Everything Is a Target — the Three-Phase Model](#everything-is-a-target--the-three-phase-model)
-4. [The Action Graph — the Real Unit of Work](#the-action-graph--the-real-unit-of-work)
-5. [Starlark Basics — Loading Rules and Declaring Targets](#starlark-basics--loading-rules-and-declaring-targets)
-6. [How Hermeticity Is Actually Enforced](#how-hermeticity-is-actually-enforced)
-7. [The Content-Addressed Action Cache](#the-content-addressed-action-cache)
-8. [Why Hermeticity Enables Safe Caching and Parallelism](#why-hermeticity-enables-safe-caching-and-parallelism)
-9. [Driving Bazel — build, test, and query](#driving-bazel--build-test-and-query)
-10. [Mental Models](#mental-models)
-11. [Common Mistakes](#common-mistakes)
-12. [Test Yourself](#test-yourself)
-13. [Cheat Sheet](#cheat-sheet)
-14. [Summary](#summary)
-15. [Further Reading](#further-reading)
-16. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **How does Bazel model the build, and how do sandboxing and content-addressing turn hermeticity into speed?**

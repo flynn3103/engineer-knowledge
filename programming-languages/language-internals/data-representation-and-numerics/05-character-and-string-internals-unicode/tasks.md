@@ -10,15 +10,6 @@ This file takes you from "a string is text" to "I can decode UTF-8 by hand, coun
 
 How to use this file: read the task, write the code, run it, and only then open the hints. Mark a self-check box when you can *explain* the result to someone else, not when the program merely runs. Solutions are sparse — they appear only where the canonical answer teaches more than your first attempt would.
 
-## Table of Contents
-
-- [Warm-Up](#warm-up)
-- [Core](#core)
-- [Advanced](#advanced)
-- [Capstone](#capstone)
-
----
-
 ## Warm-Up
 
 These rebuild the layered model. Short, but each introduces a primitive you reuse later.

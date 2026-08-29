@@ -5,28 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [The Five at a Glance](#the-five-at-a-glance)
-5. [Singletonitis](#singletonitis)
-6. [Circular Dependency](#circular-dependency)
-7. [Action at a Distance](#action-at-a-distance)
-8. [Hidden Dependencies](#hidden-dependencies)
-9. [Sequential Coupling](#sequential-coupling)
-10. [How They Reinforce Each Other](#how-they-reinforce-each-other)
-11. [A Quick Spotting Checklist](#a-quick-spotting-checklist)
-12. [Common Mistakes](#common-mistakes)
-13. [Test Yourself](#test-yourself)
-14. [Cheat Sheet](#cheat-sheet)
-15. [Summary](#summary)
-16. [Further Reading](#further-reading)
-17. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **What does it look like?** and **Why is it bad?**

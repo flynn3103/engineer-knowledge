@@ -8,16 +8,6 @@ Each task lists a **Self-check** you can tick off. Hints are collapsed in spirit
 
 ---
 
-## Table of Contents
-
-- [Warm-Up](#warm-up)
-- [Core](#core)
-- [Advanced](#advanced)
-- [Capstone](#capstone)
-- [Self-Assessment](#self-assessment)
-
----
-
 ## Warm-Up
 
 ### Task 1 — Watch a safe language catch an out-of-bounds access

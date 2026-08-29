@@ -7,26 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [The Profiling-First Workflow](#the-profiling-first-workflow)
-3. [Amdahl's Law: Why the 97% Can't Help You](#amdahls-law-why-the-97-cant-help-you)
-4. [Latency Numbers Every Programmer Should Know](#latency-numbers-every-programmer-should-know)
-5. [Micro-Optimization vs Design-Level Performance](#micro-optimization-vs-design-level-performance)
-6. [Premature Optimization vs Premature Pessimization](#premature-optimization-vs-premature-pessimization)
-7. [When Early Performance Work IS Warranted](#when-early-performance-work-is-warranted)
-8. [How It Interacts with KISS and YAGNI](#how-it-interacts-with-kiss-and-yagni)
-9. [Trade-offs](#trade-offs)
-10. [Edge Cases](#edge-cases)
-11. [Tricky Points](#tricky-points)
-12. [Best Practices](#best-practices)
-13. [Test Yourself](#test-yourself)
-14. [Summary](#summary)
-15. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **Why** and **When**

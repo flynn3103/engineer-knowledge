@@ -5,14 +5,6 @@ A bank of interview questions spanning the fundamental trade-offs, the JVM and G
 
 ---
 
-## Table of Contents
-- [Conceptual](#conceptual)
-- [Tool-Specific](#tool-specific)
-- [Tricky / Trap](#tricky--trap)
-- [Design](#design)
-
----
-
 ## Conceptual
 
 ## Question 1

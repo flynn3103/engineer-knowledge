@@ -11,15 +11,6 @@ These questions test whether a candidate can reason about the gap between optimi
 
 The questions are grouped: **Conceptual** (the vocabulary and the three sub-problems), **Target-Specific** (x86-64, ARM, RISC-V, Wasm, LLVM backend), **Tricky / Trap** (where the obvious answer is wrong), and **Design** (build-a-back-end scenarios).
 
-## Table of Contents
-
-- [Conceptual](#conceptual)
-- [Target-Specific](#target-specific)
-- [Tricky / Trap](#tricky--trap)
-- [Design](#design)
-
----
-
 ## Conceptual
 
 ## Question 1

@@ -7,23 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Applying Diátaxis to a Real Project](#applying-diataxis-to-a-real-project)
-3. [The "Document Decisions, Interfaces, and Surprises" Heuristic](#the-document-decisions-interfaces-and-surprises-heuristic)
-4. [Deciding the Right Amount: Too Much vs. Too Little](#deciding-the-right-amount-too-much-vs-too-little)
-5. [Self-Documenting Code and Where It Stops](#self-documenting-code-and-where-it-stops)
-6. [Trade-offs](#trade-offs)
-7. [Edge Cases](#edge-cases)
-8. [Tricky Points](#tricky-points)
-9. [Best Practices](#best-practices)
-10. [Test Yourself](#test-yourself)
-11. [Summary](#summary)
-12. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **Why** and **When**

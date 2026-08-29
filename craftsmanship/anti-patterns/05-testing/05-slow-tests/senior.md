@@ -4,26 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Profile the Suite, Not a Guess](#profile-the-suite-not-a-guess)
-4. [Reshaping an Inverted Pyramid](#reshaping-an-inverted-pyramid)
-5. [Test Slicing — Boot the Slice, Not the World](#test-slicing--boot-the-slice-not-the-world)
-6. [Parallelization Needs Isolation](#parallelization-needs-isolation)
-7. [Shared Fixtures: the Speed/Isolation/Mystery-Guest Triangle](#shared-fixtures-the-speedisolationmystery-guest-triangle)
-8. [Staging CI: Fast Gate, Slow Gate](#staging-ci-fast-gate-slow-gate)
-9. [A Worked Speed-Up](#a-worked-speed-up)
-10. [Common Mistakes](#common-mistakes)
-11. [Test Yourself](#test-yourself)
-12. [Cheat Sheet](#cheat-sheet)
-13. [Summary](#summary)
-14. [Further Reading](#further-reading)
-15. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Speeding up a real suite** — profiling, reshaping an inverted pyramid, parallelizing safely, slicing, and staging CI.

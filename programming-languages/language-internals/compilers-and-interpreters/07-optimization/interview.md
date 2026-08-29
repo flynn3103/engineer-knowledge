@@ -10,15 +10,6 @@ These questions probe whether a candidate understands compiler optimization as a
 
 The set is grouped into Conceptual / Foundational, Tool-Specific (LLVM passes, `-O` levels, GCC, JIT, PGO/LTO), Tricky / Trap (where the textbook answer is wrong), and System / Design scenarios. Read the question, answer out loud, then check yourself against the model answer.
 
-## Table of Contents
-
-- [Conceptual / Foundational](#conceptual--foundational)
-- [Tool-Specific](#tool-specific)
-- [Tricky / Trap Questions](#tricky--trap-questions)
-- [System / Design Scenarios](#system--design-scenarios)
-
----
-
 ## Conceptual / Foundational
 
 ## Question 1

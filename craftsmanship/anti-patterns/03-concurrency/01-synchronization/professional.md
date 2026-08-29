@@ -5,28 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [The Hardware You Are Actually Programming](#the-hardware-you-are-actually-programming)
-4. [Measure First: The Tooling Map](#measure-first-the-tooling-map)
-5. [Race-Prone Lazy Init — What the Hardware Actually Does](#race-prone-lazy-init--what-the-hardware-actually-does)
-6. [Volatile Misuse / Wrong Memory Ordering — The Cost of a Fence](#volatile-misuse--wrong-memory-ordering--the-cost-of-a-fence)
-7. [Double-Checked Locking — Micro-Optimizing One Acquire-Read](#double-checked-locking--micro-optimizing-one-acquire-read)
-8. [The Cost of the Lock You Were Avoiding](#the-cost-of-the-lock-you-were-avoiding)
-9. [False Sharing on the Guard Variable](#false-sharing-on-the-guard-variable)
-10. [Python: Why the GIL Does Not Save You](#python-why-the-gil-does-not-save-you)
-11. [A Combined Micro-Benchmark Sketch](#a-combined-micro-benchmark-sketch)
-12. [Common Mistakes](#common-mistakes)
-13. [Test Yourself](#test-yourself)
-14. [Cheat Sheet](#cheat-sheet)
-15. [Summary](#summary)
-16. [Further Reading](#further-reading)
-17. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **what the CPU and the runtime actually do** when you write `volatile`, `atomic`, `synchronized`, or a hand-rolled double-checked lock — store buffers, fences, cache coherence, monitor inflation — and **how to measure** whether the clever lock-free init you wrote is even faster than the boring correct one.

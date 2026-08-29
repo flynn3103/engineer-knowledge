@@ -7,24 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Rolling Out Docs as Code to an Org](#rolling-out-docs-as-code-to-an-org)
-3. [Migrating off a Wiki](#migrating-off-a-wiki)
-4. [Governance: CODEOWNERS, Gates, and Policy](#governance-codeowners-gates-and-policy)
-5. [Enforcing Docs in Code Review](#enforcing-docs-in-code-review)
-6. [Measuring Docs Health](#measuring-docs-health)
-7. [Operating the Pipeline](#operating-the-pipeline)
-8. [Real Incidents](#real-incidents)
-9. [The Politics of Docs as Code](#the-politics-of-docs-as-code)
-10. [Review Checklist](#review-checklist)
-11. [Cheat Sheet](#cheat-sheet)
-12. [Diagrams](#diagrams)
-13. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **production** — making Docs as Code work across many teams, for years.

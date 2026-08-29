@@ -10,17 +10,6 @@ These questions probe whether a candidate understands the *interface* between th
 
 The questions are grouped: **Conceptual** (the model), **Engine-Specific** (HotSpot/Go/V8/.NET mechanics), **Tricky / Trap** (where the textbook answer is wrong), and **Design** (build-it scenarios). Each is a flat `## Question N` for easy reference.
 
-## Table of Contents
-
-- [Conceptual](#conceptual)
-- [Engine-Specific](#engine-specific)
-- [Tricky / Trap](#tricky--trap)
-- [Design](#design)
-- [Cheat Sheet](#cheat-sheet)
-- [Further Reading](#further-reading)
-
----
-
 ## Conceptual
 
 ## Question 1

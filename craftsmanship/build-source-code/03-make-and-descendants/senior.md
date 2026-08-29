@@ -5,28 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Make's Correctness Failure Modes](#makes-correctness-failure-modes)
-4. [Non-Recursive Make at Scale](#non-recursive-make-at-scale)
-5. [Ninja's Design Philosophy: Execute a Precomputed Graph, Fast](#ninjas-design-philosophy-execute-a-precomputed-graph-fast)
-6. [CMake Internals: Configure vs Generate vs Build](#cmake-internals-configure-vs-generate-vs-build)
-7. [Modern Target-Based CMake and Usage Requirements](#modern-target-based-cmake-and-usage-requirements)
-8. [Toolchain Files and Cross-Compilation](#toolchain-files-and-cross-compilation)
-9. [Meson's Design Choices](#mesons-design-choices)
-10. [Choosing Among Them](#choosing-among-them)
-11. [Mental Models](#mental-models)
-12. [Common Mistakes](#common-mistakes)
-13. [Test Yourself](#test-yourself)
-14. [Cheat Sheet](#cheat-sheet)
-15. [Summary](#summary)
-16. [Further Reading](#further-reading)
-17. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **What are the real correctness and design trade-offs across the Make family, and how do you choose?**

@@ -8,15 +8,6 @@
 
 These questions probe whether you can reason quantitatively about where data lives and what that costs — from approximate latencies through cache lines, associativity, the TLB, NUMA, and false sharing, up to profiling and data-layout design. Strong answers cite concrete numbers, name the mechanism, and connect it to a real fix.
 
-## Table of Contents
-
-- [Conceptual](#conceptual)
-- [Tool-Specific](#tool-specific)
-- [Tricky / Trap](#tricky--trap)
-- [Design](#design)
-
----
-
 ## Conceptual
 
 ## Question 1

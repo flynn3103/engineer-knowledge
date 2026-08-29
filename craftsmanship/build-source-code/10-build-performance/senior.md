@@ -5,26 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Amdahl's Law on the Build Graph](#amdahls-law-on-the-build-graph)
-3. [Reading a Build Profile in Anger](#reading-a-build-profile-in-anger)
-4. [C++ Build Costs: Templates, Includes, Modules](#c-build-costs-templates-includes-modules)
-5. [Faster Linkers and the Link Critical Path](#faster-linkers-and-the-link-critical-path)
-6. [Cache Hit Rate: The Dominant Lever at Scale](#cache-hit-rate-the-dominant-lever-at-scale)
-7. [Distributed Compilation vs Remote Execution](#distributed-compilation-vs-remote-execution)
-8. [The Clean-vs-Incremental Tradeoff in CI](#the-clean-vs-incremental-tradeoff-in-ci)
-9. [Mental Models](#mental-models)
-10. [Common Mistakes](#common-mistakes)
-11. [Test Yourself](#test-yourself)
-12. [Cheat Sheet](#cheat-sheet)
-13. [Summary](#summary)
-14. [Further Reading](#further-reading)
-15. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **What governs build speed at scale, and where should a senior engineer actually spend the optimization budget?**

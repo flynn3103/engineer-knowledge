@@ -5,27 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [The Four at a Glance](#the-four-at-a-glance)
-5. [Swallowed Promise Rejection](#swallowed-promise-rejection)
-6. [Floating Promise](#floating-promise)
-7. [Fire and Forget (Without Logging)](#fire-and-forget-without-logging)
-8. [Forgotten `await`](#forgotten-await)
-9. [How They Reinforce Each Other](#how-they-reinforce-each-other)
-10. [A Quick Spotting Checklist](#a-quick-spotting-checklist)
-11. [Common Mistakes](#common-mistakes)
-12. [Test Yourself](#test-yourself)
-13. [Cheat Sheet](#cheat-sheet)
-14. [Summary](#summary)
-15. [Further Reading](#further-reading)
-16. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **What does it look like?** and **Why is it bad?**

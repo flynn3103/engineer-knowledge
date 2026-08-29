@@ -48,20 +48,18 @@
   }
 
   function fixMermaidSize(block) {
-    // Mermaid hard-codes width="100%" + max-width on the SVG, which squashes
-    // wide graphs. Use the inline style's max-width as the natural width and
-    // set explicit width/height attributes so the parent .mermaid container
-    // can scroll horizontally.
+    // Keep small diagrams at their natural size and scale wide diagrams down
+    // to the available article width. The viewBox preserves the aspect ratio.
     const svg = block.querySelector("svg");
     if (!svg) return;
     const styleMaxW = svg.style.maxWidth;
     if (styleMaxW && styleMaxW.endsWith("px")) {
       const naturalW = parseFloat(styleMaxW);
-      const vb = svg.viewBox && svg.viewBox.baseVal;
-      const naturalH = vb && vb.height ? naturalW * (vb.height / vb.width) : naturalW;
-      svg.setAttribute("width", naturalW);
-      svg.setAttribute("height", naturalH);
-      svg.style.maxWidth = "none";
+      svg.setAttribute("width", "100%");
+      svg.removeAttribute("height");
+      svg.style.width = "100%";
+      svg.style.maxWidth = `${naturalW}px`;
+      svg.style.height = "auto";
     }
   }
 

@@ -24,15 +24,6 @@ answer is more instructive than your first attempt.
 Pick whichever language fits each task; some are language-specific by design
 (Haskell space leaks, C# multiple enumeration, Java Streams).
 
-## Table of Contents
-
-- [Warm-Up](#warm-up)
-- [Core](#core)
-- [Advanced](#advanced)
-- [Capstone](#capstone)
-
----
-
 ## Warm-Up
 
 These rebuild the mental model. Short, but each introduces a primitive or a

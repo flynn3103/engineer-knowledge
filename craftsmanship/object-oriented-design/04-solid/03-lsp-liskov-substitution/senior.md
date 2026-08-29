@@ -7,25 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Liskov & Wing, Precisely](#liskov-wing-precisely)
-3. [Design by Contract: LSP's Theoretical Home](#design-by-contract-lsps-theoretical-home)
-4. [LSP Is About Contracts, Not Hierarchies](#lsp-is-about-contracts-not-hierarchies)
-5. [The Circle-Ellipse Problem](#the-circle-ellipse-problem)
-6. [Comparisons: LSP vs OCP, ISP, and Composition](#comparisons-lsp-vs-ocp-isp-and-composition)
-7. [Enforcing LSP: Contract Tests](#enforcing-lsp-contract-tests)
-8. [Variance in the Type System](#variance-in-the-type-system)
-9. [Partial Substitutability and the Real World](#partial-substitutability-and-the-real-world)
-10. [Dynamic Languages and Duck Typing](#dynamic-languages-and-duck-typing)
-11. [Liabilities](#liabilities)
-12. [Pros & Cons at the System Level](#pros-cons-at-the-system-level)
-13. [Diagrams](#diagrams)
-14. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **design trade-offs** and **system-level reasoning**

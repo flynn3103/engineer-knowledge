@@ -5,33 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concept 1 — Threat-Model-Driven Review: Attacker, Boundary, Surface](#core-concept-1--threat-model-driven-review-attacker-boundary-surface)
-5. [Core Concept 2 — Data-Flow and Taint Reasoning](#core-concept-2--data-flow-and-taint-reasoning)
-6. [Core Concept 3 — Broken Access Control: Authenticated ≠ Authorized](#core-concept-3--broken-access-control-authenticated--authorized)
-7. [Core Concept 4 — Injection Beyond SQLi](#core-concept-4--injection-beyond-sqli)
-8. [Core Concept 5 — SSRF and Cloud-Metadata Escalation](#core-concept-5--ssrf-and-cloud-metadata-escalation)
-9. [Core Concept 6 — Secrets, Crypto, and Authentication Weaknesses](#core-concept-6--secrets-crypto-and-authentication-weaknesses)
-10. [Core Concept 7 — Supply Chain: A New Dependency Is New Trust](#core-concept-7--supply-chain-a-new-dependency-is-new-trust)
-11. [Core Concept 8 — DoS and Algorithmic-Complexity Attacks](#core-concept-8--dos-and-algorithmic-complexity-attacks)
-12. [Core Concept 9 — The Limits of Human Security Review](#core-concept-9--the-limits-of-human-security-review)
-13. [Core Concept 10 — Performance: Complexity and the Cost Model](#core-concept-10--performance-complexity-and-the-cost-model)
-14. [Core Concept 11 — The Read-vs-Measure Boundary](#core-concept-11--the-read-vs-measure-boundary)
-15. [Real-World Examples](#real-world-examples)
-16. [Mental Models](#mental-models)
-17. [Common Mistakes](#common-mistakes)
-18. [Test Yourself](#test-yourself)
-19. [Cheat Sheet](#cheat-sheet)
-20. [Summary](#summary)
-21. [Further Reading](#further-reading)
-22. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **The reasoning a senior reviewer applies when a diff touches a trust boundary or a hot path — and the discipline of knowing what review can and cannot prove.**

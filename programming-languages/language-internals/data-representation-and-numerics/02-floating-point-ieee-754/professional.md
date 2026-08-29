@@ -5,32 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concepts](#core-concepts)
-5. [War Stories](#war-stories)
-6. [Real-World Analogies](#real-world-analogies)
-7. [Mental Models](#mental-models)
-8. [Code Examples](#code-examples)
-9. [Trade-offs](#trade-offs)
-10. [Use Cases](#use-cases)
-11. [Coding Patterns](#coding-patterns)
-12. [Best Practices](#best-practices)
-13. [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-14. [Common Mistakes](#common-mistakes)
-15. [Debugging Playbook](#debugging-playbook)
-16. [Test Yourself](#test-yourself)
-17. [Cheat Sheet](#cheat-sheet)
-18. [Summary](#summary)
-19. [Further Reading](#further-reading)
-20. [Related Topics](#related-topics)
-21. [Diagrams & Visual Aids](#diagrams--visual-aids)
-
----
-
 ## Introduction
 
 > 🎓 At senior level you learned the machine reality beneath the standard. At professional level the question becomes operational: **what does a floating-point mistake cost in dollars, lives, or downtime — and how do you find it in a system that's already in production?** Floating point has killed people (28, in the Patriot incident), destroyed a $370M rocket 37 seconds after launch (Ariane 5), and silently bled a stock index from 1000 to 520 over 22 months (Vancouver). None of these were exotic bugs. Each was a *boring* float mistake — accumulated drift, an unchecked conversion, the wrong rounding mode — that a senior engineer reviewing the code could have caught in five minutes.

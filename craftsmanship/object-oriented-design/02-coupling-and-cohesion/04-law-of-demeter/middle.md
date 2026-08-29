@@ -7,28 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [The Two Refinements That Make LoD Usable](#the-two-refinements-that-make-lod-usable)
-3. [Objects vs. Data Structures — the Decisive Distinction](#objects-vs-data-structures--the-decisive-distinction)
-4. [Fluent Interfaces vs. Train Wrecks, Precisely](#fluent-interfaces-vs-train-wrecks-precisely)
-5. [The Cost: Middle-Man / Wrapper Methods](#the-cost-middle-man--wrapper-methods)
-6. [When LoD Conflicts With DTOs and Data Transfer](#when-lod-conflicts-with-dtos-and-data-transfer)
-7. [LoD, Feature Envy, and Where Behavior Belongs](#lod-feature-envy-and-where-behavior-belongs)
-8. [How LoD Lowers Coupling](#how-lod-lowers-coupling)
-9. [A Worked Refactor](#a-worked-refactor)
-10. [When NOT to Apply It](#when-not-to-apply-it)
-11. [Trade-offs](#trade-offs)
-12. [Edge Cases](#edge-cases)
-13. [Tricky Points](#tricky-points)
-14. [Best Practices](#best-practices)
-15. [Test Yourself](#test-yourself)
-16. [Summary](#summary)
-17. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **Why** and **When**

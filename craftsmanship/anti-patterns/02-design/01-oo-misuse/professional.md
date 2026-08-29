@@ -5,28 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Measure First: The Tooling Map](#measure-first-the-tooling-map)
-4. [Magic Container — The Type System You Pay For Twice](#magic-container--the-type-system-you-pay-for-twice)
-5. [Anemic Model & Getter/Setter Churn — Allocation and Megamorphic Access](#anemic-model--gettersetter-churn--allocation-and-megamorphic-access)
-6. [Fragile Base Class, Deep Inheritance & Call Super — Dispatch, Inlining, Deopt](#fragile-base-class-deep-inheritance--call-super--dispatch-inlining-deopt)
-7. [Poltergeist, Functional Decomposition & BaseBean — Allocation Churn and Escape Analysis](#poltergeist-functional-decomposition--basebean--allocation-churn-and-escape-analysis)
-8. [Flag Arguments — Branch Misprediction and the Monomorphic Split](#flag-arguments--branch-misprediction-and-the-monomorphic-split)
-9. [Telescoping Constructor vs Builder — The Allocation You Can Usually Ignore](#telescoping-constructor-vs-builder--the-allocation-you-can-usually-ignore)
-10. [When the "Misuse" Is the Fast Path](#when-the-misuse-is-the-fast-path)
-11. [A Combined Worked Example](#a-combined-worked-example)
-12. [Common Mistakes](#common-mistakes)
-13. [Test Yourself](#test-yourself)
-14. [Cheat Sheet](#cheat-sheet)
-15. [Summary](#summary)
-16. [Further Reading](#further-reading)
-17. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **what these eleven OO mistakes cost the machine** — the heap, the garbage collector, the JIT's inlining and devirtualization, the CPU's branch predictor — and **how you measure that cost** before you "fix" anything.

@@ -4,25 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [The Measure-First Workflow](#the-measure-first-workflow)
-4. [The 90/10 Rule (and Why Guessing Fails)](#the-9010-rule-and-why-guessing-fails)
-5. [Profiling: Finding Where the Time Goes](#profiling-finding-where-the-time-goes)
-6. [Benchmarking: Proving a Change Helped](#benchmarking-proving-a-change-helped)
-7. [Worked Example: Profile → Hotspot → Fix Only That](#worked-example-profile--hotspot--fix-only-that)
-8. [Recognizing the Trap in the Wild](#recognizing-the-trap-in-the-wild)
-9. [Common Mistakes](#common-mistakes)
-10. [Test Yourself](#test-yourself)
-11. [Cheat Sheet](#cheat-sheet)
-12. [Summary](#summary)
-13. [Further Reading](#further-reading)
-14. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **The measure-first workflow** — how to profile and benchmark *before* you optimize, so you fix the real hotspot instead of the one you guessed.

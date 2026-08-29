@@ -5,23 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concepts](#core-concepts)
-5. [Real-World Analogies](#real-world-analogies)
-6. [Mental Models](#mental-models)
-7. [Code Examples](#code-examples)
-8. [Pros & Cons](#pros--cons)
-9. [Use Cases](#use-cases)
-10. [Best Practices](#best-practices)
-11. [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-12. [Summary](#summary)
-
----
-
 ## Introduction
 
 Every value your program creates has to live *somewhere* in memory. Two of the most important places are the **stack** and the **heap**. The stack is fast, automatic, and freed for you when a function returns. The heap is more flexible but costs more — something (a garbage collector or an allocator/`free` call) has to track it and clean it up later.

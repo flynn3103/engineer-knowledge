@@ -7,23 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Rolling Out ADRs in a Real Organization](#rolling-out-adrs-in-a-real-organization)
-3. [ADRs in the Pull-Request Workflow](#adrs-in-the-pull-request-workflow)
-4. [Tooling: adr-tools, Log4brains, CI Checks](#tooling-adr-tools-log4brains-ci-checks)
-5. [Keeping the Practice Alive](#keeping-the-practice-alive)
-6. [Reviewing an ADR](#reviewing-an-adr)
-7. [Real Incidents](#real-incidents)
-8. [The Politics of Recorded Decisions](#the-politics-of-recorded-decisions)
-9. [ADR Review Checklist](#adr-review-checklist)
-10. [Cheat Sheet](#cheat-sheet)
-11. [Diagrams](#diagrams)
-12. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **production** — making ADRs a durable, organization-wide practice that survives turnover and deadlines.

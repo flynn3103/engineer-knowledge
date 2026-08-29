@@ -5,27 +5,6 @@
 
 ---
 
-## Table of Contents
-
-- [Introduction](#introduction)
-- [Prerequisites](#prerequisites)
-- [Glossary](#glossary)
-- [The Design Space](#the-design-space)
-- [Mechanisms That Enable Concurrency](#mechanisms-that-enable-concurrency)
-  - [Safepoints and Root Scanning](#safepoints-and-root-scanning)
-  - [Write Barriers Revisited: SATB vs Incremental-Update](#write-barriers-revisited-satb-vs-incremental-update)
-  - [Read / Load Barriers and Concurrent Compaction](#read--load-barriers-and-concurrent-compaction)
-  - [Precise vs Conservative GC](#precise-vs-conservative-gc)
-- [Real Collectors Compared](#real-collectors-compared)
-- [Mental Models](#mental-models)
-- [Pros & Cons of the Major Approaches](#pros--cons-of-the-major-approaches)
-- [Use Cases](#use-cases)
-- [Best Practices](#best-practices)
-- [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-- [Summary](#summary)
-
----
-
 ## Introduction
 
 There is no "best" garbage collector — only collectors that are tuned for different objectives. The senior-level skill is not memorizing one algorithm but understanding the **design space**: the small set of axes along which every collector positions itself, the mechanisms (safepoints, barriers) that let it sit where it does, and why a runtime team chose those positions. Once you can place Go, G1, ZGC, V8, and CPython on the same axes, you can predict how each behaves under your workload and read a new collector's design in minutes.

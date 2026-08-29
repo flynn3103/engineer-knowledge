@@ -5,17 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [How to Use This Page](#how-to-use-this-page)
-2. [Conceptual Questions](#conceptual-questions)
-3. [Language-Specific Questions](#language-specific-questions)
-4. [Tricky / Trap Questions](#tricky--trap-questions)
-5. [Design Questions](#design-questions)
-6. [Related Topics](#related-topics)
-
----
-
 ## How to Use This Page
 
 Each question lists what the interviewer is probing, a strong answer, and (where useful) a follow-up. Read the answer, then close the page and reproduce it in your own words — recognition is not recall. Questions are grouped: **Conceptual** (representation, expression problem, traversal, lowering), **Language-Specific** (Rust enum ASTs, OOP visitor, Python `ast`, Babel/ESTree, Roslyn/Clang), **Tricky/Trap** (the misconceptions interviewers fish for), and **Design** (open-ended "design an X" prompts where the discussion matters more than a single answer).

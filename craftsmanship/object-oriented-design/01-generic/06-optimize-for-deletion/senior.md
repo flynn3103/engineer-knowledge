@@ -7,25 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Reuse and Deletability Are in Direct Tension](#reuse-and-deletability-are-in-direct-tension)
-3. [The DRY–Deletability Conflict, Rigorously](#the-drydeletability-conflict-rigorously)
-4. [When the Wrong Abstraction Beats Duplication](#when-the-wrong-abstraction-beats-duplication)
-5. [Escaping a Wrong Abstraction by Re-Introducing Duplication](#escaping-a-wrong-abstraction-by-re-introducing-duplication)
-6. [Shared Kernels: When DRY Must Win](#shared-kernels-when-dry-must-win)
-7. [Deletability Across Boundaries: Modules, Services, Data](#deletability-across-boundaries-modules-services-data)
-8. [Strangler-Fig: Deleting What Cannot Be Deleted](#strangler-fig-deleting-what-cannot-be-deleted)
-9. [Measuring Deletability](#measuring-deletability)
-10. [Code Examples — Advanced](#code-examples-advanced)
-11. [Liabilities](#liabilities)
-12. [Pros & Cons at the System Level](#pros-cons-at-the-system-level)
-13. [Diagrams](#diagrams)
-14. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **design trade-offs** and **system-level reasoning**

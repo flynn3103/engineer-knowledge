@@ -12,15 +12,6 @@ of the clean lexer/parser separation (significant whitespace, interpolation, the
 lexer hack, JS `/`). Strong answers connect the theory to why production compilers
 hand-write lexers and how they handle errors, performance, and Unicode.
 
-## Table of Contents
-
-- [Conceptual](#conceptual)
-- [Tool-Specific](#tool-specific)
-- [Tricky / Trap](#tricky--trap)
-- [Design](#design)
-
----
-
 ## Conceptual
 
 ## Question 1

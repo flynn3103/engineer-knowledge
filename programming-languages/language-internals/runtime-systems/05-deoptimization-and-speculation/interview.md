@@ -11,15 +11,6 @@ Each question has a model answer at the depth a senior runtime/performance engin
 
 The one invariant that must survive every answer: **deoptimization is slower-but-correct; it never changes what the program computes.** If an answer ever implies otherwise, it's wrong.
 
-## Table of Contents
-
-- [Conceptual](#conceptual)
-- [Engine-Specific](#engine-specific)
-- [Tricky-Trap](#tricky-trap)
-- [Design](#design)
-
----
-
 ## Conceptual
 
 ## Question 1

@@ -5,25 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concepts](#core-concepts)
-5. [Real-World Analogies](#real-world-analogies)
-6. [Mental Models](#mental-models)
-7. [Code Examples](#code-examples)
-8. [Trade-offs](#trade-offs)
-9. [Use Cases](#use-cases)
-10. [Coding Patterns](#coding-patterns)
-11. [Best Practices](#best-practices)
-12. [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-13. [Summary](#summary)
-14. [Further Reading](#further-reading)
-
----
-
 ## Introduction
 
 > 🎓 At junior level you learned *that* a JIT compiles hot code. At middle level you learned *which tiers* it moves code through and *what* it profiles. At senior level you answer the question that justifies the entire machinery: **what specific optimizations does a JIT apply, and why can a runtime that observed your program produce code that a from-scratch AOT compiler provably cannot?**

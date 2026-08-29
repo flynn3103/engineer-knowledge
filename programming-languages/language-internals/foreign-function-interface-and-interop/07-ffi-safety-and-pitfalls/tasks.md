@@ -28,15 +28,6 @@ tool, and only then read the hints. Tick the self-check boxes when you can
 runs. Sample solutions are sparse — they appear only where the canonical shape
 is more instructive than your first attempt.
 
-## Table of Contents
-
-- [Warm-Up](#warm-up)
-- [Core](#core)
-- [Advanced](#advanced)
-- [Capstone](#capstone)
-
----
-
 ## Warm-Up
 
 These short tasks rebuild the boundary mental model: ownership, ABI, and the

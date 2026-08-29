@@ -5,23 +5,6 @@
 
 ---
 
-## Table of Contents
-
-- [Introduction](#introduction)
-- [Prerequisites](#prerequisites)
-- [Glossary](#glossary)
-- [Core Concepts](#core-concepts)
-- [unsafe and the Soundness Contract](#unsafe-and-the-soundness-contract)
-- [Pin and Self-Referential Types](#pin-and-self-referential-types)
-- [FFI and Ownership Across the Boundary](#ffi-and-ownership-across-the-boundary)
-- [Code Examples](#code-examples)
-- [Coding Patterns](#coding-patterns)
-- [Best Practices](#best-practices)
-- [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-- [Summary](#summary)
-
----
-
 ## Introduction
 
 Professional Rust lives in two worlds. Most code stays in the safe, borrow-checked world where the previous pages apply. But real systems have a boundary layer: places where you talk to C, implement a data structure the borrow checker can't model, build a self-referential type, or hand a Rust-allocated buffer to a kernel. At that boundary you write `unsafe`, take on the obligations the compiler was discharging for you, and re-expose a *safe* API on top. This page is about doing that correctly and the specific tools involved — raw pointers, `unsafe`, `Pin`, and FFI ownership transfer.

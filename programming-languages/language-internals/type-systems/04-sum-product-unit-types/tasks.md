@@ -5,22 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [How to Use This File](#how-to-use-this-file)
-2. [Warm-Up: Counting & Classifying](#warm-up-counting--classifying)
-3. [Core: Modeling with Sums and Products](#core-modeling-with-sums-and-products)
-4. [Algebra of Types](#algebra-of-types)
-5. [Illegal States & Parse-Don't-Validate](#illegal-states--parse-dont-validate)
-6. [Null & Exceptions → Option & Result](#null--exceptions--option--result)
-7. [Exhaustiveness & the Expression Problem](#exhaustiveness--the-expression-problem)
-8. [Recursive ADTs](#recursive-adts)
-9. [Layout & Representation](#layout--representation)
-10. [Challenge Problems](#challenge-problems)
-11. [Self-Check Answer Key](#self-check-answer-key)
-
----
-
 ## How to Use This File
 
 Each task has a **goal**, a **self-check** you can verify yourself, and a folded **hint**. Solutions are deliberately **sparse** — given only for the trickier items, and even then as a sketch, because the learning is in the doing. Work in any language with sum types (Rust, Swift, Haskell, OCaml, F#, TypeScript, Kotlin, modern Java); where a task is language-specific it says so.

@@ -5,23 +5,6 @@
 
 ---
 
-## Table of Contents
-
-- [Introduction](#introduction)
-- [Core Concepts](#core-concepts)
-  - [RSS vs heap: the accounting model that matters](#rss-vs-heap-the-accounting-model-that-matters)
-  - [Sizing a container that uses off-heap](#sizing-a-container-that-uses-off-heap)
-  - [The native-leak diagnosis playbook](#the-native-leak-diagnosis-playbook)
-  - [The tooling, in order of cost](#the-tooling-in-order-of-cost)
-- [War Stories](#war-stories)
-- [Code Examples](#code-examples)
-- [Pros & Cons](#pros--cons)
-- [Best Practices](#best-practices)
-- [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-- [Summary](#summary)
-
----
-
 ## Introduction
 
 In production, off-heap memory's defining property is that it is *invisible to the tools you reach for first*. A heap dump won't show it. `-Xmx` doesn't bound it. The GC log never mentions it. So the failure mode is brutal in its asymmetry: a slow native leak grows process RSS for hours while every JVM-level dashboard stays green, until the kernel's OOM killer or the container runtime sends a `SIGKILL` and your service vanishes with no Java stack trace, no `OutOfMemoryError`, no heap dump — just exit code 137. This page is about not being surprised by that, and about finding the leak fast when you are.

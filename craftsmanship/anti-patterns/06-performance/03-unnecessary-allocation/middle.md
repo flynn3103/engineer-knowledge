@@ -4,26 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [How to See Allocations: `-benchmem`](#how-to-see-allocations--benchmem)
-4. [Form 1 — String Building](#form-1--string-building)
-5. [Form 2 — Presizing Collections](#form-2--presizing-collections)
-6. [Form 3 — Boxing and Autoboxing](#form-3--boxing-and-autoboxing)
-7. [Form 4 — Reuse vs Re-create](#form-4--reuse-vs-re-create)
-8. [Form 5 — Intermediate Collections in Pipelines](#form-5--intermediate-collections-in-pipelines)
-9. [Reading the Numbers Honestly](#reading-the-numbers-honestly)
-10. [Common Mistakes](#common-mistakes)
-11. [Test Yourself](#test-yourself)
-12. [Cheat Sheet](#cheat-sheet)
-13. [Summary](#summary)
-14. [Further Reading](#further-reading)
-15. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **The common forms** and **the fixes — measured, not guessed.**

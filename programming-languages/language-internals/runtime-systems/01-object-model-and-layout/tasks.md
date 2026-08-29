@@ -5,20 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [How to Use This Page](#how-to-use-this-page)
-2. [Warm-Up (Junior)](#warm-up-junior)
-3. [Core Exercises (Middle)](#core-exercises-middle)
-4. [Advanced Exercises (Senior)](#advanced-exercises-senior)
-5. [Production Exercises (Professional)](#production-exercises-professional)
-6. [Capstone Projects](#capstone-projects)
-7. [Self-Check Checklist](#self-check-checklist)
-8. [Hints](#hints)
-9. [Sparse Solutions](#sparse-solutions)
-
----
-
 ## How to Use This Page
 
 Each exercise has a **goal**, a **self-check box** you tick when you've genuinely verified the result (not just "it compiled"), and a difficulty tier. Do the work *with a tool that shows you the bytes* — `sizeof`/`offsetof` in C, `unsafe.Sizeof`/`Offsetof` in Go, `std::mem::size_of`/`offset_of!` in Rust, JOL in Java, `sys.getsizeof` in Python, `--allow-natives-syntax`/`--trace-deopt` in Node. Layout is a topic you must *measure*, not reason about abstractly, or you'll be confidently wrong.

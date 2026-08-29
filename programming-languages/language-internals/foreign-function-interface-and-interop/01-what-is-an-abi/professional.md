@@ -5,28 +5,6 @@
 
 ---
 
-## Table of Contents
-
-- [Introduction](#introduction)
-- [Core Concepts](#core-concepts)
-  - [ABI Stability as a Production Contract](#abi-stability-as-a-production-contract)
-  - [ABI Break vs API Break](#abi-break-vs-api-break)
-  - [The libstdc++ Dual-ABI std::string Saga](#the-libstdc-dual-abi-stdstring-saga)
-  - [glibc Symbol Versioning in Production](#glibc-symbol-versioning-in-production)
-  - [LP64 vs LLP64: long Is 32-Bit on Win64](#lp64-vs-llp64-long-is-32-bit-on-win64)
-  - [Shipping a Stable Plugin ABI by Flattening to C](#shipping-a-stable-plugin-abi-by-flattening-to-c)
-  - [C++ Has No Stable ABI Across Compilers](#c-has-no-stable-abi-across-compilers)
-  - [Versioning Discipline](#versioning-discipline)
-  - [Compiled but Crashes: ABI Mismatch in the Field](#compiled-but-crashes-abi-mismatch-in-the-field)
-- [Code Examples](#code-examples)
-- [Use Cases](#use-cases)
-- [Best Practices](#best-practices)
-- [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-- [War Stories](#war-stories)
-- [Summary](#summary)
-
----
-
 ## Introduction
 
 At the professional tier — Staff, Principal, the person who owns the SDK other teams build against — "what is an ABI" stops being a definition and becomes an operational responsibility measured in support tickets, deprecation windows, and 3 a.m. pages. You are the person who decides whether a customer can drop in a new `libyourproduct.so.4.2.1` and have every binary that was linked against `libyourproduct.so.4` keep working without recompiling. You are the one who signs off when someone proposes adding a field to a struct that ships in a public header. You are the one who gets the bug report titled "it compiled fine but segfaults on startup after we upgraded the library," and you are expected to name the exact ABI clause that was violated, in the first reply, before lunch.

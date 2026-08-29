@@ -5,30 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concept 1 — Norms as Artifacts, Not Vibes](#core-concept-1--norms-as-artifacts-not-vibes)
-5. [Core Concept 2 — The Style Guide Decides, Not the Reviewer](#core-concept-2--the-style-guide-decides-not-the-reviewer)
-6. [Core Concept 3 — Severity Labels and Conventional Comments](#core-concept-3--severity-labels-and-conventional-comments)
-7. [Core Concept 4 — Psychological Safety Is a Staff Responsibility](#core-concept-4--psychological-safety-is-a-staff-responsibility)
-8. [Core Concept 5 — Disagreement at Scale and Decision Rights](#core-concept-5--disagreement-at-scale-and-decision-rights)
-9. [Core Concept 6 — Making Review Visible and Valued](#core-concept-6--making-review-visible-and-valued)
-10. [Core Concept 7 — Calibration, Metrics, and the AI-Review Wave](#core-concept-7--calibration-metrics-and-the-ai-review-wave)
-11. [War Stories](#war-stories)
-12. [Decision Frameworks](#decision-frameworks)
-13. [Mental Models](#mental-models)
-14. [Common Mistakes](#common-mistakes)
-15. [Test Yourself](#test-yourself)
-16. [Cheat Sheet](#cheat-sheet)
-17. [Summary](#summary)
-18. [Further Reading](#further-reading)
-19. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Establishing feedback norms and a healthy review culture across an org — the engineering and process side of feedback, where consistency, decision rights, and incentives matter more than any single well-phrased comment.**

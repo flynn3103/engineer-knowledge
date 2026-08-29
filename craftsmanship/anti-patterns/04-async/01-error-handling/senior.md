@@ -5,28 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [How Did the Codebase Get Here? — Root-Cause Forces](#how-did-the-codebase-get-here--root-cause-forces)
-4. [The Propagation Contract: Every Async Call Has an Owner](#the-propagation-contract-every-async-call-has-an-owner)
-5. [Structured Concurrency: The Gold Model](#structured-concurrency-the-gold-model)
-6. [Cancellation and Timeouts as First-Class Concerns](#cancellation-and-timeouts-as-first-class-concerns)
-7. [Supervising Background Work: Beyond Fire-and-Forget](#supervising-background-work-beyond-fire-and-forget)
-8. [Observability for Async Failures](#observability-for-async-failures)
-9. [The `unhandledRejection` Policy: Crash vs. Report](#the-unhandledrejection-policy-crash-vs-report)
-10. [Rolling Out Eradication at Scale: TypeScript Strict + Lint Gates](#rolling-out-eradication-at-scale-typescript-strict--lint-gates)
-11. [When Fire-and-Forget Is Acceptable](#when-fire-and-forget-is-acceptable)
-12. [Common Mistakes](#common-mistakes)
-13. [Test Yourself](#test-yourself)
-14. [Cheat Sheet](#cheat-sheet)
-15. [Summary](#summary)
-16. [Further Reading](#further-reading)
-17. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **How did the codebase get here?** and **How do I fix it safely at scale?**

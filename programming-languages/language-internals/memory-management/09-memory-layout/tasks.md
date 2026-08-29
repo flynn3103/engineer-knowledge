@@ -7,15 +7,6 @@ These tasks turn the theory into muscle memory. You will *measure* layout, not j
 
 ---
 
-## Table of Contents
-- [Warm-Up](#warm-up)
-- [Core](#core)
-- [Advanced](#advanced)
-- [Capstone](#capstone)
-- [Self-Assessment](#self-assessment)
-
----
-
 ## Warm-Up
 
 ### Task 1 — Prove `sizeof` ≠ sum of fields

@@ -5,29 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [How Did the Codebase Get Here? — Root-Cause Forces](#how-did-the-codebase-get-here--root-cause-forces)
-4. [The Four Coffman Conditions: The Shared Theory](#the-four-coffman-conditions-the-shared-theory)
-5. [Deadlock: Prevention vs. Avoidance vs. Detection](#deadlock-prevention-vs-avoidance-vs-detection)
-6. [Designing a System-Wide Lock Hierarchy](#designing-a-system-wide-lock-hierarchy)
-7. [Eliminating Lock-Across-I/O at Scale](#eliminating-lock-across-io-at-scale)
-8. [Choosing Lock Granularity at Scale](#choosing-lock-granularity-at-scale)
-9. [Dropping Locks Entirely: Single-Writer, Actors, Channels](#dropping-locks-entirely-single-writer-actors-channels)
-10. [Auditing a Live System for Coordination Bugs](#auditing-a-live-system-for-coordination-bugs)
-11. [When Coarse Locking Is the Right Answer](#when-coarse-locking-is-the-right-answer)
-12. [Preventing Coordination Decay Organizationally](#preventing-coordination-decay-organizationally)
-13. [Common Mistakes](#common-mistakes)
-14. [Test Yourself](#test-yourself)
-15. [Cheat Sheet](#cheat-sheet)
-16. [Summary](#summary)
-17. [Further Reading](#further-reading)
-18. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **How did the codebase get here?** and **How do I fix it safely at scale?**

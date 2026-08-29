@@ -4,25 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Why N+1 Hides in a Real System](#why-n1-hides-in-a-real-system)
-4. [Detecting It: Counters, Spans, Logs](#detecting-it-counters-spans-logs)
-5. [The Guard Test: Assert ≤1 Query](#the-guard-test-assert-1-query)
-6. [The Dataloader Pattern: Batching Without Rewriting Callers](#the-dataloader-pattern-batching-without-rewriting-callers)
-7. [The Readability vs Batching Trade-off](#the-readability-vs-batching-trade-off)
-8. [Where It Hides](#where-it-hides)
-9. [Common Mistakes](#common-mistakes)
-10. [Test Yourself](#test-yourself)
-11. [Cheat Sheet](#cheat-sheet)
-12. [Summary](#summary)
-13. [Further Reading](#further-reading)
-14. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Finding and killing N+1 across a system you didn't fully write — and keeping it dead.**

@@ -4,21 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [From "it's an investment" to mechanics](#from-its-an-investment-to-mechanics)
-2. [Time value of money, applied to engineering hours](#time-value-of-money-applied-to-engineering-hours)
-3. [A discount factor you can actually use](#a-discount-factor-you-can-actually-use)
-4. [The cost of a change as a function of coupling and cohesion](#the-cost-of-a-change-as-a-function-of-coupling-and-cohesion)
-5. [The break-even calculation: when does tidying pay back?](#the-break-even-calculation-when-does-tidying-pay-back)
-6. [Worked numbers: three realistic scenarios](#worked-numbers-three-realistic-scenarios)
-7. [Why "next change" beats "someday"](#why-next-change-beats-someday)
-8. [Putting it together: a decision recipe](#putting-it-together-a-decision-recipe)
-9. [Mini Glossary](#mini-glossary)
-10. [Review questions](#review-questions)
-
----
-
 ## From "it's an investment" to mechanics
 
 The junior file established the shape of the decision: tidying spends effort now to lower the cost of future changes, and it is worth doing only when the future saving outweighs the present cost. That is the *what*. This file is the *how much* — the mechanics that let you turn "feels worth it" into a number you could defend in a code review or a planning meeting.

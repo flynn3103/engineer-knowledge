@@ -5,26 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Choosing a Metric That Isn't Gameable](#choosing-a-metric-that-isnt-gameable)
-4. [Where the Baseline Lives — and Why It Decides Everything](#where-the-baseline-lives--and-why-it-decides-everything)
-5. [Surviving Merges and Rebases](#surviving-merges-and-rebases)
-6. [Ratcheting the Hotspots First](#ratcheting-the-hotspots-first)
-7. [A Ratchet Is a Fitness Function Over a Count](#a-ratchet-is-a-fitness-function-over-a-count)
-8. [Rollout Playbook for a Large Legacy Codebase](#rollout-playbook-for-a-large-legacy-codebase)
-9. [Combining with Incremental Strict-Mode Adoption](#combining-with-incremental-strict-mode-adoption)
-10. [Common Mistakes](#common-mistakes)
-11. [Test Yourself](#test-yourself)
-12. [Cheat Sheet](#cheat-sheet)
-13. [Summary](#summary)
-14. [Further Reading](#further-reading)
-15. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Rolling out a ratchet across a large legacy codebase.** Pick a metric that can't be gamed, decide where the baseline lives, survive merges and rebases, ratchet the hotspots first, and see the ratchet for what it is — a fitness function over a count.

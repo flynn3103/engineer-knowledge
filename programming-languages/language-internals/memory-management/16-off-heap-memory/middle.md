@@ -5,24 +5,6 @@
 
 ---
 
-## Table of Contents
-
-- [Introduction](#introduction)
-- [Core Concepts](#core-concepts)
-  - [The four ways to get native memory from the OS](#the-four-ways-to-get-native-memory-from-the-os)
-  - [JVM: DirectByteBuffer and the Cleaner trap](#jvm-directbytebuffer-and-the-cleaner-trap)
-  - [JVM: sun.misc.Unsafe (the legacy path)](#jvm-sunmiscunsafe-the-legacy-path)
-  - [JVM: the Foreign Function & Memory API (Panama)](#jvm-the-foreign-function--memory-api-panama)
-  - [Memory-mapped files](#memory-mapped-files)
-  - [Go, Rust, and .NET off-heap](#go-rust-and-net-off-heap)
-- [Code Examples](#code-examples)
-- [Pros & Cons](#pros--cons)
-- [Best Practices](#best-practices)
-- [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-- [Summary](#summary)
-
----
-
 ## Introduction
 
 At the junior level "off-heap" was a concept: memory the GC doesn't own. At this level it becomes a set of concrete APIs, each with its own allocation call, its own free path, and its own failure mode. The single most important thing to internalize is that **every off-heap region has an explicit owner and an explicit lifetime**, even when the API hides it behind a finalizer or a phantom reference. When you allocate off-heap, you have taken back the responsibility the GC normally carries — and the runtime gives you only thin help in carrying it.

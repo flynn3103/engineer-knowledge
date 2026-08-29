@@ -7,24 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Why GoF Ranked Composition First](#why-gof-ranked-composition-first)
-3. [Interface vs. Implementation Inheritance, Precisely](#interface-vs-implementation-inheritance-precisely)
-4. [The Self Problem: Composition's Hardest Trade-off](#the-self-problem-compositions-hardest-trade-off)
-5. [Traits and Mixins Shift the Calculus](#traits-and-mixins-shift-the-calculus)
-6. [How Languages Without Inheritance Compose](#how-languages-without-inheritance-compose)
-7. [The Forwarding Tax and How Languages Pay It](#the-forwarding-tax-and-how-languages-pay-it)
-8. [When Composition Is the Wrong Default](#when-composition-is-the-wrong-default)
-9. [Composition, OCP, and Encapsulation as One Argument](#composition-ocp-and-encapsulation-as-one-argument)
-10. [Liabilities](#liabilities)
-11. [Pros & Cons at the System Level](#pros-cons-at-the-system-level)
-12. [Diagrams](#diagrams)
-13. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **design trade-offs** and **system-level reasoning**

@@ -7,27 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Deletability Is a Coupling Property](#deletability-is-a-coupling-property)
-3. [The Layers-As-Seams Technique](#the-layers-as-seams-technique)
-4. [Separate Code That Changes For Different Reasons](#separate-code-that-changes-for-different-reasons)
-5. [The DRY Tension, Properly](#the-dry-tension-properly)
-6. [Premature DRY as a Deletion Hazard](#premature-dry-as-a-deletion-hazard)
-7. [The Rule of Three as Referee](#the-rule-of-three-as-referee)
-8. [Practical Signals That Deletability Is Failing](#practical-signals-that-deletability-is-failing)
-9. [Feature Flags, Kill-Switches, and Deprecation Paths](#feature-flags-kill-switches-and-deprecation-paths)
-10. [Trade-offs](#trade-offs)
-11. [Edge Cases](#edge-cases)
-12. [Tricky Points](#tricky-points)
-13. [Best Practices](#best-practices)
-14. [Test Yourself](#test-yourself)
-15. [Summary](#summary)
-16. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **Why** and **When**

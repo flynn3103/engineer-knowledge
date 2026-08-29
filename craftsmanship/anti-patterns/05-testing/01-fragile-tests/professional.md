@@ -4,26 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [When Fragility Is Correct: The Test Should Break](#when-fragility-is-correct-the-test-should-break)
-4. [Where the Contract/Implementation Boundary Actually Sits](#where-the-contractimplementation-boundary-actually-sits)
-5. [Coupling vs Coverage: The Real Trade-Off](#coupling-vs-coverage-the-real-trade-off)
-6. [Golden-Master and Snapshot Trade-Offs](#golden-master-and-snapshot-trade-offs)
-7. [Fragility and Refactoring Velocity](#fragility-and-refactoring-velocity)
-8. [Interaction Testing That Is Not Fragile](#interaction-testing-that-is-not-fragile)
-9. [A Decision Framework](#a-decision-framework)
-10. [Common Mistakes](#common-mistakes)
-11. [Test Yourself](#test-yourself)
-12. [Cheat Sheet](#cheat-sheet)
-13. [Summary](#summary)
-14. [Further Reading](#further-reading)
-15. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **The trade-offs and edge cases** — when "fragility" is actually correct, where the contract boundary truly sits, the coupling-vs-coverage tension, golden-master economics, and how all of it bears on refactoring velocity.

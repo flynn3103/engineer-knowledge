@@ -4,32 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [The Principle in One Sentence](#the-principle-in-one-sentence)
-5. [Commands vs. Queries](#commands-vs-queries)
-6. [Why It Matters: Asking a Question Shouldn't Change the Answer](#why-it-matters-asking-a-question-shouldnt-change-the-answer)
-7. [Real-World Analogies](#real-world-analogies)
-8. [Mental Models](#mental-models)
-9. [A Worked Example: Splitting a Method That Does Both](#a-worked-example-splitting-a-method-that-does-both)
-10. [Code Examples](#code-examples)
-11. [Spotting Violations](#spotting-violations)
-12. [The Famous Accepted Exception: `pop()`](#the-famous-accepted-exception-pop)
-13. [Best Practices](#best-practices)
-14. [Common Mistakes](#common-mistakes)
-15. [Tricky Points](#tricky-points)
-16. [Test Yourself](#test-yourself)
-17. [Cheat Sheet](#cheat-sheet)
-18. [Summary](#summary)
-19. [Further Reading](#further-reading)
-20. [Related Topics](#related-topics)
-21. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **What is it?** and **How to use it?**

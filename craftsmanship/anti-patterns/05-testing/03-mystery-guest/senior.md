@@ -4,25 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Anatomy of a General Fixture](#anatomy-of-a-general-fixture)
-4. [The Migration Strategy: Shared to Fresh, Safely](#the-migration-strategy-shared-to-fresh-safely)
-5. [Builders vs. Object Mothers at Suite Scale](#builders-vs-object-mothers-at-suite-scale)
-6. [The Speed Trade-Off: Fresh Fixtures Cost Time](#the-speed-trade-off-fresh-fixtures-cost-time)
-7. [Making Necessary External Data Honest](#making-necessary-external-data-honest)
-8. [A Worked Migration](#a-worked-migration)
-9. [Common Mistakes](#common-mistakes)
-10. [Test Yourself](#test-yourself)
-11. [Cheat Sheet](#cheat-sheet)
-12. [Summary](#summary)
-13. [Further Reading](#further-reading)
-14. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Untangling a shared fixture across a whole suite** — migrating a General/Shared Fixture to fresh-per-test, choosing builders vs. object mothers, managing the speed cost that fresh fixtures introduce, and making the external data you genuinely need honest and discoverable.

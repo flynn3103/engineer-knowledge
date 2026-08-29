@@ -10,15 +10,6 @@ These questions probe whether a candidate truly understands metaprogramming — 
 
 The questions move from foundational vocabulary, through language-specific surfaces (Rust, Java, Python, Go, Lisp/C++), into traps where the obvious answer is wrong, and finally to design scenarios that reveal whether the candidate has actually *built* or *operated* systems that lean on metaprogramming.
 
-## Table of Contents
-
-- [Conceptual / Foundational](#conceptual--foundational)
-- [Language-Specific](#language-specific)
-- [Tricky / Trap Questions](#tricky--trap-questions)
-- [Design / Scenario](#design--scenario)
-
----
-
 ## Conceptual / Foundational
 
 ## Question 1

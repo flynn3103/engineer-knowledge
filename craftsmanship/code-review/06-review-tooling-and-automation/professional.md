@@ -5,29 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concept 1 — The Leverage Thesis: Drive the Mechanical to Tooling](#core-concept-1--the-leverage-thesis-drive-the-mechanical-to-tooling)
-5. [Core Concept 2 — Signal/Noise Governance: The Central Problem at Scale](#core-concept-2--signalnoise-governance-the-central-problem-at-scale)
-6. [Core Concept 3 — The Paved Road: Make the Good Path the Default](#core-concept-3--the-paved-road-make-the-good-path-the-default)
-7. [Core Concept 4 — CODEOWNERS as Routing Infrastructure](#core-concept-4--codeowners-as-routing-infrastructure)
-8. [Core Concept 5 — AI Review as an Org Rollout](#core-concept-5--ai-review-as-an-org-rollout)
-9. [Core Concept 6 — Measuring the Platform](#core-concept-6--measuring-the-platform)
-10. [War Stories](#war-stories)
-11. [Decision Frameworks](#decision-frameworks)
-12. [Mental Models](#mental-models)
-13. [Common Mistakes](#common-mistakes)
-14. [Test Yourself](#test-yourself)
-15. [Cheat Sheet](#cheat-sheet)
-16. [Summary](#summary)
-17. [Further Reading](#further-reading)
-18. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Building and curating the review-automation platform across an org, where the scarce resource is human reviewer attention and the central failure mode is automated noise.**

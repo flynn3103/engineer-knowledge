@@ -5,22 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [The Reachability Strength Spectrum](#the-reachability-strength-spectrum)
-3. [Java's Four Reference Tiers](#javas-four-reference-tiers)
-4. [Cross-Language Survey](#cross-language-survey)
-5. [Design Patterns That Need Weakness](#design-patterns-that-need-weakness)
-6. [Weak-Keyed vs Weak-Valued Maps](#weak-keyed-vs-weak-valued-maps)
-7. [Cycle Breaking in Refcounted Systems](#cycle-breaking-in-refcounted-systems)
-8. [Pros & Cons](#pros--cons)
-9. [Best Practices](#best-practices)
-10. [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-11. [Summary](#summary)
-
----
-
 ## Introduction
 
 A weak reference is a deliberate hole in the reachability graph: it names an object

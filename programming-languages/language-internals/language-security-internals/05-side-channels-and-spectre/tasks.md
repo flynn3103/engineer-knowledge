@@ -22,16 +22,6 @@ side channel reads secrets through the door that rollback leaves open.
 
 ---
 
-## Table of Contents
-
-1. [Warm-Up](#warm-up)
-2. [Core](#core)
-3. [Advanced](#advanced)
-4. [Capstone](#capstone)
-5. [Self-Assessment](#self-assessment)
-
----
-
 ## Warm-Up
 
 ### Task 1 — Spot the leak

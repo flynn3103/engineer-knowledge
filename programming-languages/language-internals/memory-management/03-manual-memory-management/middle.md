@@ -5,23 +5,6 @@
 
 ---
 
-## Table of Contents
-
-- [Introduction](#introduction)
-- [Prerequisites](#prerequisites)
-- [Glossary](#glossary)
-- [Core Concepts](#core-concepts)
-- [Mental Models](#mental-models)
-- [Code Examples](#code-examples)
-- [Coding Patterns](#coding-patterns)
-- [Pros & Cons](#pros--cons)
-- [Use Cases](#use-cases)
-- [Best Practices](#best-practices)
-- [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-- [Summary](#summary)
-
----
-
 ## Introduction
 
 At the junior level, `malloc` and `free` were a black box governed by a contract. Now we open the box. Understanding *what the allocator stores*, *how a block is laid out*, and *what actually happens during a use-after-free* is what separates "I follow the rules" from "I understand why the rules exist." It also explains the otherwise baffling crashes: why a double-free corrupts unrelated data, why writing one byte past a buffer can hijack control flow, why a leak in C is invisible until the machine dies.

@@ -5,29 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [The Shape of Large Debt — Why Architectural Paydown Is Different](#the-shape-of-large-debt--why-architectural-paydown-is-different)
-4. [Strangler Fig — Replacing a System While It Runs](#strangler-fig--replacing-a-system-while-it-runs)
-5. [Branch by Abstraction — In-Place Replacement Without a Long-Lived Branch](#branch-by-abstraction--in-place-replacement-without-a-long-lived-branch)
-6. [The Anticorruption Layer — Containing the Blast Radius](#the-anticorruption-layer--containing-the-blast-radius)
-7. [Parallel Run and Dark Launch — Proving the Replacement Is Correct](#parallel-run-and-dark-launch--proving-the-replacement-is-correct)
-8. [The Rewrite Decision, Done Rigorously](#the-rewrite-decision-done-rigorously)
-9. [Building the Safety Net for Unsafe Code](#building-the-safety-net-for-unsafe-code)
-10. [Sequencing a Multi-Quarter Paydown — Find the Keystone](#sequencing-a-multi-quarter-paydown--find-the-keystone)
-11. [The Paydown ROI Model — Proving It Afterward, and Knowing When to Stop](#the-paydown-roi-model--proving-it-afterward-and-knowing-when-to-stop)
-12. [Mental Models](#mental-models)
-13. [Common Mistakes](#common-mistakes)
-14. [Test Yourself](#test-yourself)
-15. [Cheat Sheet](#cheat-sheet)
-16. [Summary](#summary)
-17. [Further Reading](#further-reading)
-18. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Paying down large, architectural debt safely — the migration patterns, the safety nets, the sequencing, and the economics that decide whether it was worth doing at all.**

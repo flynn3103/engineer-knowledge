@@ -4,26 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Constant Factors and Cache Locality: Array-of-Structs vs Map-of-Pointers](#constant-factors-and-cache-locality-array-of-structs-vs-map-of-pointers)
-4. [Amortized vs Worst-Case: Hash Resize and Dynamic-Array Growth](#amortized-vs-worst-case-hash-resize-and-dynamic-array-growth)
-5. [Specialized Structures and When They Pay Off](#specialized-structures-and-when-they-pay-off)
-6. [Concurrent Structures: The Cost Model Changes](#concurrent-structures-the-cost-model-changes)
-7. [The Memory-vs-Time Trade](#the-memory-vs-time-trade)
-8. [The "Right Big-O, Wrong Constants" Trap](#the-right-big-o-wrong-constants-trap)
-9. [Benchmarking the Real Workload](#benchmarking-the-real-workload)
-10. [Common Mistakes](#common-mistakes)
-11. [Test Yourself](#test-yourself)
-12. [Cheat Sheet](#cheat-sheet)
-13. [Summary](#summary)
-14. [Further Reading](#further-reading)
-15. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **The deep trade-offs** — constant factors and cache lines, amortized vs worst-case behavior, specialized structures (bitset, trie, Bloom filter, ring buffer), concurrent collections, the memory-for-time deal, and how to benchmark the *actual* workload so the numbers, not intuition, choose.

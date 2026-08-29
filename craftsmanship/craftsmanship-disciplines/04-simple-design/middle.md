@@ -7,26 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Applying the Rules to Real Code](#applying-the-rules-to-real-code)
-3. [YAGNI in Practice](#yagni-in-practice)
-4. [Emergent vs. Planned Design](#emergent-vs-planned-design)
-5. [The Rules-2-vs-3 Debate](#the-rules-2-vs-3-debate)
-6. [Removing Speculative Generality](#removing-speculative-generality)
-7. [Knowledge Duplication vs. Coincidental Similarity](#knowledge-duplication-vs-coincidental-similarity)
-8. [When Each Rule Should Stop You](#when-each-rule-should-stop-you)
-9. [Trade-offs](#trade-offs)
-10. [Edge Cases](#edge-cases)
-11. [Tricky Points](#tricky-points)
-12. [Best Practices](#best-practices)
-13. [Test Yourself](#test-yourself)
-14. [Summary](#summary)
-15. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **Why** and **When**

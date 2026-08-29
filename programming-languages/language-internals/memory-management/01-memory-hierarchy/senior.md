@@ -5,27 +5,6 @@
 
 ---
 
-## Table of Contents
-
-- [Introduction](#introduction)
-- [Prerequisites](#prerequisites)
-- [Core Concepts](#core-concepts)
-  - [The memory wall](#the-memory-wall)
-  - [Data layout is the lever: AoS vs SoA](#data-layout-is-the-lever-aos-vs-soa)
-  - [Arrays vs linked structures, revisited](#arrays-vs-linked-structures-revisited)
-  - [False sharing and the coherence tax](#false-sharing-and-the-coherence-tax)
-  - [NUMA: when "RAM" has an address book](#numa-when-ram-has-an-address-book)
-  - [Non-inclusive vs inclusive caches](#non-inclusive-vs-inclusive-caches)
-- [Cross-Language Comparison](#cross-language-comparison)
-- [Design Trade-Offs](#design-trade-offs)
-- [Mental Models](#mental-models)
-- [Code Examples](#code-examples)
-- [Best Practices](#best-practices)
-- [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-- [Summary](#summary)
-
----
-
 ## Introduction
 
 A senior engineer doesn't just write cache-friendly loops; they choose *data layouts and concurrency structures* whose interaction with the hierarchy is favorable by construction. That means understanding why the gap between CPU and memory keeps widening (the memory wall), why the same struct laid out two ways differs 5× in a SIMD loop, why two threads writing different variables can collide, and why a malloc on the "wrong" NUMA node silently halves your bandwidth. The hierarchy stops being a tuning afterthought and becomes an input to design.

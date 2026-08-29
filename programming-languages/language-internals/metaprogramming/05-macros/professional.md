@@ -5,28 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [Core Concepts](#core-concepts)
-5. [Real-World Analogies](#real-world-analogies)
-6. [Mental Models](#mental-models)
-7. [Code Examples](#code-examples)
-8. [Trade-offs](#trade-offs)
-9. [Use Cases](#use-cases)
-10. [Coding Patterns](#coding-patterns)
-11. [Best Practices](#best-practices)
-12. [Edge Cases & Pitfalls](#edge-cases--pitfalls)
-13. [Common Mistakes](#common-mistakes)
-14. [Test Yourself](#test-yourself)
-15. [Cheat Sheet](#cheat-sheet)
-16. [Summary](#summary)
-17. [Further Reading](#further-reading)
-
----
-
 ## Introduction
 
 > 🎓 Junior: what a macro is and the C foot-guns. Middle: syntactic macros and hygiene. Senior: Rust's two systems, hygiene formally, and the neighbouring designs. Professional: the decisions that determine whether a macro is an asset or a liability for *a team, over years* — because a macro is a piece of API that you cannot change easily, that the compiler runs on every build, that produces the error messages your colleagues will curse, and that the next engineer must understand before they can change anything near it.

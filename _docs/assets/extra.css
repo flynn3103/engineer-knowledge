@@ -374,23 +374,22 @@ body,
   color: var(--md-default-fg-color--lightest);
 }
 
-/* Mermaid diagrams — let wide graphs scroll horizontally instead of squashing */
+/* Mermaid diagrams — preserve natural size and fit wide graphs to the article */
 .mermaid {
   margin: 1.4rem 0;
   padding: 0.5rem;
   background: #15161a;
   border: 1px solid #2a2d35;
   border-radius: 8px;
-  overflow-x: auto;
+  overflow-x: hidden;
   text-align: center;
 }
 .mermaid svg {
-  /* Mermaid hard-codes width="100%". Force natural intrinsic size so wide
-     graphs scroll horizontally instead of squashing to one line. */
-  max-width: none !important;
-  width: max-content !important;
+  width: 100%;
+  max-width: 100%;
   height: auto !important;
-  display: inline-block;
+  display: block;
+  margin-inline: auto;
 }
 
 /* Hide mermaid syntax errors (broken diagrams won't show empty crashed bombs) */

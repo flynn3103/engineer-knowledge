@@ -10,21 +10,6 @@ These questions probe whether a candidate can separate two ideas that look ident
 
 The questions move from conceptual foundations, through language-specific surfaces (C/C++ sequence points and UB, Java/C# defined left-to-right, Go, Python, Rust), into trap questions where the textbook intuition is wrong, and finish with design scenarios that reveal whether the candidate has actually shipped and debugged real code.
 
-## Table of Contents
-
-- [Conceptual](#conceptual)
-- [Language-Specific](#language-specific)
-  - [C / C++ — Sequence Points & UB](#c--c--sequence-points--ub)
-  - [Java & C# — Defined Left-to-Right](#java--c--defined-left-to-right)
-  - [Go](#go)
-  - [Python](#python)
-  - [Rust](#rust)
-- [Tricky / Trap](#tricky--trap)
-- [Design](#design)
-- [Cheat Sheet](#cheat-sheet)
-
----
-
 ## Conceptual
 
 ## Question 1

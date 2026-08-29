@@ -4,24 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [The Shape](#the-shape)
-4. [The Latency Math](#the-latency-math)
-5. [The Fix: Batch It](#the-fix-batch-it)
-6. [It's Not Just Databases](#its-not-just-databases)
-7. [A Spotting Checklist](#a-spotting-checklist)
-8. [Common Mistakes](#common-mistakes)
-9. [Test Yourself](#test-yourself)
-10. [Cheat Sheet](#cheat-sheet)
-11. [Summary](#summary)
-12. [Further Reading](#further-reading)
-13. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **What does it look like?** and **Why is it bad?**

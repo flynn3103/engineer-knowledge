@@ -4,26 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Rule Zero: Profile First — Most Allocations Don't Matter](#rule-zero-profile-first--most-allocations-dont-matter)
-4. [Reading an Allocation Profile](#reading-an-allocation-profile)
-5. [Escape Analysis: Why a Value Allocates](#escape-analysis-why-a-value-allocates)
-6. [Presizing From a Known Size](#presizing-from-a-known-size)
-7. [Object Reuse and `sync.Pool` — and Its Dangers](#object-reuse-and-syncpool--and-its-dangers)
-8. [The Readability Trade-off](#the-readability-trade-off)
-9. [A Worked Decision](#a-worked-decision)
-10. [Common Mistakes](#common-mistakes)
-11. [Test Yourself](#test-yourself)
-12. [Cheat Sheet](#cheat-sheet)
-13. [Summary](#summary)
-14. [Further Reading](#further-reading)
-15. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Reducing allocation in a real hot path** — read the profile, understand *why* it allocates, fix it, and know when to stop.

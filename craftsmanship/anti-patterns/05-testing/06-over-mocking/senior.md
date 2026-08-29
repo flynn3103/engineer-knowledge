@@ -4,25 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. ["Hard to Test Without Mocking Everything" Is a Design Smell](#hard-to-test-without-mocking-everything-is-a-design-smell)
-4. [The Two Schools: London vs Detroit](#the-two-schools-london-vs-detroit)
-5. [Pushing I/O to the Edges](#pushing-io-to-the-edges)
-6. [Building Fakes and In-Memory Doubles That Scale](#building-fakes-and-in-memory-doubles-that-scale)
-7. [Contract Tests for the Mocked Boundaries](#contract-tests-for-the-mocked-boundaries)
-8. [Right-Sizing Doubles Across the Suite](#right-sizing-doubles-across-the-suite)
-9. [Common Mistakes](#common-mistakes)
-10. [Test Yourself](#test-yourself)
-11. [Cheat Sheet](#cheat-sheet)
-12. [Summary](#summary)
-13. [Further Reading](#further-reading)
-14. [Related Topics](#related-topics)
-
----
-
 ## Introduction
 
 > Focus: **Right-sizing test doubles across a suite, and reading mocking pain as design feedback.** "Hard to test without mocking everything" is a *design* smell, not a testing problem. Push I/O to the edges so the core needs no mocks; build fakes for the boundaries; cover the seams with contract tests.

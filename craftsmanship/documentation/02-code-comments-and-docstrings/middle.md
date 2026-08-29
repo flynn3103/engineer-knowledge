@@ -7,23 +7,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Applying Docstrings: Choosing the Right Style](#applying-docstrings-choosing-the-right-style)
-3. [Documenting the Contract, Not the Implementation](#documenting-the-contract-not-the-implementation)
-4. [Public API vs. Internal: Where Effort Goes](#public-api-vs-internal-where-effort-goes)
-5. [Wiring a Generator: autodoc and Friends](#wiring-a-generator-autodoc-and-friends)
-6. [Trade-offs](#trade-offs)
-7. [Edge Cases](#edge-cases)
-8. [Tricky Points](#tricky-points)
-9. [Best Practices](#best-practices)
-10. [Test Yourself](#test-yourself)
-11. [Summary](#summary)
-12. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **Why** and **When**

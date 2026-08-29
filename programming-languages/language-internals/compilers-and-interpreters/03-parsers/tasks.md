@@ -5,18 +5,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Warm-Up Tasks](#warm-up-tasks)
-3. [Core Tasks](#core-tasks)
-4. [Advanced Tasks](#advanced-tasks)
-5. [Capstone](#capstone)
-6. [Self-Check Rubric](#self-check-rubric)
-7. [Summary](#summary)
-
----
-
 ## Introduction
 
 These tasks build parsing skill by *writing parsers*, not just reading about them. They progress from grammar analysis you do on paper, through hand-written recursive descent and Pratt expression parsing, into PEG semantics and error recovery, and culminate in a capstone: a complete **recursive-descent + Pratt** parser for a small language with error recovery — the exact architecture every production compiler uses.

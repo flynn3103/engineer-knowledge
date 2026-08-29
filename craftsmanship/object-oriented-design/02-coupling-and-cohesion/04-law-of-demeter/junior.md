@@ -4,32 +4,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Glossary](#glossary)
-4. [The Origin: "Don't Talk to Strangers"](#the-origin-dont-talk-to-strangers)
-5. [The Formal Rule: Four Legal Call Targets](#the-formal-rule-four-legal-call-targets)
-6. [The Train Wreck Smell](#the-train-wreck-smell)
-7. ["Tell, Don't Ask": The Positive Counterpart](#tell-dont-ask-the-positive-counterpart)
-8. [The Paperboy and the Wallet](#the-paperboy-and-the-wallet)
-9. [The Critical Nuance: Train Wreck vs. Fluent Interface](#the-critical-nuance-train-wreck-vs-fluent-interface)
-10. [Real-World Analogies](#real-world-analogies)
-11. [Mental Models](#mental-models)
-12. [Code Examples](#code-examples)
-13. [Best Practices](#best-practices)
-14. [Common Mistakes](#common-mistakes)
-15. [Tricky Points](#tricky-points)
-16. [Test Yourself](#test-yourself)
-17. [Cheat Sheet](#cheat-sheet)
-18. [Summary](#summary)
-19. [Further Reading](#further-reading)
-20. [Related Topics](#related-topics)
-21. [Diagrams](#diagrams)
-
----
-
 ## Introduction
 
 > Focus: **What is it?** and **How to use it?**
