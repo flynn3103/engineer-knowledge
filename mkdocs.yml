@@ -69,6 +69,7 @@ theme:
 hooks:
   - mkdocs/hooks/sibling_nav.py
   - mkdocs/hooks/seo_meta.py
+  - mkdocs/hooks/preserve_mermaid.py
 
 plugins:
   - awesome-pages:
