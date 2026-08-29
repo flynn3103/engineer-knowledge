@@ -191,15 +191,17 @@
     renderMermaid();
   }
 
-  // Initial run + re-run on Material instant nav
+  // Run once for the initial page, then re-run on Material instant nav.
+  // document$ may emit before this script subscribes, so it cannot replace
+  // the initial DOM-ready call.
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", run, { once: true });
+  } else {
+    run();
+  }
+
   if (typeof document$ !== "undefined" && document$.subscribe) {
     document$.subscribe(run);
-  } else {
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", run);
-    } else {
-      run();
-    }
   }
 })();
 

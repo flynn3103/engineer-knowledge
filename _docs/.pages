@@ -4,6 +4,8 @@ nav:
     - ... | regex=^Software-Engineering/.+
   - Soft Skill:
     - ... | regex=^Soft-Skill/.+
+  - Engineering Thinking:
+    - ... | regex=^Engineering-Thinking/.+
   - Data Engineering:
     - ... | regex=^Data-Engineering/.+
   - AI Engineering:
