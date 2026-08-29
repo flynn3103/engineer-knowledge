@@ -1,74 +1,11 @@
-# DSLs via Metaprogramming — Junior Level
+# DSLs via Metaprogramming — Junior
 
-> **Topic:** DSLs via Metaprogramming
-> **Focus:** What is a "mini-language inside a language," and how do method chaining and blocks make code read like the problem domain instead of like plumbing?
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **DSLs via Metaprogramming** in one small example and prove the result?
 
-## Introduction
-
-> Focus: **What is a DSL, why does code that "reads like the domain" matter, and what are the two simplest techniques (method chaining and blocks) for building one?**
-
-You have almost certainly used a **DSL** already without naming it. When you write a database query with something like:
-
-```python
-users.filter(active=True).order_by("name").limit(10)
-```
-
-you are not writing a query in raw SQL, and you are not calling three unrelated functions either. You are writing in a tiny, purpose-built **language for describing queries** — a language that happens to live *inside* Python, uses Python's own syntax, and is implemented as ordinary Python methods. That is a **Domain-Specific Language**, or **DSL**.
-
-A DSL is a small language aimed at **one** problem area ("the domain"): describing routes, building HTML, writing tests, configuring a build, expressing a query. Contrast that with a **general-purpose language** (GPL) like Python, Java, or Go, which is built to express *anything*. SQL is a DSL for relational queries. Regular expressions are a DSL for pattern matching. A `Makefile` is a DSL for build rules.
-
-There are two big families of DSL, and the distinction is the single most important idea on this page:
-
-- An **external DSL** has its **own grammar** and its **own parser**. SQL, regex, and CSS are external DSLs: a dedicated program reads the text and makes sense of it. Writing one means writing a lexer and parser — that is the territory of compilers, and we only mention it in passing here.
-- An **internal** (or **embedded**) **DSL** is **a library that reads like a mini-language**, hosted *inside* a general-purpose language, reusing that language's own parser. The `users.filter(...).order_by(...)` example is an internal DSL. You did not write a parser; Python's parser read it, and clever library design made it *feel* like a query language.
-
-This page — and this whole topic — is about **internal DSLs built with metaprogramming**: using the host language's own flexible features (method chaining, blocks and closures, operator overloading, macros) to make ordinary code read like the domain it models. We start with the two gentlest techniques: **fluent method chaining** and **blocks**.
-
-> 🎓 **Why this matters for a junior:** You will *read* internal DSLs constantly — every test framework, every ORM, every web router is one. Recognizing "this is a DSL, and here is the trick that makes it work" turns confusing magic into a small, learnable pattern. And building a tiny one yourself is the fastest way to understand the libraries you depend on.
-
-This page covers: what an internal DSL is, how method chaining (fluent interfaces / the builder pattern) works, how blocks and closures give you `do ... end` configuration, the difference between describing-the-domain and the plumbing, and the very real cost of building a DSL when a plain function would do. The `middle.md` page adds operator overloading and Kotlin-style builders; `senior.md` covers macro-based, compile-checked DSLs and DSL design as engineering; `professional.md` covers production DSLs (Gradle, SQLAlchemy, Jetpack Compose) and their trade-offs.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** How to write and call functions and methods in at least one language (Python, Ruby, JavaScript, Kotlin, or Java).
-- **Required:** What an **object** and a **method** are, and what it means for a method to *return* a value.
-- **Required:** Basic familiarity with calling methods one after another: `obj.a().b().c()`.
-- **Helpful but not required:** What a **closure** or **lambda** is — a function you can pass around as a value. We re-explain it.
-- **Helpful but not required:** Having used an ORM, a test framework, or a web router. You have probably touched a DSL even if you did not know the word.
-
-You do **not** need to know:
-
-- How to write a parser or lexer (that is external DSLs — compilers territory).
-- Macros, operator overloading, or reflection (those are `middle.md` and `senior.md`).
-- Anything about ASTs or compile-time code generation.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **DSL (Domain-Specific Language)** | A small language designed for one problem area, not for general programming. SQL, regex, a build file. |
-| **GPL (General-Purpose Language)** | A language built to express anything: Python, Java, Go, Kotlin, Ruby. The *host* of an internal DSL. |
-| **Internal / Embedded DSL** | A DSL implemented as a library inside a host GPL, reusing the host's parser. Reads like a mini-language but is just normal code. |
-| **External DSL** | A DSL with its own grammar and its own parser (SQL, regex, CSS). Out of scope here except in contrast. |
-| **Host language** | The general-purpose language an internal DSL is written in and runs inside of. |
-| **Fluent interface** | An API designed so method calls chain naturally and read like a sentence: `query.select().from().where()`. |
-| **Method chaining** | Calling a method on the *result* of the previous method, possible because each method returns an object you can call the next method on. |
-| **Builder** | An object that accumulates configuration across chained calls and produces a finished result at the end (`.build()`). |
-| **Block / closure / lambda** | A chunk of code you can pass as a value and the library can run later. The engine behind `do ... end` and `{ ... }` config blocks. |
-| **`yield`** | (Ruby) hands control to the block passed to a method, optionally passing it arguments. |
-| **Receiver** | The object a method is called *on* — the `obj` in `obj.method()`. |
-| **Metaprogramming** | Writing code that shapes, generates, or reinterprets other code. The toolbox that makes internal DSLs read like a language. |
-| **Plumbing** | The mechanical, non-domain code (loops, temporary variables, glue) that a good DSL hides so the domain logic stands out. |
-| **Leaky abstraction** | When the underlying implementation pokes through the DSL — usually in confusing error messages — and the user has to understand the plumbing anyway. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -183,30 +120,6 @@ A DSL is not free. When you build one, the people using it must learn it **on to
 
 ---
 
-## Real-World Analogies
-
-**A recipe card vs. a chemistry procedure.** A recipe says "fold in the egg whites." A chemistry write-up says "incorporate the protein-air foam by gentle mechanical motion to preserve gas inclusion." Both describe the same act. The recipe is a DSL: it uses the *vocabulary of the kitchen* so a cook reads intent instantly. A DSL gives your domain its own vocabulary.
-
-**A coffee-shop order.** "Tall oat-milk latte, extra shot, no foam." That is a fluent, chained specification. Each phrase modifies the drink; the order ends and the barista *builds* it. Method chaining is exactly this: each call refines the spec, and a final step produces the result.
-
-**A wedding planner you hand a checklist to.** You write the checklist (the block) — "flowers here, music there" — and hand it over. The planner runs your instructions *in their context*, with their address book and vendors. That is `instance_eval`/`yield`: you provide the *what* in a block, the library provides the *how* and the surrounding machinery.
-
-**Two languages at a border town.** A bilingual sign reads naturally in both languages, but if the translation is sloppy, a traveler gets confused at exactly the wrong moment. A leaky DSL is the bad translation: fine until something breaks, then suddenly you are forced to read the other language (the implementation).
-
----
-
-## Mental Models
-
-**Model 1: "Return self is the conveyor belt."** Picture each chained method placing your object back on a conveyor belt so the next method can pick it up. `return self` is the belt. No belt, no chain.
-
-**Model 2: "A block is a recipe you mail to a kitchen."** You write the steps but do not cook. The library (the kitchen) decides *where* and *with what tools* your steps run. This is why blocks are so powerful for config: the library controls the environment your code executes in.
-
-**Model 3: "A DSL is a costume on an ordinary object."** Underneath every internal DSL is a plain object with plain methods. The "language" is a costume — fluent names, well-chosen operators, blocks — that makes the object *look* like a language. When debugging, mentally take the costume off: `routes.draw do ... end` is just `routes.draw(a_block)`.
-
-**Model 4: "Spell the sentence out loud."** A good fluent DSL reads as an English sentence: *"Query, from users, where active, limit ten, build."* If reading your chain aloud sounds like a sentence about the domain, your naming is on track. If it sounds like a list of setter calls, it is not a DSL yet — it is just an API.
-
----
-
 ## Code Examples
 
 ### Example 1: A fluent query builder (Python)
@@ -239,7 +152,6 @@ class Query:
             q += " WHERE " + " AND ".join(self._where)
         return q
 
-
 print(
     Query()
     .select("id", "name")
@@ -265,12 +177,10 @@ class Server:
     def route(self, path, handler):
         self.routes.append((path, handler))
 
-
 def server(configure):
     s = Server()
     configure(s)         # run the caller's block against a fresh Server
     return s
-
 
 def home():  ...
 def about(): ...
@@ -336,12 +246,10 @@ class Suite:
             except AssertionError as e:
                 print(f"  FAIL - {desc}: {e}")
 
-
 def describe(name, define):
     s = Suite(name)
     define(s)
     s.run()
-
 
 describe("addition", lambda s: (
     s.it("adds positives",  lambda: (_ := (2 + 2)) and (None if 2 + 2 == 4 else (_ for _ in ()).throw(AssertionError("nope")))),
@@ -360,38 +268,6 @@ end
 ```
 
 This is RSpec's exact shape. The lesson: **the host language's syntax decides how pretty your DSL can be.** Picking the right technique for the right host is the craft we develop across the next tiers.
-
----
-
-## Pros & Cons
-
-**Pros**
-
-- **Readability for the domain.** Well-built DSLs let a reader skim *intent*. A routing block or a test suite reads almost like documentation.
-- **Less boilerplate at the call site.** The builder/block hides repetitive setup (creating objects, appending to lists, wiring fields).
-- **Guidance via the API shape.** A fluent interface nudges users toward correct usage: `from_()` returns something with `.where()`, so the chain suggests the next step.
-- **You already know the host language.** Internal DSLs ride on Python/Ruby/Kotlin you already have — no separate parser, no new toolchain.
-
-**Cons**
-
-- **Two languages to learn.** Users must know the host *and* your DSL's conventions. New teammates pay a tax.
-- **Bad error messages.** When the DSL breaks, errors often point at the implementation, not the domain. This is the top complaint about real DSLs.
-- **Weaker tooling.** Autocomplete, go-to-definition, and type checking may not understand your "language" as well as plain function calls.
-- **Over-engineering risk.** Many DSLs should have been three functions. The cost of a DSL is real; pay it only when readability genuinely improves.
-
----
-
-## Use Cases
-
-Internal DSLs cluster into a handful of well-worn categories. Recognizing the category tells you which technique fits:
-
-- **Configuration:** routing tables, server setup, build files. Blocks shine here (`routes.draw do ... end`, Gradle).
-- **Querying:** ORMs and query builders (`users.filter(...).order_by(...)`). Method chaining and, later, operator overloading.
-- **Testing:** behavior specs (`describe / it / expect`). Blocks for grouping, fluent matchers for assertions.
-- **Markup / UI:** building HTML or UI trees (`html { body { ... } }`, Jetpack Compose). Builders and nested blocks.
-- **Build automation:** task definitions (Rake, Gradle). Blocks plus a registry of named tasks.
-
-As a junior, your most likely *first* DSL is a **fluent builder** for something your team creates repeatedly: a test fixture, an HTTP request, a configuration object. Start there.
 
 ---
 
@@ -446,34 +322,24 @@ def build(self):
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-| Idea | One-liner |
-|------|-----------|
-| Internal DSL | A library that reads like a mini-language, using the host's parser. |
-| External DSL | Its own grammar + parser (SQL, regex). Out of scope here. |
-| Method chaining | Each method `return self` so the next call chains. |
-| Builder | Accumulate config across chained calls, produce result in `.build()`. |
-| Block / closure | A chunk of code you hand the library to run in its context. |
-| Ruby `instance_eval` | Run a block with `self` set to your object → no prefixes needed. |
-| Terminal method | The call that ends the chain and does the real work. |
-| "Two languages" cost | Users must learn host + your DSL; budget for it. |
-| Good DSL error | Names the domain mistake, not the implementation crash. |
-| When to skip a DSL | A plain function is just as readable. |
+1. Choose one small, known input for **DSLs via Metaprogramming**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
----
+## Verify your work
 
-## Summary
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
 
-An **internal DSL** is a library that *reads like a small language* for one domain — queries, routes, tests, markup — while running entirely inside a general-purpose host language and using the host's own parser. You build one with metaprogramming techniques; the two gentlest are **method chaining** (each method returns `self` so calls flow like a sentence, the **builder pattern**) and **blocks/closures** (you hand the library a chunk of code it runs in a context it controls, giving you `do ... end` configuration).
+## Review questions
 
-A DSL is worth building when it makes the *intent* of code obvious and hides the mechanical *plumbing* — but it always carries a cost: users must learn a second "language," tooling support is weaker, and bad error messages leak the implementation. The senior skill is knowing when readability earns that cost and when a plain function would have been clearer. Next, `middle.md` adds two more techniques: **operator overloading** (so `User.age > 21` can build a query) and **Kotlin-style type-safe builders** (lambdas with receiver behind `html { body { ... } }`).
-
----
-
-## Further Reading
-
-- Martin Fowler, *Domain-Specific Languages* — the canonical book; its early chapters define internal vs external DSLs precisely.
-- The builder pattern in any "Gang of Four" patterns reference — the structural backbone of fluent DSLs.
-- RSpec's own documentation — read it as a *case study* in a block-based DSL, not just a test tool.
-- Your favorite ORM's query-builder docs (Django ORM, ActiveRecord, SQLAlchemy) — examples of fluent DSLs you already use.
+- What problem does DSLs via Metaprogramming solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

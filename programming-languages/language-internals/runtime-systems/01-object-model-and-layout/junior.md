@@ -1,69 +1,11 @@
-# Object Model & Layout — Junior Level
+# Object Model & Layout — Junior
 
-> **Topic:** Object Model & Layout
-> **Focus:** What does an object actually look like in memory? Fields, padding, headers, and why the order you declare things changes the size of the box.
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **Object Model & Layout** in one small example and prove the result?
 
-## Introduction
-
-> Focus: **An object is not a magic blob. It is a sequence of bytes at a known address, laid out by rules you can learn.**
-
-When you write `struct Point { int x; int y; }` or `class User { name; age; }`, you are describing a **shape**. The compiler or runtime turns that shape into a concrete **memory layout**: a fixed number of bytes, with each field sitting at a known **offset** from the start. Reading `point.y` is, underneath, "take the address of `point`, add 4 bytes, load 4 bytes." That `+4` is the offset. It is computed once, baked into the machine code, and costs nothing at runtime.
-
-This page is about how that box is built. Three things decide its shape:
-
-1. **The fields you declared** — their types and sizes.
-2. **Alignment and padding** — the CPU likes data at "round" addresses, so the compiler inserts invisible gap bytes to keep fields aligned. This is why a struct can be *bigger* than the sum of its fields.
-3. **Headers** — many runtimes prepend bookkeeping bytes to every object (a type pointer, a reference count, lock/GC bits). You never declared these fields, but you pay for them on every object.
-
-In one sentence: **an object is a header (maybe) followed by your fields, with padding wedged in to keep everything aligned, and the total rounded up to a multiple of the alignment.**
-
-> 🎓 **Why this matters for a junior:** The first time you'll care is when someone says "reorder the fields in that struct and it shrinks from 24 bytes to 16." That sounds like black magic. It isn't — it's alignment and padding, and once you see it once you'll see it everywhere. The second time you'll care is when a data structure that *should* fit in cache doesn't, and your loop is mysteriously slow. Layout is the bridge between "the code I wrote" and "what the hardware actually touches."
-
-This page covers: what a field offset is, what alignment and padding are, why reordering fields shrinks a struct, what an object header is and why every object carries one, and a first look at "array of structs" versus "struct of arrays." The next level (`middle.md`) goes deep on the JVM object header, V8 hidden classes, and AoS vs SoA cache effects. `senior.md` covers compressed oops, vtables, and hidden-class deoptimization. `professional.md` covers production layout engineering.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** What a variable and a struct/class are in at least one language (C, Java, Python, JS, Go, or Rust).
-- **Required:** The idea that memory is a big array of bytes, each with an **address** (a number).
-- **Required:** Roughly how big basic types are: a byte is 1, an `int` is usually 4, a pointer is usually 8 on a 64-bit machine.
-- **Helpful but not required:** A vague sense that the CPU has a **cache** — a small, fast memory between it and RAM.
-- **Helpful but not required:** Having once printed `sizeof(struct X)` and been surprised.
-
-You do **not** need to know:
-
-- How the garbage collector uses the header bits (that's `middle.md` and beyond).
-- How virtual dispatch reads a vtable (that's `senior.md` and the next topic, method dispatch).
-- Anything about hidden-class transition trees or compressed oops yet.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Object** | A region of memory holding one instance's data: optional header + fields, at a single address. |
-| **Field / member** | One named piece of data inside an object (`x`, `name`, `age`). |
-| **Layout** | The concrete arrangement: which field sits at which byte offset, and how big the whole thing is. |
-| **Offset** | The distance, in bytes, from the start of the object to a given field. Field access = base address + offset. |
-| **Size** | Total bytes the object occupies, including padding and header. `sizeof` in C. |
-| **Alignment** | The rule that a value of size N must usually start at an address that is a multiple of N (or of its required alignment). |
-| **Padding** | Filler bytes inserted between or after fields so that each field lands on an aligned address. Wasted space. |
-| **Header** | Hidden bookkeeping bytes the runtime prepends to objects (type pointer, refcount, GC/lock bits). You didn't declare them. |
-| **Word** | The CPU's natural unit, usually 8 bytes on a 64-bit machine. |
-| **Cache line** | The unit the CPU moves between RAM and cache, typically 64 bytes. You fetch a whole line, not one byte. |
-| **AoS** | "Array of Structs" — `[{x,y}, {x,y}, ...]`. Each element holds all its fields together. |
-| **SoA** | "Struct of Arrays" — `{xs:[...], ys:[...]}`. Each field gets its own array. |
-| **Boxed** | A value stored as a separate heap object you reach through a pointer (e.g., Java `Integer`, Python `int`). |
-| **Inline / unboxed** | A value stored *directly* in the bytes of its container, no extra pointer hop. |
-| **Type pointer / class pointer** | A field in the header pointing to the object's class/type metadata. |
-| **Reference count** | A counter in the header tracking how many references point at the object (Python, Swift). |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -156,39 +98,6 @@ SoA (Struct of Arrays):   { pos:[...,...,...], vel:[...,...,...] }
 If your loop only reads `pos` for all particles, **SoA is faster**: all the positions are packed together, so each cache line you fetch is 100% useful. With **AoS**, every cache line you fetch also drags in the `vel` you didn't want, wasting bandwidth.
 
 If you usually touch *all* fields of one particle at a time, **AoS wins** — everything for one particle is together. There's no universal winner; it depends on your access pattern. We'll go deeper in `middle.md`. For now: **layout should follow how you read the data.**
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Object** | A labeled storage box on a shelf at a fixed spot. |
-| **Field / offset** | A compartment inside the box at a fixed position ("3rd slot from the left"). |
-| **Alignment** | A rule that wide items must start on a grid line — a 4-foot couch can only go where the floor tiles line up by 4. |
-| **Padding** | Empty filler foam stuffed in the box so each item sits on a grid line. Wasted space you paid to ship. |
-| **Reordering to shrink** | Packing a suitcase shoes-first, then shirts, then socks — same clothes, smaller bag, less wasted air. |
-| **Object header** | The shipping label, barcode, and customs form stapled to *every* box, even a tiny one. |
-| **Boxed value** | A claim ticket that points to a coat in the cloakroom, instead of the coat itself in your hand. |
-| **Cache line** | The whole pallet the forklift moves at once — you can't fetch one box, you fetch the pallet. |
-| **AoS vs SoA** | Storing each customer's full file in one folder (AoS) vs one drawer of all names, one drawer of all phone numbers (SoA). |
-| **Type pointer** | The "this box contains: kitchen items" category label that tells the unpacker what's inside. |
-
----
-
-## Mental Models
-
-### The "Box of Slots" Model
-
-Picture an object as a box divided into byte-slots, numbered from 0. Your fields claim slots starting at their offset. Padding is the empty slots between them, there only so the next field lands on a grid line. The header (if any) sits in the first slots, before your fields begin. When you reorder fields, you're repacking the box to leave fewer empty slots.
-
-### The "+offset" Model
-
-Whenever you see `object.field`, mentally rewrite it as `*(base_address + offset)`. The field name vanishes; only the number remains. This explains why field access is fast (it's just addition) and sets up *why* dynamic languages work so hard — if `object.field` were a hash-map lookup instead of a fixed offset, it would be dozens of times slower. Hidden classes (in `middle.md`) exist to turn that lookup back into a `+offset`.
-
-### The "Cache Line Budget" Model
-
-Every memory access drags in a whole 64-byte cache line, whether you wanted 4 bytes or 64. So think of each cache line as a budget: how much of it is data you actually use? A tight struct with no padding spends its budget well. A padded, header-heavy object, or an AoS layout where you only read one field, wastes most of every line. Good layout = high "useful bytes per cache line."
 
 ---
 
@@ -293,38 +202,6 @@ A Rust struct, like a C one, has **no per-object header** — `Point` is exactly
 
 ---
 
-## Pros & Cons
-
-| Aspect | Pros | Cons |
-|--------|------|------|
-| **Inline fields** | One memory access, compact, cache-friendly. | The container's size grows with the field. |
-| **Boxed fields** | Container stays pointer-sized; supports polymorphism and nullability. | Extra pointer hop, extra header per value, terrible cache behavior in bulk. |
-| **Tight packing (reordered)** | Smaller objects, more per cache line, less RAM. | Requires thought; the "natural" declaration order is often not the best. |
-| **`#pragma pack` / packed** | No padding; exact byte layout for wire formats. | Misaligned access — slower or unsafe on some CPUs. Never a default. |
-| **Object headers** | Enable GC, reflection, locking, dynamic typing. | Per-object memory tax; brutal for many small objects. |
-| **AoS** | Great when you touch all of one object's fields together. | Wastes bandwidth when a loop reads only one field across many objects. |
-| **SoA** | Great when a loop reads one field across many objects; vectorizable. | Awkward to pass "one whole object" around; more arrays to manage. |
-
----
-
-## Use Cases
-
-Caring about object layout pays off when:
-
-- **You have a huge number of small objects.** A million points, particles, graph nodes, or cache entries — header bytes and padding multiply by a million.
-- **You're in a hot loop over an array.** Cache behavior dominates; AoS vs SoA and struct size directly set your speed.
-- **You're parsing or emitting a binary/wire format.** The bytes must match a spec exactly — packing and field order are correctness, not just performance.
-- **You're tuning memory footprint.** Shrinking a frequently allocated struct can cut RAM and GC pressure measurably.
-- **You're choosing a data representation.** "Should this be an `int[]` or a `List<Integer>`?" is a layout question with a 5x memory answer.
-
-It matters **less** when:
-
-- You have a handful of objects. The padding on one struct is irrelevant.
-- You're far from any performance or memory limit. Don't pre-optimize layout for code that runs once.
-- The language hides it entirely and you're early in a project. Correctness first, then measure, then lay out.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Order fields largest-alignment-first
@@ -411,162 +288,24 @@ Always confirm with a real number before and after you reorder. Surprises are co
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. By hand, compute `sizeof` for `struct { char a; double b; char c; }` on a 64-bit machine, showing every padding byte. Then reorder to minimize it. Verify with a real compiler.
-2. Why is `sizeof(struct { int x; int y; })` exactly 8 with no padding, but `sizeof(struct { char a; int b; })` is 8 *with* padding?
-3. In Java, estimate the memory of `Integer[] a = new Integer[1000]` filled with distinct values, versus `int[] a = new int[1000]`. Why the gap?
-4. Run `sys.getsizeof(0)` in Python. Why is a single integer not 8 bytes? What are the extra bytes for?
-5. You have 10 million particles and a loop that only updates each particle's `x`. Sketch the AoS and SoA layouts and predict which loop touches less memory. Why?
-6. Take a Go struct with fields `byte, int64, byte, int32`. Reorder the fields to minimize `unsafe.Sizeof`. What's the before and after?
-7. When would `#pragma pack(1)` be the *right* choice, and when would it cause a bug or a slowdown?
+1. Choose one small, known input for **Object Model & Layout**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
----
+## Verify your work
 
-## Cheat Sheet
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
 
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│                    OBJECT MODEL & LAYOUT                          │
-├──────────────────────────────────────────────────────────────────┤
-│ An object = [header?] + fields + padding, rounded to alignment   │
-│ Field access = base_address + constant_offset  (free at runtime) │
-├──────────────────────────────────────────────────────────────────┤
-│ ALIGNMENT: a value of size N starts at an offset multiple of N   │
-│ PADDING:   filler bytes inserted to satisfy alignment            │
-│ Struct alignment = largest field alignment; size rounds up to it │
-├──────────────────────────────────────────────────────────────────┤
-│ SHRINK A STRUCT: declare fields largest-alignment-first          │
-│   {char,int,char} = 12 bytes  ->  {int,char,char} = 8 bytes      │
-├──────────────────────────────────────────────────────────────────┤
-│ HEADERS (per object):                                            │
-│   C / Rust / Go value : none                                     │
-│   C++ (virtual)       : + vtable pointer (8B)                    │
-│   Java                : mark word + class pointer (~12-16B)       │
-│   Python              : refcount + type pointer (int ~ 28B)      │
-├──────────────────────────────────────────────────────────────────┤
-│ INLINE vs BOXED:                                                 │
-│   int[]      = tight inline values        (good)                 │
-│   Integer[]  = pointers to heap objects   (bad in bulk)          │
-├──────────────────────────────────────────────────────────────────┤
-│ AoS vs SoA:                                                      │
-│   AoS = [{x,y},{x,y}]   touch whole objects -> AoS               │
-│   SoA = {x:[],y:[]}     touch one field across many -> SoA       │
-├──────────────────────────────────────────────────────────────────┤
-│ #pragma pack / repr(packed): wire formats ONLY, never hot data   │
-└──────────────────────────────────────────────────────────────────┘
-```
+## Review questions
 
----
-
-## Summary
-
-- An **object** is a region of bytes: an optional **header**, then your **fields**, with **padding** inserted to satisfy **alignment**, and the whole thing rounded up to a multiple of the object's alignment.
-- A **field is an offset** — a constant number computed at compile time. `obj.field` becomes `*(base + offset)`, which is why field access is essentially free.
-- **Alignment** requires values to sit at "round" addresses; **padding** is the filler bytes that make that happen. This is why a struct is almost never the sum of its fields.
-- **Reordering fields** largest-alignment-first collapses padding and can shrink a struct by a third — same data, smaller box.
-- Many runtimes prepend a **per-object header** (Java mark word + class pointer, Python refcount + type pointer, C++ vtable pointer). C, Rust, and Go values carry none. The header is the tax for GC, reflection, and dynamic typing.
-- **Inline** values live directly in the container; **boxed** values are reached through a pointer and each carries its own header. `int[]` vs `Integer[]` can be a 5x memory difference.
-- **AoS vs SoA** is a layout choice driven by access pattern: touch whole objects → AoS; touch one field across many → SoA.
-- `#pragma pack` / packed layouts are for **wire formats only** — they trade alignment (and thus speed/safety) for exact byte control.
-- A junior's #1 habit: when memory or a hot loop matters, **look at the actual `sizeof`, reorder fields, and ask "inline or boxed?"** before reaching for anything fancier.
-
----
-
-## What You Can Build
-
-- **A struct-size visualizer.** Read a struct definition, print each field's offset and the padding bytes, and suggest a reordered version with its smaller size.
-- **A "boxed vs inline" benchmark.** Sum a million values stored as `int[]` versus `Integer[]` (or a Python list of ints vs a NumPy array). Chart the time and memory.
-- **An AoS vs SoA particle demo.** Store 10M particles both ways, run a position-only update loop on each, and measure the speed difference. Explain it with cache lines.
-- **A wire-format encoder.** Define a packed struct for a small binary protocol, write it to bytes, read it back, and prove the layout is exact across two programs.
-- **A field-reordering linter (toy).** For a given struct, compute the minimal-padding ordering and report the bytes saved.
-
----
-
-## Further Reading
-
-- *Computer Systems: A Programmer's Perspective* — Bryant & O'Hallaron. The chapters on data representation and memory are the gold standard for this topic.
-- *What Every Programmer Should Know About Memory* — Ulrich Drepper. The definitive piece on caches, alignment, and access patterns.
-- *The Lost Art of Structure Packing* — Eric S. Raymond. A clear, practical guide to padding and field ordering in C.
-- *Data-Oriented Design* — Richard Fabian. The book-length argument for SoA and layout-driven thinking.
-- *CPython Internals* — Anthony Shaw. How a Python object is actually laid out in memory.
-- The Go blog and `go vet`'s `fieldalignment` analyzer documentation.
-- *The Rust Reference* — the "Type layout" chapter, on `repr(C)`, `repr(packed)`, and default field reordering.
-
----
-
-## Related Topics
-
-- This folder, next levels: `middle.md`, `senior.md`, `professional.md`, `interview.md`, `tasks.md`.
-- The next runtime topic, **method dispatch**, builds directly on the vtable pointer introduced here — how the runtime reads through a vtable to call a virtual method.
-- **Data representation** (tagged vs boxed values, NaN-boxing, pointer tagging) is the sibling concept referenced throughout this page in prose.
-- **Garbage collection** uses the header bits (GC age, mark state) described here.
-- **Cache architecture and the memory hierarchy** explain *why* alignment, padding, and AoS/SoA matter at all.
-
----
-
-## Diagrams & Visual Aids
-
-### A Padded Struct vs a Reordered One
-
-```text
-struct Bad { char a; int b; char c; }   // sizeof = 12
-
-offset:  0    1    2    3    4    5    6    7    8    9   10   11
-        [a ][pad][pad][pad][ b  b  b  b ][c ][pad][pad][pad]
-         ^use  ^---- wasted ----^   ^use     ^use  ^--- wasted ---^
-
-
-struct Good { int b; char a; char c; }  // sizeof = 8
-
-offset:  0    1    2    3    4    5    6    7
-        [ b  b  b  b ][a ][c ][pad][pad]
-         ^---- use ----^use ^use ^- waste -^
-
-Same data. 12 bytes -> 8 bytes by reordering.
-```
-
-### Inline vs Boxed
-
-```text
-INLINE  ( int[] )                 BOXED  ( Integer[] )
-
- array
-┌────┬────┬────┬────┐             array of pointers
-│ 7  │ 42 │  9 │ 13 │            ┌────┬────┬────┬────┐
-└────┴────┴────┴────┘            │ ●  │ ●  │ ●  │ ●  │
- 4B   4B   4B   4B                └─┬──┴─┬──┴─┬──┴─┬──┘
- one tight block                    │    │    │    │
-                                     ▼    ▼    ▼    ▼
-                                  [hdr|7][hdr|42][hdr|9][hdr|13]
-                                  scattered heap objects, each
-                                  with its own ~16B header
-```
-
-### An Object With a Header
-
-```text
-       ┌──────────────── one OBJECT in memory ─────────────────┐
-       │                                                       │
-       │  ┌─── HEADER ───┐  ┌──────── YOUR FIELDS ────────┐    │
-       │  │ refcount /   │  │  field0 │ pad │ field1 │... │    │
-       │  │ mark word /  │  └─────────────────────────────┘    │
-       │  │ class ptr /  │   ^ these are what you declared      │
-       │  │ vtable ptr   │                                      │
-       │  └──────────────┘                                      │
-       │   ^ you never declared these, but you pay for them     │
-       └───────────────────────────────────────────────────────┘
-```
-
-### AoS vs SoA Cache Behavior (reading only X)
-
-```text
-AoS:  [x0 y0 z0][x1 y1 z1][x2 y2 z2][x3 y3 z3] ...
-       ▲           ▲           ▲           ▲
-      want        want        want        want
-   each fetched cache line also drags in y,z you don't need -> waste
-
-SoA:  [x0 x1 x2 x3 x4 x5 ...][y0 y1 ...][z0 z1 ...]
-       ▲  ▲  ▲  ▲  ▲  ▲
-   every byte of the fetched line is an x you wanted -> full use
-```
+- What problem does Object Model & Layout solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

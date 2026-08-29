@@ -1,20 +1,11 @@
 # Go Runtime — Middle
 
-> **Topic:** [Go Runtime](../README.md)
-> **Focus:** The GMP scheduler in more depth, work-stealing, cooperative and async preemption, the tri-color mark-and-sweep GC cycle, and reading `GODEBUG=gctrace=1` output.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **Go Runtime** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-At junior level you learned the runtime schedules goroutines and collects garbage. Now the question is *how* — specifically, how the scheduler decides who runs where, what "preemption" means for a language without OS-level thread interruption by default, and how the GC's tri-color algorithm lets it run concurrently with your program without corrupting memory.
-
----
-
-## Prerequisites
-
-- Comfortable with `GOMAXPROCS`, escape analysis, and basic GC concepts (junior level).
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -85,26 +76,6 @@ SCHED 1000ms: gomaxprocs=8 idleprocs=3 threads=12 spinningthreads=1 idlethreads=
 
 ---
 
-## Pros & Cons
-
-| | Pros | Cons |
-|---|---|---|
-| Work-stealing scheduler | High CPU utilization without a global lock | Scheduling decisions are largely opaque; hard to force specific placement |
-| Async preemption (1.14+) | Tight CPU-bound loops no longer starve the runtime | Adds signal-handling complexity under the hood (mostly invisible to you) |
-| Concurrent tri-color GC | Sub-millisecond STW pauses even on large heaps | Write barriers add a small constant overhead to every pointer write during marking |
-
----
-
-## Use Cases
-
-| Situation | Tool |
-|---|---|
-| Diagnosing scheduler load imbalance | `GODEBUG=schedtrace=1000` |
-| Diagnosing GC frequency/pause impact | `GODEBUG=gctrace=1` |
-| Confirming a heap leak vs. steady-state churn | Watch the "live heap after sweep" number across many `gctrace` lines |
-
----
-
 ## Best Practices
 
 1. Use `gctrace=1` in a staging environment under load before concluding GC is or isn't a bottleneck.
@@ -140,44 +111,24 @@ SCHED 1000ms: gomaxprocs=8 idleprocs=3 threads=12 spinningthreads=1 idlethreads=
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```
-GODEBUG=gctrace=1        — per-cycle GC stats
-GODEBUG=schedtrace=1000  — per-P run queue + thread stats every 1000ms
-runtime.GC()             — force a blocking GC (diagnostics/benchmarks only)
-GMP: Goroutine → Processor (GOMAXPROCS of them) → Machine (OS thread)
-```
+1. Find a real component where **Go Runtime** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
----
+## Verify your work
 
-## Summary
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
 
-- GMP: goroutines are scheduled onto Ps (bounded by `GOMAXPROCS`), which are held by Ms (OS threads); idle Ps steal work from busy ones.
-- Since Go 1.14, preemption is asynchronous — tight loops no longer starve the scheduler.
-- The GC is concurrent tri-color mark-and-sweep, safe alongside your running program via write barriers, with very short stop-the-world pauses.
-- `GODEBUG=gctrace=1` and `schedtrace=...` are the primary windows into what the runtime is actually doing.
+## Review questions
 
----
-
-## Further Reading
-
-- *Analysis of the Go runtime scheduler* — <https://www.cs.columbia.edu/~aho/cs6998/reports/12-12-11_DeshpandeSponslerDeshpande_GO.pdf>
-- The Go Blog — *Go GC: Prioritizing low latency and simplicity*: <https://go.dev/blog/go15gc>
-
----
-
-## Related Topics
-
-- [Goroutines and Concurrency — Middle](../01-goroutines-and-concurrency/middle.md)
-- [Production Debugging](../07-production-debugging/middle.md) — turning `gctrace`/`schedtrace` output into action.
-
----
-
-## Check your understanding
-
-1. Explain Go Runtime — Middle Level in your own words and name the problem it solves.
-2. How would you apply the ideas around Introduction, Prerequisites, Core Concepts in a realistic engineering change?
-3. What failure mode or misuse should you look for, and what evidence would reveal it?
-4. Which local design trade-off would make you choose or reject Go Runtime — Middle Level in an existing codebase?
-5. What observable result would convince you that the approach improved the system?
+- Which boundary is most affected by Go Runtime?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

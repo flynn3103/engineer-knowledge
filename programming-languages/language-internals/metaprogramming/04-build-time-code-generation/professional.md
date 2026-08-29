@@ -1,51 +1,11 @@
-# Build-Time Code Generation — Professional Level
+# Build-Time Code Generation — Professional
 
-> **Topic:** Build-Time Code Generation
-> **Focus:** Owning code generation as organization-wide infrastructure — schema registries, generator toolchain ownership, hermetic and reproducible generation at scale, supply-chain integrity, and the migration of large fleets across generator and schema versions.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Build-Time Code Generation** with measurable outcomes and limited coordination?
 
-## Introduction
-
-> Focus: **When hundreds of services share schemas and generators, who owns the toolchain, how do you keep generation hermetic and reproducible, and how do you migrate the whole fleet when the generator or schema must change?**
-
-At the professional level, code generation is no longer a per-repo convenience; it is **shared infrastructure** with the same governance demands as a compiler, a package registry, or a CI system. A single `.proto` defines a contract consumed by a Go server, a Java client, a TypeScript frontend, and a mobile app — across teams that deploy independently. The generator that turns that schema into code is a tool every one of those builds depends on. Get the version, the configuration, or the distribution of that generator wrong, and you have a fleet-wide problem: incompatible stubs, broken builds, or a silent wire incompatibility that surfaces as production errors days after a deploy.
-
-The professional owns the *system around* generation: a **schema registry** (a versioned, governed home for IDLs with compatibility enforcement), a **generator toolchain** (pinned, distributed, reproducible — often containerized and run hermetically), the **CI topology** that regenerates and gates on drift and breaking changes, the **supply-chain integrity** of generated artifacts (signing, provenance, SBOM), and the **migration machinery** to roll the whole organization from generator vN to vN+1 without a flag day. These are platform-engineering problems where generated code is the substrate.
-
-This page covers: schema registries and centralized contract governance; hermetic/reproducible generation (Bazel, containerized `protoc`, `buf`); generator version management across a fleet; CI/CD topologies for generation; supply-chain concerns; and large-scale migration patterns (schema version bumps, generator upgrades, mono-repo vs poly-repo distribution of generated code).
-
-> 🎓 **Why this matters at the professional level:** A bad day here is not "my build failed" — it is "every service that depends on the payments schema produced incompatible code after the registry pushed a generator upgrade, and we cannot tell which deploys are affected." Generation at scale is a reliability and supply-chain surface, and owning it is platform work.
-
----
-
-## Prerequisites
-
-- **Required:** `senior.md` — the codegen/macro/reflection triangle, schema evolution, committed-vs-gitignored as architecture.
-- **Required:** Experience operating CI/CD for multiple services and a release/versioning discipline.
-- **Required:** Familiarity with at least one hermetic build system (Bazel) or container-based reproducible builds.
-- **Helpful but not required:** Exposure to supply-chain tooling (SBOM, signing, provenance/SLSA).
-- **Helpful but not required:** Having run a cross-team migration (library major-version bump, API deprecation) before.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Schema registry** | A versioned, governed store for IDLs (`.proto`, OpenAPI, Avro, GraphQL SDL) with compatibility checks and access control. Examples: Buf Schema Registry, Confluent Schema Registry (Avro/Kafka). |
-| **Contract governance** | Org-wide rules for who may change a schema, what compatibility is enforced, and how versions are released. |
-| **Hermetic build** | A build whose output depends only on explicitly declared, pinned inputs (compiler, generator, sources), reproducible byte-for-byte anywhere. |
-| **Reproducible generation** | Running the generator in a way that yields identical output across machines and time (pinned generator + deterministic generator). |
-| **Generator determinism** | Whether a generator emits byte-identical output for identical input (no timestamps, no map-iteration nondeterminism). Required for reproducibility. |
-| **SBOM** | Software Bill of Materials — an inventory of components in a build artifact, including generators and generated code provenance. |
-| **Provenance (SLSA)** | Verifiable metadata about how an artifact (including generated code) was produced and by what toolchain. |
-| **Mono-repo distribution** | Generated code lives in one repo with the schema and all consumers — atomic cross-cutting changes. |
-| **Poly-repo distribution** | Schema in one repo; generated SDKs published as versioned packages consumed by other repos. |
-| **Flag day** | A migration requiring all consumers to switch simultaneously — to be avoided. |
-| **Expand-migrate-contract** | A staged migration: add the new shape (expand), move consumers (migrate), remove the old (contract) — avoids flag days. |
-| **`buf`** | A protobuf toolchain providing a registry, breaking-change detection, lint, and hermetic generation without managing `protoc` plugins manually. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -133,30 +93,6 @@ This works precisely *because* generation makes the contract explicit and compat
 
 ---
 
-## Real-World Analogies
-
-**The schema registry is a standards body.** It owns the canonical spec, enforces backward compatibility, and licenses conformant implementations (generated SDKs). Individual teams do not fork the standard; they consume a governed version.
-
-**Hermetic generation is a sealed clean-room.** The same inputs and the same equipment produce the same output every time, anywhere — and you can audit the room to prove no contamination entered.
-
-**Fleet generator upgrades are a software recall with staged rollout.** You do not swap the part in every vehicle overnight; you canary it, watch for failures, then roll it out in waves.
-
-**Expand-migrate-contract is replacing a bridge while traffic flows.** Build the new span alongside the old (expand), reroute traffic lane by lane (migrate), demolish the old span only when it is empty (contract).
-
----
-
-## Mental Models
-
-**Model 1 — "The generator is privileged build infrastructure."** Treat it like the compiler and the package registry: pinned, governed, reproducible, supply-chain-secured. It has write access to your binaries.
-
-**Model 2 — "Schemas are products with consumers."** A widely-used schema is a published contract with a compatibility guarantee and a version, not a file. Govern it accordingly.
-
-**Model 3 — "Reproducibility is the lever for both reliability and security."** Deterministic, hermetic generation makes drift checks meaningful, migrations diffable, and tampering detectable — all from one property.
-
-**Model 4 — "Migrate in stages; never declare a flag day."** Expand-migrate-contract is the only way to change a shared contract across independently-deployed consumers without an outage.
-
----
-
 ## Code Examples
 
 ### Example 1: `buf` registry-based hermetic generation
@@ -234,36 +170,6 @@ message Payment {
 
 ---
 
-## Pros & Cons
-
-### Pros
-
-- **A schema registry gives org-wide compatibility enforcement** the generator alone cannot provide.
-- **Hermetic, reproducible generation makes drift checks, migrations, and audits sound.**
-- **Published-SDK distribution lets teams deploy independently** while sharing one contract.
-- **Provenance + reproducibility turn generated code into an auditable, tamper-evident supply-chain artifact.**
-- **Expand-migrate-contract enables breaking changes across a fleet without a flag day.**
-
-### Cons
-
-- **Registry + hermetic toolchain is real platform infrastructure** to build and operate.
-- **Fleet generator upgrades are coordinated migrations**, not version bumps.
-- **A nondeterministic generator silently defeats reproducibility** and every check built on it.
-- **The generator is a high-value supply-chain target** — compromise propagates to every artifact.
-- **Poly-repo SDK distribution adds version-negotiation lag** between schema and consumers.
-
----
-
-## Use Cases
-
-- **Cross-team API/wire contracts at scale:** schema registry + published SDKs (Buf, Confluent).
-- **Hermetic mono-repos:** Bazel-driven generation with atomic cross-cutting schema changes.
-- **Regulated/audited environments:** committed, reproducible, provenance-tracked generated code.
-- **Independent-deploy microservice fleets:** versioned generated SDKs + expand-migrate-contract.
-- **Streaming/event platforms:** Avro/Confluent registry enforcing producer/consumer compatibility.
-
----
-
 ## Coding Patterns
 
 **Pattern: Centralize the contract in a registry; consume pinned versions.** No team forks or copies the canonical schema.
@@ -310,32 +216,24 @@ message Payment {
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-| Concern | Professional answer |
-|------|------|
-| Where do shared schemas live? | A governed schema registry with push-time compatibility checks. |
-| How is generation reproducible? | Pinned + deterministic generator, run hermetically (Bazel/container). |
-| How is generated code distributed? | Versioned SDKs (poly-repo) or atomic mono-repo with hermetic build. |
-| How do generator upgrades happen? | Canaried, staged migrations, decoupled from schema changes. |
-| How do breaking schema changes ship? | Expand-migrate-contract — never a flag day. |
-| Why is the generator a security concern? | It writes code into every artifact; pin, verify, record provenance. |
-| What makes drift checks/migrations sound? | Deterministic, reproducible generation. |
-| Who owns it? | A platform team — generation is shared infrastructure. |
+1. Define the user or business outcome that **Build-Time Code Generation** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
----
+## Verify your work
 
-## Summary
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
 
-At professional scale, build-time code generation is **shared infrastructure** governed like a compiler or package registry. A **schema registry** makes IDLs versioned, access-controlled, and — crucially — *compatibility-gated at push time*, supplying the enforcement the generator itself never does. **Hermetic, deterministic generation** (Bazel, containerized `protoc`, `buf`) is the foundation that makes drift checks, migrations, and audits sound; a nondeterministic generator silently defeats all of them. Generated code is distributed either via an atomic **mono-repo** or, more commonly, as **versioned SDKs across a poly-repo**, letting teams deploy independently. The generator is **privileged supply-chain infrastructure** with write access to every artifact, so it must be pinned by hash, verified, and provenance-tracked. Fleet-wide change is staged, never a flag day: **generator upgrades are canaried migrations decoupled from schema changes**, and **breaking schema changes use expand-migrate-contract**, gated at each step by the registry. The unifying idea: generation at scale is a reliability and supply-chain surface, and owning the registry, the toolchain, the CI topology, and the migration machinery — not just running `protoc` — is the platform engineer's job.
+## Review questions
 
----
-
-## Further Reading
-
-- The Buf Schema Registry documentation and `buf breaking`/`buf lint` model.
-- Confluent Schema Registry compatibility modes (Avro/Kafka) — the same governance idea for streaming.
-- Bazel's `proto_library` and language `*_proto_library` rules for hermetic generation.
-- SLSA provenance and SBOM standards as applied to generated artifacts.
-- Reproducible-builds.org on deterministic toolchains.
-- `interview.md` and `tasks.md` in this folder to consolidate and practice.
+- Which measurable outcome justifies investing in Build-Time Code Generation?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

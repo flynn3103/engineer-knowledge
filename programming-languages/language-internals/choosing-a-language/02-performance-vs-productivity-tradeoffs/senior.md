@@ -1,8 +1,11 @@
 # Performance vs Productivity Tradeoffs — Senior
 
-> **What?** The realization that "performance" and "productivity" are each not one axis but *several*, that some of those axes conflict *within* their own camp, and that which one matters shifts across a product's lifecycle. The simple "fast to write vs fast to run" picture from the junior level is a useful lie; here it breaks into its real parts.
-> **How?** By decomposing performance (throughput, tail latency, startup, memory, predictability) and productivity (time-to-first-version vs long-term maintainability) into distinct axes, reasoning about *total-system* performance rather than single-language benchmarks, treating compute cost as a first-class input, and knowing where the "fast enough until it isn't" cliff lives.
+<!-- level-focus -->
+At senior level, focus on this question:
 
+> Which system invariant is affected by **Performance vs Productivity Tradeoffs** under failure, load, and change?
+
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## 1. "Performance" is at least five different things
@@ -67,7 +70,7 @@ Mature        stability, cost, low churn     boring + optimized hot paths
 
 The lesson: **a startup writing its MVP in Rust is usually making a mistake**, because at pre-PMF the dominant cost is *learning what to build*, and most of the code will be deleted before its performance ever matters. Optimizing the runtime speed of code you're about to throw away is pure waste. Equally, a hyperscaler still running its highest-volume service on the prototype's Python may be lighting millions on fire — the inputs flipped, and the choice should flip with them.
 
-This is why language choice deserves *revisit triggers* (the ADR pattern from [`01-language-selection-criteria`](../01-language-selection-criteria/)): the decision was right *for its stage*, and stages end.
+This is why language choice deserves *revisit triggers* (the ADR pattern from [`01-language-selection-criteria`](../01-language-selection-criteria/README.md)): the decision was right *for its stage*, and stages end.
 
 ---
 
@@ -171,16 +174,24 @@ The meta-skill: **know which simplification you're relying on, and notice when i
 
 ---
 
-## 9. What's next
+## Apply it
 
-| Topic | File |
-|---|---|
-| Org-level: velocity as strategy, funding rewrites, portfolio strategy, case studies | `professional.md` |
-| Interview questions from "why Python?" to "when would you greenlight a Rust rewrite?" | `interview.md` |
-| Decision exercises: SLO+profile judgments, premature-optimization critiques | `tasks.md` |
-| The economics of ownership over time | [`07-total-cost-of-ownership-and-team-skills`](../07-total-cost-of-ownership-and-team-skills/) |
-| How to actually move a service to a new language | [`06-migrating-between-languages`](../06-migrating-between-languages/) |
+1. State the system invariant that **Performance vs Productivity Tradeoffs** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
----
+## Verify your work
 
-**Memorize this:** performance is a vector (throughput, tail latency, startup, memory, predictability) and so is productivity (ship-fast vs change-safely) — and the components conflict *within* each camp. The right point on the spectrum moves with the product's lifecycle, "fast enough" lives on the edge of a cliff you must find before you hit, system speed lives *between* services not inside them, and at scale the cloud bill — not the benchmark — is what justifies a rewrite.
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
+
+## Review questions
+
+- Which invariant must remain true when Performance vs Productivity Tradeoffs fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

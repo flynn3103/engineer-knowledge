@@ -1,0 +1,12 @@
+title: Code Organization
+nav:
+  - Overview: README.md
+  - Modules and Dependencies: 01-modules-and-dependencies
+  - Packages: 02-packages
+  - Project Layout: 03-project-layout
+  - Internal Packages: 04-internal-packages
+  - Workspaces: 05-workspaces
+  - Dependency Injection: 06-dependency-injection
+  - Architecture Patterns: 07-architecture-patterns
+  - Module Versioning: 08-module-versioning
+  - Private Modules: 09-private-modules

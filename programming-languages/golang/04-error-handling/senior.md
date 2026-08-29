@@ -1,20 +1,11 @@
 # Error Handling — Senior
 
-> **Topic:** [Error Handling](../README.md)
-> **Focus:** Error handling across service and process boundaries, structured errors for observability, distinguishing client vs. server faults at scale, and designing errors that make incident response faster instead of slower.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Error Handling** under failure, load, and change?
 
-## Introduction
-
-Inside a single process, `errors.Is`/`errors.As` and a taxonomy of `Kind`s go a long way. Across service boundaries — gRPC, HTTP, message queues — errors must also survive serialization, carry enough structure for an on-call engineer to triage without reading source code, and distinguish failures the client caused from failures the server caused, since that distinction drives alerting and SLOs.
-
----
-
-## Prerequisites
-
-- Comfortable with error taxonomies, `errors.Join`, and panic/recover boundaries (middle level).
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -64,16 +55,6 @@ A service's error-rate alert fired at 2 a.m. for three nights running, each time
 
 ---
 
-## Pros & Cons
-
-| Approach | Pros | Cons |
-|---|---|---|
-| Structured cross-boundary errors (gRPC status / JSON error codes) | Callers can branch programmatically, not by string-matching | Requires a shared error-code contract between services |
-| Separate client/server error metrics | Accurate, actionable alerting | Requires consistent classification at every error-producing call site |
-| Request-ID-correlated logging | Fast incident triage | Requires threading the ID through every layer via `context.Context` |
-
----
-
 ## Best Practices
 
 1. Classify every error as client-fault or server-fault at the point it's produced, and count them separately in metrics.
@@ -106,44 +87,24 @@ A service's error-rate alert fired at 2 a.m. for three nights running, each time
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```
-Client fault (4xx-equiv)  → expected traffic, don't page
-Server fault (5xx-equiv)  → feeds SLO/alerting, does page
-Cross-boundary errors     → structured codes (gRPC status / JSON envelope), never bare strings
-Every error path          → attach request/trace ID before logging or returning
-```
+1. State the system invariant that **Error Handling** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
----
+## Verify your work
 
-## Summary
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
 
-- Distinguish client-fault from server-fault errors consistently — it's the foundation of meaningful alerting and SLOs.
-- Structured, code-based errors survive service boundaries; plain strings don't let callers branch programmatically.
-- Correlate every logged or returned error with a request/trace ID for fast incident triage.
-- Never leak internal error detail to clients; map to safe messages at the boundary, log full detail server-side.
+## Review questions
 
----
-
-## Further Reading
-
-- gRPC status codes: <https://grpc.io/docs/guides/error/>
-- Google SRE Book — *Service Level Objectives*: <https://sre.google/sre-book/service-level-objectives/>
-
----
-
-## Related Topics
-
-- [HTTP and APIs — Senior](../05-http-and-apis/senior.md)
-- [Production Debugging — Senior](../07-production-debugging/senior.md) — using request IDs to trace a failure across services.
-
----
-
-## Check your understanding
-
-1. Explain Error Handling — Senior Level in your own words and name the problem it solves.
-2. How would you apply the ideas around Introduction, Prerequisites, Core Concepts in a realistic engineering change?
-3. What failure mode or misuse should you look for, and what evidence would reveal it?
-4. How would you validate a system-level decision about Error Handling — Senior Level under uncertainty?
-5. What observable result would convince you that the approach improved the system?
+- Which invariant must remain true when Error Handling fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

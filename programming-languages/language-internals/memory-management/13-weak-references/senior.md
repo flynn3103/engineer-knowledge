@@ -1,21 +1,11 @@
-# Weak References — Senior Level
+# Weak References — Senior
 
-> **Topic:** Weak References
-> **Focus:** The design space across runtimes — strength tiers, clearing guarantees, and choosing the right tool for caches, registries, and cycle-breaking.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Weak References** under failure, load, and change?
 
-## Introduction
-
-A weak reference is a deliberate hole in the reachability graph: it names an object
-without contributing to the "keep alive" decision. At a junior level that is a
-curiosity; at a senior level it is a precise design tool you reach for whenever
-*lifetime should be decided by someone other than the holder of this pointer* — a cache
-whose entries must die when memory is tight, a registry that must not outlive its
-subjects, a back-pointer that must not create a cycle. The skill is matching the exact
-strength and clearing semantics to the requirement, because "I'll just hold a weak ref"
-hides several genuinely different contracts.
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## The Reachability Strength Spectrum
@@ -152,26 +142,6 @@ C++ `shared_ptr`/`weak_ptr` graphs.
 
 ---
 
-## Pros & Cons
-
-**Pros**
-- Decouples *naming* an object from *keeping it alive* — the core enabler for caches,
-  registries, and cycle-free back-pointers.
-- Automates deregistration, eliminating whole classes of lifetime leaks.
-- Soft references give the runtime a memory-pressure release valve for free.
-
-**Cons**
-- Non-determinism: you cannot predict *when* a referent disappears, so every deref is a
-  branch you must handle.
-- Soft-reference timing is collector-dependent and notoriously unsuitable as a real
-  eviction policy (no size or recency control).
-- Overhead: weak refs need GC bookkeeping (a registry of weak pointers to clear), and
-  upgrade in atomic-refcount systems touches a shared counter.
-- Easy to misuse: weak-keyed maps with back-referencing values, racing on upgrade,
-  assuming `get()` stays non-null.
-
----
-
 ## Best Practices
 
 - **Always handle the null/`None`/`upgrade()→None` case** at every dereference; capture
@@ -204,13 +174,24 @@ C++ `shared_ptr`/`weak_ptr` graphs.
 
 ---
 
-## Summary
+## Apply it
 
-Weak references let lifetime be decided by something other than the holder, which is
-exactly what caches, registries, metadata maps, and cycle-free back-pointers need. Java
-formalizes a four-tier strength spectrum (strong/soft/weak/phantom) plus
-`ReferenceQueue`; Python, Rust, Swift, JavaScript, and (finally) Go 1.24 each expose a
-subset. The senior-level skill is matching the exact tier and clearing semantics to the
-requirement — weak-keyed for metadata, weak-valued for shared-instance caches, soft only
-as a pressure valve, phantom for cleanup — while treating every dereference as a branch
-that may find the referent already gone.
+1. State the system invariant that **Weak References** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
+
+## Verify your work
+
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
+
+## Review questions
+
+- Which invariant must remain true when Weak References fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

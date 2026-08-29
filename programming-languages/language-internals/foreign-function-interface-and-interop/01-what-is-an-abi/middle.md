@@ -1,54 +1,11 @@
-# What Is an ABI — Middle Level
+# What Is an ABI — Middle
 
-> **Topic:** What Is an ABI
-> **Focus:** The full inventory of what an ABI nails down — calling conventions, register classes, struct layout rules, the stack frame, name mangling, file formats — and how to *see* each one in real binaries.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **What Is an ABI** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-> Focus: **What is the complete list of things an ABI standardizes, and how do you inspect each of them in a real binary?**
-
-At the junior level, "ABI" meant "the binary contract — sizes, layout, who-passes-what." That is the right intuition, but the real ABI is a precise, exhaustive document running to hundreds of pages per platform. It leaves *nothing* to chance, because two compilers that disagree on a single bit of it produce binaries that corrupt each other's memory. The whole point of an ABI specification is to be so complete that an independent compiler vendor can implement it and produce code that interoperates perfectly with everyone else's.
-
-This level walks the **complete inventory** of what an ABI fixes, one item at a time, and — crucially — shows you how to *observe* each one. ABIs are not abstract: `gcc -S` shows you the calling convention as assembly, `pahole` shows you struct padding, `nm` and `c++filt` show you name mangling, `readelf` shows you the file format and symbols. A middle engineer should be able to look at a binary and read its ABI decisions off the page, the way you read a struct off a header.
-
-We move past "use `int32_t`" hand-waving into the actual register classification, the SSE-vs-integer split, how structs get decomposed across registers, what callee-saved versus caller-saved means, and how name mangling encodes a full type signature into a symbol string. The platform specifics (System V AMD64, Windows x64, AArch64) get full treatment at the senior level; here we use System V AMD64 as the running concrete example because it is the one you meet on Linux and macOS.
-
----
-
-## Prerequisites
-
-- **Required:** You understand the junior-level distinction: API is source-level, ABI is binary-level.
-- **Required:** You can compile C/C++ and read a header file.
-- **Required:** You know what a CPU register and the call stack are, conceptually.
-- **Helpful:** You can read a little x86-64 assembly — `mov`, `call`, `ret`, `push`. We explain as we go.
-- **Helpful:** You have used `gcc`/`clang` from the command line and know what a `.o` object file is.
-- **Helpful:** Comfort with hex and byte offsets.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Calling convention** | The subset of the ABI governing how a call passes arguments and returns values: register assignment, argument order, stack cleanup, return registers. |
-| **Caller-saved (volatile) register** | A register the *called* function may freely overwrite. If the caller needs its value preserved, the caller must save it before the call. |
-| **Callee-saved (non-volatile) register** | A register the *called* function must preserve: if it uses one, it must save and restore the original value. |
-| **Argument register** | A register designated to carry a function argument (e.g. `rdi`, `rsi`, ... in System V AMD64). |
-| **Return register** | The register holding the return value (`rax` for integers/pointers in System V AMD64; `xmm0` for floating point). |
-| **Stack frame** | The region of stack memory a function uses for its locals, saved registers, and spilled arguments. |
-| **Stack alignment** | A requirement that the stack pointer be aligned (16 bytes at a `call` in System V AMD64). |
-| **Red zone** | A 128-byte area below the stack pointer that leaf functions may use without adjusting the stack (System V AMD64 only). |
-| **Aggregate** | A `struct`, `union`, or array — anything not a scalar. ABIs have special rules for passing aggregates. |
-| **Classification** | The ABI algorithm that decides whether each 8-byte chunk of an aggregate goes in an integer register, an SSE register, or memory. |
-| **Name mangling** | The encoding of a source name plus its type signature into a unique binary symbol (mostly a C++ concern). |
-| **Symbol table** | The list of named entry points in an object file, used by the linker. |
-| **ELF / PE / Mach-O** | The executable/object file formats for Linux/BSD, Windows, and macOS respectively. |
-| **Relocation** | An instruction to the linker/loader to patch an address once the final memory layout is known. |
-| **Unwind information** | Metadata describing how to roll back the stack during exception handling or backtraces (DWARF CFI, SEH). |
-| **System call convention** | The ABI for entering the kernel: which register holds the syscall number, which hold arguments, how the trap is issued. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -175,37 +132,6 @@ Two more inventory items, briefly:
 
 ---
 
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Calling convention** | Loading dock procedure: parcel 1 on bay A, parcel 2 on bay B, anything past 6 goes in the overflow yard (stack). |
-| **Caller-saved vs callee-saved** | Borrowing a friend's car: some things you must return exactly as you found them (callee-saved), some are consumables they expect to be used up (caller-saved). |
-| **Stack alignment** | A printing press that only works if paper is fed at a multiple of 16 cm. Feed it off-grid and it jams. |
-| **Aggregate classification** | A shipping clerk deciding which boxes fit in the cab (registers) and which must ride in the trailer (memory), by size and shape. |
-| **Name mangling** | A library cataloguing system that turns "Smith, J., *Networks*" into a unique call number so two books with similar titles never collide. |
-| **File format (ELF/PE/Mach-O)** | The shape of a shipping container. Same goods inside, but a US container won't latch onto an EU truck's locking pins. |
-| **Syscall convention** | A special phone line to the front desk (kernel) with its own dialing rules, distinct from talking to your colleagues (function calls). |
-| **Unwind info** | A breadcrumb trail laid on the way in, read in reverse to find your way out when something goes wrong. |
-
----
-
-## Mental Models
-
-### The "Spec So Complete a Stranger Can Match It" Model
-
-The defining property of an ABI is *completeness for independent implementation*. Picture two compiler teams who never talk to each other, on different continents. If both faithfully implement the same ABI document, their binaries call each other perfectly. Every time you wonder "is this behavior part of the ABI?", ask: *would two independent implementers need to agree on this to interoperate?* If yes, it is in the ABI. Argument register order — yes. The name of a local variable — no.
-
-### The "Inventory Checklist" Model
-
-When debugging an interop failure, walk the ABI inventory as a checklist: (1) calling convention — args in the right registers? (2) type sizes — same `long` width? (3) struct layout — same padding/offsets? (4) name mangling — found the right symbol? (5) file format and linkage — loaded correctly? (6) unwind/exceptions — crossing a C++ boundary? Most interop bugs are one specific item failing. Naming the item is most of the fix.
-
-### The "Two Layers of Container" Model
-
-A binary has two nested ABIs: the *instruction-level* ABI (calling convention, register usage — how code runs on the CPU) and the *container* ABI (the file format — how code is packaged, linked, and loaded). A program can fail at either layer: wrong calling convention is an instruction-layer failure; wrong file format is a container-layer failure. Keeping them separate in your head stops you from looking for a register bug when the real problem is the loader.
-
----
-
 ## Code Examples
 
 ### See the calling convention as assembly
@@ -283,30 +209,6 @@ Declaring the clobber (`::: "rbx"`) makes the compiler save/restore `rbx`, honor
 
 ---
 
-## Pros & Cons
-
-| Aspect | Pros | Cons |
-|--------|------|------|
-| **Register-based calling** | Fast: arguments in registers avoid memory traffic. | Limited registers; spilling to stack past 6 args; each platform tunes differently → not portable. |
-| **Precise struct classification** | Small structs ride in registers — efficient value passing. | The rules are intricate; subtle mismatches between compilers cause silent corruption. |
-| **Callee/caller-saved split** | Minimizes redundant saves; callers and callees cooperate without knowing internals. | A single mis-saved register corrupts the *other* function — bugs appear far from the cause. |
-| **Standard file formats** | Mature tooling (`readelf`, `nm`, `objdump`) reads them; dynamic linking works. | Format is platform-locked; same CPU, different OS, incompatible containers. |
-| **Stable syscall ABI** | Old binaries keep running for decades (Linux userspace promise). | Freezes kernel interface design; new features must extend, never break. |
-| **Defined unwind metadata** | Backtraces and exceptions work across compilation units. | Format differences (DWARF vs SEH) stop exceptions crossing ABI boundaries. |
-
----
-
-## Use Cases
-
-- **Reading disassembly to understand a crash.** Knowing the calling convention lets you map registers back to arguments in a backtrace.
-- **Writing inline assembly or hand-written assembly stubs.** You must honor callee-saved registers and stack alignment or corrupt the caller.
-- **Building an FFI layer or binding generator.** Tools like `bindgen` and `cgo` encode the ABI's struct-layout and calling rules to generate correct glue.
-- **Diagnosing a struct-layout mismatch** between two libraries or two language runtimes sharing a struct — `pahole` and `offsetof` are your tools.
-- **Auditing why a symbol isn't found.** `nm`/`c++filt` reveal whether a missing symbol is a mangling problem (forgot `extern "C"`) or a genuine absence.
-- **Cross-compiling.** Targeting a different OS or CPU means a different file format, different type sizes, and a different calling convention — all ABI.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Always declare clobbers in inline assembly
@@ -376,51 +278,24 @@ Export a symbol or function whose presence/value encodes the ABI version, and ch
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│             ABI INVENTORY — WHAT GETS STANDARDIZED                │
-├──────────────────────────────────────────────────────────────────┤
-│ INSTRUCTION-LAYER (how code runs):                                │
-│   * calling convention   arg/return registers, order, cleanup     │
-│   * register usage       caller-saved vs callee-saved             │
-│   * stack frame & align  16-byte align at call; red zone (SysV)   │
-│   * aggregate passing     ≤16B split to regs, else memory (SysV)  │
-│   * type size & align     int=4; long= 8(LP64)/4(LLP64); ptr=8    │
-│   * struct layout         offsets + padding + trailing pad        │
-│   * syscall convention    rax=num; rdi rsi rdx r10 r8 r9 (Linux)  │
-├──────────────────────────────────────────────────────────────────┤
-│ CONTAINER-LAYER (how code is packaged):                           │
-│   * file format           ELF (Linux) / PE (Win) / Mach-O (mac)   │
-│   * symbols & relocations linker wiring                           │
-│   * name mangling         C: plain;  C++: _Z3addii (Itanium)      │
-│   * unwind info           DWARF .eh_frame (Linux) / SEH (Win)     │
-│   * thread-local storage  thread pointer + TLS model              │
-├──────────────────────────────────────────────────────────────────┤
-│ SYSTEM V AMD64 INTEGER ARG REGISTERS                              │
-│   rdi  rsi  rdx  rcx  r8  r9   (then stack)                       │
-│   return: rax (int/ptr), xmm0 (float)                             │
-│   callee-saved: rbx rbp r12-r15 rsp                               │
-├──────────────────────────────────────────────────────────────────┤
-│ TOOLS TO SEE THE ABI                                              │
-│   gcc -S -masm=intel   calling convention as asm                  │
-│   pahole / offsetof    struct padding & offsets                   │
-│   nm | c++filt         symbols & mangling                         │
-│   readelf / objdump    file format, symbols, sections             │
-└──────────────────────────────────────────────────────────────────┘
-```
+1. Find a real component where **What Is an ABI** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
----
+## Verify your work
 
-## Summary
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
 
-- An ABI is an **exhaustive specification** — complete enough that two independent compiler vendors can implement it and produce interoperating binaries. If two implementers must agree on something to interoperate, it is in the ABI.
-- The **calling convention** is the most-used component: which registers carry which arguments (`rdi, rsi, rdx, rcx, r8, r9` on System V AMD64), where the return value lands (`rax`/`xmm0`), and who cleans the stack.
-- Registers split into **caller-saved** (callee may clobber) and **callee-saved** (callee must preserve). Getting this wrong corrupts the *other* function, producing bugs far from their cause.
-- The **stack frame** has rules: downward growth, 16-byte alignment at a `call`, the System V red zone. Aggregates are passed by a precise **classification** — small structs ride in registers, large ones go to memory.
-- **Struct layout** (size, alignment, field offsets, padding) is part of the ABI. `pahole`, `offsetof`, and static asserts let you observe and lock it down.
-- **Name mangling** encodes a C++ signature into a symbol (`_Z3addii`); `extern "C"` disables it for C linkage. `nm | c++filt` reads it.
-- The **file format** (ELF/PE/Mach-O) is the container ABI — same CPU, different OS means incompatible binaries.
-- Further inventory items: the **syscall convention** (its own register layout, `r10` not `rcx`), **unwind information** (DWARF/SEH), and the **thread-local storage** model.
-- The middle-level habit: when interop breaks, **walk the ABI inventory as a checklist** and use the right tool (`gcc -S`, `pahole`, `nm|c++filt`, `readelf`) to observe each item directly.
+## Review questions
+
+- Which boundary is most affected by What Is an ABI?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

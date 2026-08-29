@@ -1,64 +1,11 @@
-# Method Dispatch & Inline Caches — Junior Level
+# Method Dispatch & Inline Caches — Junior
 
-> **Topic:** Method Dispatch & Inline Caches
-> **Focus:** When you write `obj.method()`, how does the machine actually find the code to run? And why is that question harder than it looks?
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **Method Dispatch & Inline Caches** in one small example and prove the result?
 
-## Introduction
-
-> Focus: **What does `obj.method()` compile down to?** And **why is "just call the method" not as simple as it sounds?**
-
-When you write `total.add(5)` or `animal.speak()`, you are asking the machine to do one specific thing: **find the right block of machine code and jump to it.** That act — finding the target of a call — is called **method dispatch**. It sounds trivial. For a plain function like `sqrt(2.0)`, it *is* trivial: the compiler knows exactly where `sqrt` lives, and it bakes the address directly into the call instruction. One jump, done. This is **static dispatch** (also called direct dispatch).
-
-The trouble starts the moment the target depends on the *type of the object at runtime*. Consider `animal.speak()`. If `animal` might be a `Dog`, a `Cat`, or a `Cow`, the machine cannot know at compile time which `speak` to call — `Dog.speak` and `Cat.speak` are different blocks of code. It has to look at the actual object *while the program is running*, discover its real type, and then jump to the matching method. This is **dynamic dispatch** (also called virtual dispatch), and it is the beating heart of polymorphism — the feature that lets one line of code (`animal.speak()`) drive many different behaviors.
-
-In one sentence: **method dispatch is the lookup step that turns a method name into a concrete piece of code to run, and the central question is "how much of that lookup can we do ahead of time, and how much must we do live?"**
-
-> 🎓 **Why this matters for a junior:** Every object-oriented language you will ever use — Java, C++, Python, JavaScript, C#, Go, Ruby — leans on dynamic dispatch constantly. Understanding the *cost* of that lookup, even at a basic level, is what separates "I wrote code that works" from "I wrote code that's fast." A surprising amount of real-world performance tuning comes down to: *was this call dispatched directly, or did the machine have to go hunting?*
-
-This page covers: the difference between static and dynamic dispatch, the **vtable** (the table of function pointers that makes virtual calls fast in compiled languages), the slow "search up the chain" lookup that dynamic languages like Python and JavaScript do, and the clever trick — the **inline cache** — that those languages use to make repeated calls fast. The next level (`middle.md`) goes deeper on vtable layout and interface dispatch; `senior.md` covers polymorphic inline caches and devirtualization; `professional.md` covers the JIT, megamorphic call sites, and real engine internals.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** What a function/method is, and how to call one in at least one language.
-- **Required:** The basic idea of a class, an object (instance), and a method that belongs to a class.
-- **Required:** The idea of inheritance — a `Dog` "is an" `Animal` and can override `Animal`'s methods.
-- **Helpful but not required:** What a *pointer* is — an address that points at something in memory.
-- **Helpful but not required:** A vague sense that code lives at addresses in memory, just like data does.
-
-You do **not** need to know:
-
-- How a CPU pipeline or branch predictor works (that's `senior.md` and `professional.md`).
-- What a JIT compiler is in detail (touched on in `professional.md`).
-- The exact byte layout of a vtable or itable (that's `middle.md`).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Method dispatch** | The act of finding which concrete block of code a method call should jump to. |
-| **Static dispatch** | The target is known at compile time. The compiler bakes the address into the call. Also called *direct dispatch* or *early binding*. |
-| **Dynamic dispatch** | The target depends on the object's runtime type and must be resolved while the program runs. Also called *virtual dispatch* or *late binding*. |
-| **Polymorphism** | One piece of code (`animal.speak()`) producing different behavior depending on the actual object. Dynamic dispatch is the mechanism that implements it. |
-| **Virtual method** | A method that can be overridden by subclasses, and so requires dynamic dispatch. (In C++ you mark it `virtual`; in Java most methods are virtual by default.) |
-| **vtable (virtual table)** | A per-class table of function pointers. Each object carries a hidden pointer to its class's vtable; a virtual call indexes into it. |
-| **vptr** | The hidden pointer, stored inside each object, that points to its class's vtable. |
-| **Receiver** | The object on the left of the dot: in `animal.speak()`, `animal` is the receiver. |
-| **Call site** | A specific location in the code where a call happens, e.g. the exact `animal.speak()` on line 42. |
-| **Method lookup** | In dynamic languages, the runtime search for a method by name — walking the object's class and its parents. |
-| **Prototype chain** | In JavaScript, the chain of objects searched to resolve a property or method. |
-| **MRO (Method Resolution Order)** | In Python, the ordered list of classes searched to find a method. |
-| **Inline cache (IC)** | A small cache attached to a call site that remembers "last time, the object was type X and the method was at address Y," so a repeat call can skip the search. |
-| **Monomorphic** | A call site that, in practice, only ever sees one type of object. The happy, fast case. |
-| **Hidden class / shape** | The runtime's internal descriptor of an object's structure, used as the "key" that an inline cache checks against. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -114,38 +61,6 @@ A call site that always sees one type is called **monomorphic** — "one shape."
 ### 5. Putting It Together
 
 Static dispatch is the fastest (no lookup at all). The vtable makes dynamic dispatch in compiled languages nearly as fast (a couple of loads). And the inline cache lets dynamic languages *approach* vtable speed for the common case where a call site keeps seeing the same type. The whole field is a story of **turning a search into a jump** — and the more predictable your types are at each call site, the better that trick works. The reverse — call sites that see many different types — is where things get slow, which is a major theme of the senior and professional pages.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Static dispatch** | Calling a coworker whose extension you've memorized — you dial directly, no looking up. |
-| **Dynamic dispatch** | Calling "the on-call engineer" — you don't know who that is until you check the rota, *then* you dial. |
-| **vtable** | A speed-dial sheet taped to each phone. Slot 1 is always "manager," slot 2 always "support" — but *whose* number is in slot 1 depends on which office's phone you're using. |
-| **vptr** | The little label on the phone telling you *which* speed-dial sheet belongs to it. |
-| **Method lookup (dynamic langs)** | Looking someone up in a paper phone book, then, if not found, in the next town's phone book, and the next — a chain of searches. |
-| **Inline cache** | A sticky note next to a specific phone: "Last time I called 'on-call,' it was Priya at ext. 204." You glance at the note, confirm it's still Priya's shift, and dial 204 — no rota check. |
-| **The guard** | Glancing at the rota *just enough* to confirm "yep, still Priya" before trusting the sticky note. |
-| **Monomorphic call site** | A phone where 'on-call' has been the same person all week — the sticky note is always right. |
-| **Polymorphic call site** | A phone where 'on-call' rotates among three people — the one sticky note keeps being wrong, so you keep a tiny list of three. |
-
----
-
-## Mental Models
-
-### The "Search vs Jump" Model
-
-Hold this in your head: **every method dispatch is somewhere on a spectrum from "pure jump" to "pure search."** Static dispatch is a pure jump (zero search). A vtable call is a jump with a tiny bit of indirection (follow a pointer, read a slot). Naive dynamic lookup is a search (walk a chain of dictionaries). An inline cache is the runtime's attempt to **move a call from the search end of the spectrum to the jump end** by remembering the answer. Almost everything in this topic is a technique for sliding calls toward "jump."
-
-### The "Same Phone, Different Sheet" Model (for vtables)
-
-The reason the vtable trick works is that the *index* is fixed but the *table* varies. Picture a hundred identical phones, each with a speed-dial sheet. "Slot 0 = speak" is true on every phone. But the sheet on the `Dog` phone has `Dog::speak` in slot 0, and the sheet on the `Cat` phone has `Cat::speak` in slot 0. The caller doesn't need to know which animal it has — it just says "dial slot 0," and the object's own sheet (via its vptr) routes it correctly. That's polymorphism in one image.
-
-### The "Sticky Note with a Guard" Model (for inline caches)
-
-An inline cache is a sticky note that says "type X → address Y," plus a habit of double-checking the type before trusting it. The double-check (the guard) is cheap. The note is right almost every time. When it's wrong, you peel it off, do the slow search once, and write a fresh note. This "guess fast, verify cheaply, fall back rarely" pattern is one of the most important ideas in all of runtime engineering — you'll see it again in branch prediction, caching, and speculative optimization.
 
 ---
 
@@ -251,33 +166,6 @@ The first loop keeps the `point.x` call site **monomorphic** — one shape — s
 
 ---
 
-## Pros & Cons
-
-| Aspect | Pros | Cons |
-|--------|------|------|
-| **Static dispatch** | Fastest possible call. Perfectly predictable for the CPU. Can be inlined by the compiler. | No polymorphism — the target is frozen. Can't override behavior at runtime. |
-| **vtable dynamic dispatch** | Constant-time regardless of subclass count. Enables polymorphism. Cheap (two loads + a jump). | Slightly slower than static. Blocks inlining unless the compiler can prove the target. One extra word (vptr) per object. |
-| **Naive dynamic lookup** | Maximum flexibility — classes and objects can change shape at runtime. | Slow: a dictionary search (or several) per call. Unacceptable in hot loops without caching. |
-| **Inline caches** | Turn the slow search into a near-vtable-speed guarded jump for the common (monomorphic) case. | Add complexity. Degrade badly when a call site sees many types (polymorphic/megamorphic). |
-
----
-
-## Use Cases
-
-Understanding dispatch matters when:
-
-- **You're writing performance-sensitive object-oriented code.** Knowing that a virtual call costs more than a static one — and far more when it can't be inlined — guides where you put hot paths.
-- **You're choosing a class design.** Marking a method `final` (Java) or `sealed` (C#/Kotlin), or making a function non-virtual (C++), can let the compiler use the fast static path.
-- **You're profiling a dynamic-language hot loop.** A loop that's mysteriously slow is often slow because a call site went *megamorphic* — many types flowing through one spot, defeating the inline cache.
-- **You're learning how runtimes work.** Dispatch is one of the first things any runtime engineer studies, because it's on the critical path of nearly every program.
-
-You don't need to think about dispatch when:
-
-- The code isn't hot (runs rarely). Clarity beats micro-optimization there.
-- You're in a tight numeric loop with no method calls at all.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Keep a hot call site type-stable (monomorphic)
@@ -330,130 +218,24 @@ A virtual call that always lands on the same target is cheap (the branch predict
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│                 METHOD DISPATCH — THE BASICS                     │
-├──────────────────────────────────────────────────────────────────┤
-│ STATIC dispatch    target known at compile time -> direct call   │
-│                    (free functions, final/private, non-virtual)  │
-│ DYNAMIC dispatch   target depends on runtime type -> look it up  │
-│                    (virtual/overridable methods, polymorphism)   │
-├──────────────────────────────────────────────────────────────────┤
-│ COMPILED langs (C++/Java/C#):  vtable                            │
-│   obj.method()  ->  vptr = obj->__vptr                           │
-│                     target = vptr[slot]                          │
-│                     call target           (2 loads + a jump)     │
-├──────────────────────────────────────────────────────────────────┤
-│ DYNAMIC langs (Python/JS/Ruby):  search then cache               │
-│   naive   = walk MRO / prototype chain / ancestor list (slow)    │
-│   cached  = inline cache: remember (type -> target) at the site  │
-│             guard: "still the same type?"  yes -> jump           │
-├──────────────────────────────────────────────────────────────────┤
-│ MONOMORPHIC call site = sees one type   -> IC is fast & happy    │
-│ POLYMORPHIC call site = sees a few      -> small cache, ok       │
-│ MEGAMORPHIC call site = sees many       -> cache gives up, slow  │
-├──────────────────────────────────────────────────────────────────┤
-│ Junior levers:                                                   │
-│   * keep hot call sites type-stable (monomorphic)                │
-│   * use final/sealed/non-virtual where appropriate               │
-│   * prefer homogeneous collections in hot loops                  │
-│   * profile before optimizing dispatch                           │
-└──────────────────────────────────────────────────────────────────┘
-```
+1. Choose one small, known input for **Method Dispatch & Inline Caches**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
----
+## Verify your work
 
-## Summary
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
 
-- **Method dispatch** is the step that turns a method *name* into a concrete block of code to jump to.
-- **Static dispatch** resolves the target at compile time — one direct jump, the fastest case. **Dynamic dispatch** resolves it at runtime based on the object's real type — the mechanism behind polymorphism.
-- Compiled languages implement dynamic dispatch with a **vtable**: each object has a hidden **vptr** to its class's table of function pointers, and a call becomes "follow the vptr, read the fixed slot, jump." Two loads and an indirect call.
-- Dynamic languages (Python, JavaScript, Ruby) can't freeze a vtable, so they **search** — walking the MRO, the prototype chain, or the ancestor list — which is slow if done on every call.
-- The fix is the **inline cache**: a memo at each call site that records "this type → this target," protected by a cheap **guard** that re-checks the type. The common case (same type every time) becomes a guarded jump instead of a search.
-- A call site that sees one type is **monomorphic** (fast). The more types a single call site sees, the worse caching works — a theme the senior and professional pages develop.
-- The unifying idea: **dispatch optimization is about turning a search into a jump**, and your biggest lever as a programmer is keeping hot call sites type-stable.
+## Review questions
 
----
-
-## Diagrams & Visual Aids
-
-### Static vs Dynamic Dispatch
-
-```text
-STATIC (direct):
-   call site:  sqrt(x)
-   compiled:   call 0x4011a0      <- address baked in, never changes
-
-DYNAMIC (virtual):
-   call site:  animal.speak()
-   compiled:   load  vptr  = animal->__vptr
-               load  target = vptr[slot_of_speak]
-               call  target                  <- depends on the real object
-```
-
-### The vtable Picture
-
-```text
-   Dog object            Dog vtable
-  ┌───────────┐         ┌─────────────────────┐
-  │ vptr  ────┼────────►│ [0] -> Dog::speak    │
-  │ name      │         │ [1] -> Animal::eat   │  (inherited, not overridden)
-  │ age       │         │ [2] -> Dog::fetch    │
-  └───────────┘         └─────────────────────┘
-
-   Cat object            Cat vtable
-  ┌───────────┐         ┌─────────────────────┐
-  │ vptr  ────┼────────►│ [0] -> Cat::speak    │  <- same slot 0, different target
-  │ name      │         │ [1] -> Animal::eat   │
-  └───────────┘         └─────────────────────┘
-
-   "Call slot 0" works for both — the object's own vptr routes it.
-```
-
-### Naive Dynamic Lookup (the slow path)
-
-```text
-   obj.speak()  in Python:
-
-   obj.__dict__         has "speak"?  no
-        │
-        ▼
-   Dog.__dict__         has "speak"?  YES  -> done   (each box = a dict lookup)
-        │ (if no...)
-        ▼
-   Animal.__dict__      has "speak"?  ...
-        │
-        ▼
-   object.__dict__      has "speak"?  ...
-```
-
-### Inline Cache: Guess Fast, Verify Cheap
-
-```text
-   call site:  obj.speak()
-   ┌──────────────── inline cache ────────────────┐
-   │  cached type:   Account                       │
-   │  cached target: 0xABC (Account.speak)         │
-   └───────────────────────────────────────────────┘
-                       │
-       guard: is obj's type == Account?
-                  │              │
-                 YES            NO  (cache miss)
-                  │              │
-            jump 0xABC       do slow search once,
-            (fast!)          rewrite the cache
-```
-
-### The Monomorphic → Megamorphic Slide
-
-```text
-   types seen at one call site:
-
-   MONOMORPHIC   [ Account ]                     -> guard + jump        (fast)
-   POLYMORPHIC   [ Account, Savings, Checking ]  -> tiny cache of cases (ok)
-   MEGAMORPHIC   [ A, B, C, D, E, F, G, ... ]    -> cache gives up      (slow)
-
-   Keep hot call sites on the left.
-```
+- What problem does Method Dispatch & Inline Caches solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

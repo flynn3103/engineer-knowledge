@@ -1,55 +1,11 @@
-# Reading Codegen (Disassembly & Compiler Output) — Professional Level
+# Reading Codegen (Disassembly & Compiler Output) — Professional
 
-> **Topic:** Reading Codegen (Disassembly & Compiler Output)
-> **Focus:** Reading what JIT compilers produce at runtime (HotSpot, V8), deopt/inline-cache/OSR in the disassembly, ARM64 fluency, aliasing failures in real systems, and codegen as a production diagnostic tool.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Reading Codegen (Disassembly & Compiler Output)** with measurable outcomes and limited coordination?
 
-## Introduction
-
-> Focus: **Codegen you can't see at build time — the machine code a JIT generates *while the program runs* — plus reading across architectures (ARM64) and using disassembly to debug real production performance.**
-
-Ahead-of-time codegen (gcc/clang/rustc) is static: compile once, read the `.s`, done. But enormous amounts of code run on **JIT compilers** — the JVM's HotSpot, V8 (Node/Chrome), .NET's RyuJIT, LuaJIT, PyPy. These compile *at runtime*, guided by what the program actually does: they profile, inline based on observed call targets, speculate on types, and **deoptimize** back to the interpreter when a speculation is wrong. The codegen changes as the program runs. To read it you need different tools (`-XX:+PrintAssembly`, `--print-opt-code`, `--trace-turbo`) and a different mental model: the assembly is *provisional*, guarded by assumptions, and littered with deopt points and inline caches.
-
-At this level you also read across architectures fluently — ARM64 is now the default in data centers (Graviton, Ampere) and on every Mac — and you use disassembly as a *production* diagnostic: proving that a regression is a missed inline after a deploy, that a hot path deoptimized, that an aliasing assumption broke vectorization in the real (not reduced) code.
-
-> 🎓 **Why this matters for a professional:** The systems you're responsible for are increasingly JIT-compiled and increasingly ARM. A "performance bug" in a Java or Node service is often a *codegen* bug — a megamorphic call site that stopped inlining, a hot loop that keeps deoptimizing on an unexpected type, an OSR that never kicks in. None of that is visible in the source or even a flame graph alone; you have to read what the JIT emitted and *why it changed*. And when you migrate a fleet from x86 to ARM64, you need to read both ISAs to explain why something got faster or slower. This is where codegen literacy stops being a nice-to-have and becomes load-bearing for incident response.
-
-This page covers: JIT disassembly for HotSpot (`-XX:+PrintAssembly`, tiered compilation) and V8 (`--print-bytecode`, `--print-opt-code`, `--trace-turbo`, `node --print-opt-code`); reading **deopt points, inline caches (monomorphic→polymorphic→megamorphic), and OSR** in the disassembly (mostly in prose, since JIT asm is dense); enough **ARM64** to read it (fixed-width instructions, the different register file and mnemonics); aliasing and other optimization failures as they appear in *real* code; and using all of this for production diagnosis. This is the deepest tier; it assumes everything in `senior.md`.
-
----
-
-## Prerequisites
-
-- **Required:** Everything in `senior.md` — fluent optimized x86-64, SIMD/BCE/inlining recognition, LLVM IR, the benchmark-optimized-away discipline.
-- **Required:** Working knowledge of at least one JIT runtime (JVM or V8/Node) as a *user*.
-- **Required:** Comfort with `perf`/profilers on a live system.
-- **Helpful:** Exposure to ARM64 or any RISC ISA.
-- **Helpful:** Having owned a production performance incident end to end.
-
-You do **not** need to be able to write a JIT or a compiler backend. You need to *read* their output and reason about *why it changed at runtime*.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **JIT (Just-In-Time) compiler** | Compiles code to machine instructions *during execution*, guided by runtime profiling. Examples: HotSpot C2, V8 TurboFan, RyuJIT. |
-| **Tiered compilation** | Running interpreted/lightly-compiled first, then recompiling hot methods at higher optimization once they prove hot (HotSpot C1→C2; V8 Ignition→Sparkplug→Maglev→TurboFan). |
-| **Deoptimization (deopt)** | The JIT abandoning optimized machine code and falling back to the interpreter when a speculative assumption is violated. |
-| **Speculation / assumption** | An optimistic bet the JIT makes (this call site has one target; this variable is always an int) that the optimized code is guarded against. |
-| **Inline cache (IC)** | A per-call-site cache of resolved targets. **Monomorphic** (1 type), **polymorphic** (few), **megamorphic** (many → falls back to a slow generic lookup, and stops inlining). |
-| **OSR (On-Stack Replacement)** | Swapping a long-running interpreted loop's stack frame for optimized code *mid-execution*, without waiting for the next call. |
-| **`-XX:+PrintAssembly`** | HotSpot flag (needs the `hsdis` disassembler plugin) that prints the machine code the JIT generated, annotated with bytecode and deopt info. |
-| **`--print-opt-code` / `--trace-turbo`** | V8 flags to dump optimized machine code / TurboFan's IR and pipeline. `node --print-opt-code` exposes them via Node. |
-| **`hsdis`** | A disassembler plugin the JVM loads so `PrintAssembly` can render machine code as readable asm. |
-| **uncommon trap** | HotSpot's term for a deopt point — a guarded branch to the deopt handler when an assumption fails. |
-| **ARM64 / AArch64** | The 64-bit ARM ISA: fixed-width 32-bit instructions, 31 general registers `x0`–`x30` (32-bit views `w0`–`w30`), load/store architecture. |
-| **Load/store architecture** | RISC style: arithmetic works only on registers; memory is touched only by explicit `ldr`/`str`. (Contrast x86, where instructions can operate directly on memory.) |
-| **Aliasing failure** | A real-world optimization miss caused by the compiler being unable to prove two pointers/references don't overlap. |
-| **PGO / profile-guided** | Feeding runtime profiles back into an AOT compiler — the static analogue of what a JIT does continuously. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -122,34 +78,6 @@ You don't need to write ARM64; you need to recognize a loop, a call, an array in
 ### 7. Aliasing and optimization failures in real (not reduced) code
 
 The reduced examples that vectorize in `senior.md` often *don't* in production because real code has aliasing the compiler can't rule out, hidden calls (allocations, virtual dispatch, bounds panics), and abstraction layers. The professional skill is reading the *real* hot loop's codegen and identifying which production-specific factor blocked the optimization: a `std::vector::operator[]` that wasn't inlined, a smart-pointer indirection, a possibly-aliasing output buffer, an exception-handling landing pad fragmenting the loop. AOT analogue of the JIT's deopt: the optimization that worked in the lab fails on the real shape of the code, and only the disassembly of the *actual* build shows it.
-
----
-
-## Real-World Analogies
-
-**The contractor who keeps re-reading the room.** An AOT compiler builds once from the blueprint. A JIT is a contractor who watches how you actually use the room and rebuilds the furniture layout to match — but keeps a guard at the door ("if a different kind of guest arrives, tear it down and start over"). Reading JIT codegen is inspecting both the current layout and the guards that will trigger a rebuild (deopt).
-
-**The bouncer's memory.** An inline cache is a bouncer who remembers regulars. Monomorphic: one regular, instant wave-through (inlined). Megamorphic: so many faces they give up and check every ID against the full list (generic lookup, no inlining). Keeping the line monomorphic keeps the bouncer fast.
-
-**Two dialects of the same language.** x86 and ARM64 are dialects: same concepts (registers, loads, branches, calls), different words and grammar (fixed-width, load/store-only). Reading both is like a translator fluent in two related languages — the *ideas* transfer; you relearn the vocabulary.
-
-**The understudy stepping in mid-scene.** OSR is the optimized understudy replacing the interpreted actor *in the middle of a long monologue*, without restarting the scene. It explains why the performance changes partway through a long loop.
-
----
-
-## Mental Models
-
-**Model 1: JIT codegen is a bet plus a guard.** Every optimized JIT body is specialized to runtime observations and guarded by deopt checks. Read both the fast path *and* what would invalidate it.
-
-**Model 2: A deopt trace is a bug report from the optimizer.** `--trace-deopt` / uncommon-trap reasons tell you *exactly* which assumption broke. Treat the reason as the root cause to fix (a polymorphic shape, an overflowing Smi), not noise.
-
-**Model 3: Inlining lives and dies by call-site shape.** Monomorphic stays inlined; megamorphic falls off the cliff. Performance regressions after a deploy are often "a new caller made a hot site megamorphic." Read the IC state.
-
-**Model 4: The ISA is vocabulary; the structure is universal.** A loop, a call, an array index, a vectorized body look different on ARM64 but mean the same thing. Learn the mapping, not a new universe.
-
-**Model 5: Reduced examples lie about production.** The lab loop vectorizes; the real one doesn't, because of aliasing/hidden-calls/abstractions. Always read the codegen of the *actual* build, on the *actual* target.
-
-**Model 6: JIT warmup confounds every benchmark.** Interpreted → C1/Sparkplug → C2/TurboFan → maybe deopt. A number taken before steady state is meaningless. Read which tier produced the code you're timing.
 
 ---
 
@@ -264,38 +192,6 @@ java -XX:+PrintCompilation MyApp | grep hotMethod
 
 ---
 
-## Pros & Cons
-
-**Pros of professional-level codegen reading:**
-
-- **Diagnoses JIT-specific regressions** (deopt storms, megamorphic call sites, OSR gaps) that are invisible in source and ambiguous in flame graphs.
-- **Connects "service got slow after deploy" to a concrete codegen cause** via deopt/IC traces.
-- **Enables honest cross-architecture reasoning** (x86 ↔ ARM64) during fleet migrations.
-- **Catches the JIT-warmup benchmark trap**, the runtime analogue of optimized-away.
-- **Explains real-code optimization failures** (production aliasing, un-inlined abstractions) that reduced examples miss.
-
-**Cons / costs:**
-
-- **JIT disassembly is dense and runtime-dependent**; it needs extra tooling (`hsdis`, JITWatch, turbolizer) and steady-state runs.
-- **Output is non-deterministic** across runs (profiling order, thresholds), unlike AOT codegen.
-- **High skill ceiling:** reading two ISAs plus JIT semantics is a real investment.
-- **Easy to over-interpret** a single deopt or IC transition that doesn't actually matter for throughput.
-- **Tooling setup friction** (hsdis builds, perf permissions, V8 debug flags) can stall an investigation.
-
----
-
-## Use Cases
-
-- **Root-causing a Node/JVM service regression** to a megamorphic call site or a hot deopt after a deploy, using `--trace-deopt`/`--trace-ic` or `PrintCompilation` + `PrintAssembly`.
-- **Validating an x86→ARM64 migration**: reading both builds' hot loops to explain a throughput change and confirm NEON/SVE vectorization on the new fleet.
-- **Confirming a hot Java method reached C2 and stays there** (no deopt churn) under production-like load.
-- **Debugging "fast in microbenchmark, slow in prod"** by reading the real, aliased, abstraction-heavy hot loop's codegen.
-- **Justifying a refactor to keep call sites monomorphic / object shapes stable** with IC-state evidence.
-- **Diagnosing OSR gaps** in long-loop workloads where the enclosing method never re-enters.
-- **Comparing PGO vs. non-PGO AOT builds** as the static counterpart to JIT specialization.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Trace first, disassemble second (JIT)
@@ -365,3 +261,27 @@ JITWatch for HotSpot, turbolizer for V8 TurboFan IR, `perf annotate` for hot-ins
 - **`--print-opt-code` flooding you.** Without narrowing to one function (`--print-opt-code-filter`), V8 dumps everything. Scope it.
 - **Cross-arch SIMD width assumptions.** NEON is 128-bit (4 floats); AVX2 `ymm` is 256-bit (8 floats); AVX-512/SVE differ again. Don't assume the same per-iteration width after an ISA migration — read the lane suffix and the counter stride.
 - **JIT inlining hides work in callers.** Just like AOT inlining, inlined JIT code is attributed to the caller in profiles; a "free" method may be inlined hot work elsewhere.
+
+---
+
+## Apply it
+
+1. Define the user or business outcome that **Reading Codegen (Disassembly & Compiler Output)** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
+
+## Verify your work
+
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
+
+## Review questions
+
+- Which measurable outcome justifies investing in Reading Codegen (Disassembly & Compiler Output)?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

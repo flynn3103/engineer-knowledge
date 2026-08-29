@@ -1,51 +1,11 @@
-# Build-Time Code Generation — Senior Level
+# Build-Time Code Generation — Senior
 
-> **Topic:** Build-Time Code Generation
-> **Focus:** Codegen versus macros versus reflection as three routes to the same DRY goal; schema evolution; and the committed-vs-gitignored debate as an architectural decision, not a preference.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Build-Time Code Generation** under failure, load, and change?
 
-## Introduction
-
-> Focus: **Given the same DRY goal — "describe a thing once, derive its boilerplate" — when do you reach for code generation, when for macros, and when for reflection?** And **how do generated systems survive schema evolution over years?**
-
-At the senior level, build-time code generation stops being a tool and becomes a *design axis*. Almost every place you would generate code, you could instead use a **macro** (compile-time, inside the compiler) or **reflection** (runtime introspection). All three eliminate the same boilerplate; they differ in *when the work happens*, *what the compiler can check*, *what the toolchain can see*, and *what it costs at runtime and build time*. Choosing among them is an architecture decision with multi-year consequences — for type safety, for native-image/AOT compatibility, for debuggability, and for build complexity.
-
-The senior also owns the *lifecycle* of generated systems. A `.proto` schema is not written once; it evolves for a decade while old and new clients coexist on the wire. The committed-vs-gitignored question is not a style preference; it is a decision about CI topology, supply-chain reproducibility, and who can build the repo. Generator version skew is a real outage source. And debugging *through* generated layers — a stack trace that lands in 600 lines of machine-written code — is a skill.
-
-This page covers: the codegen/macro/reflection triangle with concrete decision criteria; protobuf schema evolution (field numbers, wire compatibility, reserved fields); the committed-vs-gitignored debate framed as architecture; Rust's `derive` macros as the *boundary case* between codegen and macros; and the operational realities — version skew, debugging, diff hygiene — that decide whether a generation strategy ages well.
-
-> 🎓 **Why this matters at the senior level:** Juniors ask "how do I generate this?" Seniors ask "*should* I generate this, or use a macro, or reflection — and what does that choice cost me in three years when the schema has changed forty times and we want to ship a GraalVM native image?" Owning that question is the job.
-
----
-
-## Prerequisites
-
-- **Required:** `middle.md` — the three kinds of generation and build-system integration.
-- **Required:** A working mental model of reflection (runtime type introspection) and of macros (compile-time AST transformation) in at least one language.
-- **Required:** Experience evolving a wire format or public API without breaking clients.
-- **Helpful but not required:** Exposure to GraalVM native image, Go's AOT model, or another reflection-hostile target.
-- **Helpful but not required:** Having owned a CI pipeline's reproducibility/supply-chain story.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Macro** | Compile-time code transformation performed *inside* the compiler (Rust `macro_rules!`/proc-macros, Lisp macros, C++ templates as a degenerate case). Operates on the AST/token stream; output is compiled in the same run. |
-| **Reflection** | Runtime inspection of types/fields/methods by name, and runtime invocation. The fully-dynamic alternative to generation. |
-| **AOT (ahead-of-time) compilation** | Compiling to native code before run; reflection-heavy code needs explicit configuration because the compiler must know all reachable types statically. |
-| **Native image** | A GraalVM-produced standalone binary; closed-world, so reflection/dynamic loading must be declared. Codegen is naturally compatible; reflection is not. |
-| **Wire compatibility** | The property that messages serialized by one schema version can be read by another (forward/backward). Protobuf is designed around this. |
-| **Field number** | In protobuf, the integer tag identifying a field on the wire (not the field name). Changing it breaks compatibility; the name is cosmetic. |
-| **Reserved field** | A protobuf declaration that a field number/name must never be reused, preventing accidental wire collisions after a delete. |
-| **`derive` macro** | Rust attribute (`#[derive(Serialize)]`) that runs a procedural macro to generate trait impls at compile time — codegen *inside* the compiler. |
-| **Procedural macro** | A Rust macro that is itself a compiled program transforming token streams; the boundary case between "macro" and "code generator." |
-| **Version skew** | Differing generator/plugin versions across developers/CI producing divergent output. |
-| **Hermetic / reproducible build** | A build whose output depends only on declared, pinned inputs (including the generator), reproducible anywhere. |
-| **Closed-world assumption** | The AOT compiler's premise that all reachable code is known at build time — broken by runtime reflection, satisfied by codegen. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -131,28 +91,6 @@ A stack trace landing in `user.pb.go:1487` or a serde-expanded impl is disorient
 
 ---
 
-## Real-World Analogies
-
-**Reflection vs codegen vs macro = GPS vs printed directions vs a chauffeur who memorized the route.** Reflection (GPS) figures out the route live, every trip, at a cost, and needs a working signal (closed-world breaks it). Codegen (printed directions) is computed once, inspectable, and works offline. A macro (the chauffeur) has the route baked in and integrated, but you cannot read it — you just trust it.
-
-**Schema evolution = renovating a house while people live in it.** Old residents (deployed clients) still walk the old hallways (field numbers). You can add rooms (new fields) freely; you must *wall off* removed rooms permanently (`reserved`) so a future renovation does not reconnect a door to a now-different room.
-
-**Committed-vs-gitignored = vendoring vs fetching dependencies.** Committing generated code is like vendoring: self-contained, auditable, heavier repo. Gitignoring is like fetching on build: clean, but you depend on the source (generator) staying available and pinned.
-
----
-
-## Mental Models
-
-**Model 1 — "Pick your point on the when-axis."** Reflection = runtime, macro = compile time (in-compiler), codegen = build time (pre-compile). Everything else — safety, AOT-fitness, inspectability, cost — follows from *when* the work happens.
-
-**Model 2 — "Closed world favors generation."** Any AOT/native-image target rewards moving introspection out of runtime. Reflection fights the closed world; codegen embraces it.
-
-**Model 3 — "The generator checks syntax, not semantics-over-time."** It guarantees the output compiles; it guarantees *nothing* about wire compatibility or runtime correctness across versions. Compatibility is a separate discipline (and linter).
-
-**Model 4 — "A frame in generated code points upstream."** When debugging lands you in machine-written code, the bug is in the schema/generator/your-usage, never to be fixed in the generated file.
-
----
-
 ## Code Examples
 
 ### Example 1: Protobuf schema evolution done right
@@ -224,37 +162,6 @@ This catches the wire-compatibility violations the *generator never will* — re
 
 ---
 
-## Pros & Cons
-
-### Pros
-
-- **Codegen is the only option that yields cross-language artifacts** from one source of truth (IDL).
-- **Codegen + macros both satisfy the closed-world AOT assumption**; reflection does not.
-- **Codegen produces inspectable, debuggable, committable artifacts** — auditable supply chain.
-- **Macros offer the tightest language integration** when no cross-language schema is needed (serde, derive).
-- **Reflection offers maximal runtime flexibility** (plugin discovery, dynamic schemas) when AOT and performance are not constraints.
-
-### Cons
-
-- **Codegen carries the heaviest build/operational plumbing** (pinning, drift checks, version skew).
-- **Macros are hard to inspect and debug**; errors can be cryptic; output is ephemeral.
-- **Reflection breaks AOT/native image**, costs at runtime, and defers errors to runtime.
-- **No route protects you from schema-evolution mistakes** — that is a separate discipline.
-- **Generated diffs and version skew add ongoing review/maintenance tax.**
-
----
-
-## Use Cases
-
-- **Cross-language wire contracts under AOT:** protobuf/gRPC codegen — the only sane choice.
-- **In-language serialization, no external schema:** Rust serde derive, language-bound macros.
-- **Compile-time DI for native images / fast startup:** Dagger codegen over reflective Spring.
-- **Type-safe DB access with schema-drift-as-compile-error:** sqlc/jOOQ codegen.
-- **Plugin systems with runtime discovery, AOT not required:** reflection (service loaders, dynamic dispatch).
-- **Long-lived, audited codebases:** committed generated code for reproducibility.
-
----
-
 ## Coding Patterns
 
 **Pattern: Choose the route by constraints, not habit.** AOT target + cross-language → codegen. Language-internal + no schema → macro. Runtime-dynamic + flexibility-over-cost → reflection.
@@ -299,32 +206,24 @@ This catches the wire-compatibility violations the *generator never will* — re
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-| Question | Senior answer |
-|------|------|
-| Codegen vs macro vs reflection? | Build-time/files vs compile-time/ephemeral vs runtime/dynamic. Pick by AOT-fitness, cross-language need, inspectability, cost. |
-| Why codegen for native image? | Closed world: no runtime reflection to configure; generated access is statically visible. |
-| Is `#[derive]` codegen or a macro? | Both — a proc-macro doing codegen *inside* the compiler; output is ephemeral (use `cargo expand`). |
-| What is the protobuf contract? | Field *numbers*, not names. Add with new numbers; never reuse; `reserved` on delete. |
-| Does the generator enforce compatibility? | No. Add a breaking-change linter (`buf breaking`). |
-| Commit or gitignore generated code? | Commit for reproducibility/audit; gitignore when the build is hermetic and runs the generator. |
-| Biggest operational risk? | Generator version skew. Pin it like the compiler. |
-| Dagger vs Spring? | Compile-time generated DI (AOT-friendly, build errors) vs runtime reflective DI (config-heavy, startup errors). |
+1. State the system invariant that **Build-Time Code Generation** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
----
+## Verify your work
 
-## Summary
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
 
-At senior level, build-time code generation is one corner of a **triangle** with macros and reflection — three ways to satisfy the same DRY goal that differ by *when* the work happens (build time / compile time / runtime), and therefore by static-checkability, AOT/native-image fitness, inspectability, and cost. Reflection is the most flexible and the most expensive and breaks the closed-world assumption; macros integrate tightest with the language but produce ephemeral, hard-to-inspect output; codegen yields real, debuggable, cross-language artifacts at the price of build plumbing. Rust's `derive` is the instructive boundary case — a macro doing codegen. The senior responsibilities are lifecycle and operations: **schema evolution** (field numbers are the contract; `reserved` on delete; the generator enforces *nothing* about wire compatibility — a linter must); the **committed-vs-gitignored** decision as an architecture call driven by reproducibility/audit versus DRY/hermetic-build tooling; **version skew** as a first-class outage class to be pinned away; and **debugging through generated layers** by keeping logic upstream. The mature instinct: choose the route by constraints, layer a compatibility gate on top, pin the generator like a compiler, and let a generated stack frame always point you back to the schema.
+## Review questions
 
----
-
-## Further Reading
-
-- The Protocol Buffers language guide on updating message types (field numbers, `reserved`, compatibility).
-- `buf` and its breaking-change detection rules.
-- The serde derive internals and `cargo expand`.
-- GraalVM native-image reflection configuration docs (the problem codegen avoids).
-- The Dagger vs runtime-DI comparison literature.
-- `professional.md` in this folder — generation at organizational scale and toolchain ownership.
+- Which invariant must remain true when Build-Time Code Generation fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

@@ -1,67 +1,11 @@
-# Optimization — Middle Level
+# Optimization — Middle
 
-> **Topic:** Optimization
-> **Focus:** *How does the compiler know a transformation is safe?* The answer is **dataflow analysis** — a lattice-and-fixpoint framework — plus **SSA form**, the IR shape that makes most optimizations cheap. This page is the machinery underneath the rewrites.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **Optimization** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-> Focus: **What proves a rewrite is legal, and what representation makes rewrites cheap?**
-
-At the junior level, optimizations were named and shown: constant folding, CSE, DCE, LICM. But naming them dodges the hard question every real optimizer must answer: **how does the compiler *know* a transformation preserves behavior?** To delete a store, it must *prove* the value is never read. To hoist a computation out of a loop, it must *prove* nothing in the loop changes its inputs. To propagate a constant, it must *prove* the variable holds that constant on every path that reaches the use. These proofs are not ad hoc. They come from one unified framework: **dataflow analysis**.
-
-Dataflow analysis computes, for every program point, a conservative summary of facts that hold there — which definitions can reach here, which variables are still live, which expressions are already available. It does this by modeling the program as a **control-flow graph (CFG)**, attaching a set of facts to each node, and iterating a **transfer function** over the graph until the facts stop changing — a **fixpoint**. The math that guarantees this terminates and gives a sensible answer is the theory of **lattices** and **monotone functions**. It sounds abstract; it is the most reused idea in the entire compiler.
-
-The second half of this page is **SSA (Static Single Assignment) form** — an IR where every variable is assigned exactly once. This single discipline turns expensive global analyses into cheap, almost trivial ones, which is why every serious optimizer (LLVM, GCC's GIMPLE, V8's Turbofan, the JVM's C2) is built on SSA.
-
-In one sentence: **optimizations are *what*; dataflow analysis is *how do we know it's safe*; SSA is *how do we make the proof cheap*.**
-
-> 🎓 **Why this matters for a mid-level engineer:** Once you understand dataflow, the optimizer stops being magic. You can predict what it *can't* do — and most "the compiler should have optimized this but didn't" cases are situations where the analysis couldn't *prove* the precondition (a pointer might alias, a function might have side effects, a value might escape). You start writing code the analyzer can *see through*, which is the real skill behind "writing optimizer-friendly code."
-
-This page covers: the CFG and basic blocks; the four canonical dataflow analyses (reaching definitions, live variables, available expressions, very-busy expressions); the lattice/fixpoint framework with forward/backward and may/must axes; SSA form and phi nodes; and a tour of SSA-based optimizations (GVN, SCCP, sparse DCE). The phase-ordering problem and `-O` level internals appear here in outline and get full treatment in `senior.md`.
-
----
-
-## Prerequisites
-
-- **Required:** The junior tier — you should recognize constant folding, CSE, DCE, LICM, inlining by name.
-- **Required:** Basic graph vocabulary: nodes, edges, paths, predecessors/successors.
-- **Required:** Comfort with sets and set operations (union, intersection, difference).
-- **Helpful but not required:** A sense of what an *intermediate representation* is — a simplified, language-neutral program form the compiler manipulates (three-address code, LLVM IR, bytecode).
-- **Helpful but not required:** Partial orders / lattices from a discrete-math course. We re-derive what we need.
-
-You do **not** need to know:
-
-- Register allocation internals — touched in prose, detailed in codegen topics.
-- LTO/PGO mechanics — that's `senior.md` and `professional.md`.
-- The undefined-behavior controversy in depth — that's `senior.md`.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Intermediate representation (IR)** | A language-neutral program form the optimizer operates on (e.g. three-address code, LLVM IR, GIMPLE). |
-| **Basic block** | A maximal straight-line sequence of instructions with one entry and one exit — no branches in except at the top, none out except at the bottom. |
-| **Control-flow graph (CFG)** | A directed graph whose nodes are basic blocks and whose edges are possible control transfers. |
-| **Dataflow analysis** | Computing a conservative set of facts true at each program point by iterating to a fixpoint over the CFG. |
-| **Transfer function** | The rule describing how a basic block transforms the set of facts flowing through it (`OUT = f(IN)`). |
-| **Meet / join** | How facts from multiple incoming paths combine (set union or intersection, depending on the analysis). |
-| **Lattice** | A partially ordered set where every pair of elements has a well-defined meet and join. The space of possible dataflow facts forms one. |
-| **Fixpoint** | The state where another iteration produces no change. The analysis result. |
-| **Forward vs backward** | Whether facts flow with control (reaching definitions) or against it (live variables). |
-| **May vs must** | Whether a fact holds on *some* path (may, uses union) or *all* paths (must, uses intersection). |
-| **Reaching definitions** | Which assignments could be the source of a variable's current value at a point. |
-| **Live variable** | A variable whose current value *may* be read later before being overwritten. |
-| **Available expression** | An expression already computed on every path to a point, with no intervening change to its operands. |
-| **SSA (Static Single Assignment)** | An IR where every variable is assigned exactly once; uses point to a single definition. |
-| **Phi (φ) node** | A pseudo-instruction at a control-flow merge that "selects" which incoming definition reaches the merge, restoring single-assignment. |
-| **Dominance** | Block A *dominates* B if every path from entry to B passes through A. The basis for placing phi nodes. |
-| **GVN (Global Value Numbering)** | An SSA optimization that gives equal values the same number and eliminates redundant computations across the whole function. |
-| **SCCP (Sparse Conditional Constant Propagation)** | An SSA analysis that propagates constants *and* prunes unreachable branches simultaneously. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -163,30 +107,6 @@ These all rely on SSA's single-definition property to be cheap. That's the payof
 
 ---
 
-## Real-World Analogies
-
-**Dataflow as a rumor spreading through an office.** A fact ("the printer is broken") starts in one room and propagates room-to-room along hallways (edges). At a junction where two hallways meet, you decide: do you believe it if you heard it from *either* hallway (may / union) or only if *both* hallways confirm it (must / intersection)? You keep walking the building re-broadcasting until no room's belief changes — the fixpoint. Forward analysis follows the building's "flow"; backward analysis traces rumors back to their source.
-
-**SSA as version control for variables.** Plain code mutates `x` in place; you can't tell which write produced the value you're reading without tracing history. SSA is like giving every write its own commit hash (`x1`, `x2`) so every read points at an exact commit. A phi node is a *merge commit*: when two branches both touched `x`, the merge records "the value here came from whichever branch we actually took."
-
-**The lattice as a thermostat that only moves one way.** Each step can only make a fact "more known" (or "less known"), never oscillate. Because the dial has finitely many notches and only turns in one direction, it must stop. That's monotonicity + finite height = guaranteed termination.
-
-**Available expressions as a shared scratchpad.** If everyone arriving at a meeting has already computed `a+b` on their way in (every incoming path), the value is on the shared whiteboard and nobody recomputes it. If even one path didn't compute it, it's not safely on the board — that's why availability needs *intersection* (must).
-
----
-
-## Mental Models
-
-**Model 1: Optimizations are theorems; dataflow is the proof system.** "Delete this store" is a claim. Live-variable analysis is the proof that the value is never read. Every legal optimization rests on a dataflow fact that *proves its precondition*. When the compiler "fails to optimize," the proof failed — usually because some fact was unknowable (aliasing, side effects).
-
-**Model 2: Conservative means safe, not precise.** Dataflow analysis always errs toward "I'm not sure, so don't transform." A *may* analysis assumes a fact could hold if there's any path; a *must* analysis requires all paths. Both directions are chosen so that being wrong only *prevents* an optimization, never *breaks correctness*. Soundness over precision, always.
-
-**Model 3: SSA makes "which definition?" a non-question.** In normal IR, finding the value a use sees is a graph search. In SSA, the answer is the name itself. Most of SSA's power is just: the expensive question was deleted by construction.
-
-**Model 4: The 2×2 grid is the whole map.** Direction (forward/backward) × combination (may/must). Every textbook analysis is one of the four cells. New analysis you've never seen? Ask which cell. You'll know its meet operator and iteration direction immediately.
-
----
-
 ## Code Examples
 
 ### Reaching definitions enabling constant propagation
@@ -261,32 +181,6 @@ opt -passes='sccp' -S f.ll -print-changed -o /dev/null
 
 ---
 
-## Pros & Cons
-
-**Pros of the dataflow + SSA approach**
-
-- **Unified and provably correct.** One framework (lattice + monotone transfer + fixpoint) justifies dozens of optimizations with a termination guarantee.
-- **SSA makes analyses cheap and precise.** Use-def chains are explicit; many global problems become near-local.
-- **Composable.** Analyses feed optimizations which expose more facts for the next analysis — the cascade.
-
-**Cons / costs**
-
-- **Conservatism leaves performance on the table.** When the analysis can't *prove* a precondition (aliasing, opaque calls, escaping values), it must skip the optimization even when a human can see it's safe.
-- **Phi placement and out-of-SSA add complexity.** Building SSA (dominance frontiers) and lowering it back (handling phi "lost copies" and swaps) is intricate engineering.
-- **Cost.** Iterating analyses to a fixpoint over large functions is part of why `-O2` compiles slower than `-O0`. Interprocedural and flow-sensitive analyses can be expensive.
-- **Precision vs. speed trade-offs.** Flow-sensitive, context-sensitive, path-sensitive analyses are progressively more precise *and* more expensive; production compilers pick a pragmatic point.
-
----
-
-## Use Cases
-
-- **Understanding *why* the compiler didn't optimize.** When `-O2` leaves an obvious redundancy, it's usually because aliasing or a side-effecting call broke an *available-expressions* or *reaching-definitions* fact. Knowing the analysis tells you what to change.
-- **Writing optimizer-friendly code.** Reduce pointer aliasing (use `restrict`/local copies), keep functions pure where possible, and use `const` so analyses can prove more.
-- **Reading IR for performance work.** `opt -print-after-all` (LLVM) or `-fdump-tree-all` (GCC) lets you watch each analysis/transform fire and pinpoint where an expected optimization was blocked.
-- **Building tooling.** Linters, refactoring engines, and static analyzers reuse the exact same dataflow framework (taint analysis, null-deref detection, uninitialized-use warnings are all dataflow).
-
----
-
 ## Coding Patterns
 
 - **Shrink the live range of values the optimizer must track.** Compute close to use; don't keep a value live across an opaque call if you can recompute it cheaply. Smaller live ranges = simpler analysis = better register allocation.
@@ -316,10 +210,24 @@ opt -passes='sccp' -S f.ll -print-changed -o /dev/null
 
 ---
 
-## Summary
+## Apply it
 
-Optimizations are *what*; **dataflow analysis** is *how the compiler proves a rewrite is safe*. Programs become a **control-flow graph of basic blocks**; analyses attach **facts** to each point and iterate **transfer functions** plus a **meet operator** to a **fixpoint**. The whole family fits a 2×2 grid — **forward/backward** × **may/must** — with the four canonical members being **reaching definitions** (constant propagation), **live variables** (dead-store elim, register allocation), **available expressions** (CSE), and **very-busy expressions** (hoisting). Termination is guaranteed by **lattice theory**: monotone functions on a finite-height lattice converge.
+1. Find a real component where **Optimization** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
-**SSA form** — every variable assigned once, with **phi nodes** at merges placed via **dominance frontiers** — makes use-def chains explicit and turns expensive global analyses into cheap near-local ones. That's why **SCCP** (constant propagation fused with reachability), **GVN** (global CSE by value equality), and aggressive DCE are all SSA-based and universal in modern compilers (LLVM, GIMPLE, V8, the JVM's C2).
+## Verify your work
 
-The practical payoff: the optimizer isn't magic, it's a prover, and it's *conservative* — when it skips an obvious optimization, some fact (usually aliasing or a side-effecting call) was unprovable. Write code the analyzer can see through (`const`, `restrict`, small live ranges, statically decidable branches) and verify with IR dumps. The next tier (`senior.md`) builds on this to tackle the **phase-ordering problem**, the full optimization pipeline, loop transforms and vectorization, LTO/PGO, and the undefined-behavior controversy.
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
+
+## Review questions
+
+- Which boundary is most affected by Optimization?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

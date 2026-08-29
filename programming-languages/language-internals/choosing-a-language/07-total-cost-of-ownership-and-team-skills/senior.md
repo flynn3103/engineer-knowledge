@@ -1,13 +1,16 @@
 # Total Cost of Ownership & Team Skills — Senior
 
-> **What?** The hard tradeoffs inside TCO — where the tidy line items collide and you have to exercise judgment. The talent market as a hard constraint that can veto a "better" language; bus factor and key-person risk; the maintainability tax of weak typing at scale; runtime compute cost as a first-class input that can *flip* a decision; the lifecycle curve where cheap-to-start becomes expensive-to-own; and "fun to write" as a recruiting asset that's real but routinely overweighted.
-> **How?** By recognizing that TCO is not a sum to minimize but a set of *constraints and curves* that change with team size, scale, and product maturity. The senior move is knowing *which* cost dominates *in this situation* — and that the dominant cost changes as the company grows under you.
+<!-- level-focus -->
+At senior level, focus on this question:
 
+> Which system invariant is affected by **Total Cost of Ownership & Team Skills** under failure, load, and change?
+
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## 1. The talent market is a constraint, not a line item
 
-At the middle level, hiring is a *cost* — a number you add to the model. At the senior level it's something stronger: a **constraint that can disqualify an option outright,** the way a hard requirement does in [`01-language-selection-criteria`](../01-language-selection-criteria/).
+At the middle level, hiring is a *cost* — a number you add to the model. At the senior level it's something stronger: a **constraint that can disqualify an option outright,** the way a hard requirement does in [`01-language-selection-criteria`](../01-language-selection-criteria/README.md).
 
 A language you cannot reliably staff is not a more-expensive option; it is, past a certain team size, an *infeasible* one. If you need to grow from 4 to 40 engineers in two years and the language has a hiring pool of a few thousand people on the planet — most of them already employed and not moving — no salary premium fixes that. You will not find them. The model that says "niche language costs +$640k in salary" is *understating* the problem: the real failure mode isn't paying more, it's **the seats staying empty and the roadmap stalling.**
 
@@ -123,7 +126,7 @@ The dominant cost is not fixed — it *moves* as the company grows, and a decisi
 | **Large org** | Maintainability; standardization | Cheap-to-own; consistency (see `professional.md`) |
 | **Hyperscale** | Compute cost; bug-class elimination | Efficient/safe even if niche and harder to hire |
 
-The trap is letting the *founding* choice ossify. A language picked correctly for a 3-person pre-PMF startup (fast, familiar, cheap to start) can be exactly wrong for the 200-person company that startup became — and the company will defend the choice with "it's what we know" long after the cost structure inverted. The senior job is to **re-evaluate the choice against the *current* stage**, recognize when the dominant cost has shifted under the org, and trigger the migration conversation ([`06-migrating-between-languages`](../06-migrating-between-languages/)) before the maintenance tax becomes crippling.
+The trap is letting the *founding* choice ossify. A language picked correctly for a 3-person pre-PMF startup (fast, familiar, cheap to start) can be exactly wrong for the 200-person company that startup became — and the company will defend the choice with "it's what we know" long after the cost structure inverted. The senior job is to **re-evaluate the choice against the *current* stage**, recognize when the dominant cost has shifted under the org, and trigger the migration conversation ([`06-migrating-between-languages`](../06-migrating-between-languages/README.md)) before the maintenance tax becomes crippling.
 
 ---
 
@@ -155,14 +158,24 @@ The trap is letting the *founding* choice ossify. A language picked correctly fo
 
 ---
 
-## 10. What's next
+## Apply it
 
-| Topic | File |
-|---|---|
-| Org economics, Conway's law, standardization, the leadership business case | `professional.md` |
-| Interview questions on the hard TCO tradeoffs | `interview.md` |
-| Model the lifecycle curve and a compute-cost crossover | `tasks.md` |
+1. State the system invariant that **Total Cost of Ownership & Team Skills** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
----
+## Verify your work
 
-**Memorize this:** TCO is not a sum to minimize but a set of constraints and curves that shift with scale and maturity. Hireability becomes a veto, bus factor a liability, the maintainability tax grows with size, compute cost flips the decision only at large scale, and "fun to write" is a real recruiting asset that's routinely overweighted. The dominant cost moves as the org grows — re-evaluate before the founding choice ossifies.
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
+
+## Review questions
+
+- Which invariant must remain true when Total Cost of Ownership & Team Skills fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

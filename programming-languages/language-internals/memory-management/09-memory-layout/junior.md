@@ -1,38 +1,11 @@
-# Memory Layout — Junior Level
-> **Topic:** Memory Layout
-> **Focus:** How a struct's fields are arranged in memory, why padding exists, and why `sizeof` is not the sum of the parts.
+# Memory Layout — Junior
 
----
+<!-- level-focus -->
+At junior level, focus on this question:
 
-## Introduction
+> How can I apply **Memory Layout** in one small example and prove the result?
 
-When you declare a struct with three fields, you might assume the computer stores those fields back-to-back, using exactly as many bytes as the fields need. It does not. The compiler inserts invisible gaps — **padding** — between and after fields so each one lands on an address the hardware likes. The result: a struct can be noticeably larger than the sum of its fields, and simply **reordering the fields** can shrink it without changing what it stores.
-
-This is the foundation of *memory layout*: how aggregate data (structs, objects, arrays) is physically arranged in RAM. It is one of the highest-leverage things a programmer can understand, because the CPU does not read memory one byte at a time — it reads **cache lines** of 64 bytes — and how your data is laid out decides how many of those reads it takes to do real work.
-
-At the junior level we focus on the single most important consequence of layout: **alignment and padding**, and the rule that lets you make structs smaller for free.
-
----
-
-## Prerequisites
-
-- You know what a **byte** is (8 bits) and that memory is addressed byte-by-byte (address 0, 1, 2, …).
-- You know basic C-family types and their sizes: `char`/`bool` = 1 byte, `int16`/`short` = 2, `int32`/`float` = 4, `int64`/`double`/pointer = 8 bytes (on a 64-bit machine).
-- You have written a `struct` (C, Go, Rust) or a class with fields.
-- You know `sizeof` (C) / `unsafe.Sizeof` (Go) / `std::mem::size_of` (Rust) reports a type's size in bytes.
-
----
-
-## Glossary
-
-- **Alignment** — a requirement that a value of a given type be stored at a memory address that is a multiple of some number (its *alignment*, usually equal to its size). An 8-byte `int64` is typically 8-byte aligned: its address must be divisible by 8.
-- **Natural alignment** — the default alignment a type gets: equal to its size for primitive types. 4-byte types align to 4, 8-byte types align to 8.
-- **Padding** — unused filler bytes the compiler inserts between fields to satisfy alignment.
-- **Trailing padding** — padding added at the *end* of a struct so the whole struct's size is a multiple of its largest field's alignment.
-- **Word** — the CPU's natural unit of data, usually 8 bytes on a 64-bit machine.
-- **Cache line** — the fixed-size chunk (almost always 64 bytes) the CPU loads from RAM at once.
-- **Aggregate** — a type built from other types: a struct, array, or object.
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -88,24 +61,6 @@ Same data, but now the size is **8 bytes** instead of 12 — a 33% saving, just 
 ### 4. Trailing padding and arrays
 
 Why trailing padding at all? Because structs go into **arrays**. If `struct Good` were 6 bytes, then in an array `Good arr[2]`, the second element would start at offset 6 — and its `int b` would be misaligned. By rounding the struct size up to 8 (a multiple of its largest alignment), every element in an array stays aligned. The struct's *alignment* equals its largest field's alignment; its *size* is always a multiple of that alignment.
-
----
-
-## Real-World Analogies
-
-**Egg cartons.** An egg carton has 12 slots in a fixed grid. You cannot place an egg "between" two slots — each egg must sit in a slot. If you have oddly shaped items, some slots stay empty. Memory alignment is the same: values must land in specific slots (aligned addresses), and the gaps left over are padding.
-
-**Parking a bus in a car park.** Cars (small types) fit in any space. A bus (an 8-byte field) needs a long aligned bay. If you interleave buses and cars badly, you leave half-empty bays everywhere. Park all the buses first, then squeeze the cars into the leftover space — that is exactly "largest field first."
-
-**Moving boxes by the truckload.** The CPU never carries one item; it backs up a truck (cache line) and loads 64 bytes at once. If the one field you need sits alone in its own truckload, you wasted 60+ bytes of hauling. Packing related fields together means one truck trip does more useful work.
-
----
-
-## Mental Models
-
-- **"The address must be divisible."** Whenever you wonder where a field goes, ask: what is the smallest offset ≥ the current position that is divisible by this field's alignment? That is its offset. The gap you skipped is padding.
-- **"Size is a multiple of alignment."** A struct's total size always rounds up to a multiple of its strictest field's alignment. If that surprises you, picture the struct sitting inside an array.
-- **"Reordering is free real estate."** Changing field order never changes behavior (in Go/Rust/C the compiler still accesses fields by name), but it can shrink the struct. It is the cheapest optimization in programming.
 
 ---
 
@@ -184,26 +139,6 @@ fn main() {
 
 ---
 
-## Pros & Cons
-
-**Padding (pros):** correctness and speed — every access is aligned, so no faults and no slow split reads. You rarely have to think about it.
-
-**Padding (cons):** wasted memory. A poorly ordered struct can be 50–100% larger than necessary. In an array of millions of these, that waste multiplies and pushes useful data out of cache.
-
-**Reordering (pros):** smaller structs, more elements per cache line, better performance — for free, no behavior change.
-
-**Reordering (cons):** in C and over-the-wire formats, field order can be part of a contract (a binary protocol, a hardware register map). You cannot freely reorder those; the order *is* the spec.
-
----
-
-## Use Cases
-
-- **Any struct stored in large quantities** — array elements, slice/`Vec` contents, hash-map values, graph nodes. Shrinking each element by 4 bytes across a million-element array saves 4 MB and fits more in cache.
-- **Hot data structures** — the per-request object, the per-particle struct, the per-entity record in a game loop.
-- **Embedded / memory-constrained systems** — where every byte of RAM counts literally.
-
----
-
 ## Best Practices
 
 1. **Order fields largest-alignment-first** when you control the order (Go, C, plain Rust where layout is unspecified anyway). Group your `int64`s/pointers, then `int32`s/`float`s, then `int16`s, then `byte`s/`bool`s.
@@ -225,14 +160,24 @@ fn main() {
 
 ---
 
-## Summary
+## Apply it
 
-- Memory layout is how a struct's fields are physically arranged in RAM.
-- The hardware wants **aligned** data: a value of size *N* sits at an address that is a multiple of *N*. Misaligned access is slow or, on some CPUs, a crash.
-- Compilers insert **padding** between fields (to align them) and at the end (**trailing padding**, so the struct fits cleanly in arrays).
-- Therefore a struct's `sizeof` is usually **larger** than the sum of its fields.
-- **Ordering fields largest-to-smallest** minimizes padding and shrinks the struct — a free optimization that changes size but not behavior.
-- C and Go keep your declared order (it's your job to order well); Rust may reorder for you unless you use `#[repr(C)]`.
-- Measure with `sizeof` / `unsafe.Sizeof` / `size_of` and field offsets; don't guess.
+1. Choose one small, known input for **Memory Layout**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
-Next, the **middle** tier explains the mechanisms — how packing pragmas work, how cache lines turn layout into measured performance, and the first look at false sharing.
+## Verify your work
+
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
+
+## Review questions
+
+- What problem does Memory Layout solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

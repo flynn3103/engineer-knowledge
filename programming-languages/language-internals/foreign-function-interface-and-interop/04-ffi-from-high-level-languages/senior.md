@@ -1,68 +1,11 @@
-# FFI from High-Level Languages — Senior Level
+# FFI from High-Level Languages — Senior
 
-> **Topic:** FFI from High-Level Languages
-> **Focus:** How each major runtime's memory and execution model collides with native code — GC vs. raw pointers, JNI vs. Panama, cgo's cost cliff, and Rust's safe-wrapper discipline.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **FFI from High-Level Languages** under failure, load, and change?
 
-## Introduction
-
-> Focus: **Why each language's FFI looks different — because each runtime's memory model and scheduler impose different rules on native code.**
-
-By the senior level, "call a C function" is trivial; the interesting questions are about *impedance mismatch*. A high-level runtime makes promises to its own code — objects don't move, or they *do* move, the GC can run at any safepoint, threads are green and multiplexed onto OS threads, the heap is owned by the collector. Native code knows none of this. The design of every FFI mechanism is fundamentally a set of rules for keeping those promises intact while raw C code runs in the middle of them.
-
-The four runtimes diverge sharply:
-
-- **CPython** has no moving GC and uses reference counting, so pointers to objects are stable — but the **GIL** governs execution and refcounts must be maintained by hand.
-- **The JVM** has a **moving, generational GC**: objects can be relocated at any safepoint. So JNI gives you *handles* (jobjects), not raw addresses, and special "critical" APIs to pin arrays briefly. Project **Panama** replaces JNI's hand-written boilerplate with a typed, lower-overhead API.
-- **Go** has a **moving stack and a goroutine scheduler**. cgo must switch from a tiny growable goroutine stack to a real OS stack, coordinate with the scheduler, and forbid passing Go pointers into C because the GC could move or free them.
-- **Rust** has *no* runtime GC; ownership is compile-time. So Rust's FFI is the cleanest — `extern "C"`, `#[repr(C)]`, `unsafe` — and the central discipline is wrapping an `unsafe` core in a safe API.
-
-In one sentence: **FFI design is the art of letting raw native code run inside a managed runtime without letting it violate the invariants that runtime depends on.** This page works through each runtime's specific contract.
-
-> 🎓 **Why this matters at the senior level:** You'll choose binding strategies, review native glue, and own the "why does this crash only under GC pressure / only at 64 threads / only after migrating off cgo" incidents. Those are not coding bugs — they're model-mismatch bugs, and you can only reason about them if you understand what each runtime promises and how FFI threatens it.
-
-This page covers: moving vs. non-moving GC and what it means for pointers; JNI's reference model and `GetPrimitiveArrayCritical`; Project Panama (`Linker`, `MethodHandle`, `MemorySegment`, downcalls/upcalls); cgo's per-call cost and the "don't pass Go pointers to C" rule; and Rust's `extern "C"`/`#[repr(C)]`/`bindgen`/`cbindgen` and the safe-wrapper pattern.
-
----
-
-## Prerequisites
-
-- **Required:** The middle FFI material — calling conventions, marshalling cost, GIL, reference counting.
-- **Required:** A working model of garbage collection: at least the distinction between reference counting and tracing/moving collectors.
-- **Required:** Threading fundamentals — OS threads vs. runtime-managed (green) threads.
-- **Helpful:** Exposure to the JVM, Go's goroutine model, or Rust's ownership system.
-- **Helpful:** Having debugged at least one native crash with gdb/lldb.
-
-You do **not** need:
-
-- Production packaging/distribution mechanics (that's `professional.md`).
-- The detailed callback/upcall threading hazards at scale (that's `professional.md`).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Moving GC** | A garbage collector that relocates live objects to compact the heap. The JVM and Go have moving collectors; CPython does not. |
-| **Pinning** | Temporarily forbidding the GC from moving a specific object so native code can hold a raw pointer to it safely. |
-| **Safepoint** | A point where a thread can be paused for GC. The GC only runs when all threads are at safepoints. |
-| **JNI** | Java Native Interface — the original Java↔native mechanism. Uses a `JNIEnv*` and opaque object handles. |
-| **`JNIEnv*`** | A per-thread pointer giving native code access to JNI functions. **Not** shareable across threads. |
-| **Local reference** | A JNI object handle valid only for the duration of the native call; auto-freed on return. |
-| **Global reference** | A JNI handle that survives across native calls; you must explicitly delete it or it leaks. |
-| **`GetPrimitiveArrayCritical`** | A JNI call that *pins* a Java primitive array so C can access its raw bytes — must be released ASAP; blocks GC. |
-| **Project Panama / FFM API** | Java's Foreign Function & Memory API: `Linker`, `MethodHandle`, `MemorySegment` — a typed, lower-boilerplate JNI replacement. |
-| **Downcall** | Managed code calling into native code (the common direction). |
-| **Upcall** | Native code calling back into managed code (a callback). The dangerous direction. |
-| **cgo** | Go's C interop. Triggered by `import "C"` with a preamble comment. |
-| **Goroutine stack** | A small, growable, *movable* stack. C needs a fixed OS stack, so cgo switches stacks per call. |
-| **`extern "C"`** | Rust (and C++) syntax declaring functions use the C ABI, with no name mangling. |
-| **`#[repr(C)]`** | Rust attribute forcing a struct/enum to use C's field layout and alignment. |
-| **`bindgen`** | Tool that auto-generates Rust FFI declarations from C headers. |
-| **`cbindgen`** | Tool that generates C headers from Rust `extern "C"` code (the reverse). |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -119,28 +62,6 @@ Rust has no runtime GC and no relocation, so its FFI is the most direct of the f
 - **`cbindgen`** does the reverse: generates a C header *from* your Rust `extern "C"` functions, so C/other languages can call into your Rust.
 
 The defining Rust idiom is the **safe-wrapper-over-unsafe-core** pattern: the raw `extern` calls live in a small `unsafe` module, and a hand-written safe API wraps them, encoding ownership and lifetimes in the type system (e.g., a struct whose `Drop` impl calls the C `free`, so leaks are impossible). This is exactly the pattern every other language *should* follow but only Rust *enforces* — and it's why Rust is increasingly the language people write the native core in (then bind to Python via PyO3, to Node via neon, to C via cbindgen).
-
----
-
-## Real-World Analogies
-
-**Assigned seats vs. coat-check tags (non-moving vs. moving GC).** CPython is a theater with assigned seats: once you know seat 14C, that's where the person stays — a raw pointer works. The JVM is a coat check: you get a *tag*, and the attendant may move your coat to a different hook (GC compaction). You must hand back the tag (jobject), never assume a physical hook. `GetPrimitiveArrayCritical` is asking the attendant to *freeze the rack* while you grab your coat — fast, but everyone else waits, so be quick.
-
-**A toll plaza between a bike path and a highway (cgo stack switch).** Goroutines are bikes on a narrow movable path; C is a highway needing a real lane. Every C call, you dismount, push through the toll plaza onto the highway, and reverse on the way back. One trip is fine; commuting through the plaza a million times a second is the cliff.
-
-**Don't lend your house keys to a contractor who might lose them (Go pointer rule).** You can let C *look* at your data during a job, but if C pockets the key (retains a Go pointer), the GC might rekey the locks (move/free the object) and now the contractor holds a key to nothing — or to someone else's house. Hand them a *copy* they own instead.
-
-**A licensed electrician wrapping the live wires (Rust safe wrapper).** The `unsafe` core is the bare live wire; the safe API is the sealed, labeled outlet. End users plug into the outlet and can't touch the wire. Rust makes you build the outlet before anyone uses the wire.
-
----
-
-## Mental Models
-
-**Model 1: Pointers are stable iff the GC doesn't move.** Decide first: does this runtime relocate objects? If yes, native code gets handles or pins, never free-roaming raw pointers. If no, native code gets pointers but owes lifetime management. Every FFI design falls out of this answer.
-
-**Model 2: The boundary cost is per-runtime, not universal.** A CPython `ctypes` call, a JNI call, a Panama downcall, a cgo call, and a Rust `extern` call have wildly different fixed costs (Rust ≈ free; cgo expensive; JNI moderate). "FFI overhead" without naming the runtime is meaningless.
-
-**Model 3: Push the unsafe surface down and make it small.** Across all languages, the senior move is the same: a tiny, audited, unsafe boundary layer, wrapped by a safe, idiomatic API that encodes ownership. Rust enforces it; you should impose it everywhere.
 
 ---
 
@@ -250,32 +171,6 @@ A caller of `SafeThing` writes pure safe Rust and *cannot* forget to free or mis
 
 ---
 
-## Pros & Cons
-
-**Pros**
-
-- **Panama modernizes Java FFI** — no C glue, bounds-checked memory, deterministic freeing, lower overhead than JNI.
-- **Rust's model makes safe, leak-proof bindings idiomatic** and is the best language to write the shared native core in.
-- **CPython's stable pointers** make object lifetimes (not locations) the only concern — simpler than moving-GC FFI.
-
-**Cons**
-
-- **JNI is verbose and leak-prone** — global refs and critical regions are easy to mishandle and stall the GC.
-- **cgo has a real per-call cost and breaks easy cross-compilation** — a strategic, not casual, dependency.
-- **Moving GCs forbid free-roaming pointers**, forcing handles/pinning and the bugs that come with them.
-- **Every model is different**, so cross-language native cores must satisfy the strictest set of rules.
-
----
-
-## Use Cases
-
-- **Migrating a Java service off JNI to Panama** to delete native build steps and ref-leak incidents.
-- **Writing the native core once in Rust** and binding it to Python (PyO3), Node (neon), and C (cbindgen) — one audited unsafe surface, many safe wrappers.
-- **Auditing a cgo hot path** that regressed under load and either batching crossings or moving the loop into C.
-- **Reviewing a JNI binding** for `JNIEnv*` thread-caching, missing `ExceptionCheck`, leaked global refs, and oversized critical regions.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Handles for moving GCs, pins only briefly
@@ -324,28 +219,24 @@ Use `bindgen` (C→Rust) or `cbindgen` (Rust→C) so declarations stay in sync w
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-| Runtime | GC | Pointer model | FFI mechanism | Signature crash risk |
-|---------|----|---------------|--------------|----------------------|
-| CPython | refcount, non-moving | stable raw `PyObject*` | C-API / ctypes / cffi | refcount + argtype errors |
-| JVM | moving, generational | handles (jobject), pin for arrays | JNI / **Panama (FFM)** | descriptor/ref-scope errors |
-| Go | moving stacks | no Go ptrs retained by C | cgo | per-call cost + ptr rule |
-| Rust | none (compile-time) | raw ptrs in `unsafe` | `extern "C"` + bindgen/cbindgen | `unsafe`-localized |
+1. State the system invariant that **FFI from High-Level Languages** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
-| Item | Key fact |
-|------|----------|
-| `GetPrimitiveArrayCritical` | Pins array (blocks GC); release immediately, do nothing heavy inside. |
-| JNI global ref | Must `DeleteGlobalRef`; leak = Java leak. |
-| Panama core types | `Linker`, `MethodHandle`, `MemorySegment`, `Arena`. |
-| cgo cliff | Per-call goroutine→system stack switch; brutal in tight loops. |
-| Go pointer rule | C may use a Go ptr during the call, never retain it. |
-| Rust idiom | Safe wrapper (Drop-backed) over a tiny unsafe core; bindgen/cbindgen for declarations. |
+## Verify your work
 
----
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
 
-## Summary
+## Review questions
 
-Each runtime's FFI is shaped by its memory and execution model. **CPython** doesn't move objects, so native code holds stable `PyObject*` pointers and the only discipline is lifetime (refcounts) under the GIL. The **JVM** moves objects, so JNI deals in opaque handles, scoped local/global references, and brief pinning via `GetPrimitiveArrayCritical`; it's verbose and leak-prone, and **Project Panama** (the FFM API — `Linker`, `MethodHandle`, `MemorySegment`, `Arena`) replaces it with typed, bounds-checked, deterministically-freed, lower-overhead access and no hand-written C. **Go**'s cgo pays a real per-call cost (goroutine→system stack switch plus scheduler coordination), forbids C from retaining Go pointers, and complicates cross-compilation — making it an architectural decision. **Rust** has no runtime GC, so its FFI (`extern "C"`, `#[repr(C)]`, `bindgen`/`cbindgen`) is the cleanest, and its enforced **safe-wrapper-over-unsafe-core** pattern is the model everyone else should imitate — which is why Rust is increasingly the language the shared native core is written in.
-
-The universal senior lesson: decide whether the GC moves, push the unsafe surface down into a tiny audited layer, encode ownership in types, and know that "FFI overhead" is meaningless without naming the runtime. `professional.md` extends this to callbacks/upcalls under threading, attaching native threads to the runtime, and shipping native artifacts (manylinux wheels, JNI loading, signing) at production scale.
+- Which invariant must remain true when FFI from High-Level Languages fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

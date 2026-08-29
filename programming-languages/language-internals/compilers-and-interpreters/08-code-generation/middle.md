@@ -1,67 +1,11 @@
-# Code Generation — Middle Level
+# Code Generation — Middle
 
-> **Topic:** Code Generation
-> **Focus:** The algorithms behind the back end: tree-pattern instruction selection, graph-coloring and linear-scan register allocation, and list scheduling over a dependence DAG.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **Code Generation** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-> Focus: **How does the back end actually decide?** The junior page named the three sub-problems. This page gives you the algorithms that solve them — and the costs and trade-offs baked into each.
-
-At the junior level, code generation was three jobs — selection, allocation, scheduling — described in plain language. Now we make them mechanical. Each is a real algorithmic problem with a literature, a textbook solution, and a set of well-understood compromises, because the *optimal* version of each is intractable.
-
-The themes you'll internalize here:
-
-- **Instruction selection** is a *covering* problem on a tree (or DAG). You have a set of instruction "tiles," each matching a pattern of IR operations and carrying a cost; you want to tile the IR tree as cheaply as possible. The greedy answer is **maximal munch**; the optimal answer (for trees) is **dynamic programming**, the engine behind tools like BURS/iburg.
-- **Register allocation** is **graph coloring** in its classical formulation: build an interference graph, color it with K colors (K = number of registers), and when you can't, **spill**. The Chaitin–Briggs allocator is the canonical version. Its fast cousin, **linear scan**, trades quality for speed and is what JITs use.
-- **Instruction scheduling** is **list scheduling** over a **data-dependence DAG**: a greedy, priority-driven topological ordering that tries to keep functional units busy and hide latency.
-
-And the unifying tension — the **phase-ordering problem** — is that these three passes interfere. Scheduling for parallelism raises register pressure; allocating tightly constrains scheduling; selection choices change both. No order of the three is optimal in general.
-
-> 🎓 **Why this matters at this level:** Once you know these algorithms, generated assembly stops being mysterious. You can predict when a value will spill (high interference + few registers), why a particular instruction was chosen (lowest-cost tile covering that subtree), and why a hot loop didn't vectorize or schedule the way you hoped. This is the level where "the compiler is a black box" becomes "the compiler made a specific, explainable decision."
-
-This page stays target-agnostic where it can and uses x86-64/AArch64 for concrete examples. `senior.md` moves to the modern frameworks (LLVM SelectionDAG, GlobalISel, SSA-based allocation) and the deeper phase-ordering theory; `professional.md` covers TableGen target descriptions, JIT codegen, and DWARF.
-
----
-
-## Prerequisites
-
-- **Required:** The junior page — the three sub-problems and the kitchen/burner mental model.
-- **Required:** Basic data structures: trees, DAGs, graphs, topological sort, greedy vs dynamic-programming algorithms.
-- **Required:** What **SSA form** is, at least loosely — each value assigned once; this shapes modern allocation and selection.
-- **Required:** What a **basic block** and **control-flow graph (CFG)** are.
-- **Helpful but not required:** Familiarity with **graph coloring** as an abstract problem (and that it's NP-hard).
-- **Helpful but not required:** Some exposure to CPU pipelines — why a load has latency and why independent work hides it.
-
-You do **not** yet need: LLVM's SelectionDAG internals, TableGen, JIT runtime patching, or DWARF (all later).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Tile / pattern** | An instruction template matching a subtree of IR operations, with an associated cost. |
-| **Tree covering** | Selecting a set of non-overlapping tiles that together cover the whole IR tree. |
-| **Maximal munch** | Greedy selection: at each node, pick the largest matching tile, then recurse on the leftover subtrees. |
-| **BURS / iburg** | Bottom-Up Rewrite System; a dynamic-programming instruction selector generated from a cost-annotated grammar. |
-| **Live range** | The span of instructions over which a value is alive (defined, then later used). |
-| **Liveness analysis** | The dataflow analysis computing, at each program point, which values are live. |
-| **Interference graph** | A graph with one node per value; an edge between two values means their live ranges overlap (they can't share a register). |
-| **Graph coloring** | Assigning K colors (registers) to graph nodes so no two adjacent nodes share a color. |
-| **K (degree of the target)** | The number of allocatable physical registers. |
-| **Spill** | Storing a value to a stack slot and reloading it because no register is available. |
-| **Spill cost** | An estimate of how expensive it is to spill a given value (uses × loop depth ÷ live-range length). |
-| **Coalescing** | Merging two values connected by a copy into one node, eliminating the `mov`, if they don't interfere. |
-| **Linear scan** | A fast allocator that sweeps live ranges left to right and assigns registers greedily. |
-| **Caller-saved / callee-saved** | Registers the caller must save before a call (caller-saved) vs registers the callee must preserve (callee-saved). |
-| **Data-dependence DAG** | A DAG of instructions where edges encode "must run after" relationships (true/anti/output dependences). |
-| **List scheduling** | Greedy scheduling: repeatedly pick the highest-priority ready instruction and emit it. |
-| **Latency** | Cycles from when an instruction issues to when its result is usable. |
-| **ILP** | Instruction-Level Parallelism: independent instructions that can execute simultaneously. |
-| **Phase ordering** | The problem that selection, allocation, and scheduling interfere, with no globally optimal order. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -177,42 +121,6 @@ So:
 - **Allocate before schedule:** allocation pins values to registers, adding **false dependences** (two values forced into the same register can't be reordered freely), constraining the scheduler.
 
 There is no universally correct order. Real compilers compromise: schedule, allocate, then *re-schedule* (post-allocation scheduling) to clean up; or use **register-pressure-aware scheduling** that throttles parallelism when pressure gets high. This is the canonical example of the phase-ordering problem.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Tile covering** | Tiling a floor with pieces of various sizes; bigger tiles cover more area with fewer pieces, but must fit the shape. |
-| **Maximal munch** | Always grabbing the biggest tile that fits right now, then dealing with the gaps. |
-| **DP optimal selection** | Planning the *whole* floor first to minimize total tile cost, not just grabbing greedily. |
-| **Interference graph** | A seating chart where two guests who feud (overlap in time) can't share a chair (register). |
-| **Graph coloring** | Coloring a map so no two bordering countries share a color, with only K crayons. |
-| **Spilling** | Out of chairs at the party, so some guests stand in the hallway (stack) and come back when a chair frees up. |
-| **Spill cost** | Choosing who stands in the hallway — not the guest who needs to sit constantly (deep-loop value). |
-| **Coalescing** | Two name-tags for the same person; merge them and throw one away (delete the copy). |
-| **Linear scan** | Seating guests as they arrive, in order, freeing chairs as guests leave — fast, not optimal. |
-| **Dependence DAG** | A recipe's step graph: you can't ice the cake before it bakes (true dependence). |
-| **List scheduling** | Cooking by always starting the most time-critical ready step, filling waits with other prep. |
-| **Software pipelining** | A laundromat: while load i dries, you wash load i+1 and fold load i−1 — all stages busy at once. |
-| **Phase ordering** | Packing a suitcase: optimize for fitting more in, and it gets harder to find what you need; optimize for access, and it's less full. |
-
----
-
-## Mental Models
-
-### The "Cover, Color, Order" Pipeline
-
-Three verbs in sequence: **cover** the IR with instruction tiles (selection), **color** the values with registers (allocation), **order** the instructions to hide latency (scheduling). Each is a classic CS problem — covering, graph coloring, list scheduling — and each is intractable optimally, so each uses a smart heuristic. Carry the three verbs; they organize the entire back end.
-
-### The "Pressure Gauge" Model
-
-Hold a mental gauge labeled **register pressure** — how many values are alive at the busiest point. The whole drama of allocation and the scheduling conflict is about this gauge. Below K (registers), everything fits and life is good. Push it above K — by writing more live variables, or by scheduling for more parallelism — and you spill, paying memory traffic. Many real-world performance fixes are just "lower the gauge."
-
-### The "Critical Path" Model for Scheduling
-
-Picture the dependence DAG with the longest latency-weighted path highlighted in red. That red path is your *floor* on execution time — you can't finish faster than it. The scheduler's job is to ensure nothing *off* the critical path stalls progress *on* it, by filling the slack cycles with independent work. Optimizing the schedule = keeping the critical path moving.
 
 ---
 
@@ -369,31 +277,6 @@ At `-O3` the compiler often **unrolls** and uses several accumulator registers t
 
 ---
 
-## Pros & Cons
-
-| Technique | Pros | Cons |
-|-----------|------|------|
-| **Maximal munch selection** | Simple, fast, linear-time, good in practice. | Greedy; can miss the globally cheapest cover. |
-| **DP / BURS selection** | Optimal tree cover; table-driven from a grammar. | More complex to build; optimal only for trees, not general DAGs. |
-| **Graph-coloring allocation** | High-quality allocation; well-understood; good coalescing. | Slow (build + iterate interference graph); NP-hard core, heuristic spills. |
-| **Linear-scan allocation** | Very fast (~O(n log n)); ideal for JITs. | Lower code quality; coarse spill decisions. |
-| **List scheduling** | Effective, fast, the industry standard within a block. | Greedy; limited to a basic block unless extended; ignores cross-block effects. |
-| **Software pipelining** | Big ILP wins on tight loops, especially in-order cores. | Complex; high register pressure; intricate prologue/epilogue. |
-| **Schedule-then-allocate** | Good schedule. | May overshoot register pressure → spills. |
-| **Allocate-then-schedule** | Controlled pressure. | False dependences from register reuse constrain the schedule. |
-
----
-
-## Use Cases
-
-- **Predicting and explaining spills.** Knowing the interference-graph/K model lets you say *why* a hot loop spilled and how to relieve it (fewer live values, splitting the function).
-- **Choosing an allocator for a compiler/JIT.** Building a JIT? Linear scan. Building an ahead-of-time optimizing compiler? Graph coloring (or SSA-based). The decision flows from compile-time-vs-quality.
-- **Reading `-O3` loop code.** Understanding list scheduling and software pipelining explains unrolling, multiple accumulators, and interleaved loads/stores.
-- **Diagnosing ABI-related spills.** Recognizing caller-saved/callee-saved interaction explains why values get spilled around calls.
-- **Understanding why selection differs across targets.** The CISC-vs-RISC tile story explains why the same source yields denser code on x86 and more, simpler instructions on RISC-V.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Lower Register Pressure to Avoid Spills
@@ -443,3 +326,27 @@ In a compiler, run a light scheduling pass *after* allocation to clean up the fa
 - **On out-of-order CPUs, careful scheduling is partly wasted.** The hardware reorders anyway. Don't over-invest compiler scheduling for big OoO cores; do invest for in-order embedded targets.
 - **Linear scan's lifetime holes hurt.** Basic linear scan treats a live range as one interval even when the value is dead in the middle ("lifetime holes"); it can hold a register unnecessarily. Extensions (second-chance binpacking, interval splitting) fix this — plain linear scan doesn't.
 - **Spill-cost heuristics are estimates, not truth.** The `uses × loop_depth / degree` formula can misjudge; profile-guided weights do better but require profiles. Don't treat the heuristic as ground truth.
+
+---
+
+## Apply it
+
+1. Find a real component where **Code Generation** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
+
+## Verify your work
+
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
+
+## Review questions
+
+- Which boundary is most affected by Code Generation?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

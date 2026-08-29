@@ -1,57 +1,11 @@
-# Dynamic Dispatch & Proxies — Senior Level
+# Dynamic Dispatch & Proxies — Senior
 
-> **Topic:** Dynamic Dispatch & Proxies
-> **Focus:** The interception machinery at depth — runtime bytecode generation (ASM/ByteBuddy/CGLIB), proxy invariants and membranes, the metaobject protocols that make synthesis possible, and the design trade-offs of building your own proxy layer.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Dynamic Dispatch & Proxies** under failure, load, and change?
 
-## Introduction
-
-> Focus: **If you had to build the proxy layer that Spring/Mockito/Hibernate is built on, what would you need to get right?**
-
-A senior engineer treats "proxy" not as a pattern from a textbook but as a **runtime code-synthesis problem with hard correctness invariants**. The interesting questions stop being "how do I log a method" and become:
-
-- How is the proxy class actually *materialized* — what bytecode is emitted, by what (ASM → CGLIB/ByteBuddy), into which classloader, and what does that cost in metaspace and JIT warm-up?
-- What invariants must a transparent proxy preserve so that callers genuinely cannot tell? (The JS `Proxy` spec encodes these as **invariants** that traps must respect; violating them throws.)
-- How do you proxy a whole **object graph** safely — the **membrane** pattern — so that values crossing the boundary are themselves wrapped, identity is preserved within the membrane, and revocation cuts the entire graph at once?
-- When does interception break **identity, equality, hashing, serialization, and `instanceof`**, and how do production frameworks paper over it?
-
-In one sentence: **a production-grade proxy is a generated type (or a metaobject hook) that must be indistinguishable from its target on the happy path, predictable on the unhappy path, and cheap enough to sit on every call.**
-
-This level covers the generation pipeline, the metaobject protocols (Python descriptors/`__getattribute__`, Ruby's method-lookup chain, JS proxy invariants), membranes and revocation, and the cross-cutting damage to identity/equality that every proxy author must manage.
-
----
-
-## Prerequisites
-
-- **Required:** Solid grasp of `middle.md` — interface vs class proxies, the seam, self-invocation, the per-language hooks.
-- **Required:** Comfortable with Java reflection, classloaders at a conceptual level, and the idea of bytecode.
-- **Required:** Understand descriptors (Python), method resolution order, and prototype chains (JS).
-- **Helpful:** You've debugged a real AOP/lazy-loading/mocking issue in production.
-- **Helpful:** Familiarity with `equals`/`hashCode` contracts and serialization frameworks.
-
-You do **not** strictly need raw ASM opcode fluency, but you should be willing to read a small ASM/ByteBuddy snippet.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Bytecode generation** | Emitting a new class at runtime (an in-memory `byte[]`) and loading it, so it behaves like a compiled class. |
-| **ASM** | A small, fast bytecode library: a visitor over class/method/field structure. The substrate beneath CGLIB and ByteBuddy. |
-| **ByteBuddy** | A high-level, type-safe DSL for generating/redefining classes; engine of modern Mockito and Hibernate enhancement. |
-| **Objenesis** | A library that instantiates a class **without running its constructor** (used by Spring/Mockito to materialize proxies). |
-| **Metaobject protocol (MOP)** | The set of hooks a language exposes for customizing object behavior (attribute access, method lookup, call). |
-| **Descriptor (Python)** | An object implementing `__get__`/`__set__`/`__delete__`; the mechanism behind methods, `property`, `classmethod`. |
-| **Proxy invariant (JS)** | A rule a trap must obey to stay consistent with the target (e.g., can't report a non-configurable, non-writable property as a different value). Violations throw `TypeError`. |
-| **Membrane** | A transitive proxy boundary: any object reachable through a proxied object is itself proxied, with consistent identity and shared revocation. |
-| **Wrapping identity** | The requirement that the *same* target seen twice through a membrane yields the *same* wrapper (a `WeakMap` cache). |
-| **invokedynamic** | A JVM instruction (`indy`) enabling efficient dynamic call sites via `MethodHandle`s; a faster path than reflection for some interception. |
-| **MethodHandle** | A typed, directly-invokable reference to a method; faster than `Method.invoke`. |
-| **Deoptimization** | The JIT discarding optimized code when an assumption (e.g., a monomorphic call site) breaks — megamorphic proxied calls can suffer. |
-| **Revocation** | Disabling a proxy so all further operations throw; central to capability security and membranes. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -128,36 +82,6 @@ Interception breaks the things that assume an object *is* itself:
 - **Identity (`==`/`is`)** — a proxy is a different object; identity maps and `==`-by-reference checks misbehave. Membranes need the wrapper cache to restore *relative* identity.
 - **Serialization** — serializing a proxy serializes the generated class, which the deserializer may not have. Frameworks register custom serializers or unwrap to the target first.
 - **`getClass()`/`toString()`** — return the generated type name unless overridden, leaking implementation detail into logs.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Bytecode generation** | A factory that, on demand, fabricates a brand-new machine part to spec while the line is running. |
-| **Membrane** | An airlock around an entire wing: anything entering or leaving is sealed in a suit; one switch evacuates the whole wing. |
-| **Wrapping identity** | The airlock keeps a register so the *same* person always gets the *same* suit — colleagues still recognize each other. |
-| **Proxy invariants (JS)** | Building codes the airlock must obey; you can customize the door, but you cannot make a load-bearing wall vanish. |
-| **MethodHandle vs reflection** | A direct dial line vs going through a switchboard operator for every call. |
-| **Deoptimization** | A highway that was widened for predictable traffic suddenly narrowing when traffic becomes chaotic (megamorphic). |
-| **Revocation** | Burning the only bridge: every path through it is instantly cut. |
-
----
-
-## Mental Models
-
-### The "Generated Type Has a Real Cost" Model
-
-Every CGLIB/ByteBuddy proxy and every Mockito mock is a *new class* in metaspace, JIT-compiled after warm-up, loaded by *some* classloader. Hold the cost in mind: thousands of distinct generated classes (e.g., a test suite that mocks heavily, or a per-request proxy) can pressure metaspace and pin classloaders, causing leaks. The fix is class reuse/caching and bounded generation.
-
-### The "Invariant-Preserving Mirror" Model (JS)
-
-Think of a transparent proxy as a mirror that must reflect the target *accurately enough* that the language's guarantees still hold. The JS engine actively checks the mirror against the target for frozen/non-configurable properties. Forward to `Reflect` and the mirror stays honest for free; hand-roll the trap and you must uphold the invariants yourself.
-
-### The "Boundary, Not a Point" Model (membranes)
-
-A single proxy is a point of interception; a membrane is a *boundary* with a topology. Reason about what crosses it in *both* directions (return values out, arguments in), maintain a wrapper cache for identity, and treat `revoke()` as a global cut. This is the model behind secure sandboxes and transparent persistence/transaction boundaries over object graphs.
 
 ---
 
@@ -278,7 +202,6 @@ class Lazy:
         obj.__dict__[self.name] = value        # shadow the descriptor: future reads are direct
         return value
 
-
 class Report:
     rows = Lazy(lambda: expensive_query())     # not run until report.rows is touched
 ```
@@ -310,29 +233,6 @@ end
 ```
 
 The first call to an unknown method falls into `method_missing`, which *materializes* a real method via `define_method`; every subsequent call dispatches directly. This is the standard trick to avoid paying the `method_missing` cost forever — the same idea as Python's descriptor caching above.
-
----
-
-## Pros & Cons
-
-| Aspect | Pros | Cons |
-|--------|------|------|
-| **Bytecode-generated proxies** | Near-native forward speed; works on concrete classes. | Metaspace cost; warm-up; classloader/module access issues; debugging through generated frames. |
-| **MethodHandle/indy forwarding** | Much faster than reflection; no exception wrapping. | More complex; must manage handle caching and bootstrap. |
-| **Membranes** | Strong isolation; transactional/secure boundaries over whole graphs. | Subtle identity/`WeakMap` management; performance per crossing; revocation semantics to get right. |
-| **Metaobject hooks** | No codegen; ultimate flexibility; self-healing dispatch via define-method/descriptor caching. | "Every access" hooks are slow and recursion-prone; introspection (`dir`, autocomplete) degrades. |
-| **JS Proxy** | Spec-enforced invariants keep it sound. | Invariants throw on frozen/sealed targets; per-op overhead; some operations (private fields) don't trap. |
-
----
-
-## Use Cases
-
-- **High-performance interception layers** (RPC stubs, ORMs, AOP) where per-call cost matters → MethodHandle/generated dispatch, not reflection.
-- **Secure sandboxes / plugin isolation** → membranes with revocation.
-- **Transparent persistence/transaction boundaries** over object graphs → membrane-style proxies that intercept reads/writes and flush at the boundary.
-- **Lazy graphs** (Hibernate, GraphQL dataloaders) → virtual proxies materializing on first touch, with identity preserved.
-- **Reactive systems at scale** (Vue 3, signals) → `Proxy`-based dependency tracking with careful invariant handling.
-- **Mocking/test doubles** → generated subclasses; understand metaspace impact in large suites.
 
 ---
 
@@ -388,88 +288,24 @@ If callers compare or hash proxied objects, forward `equals`/`hashCode`/`==`/`__
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. Walk the full pipeline from "I want to proxy class `Foo`" to "I have an instance," naming each tool (ByteBuddy/ASM/classloader/Objenesis) and the cost it introduces.
-2. State three JS proxy invariants. Why does forwarding to `Reflect` satisfy them automatically?
-3. What are the two non-negotiable properties of a correct membrane? What breaks if each is missing?
-4. Compare `Method.invoke`, `MethodHandle.invoke`, and a `@SuperCall` for forwarding: speed, exception behavior, recursion risk.
-5. Explain how a Python descriptor or Ruby `define_method` turns a *dynamic* dispatch into a one-time cost. Why is the second call cheap?
-6. Your test suite mocks thousands of classes and metaspace climbs steadily. Diagnose it in terms of generated classes and classloaders.
-7. Why can a JS membrane fail to fully wrap a class that uses `#private` fields?
-8. A serialized proxy fails to deserialize on another node. Explain why and give two fixes.
+1. State the system invariant that **Dynamic Dispatch & Proxies** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
----
+## Verify your work
 
-## Cheat Sheet
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
 
-```text
-┌────────────────────────────────────────────────────────────────────────┐
-│                 PROXIES AT DEPTH — SENIOR LEVEL                          │
-├────────────────────────────────────────────────────────────────────────┤
-│ Generation pipeline:                                                    │
-│   DSL (ByteBuddy/CGLIB) → ASM byte[] → defineClass → Objenesis/ctor      │
-│   costs: metaspace · JIT warm-up · classloader visibility · modules     │
-├────────────────────────────────────────────────────────────────────────┤
-│ Forward speed:  Method.invoke  <  MethodHandle/indy  <  @SuperCall      │
-│   (reflective, wraps exc)         (typed, fast)         (direct super)   │
-├────────────────────────────────────────────────────────────────────────┤
-│ JS Proxy invariants (forward to Reflect to satisfy):                    │
-│   * non-config non-writable get must match                              │
-│   * can't hide non-config own keys / report wrong descriptors           │
-│   #private fields do NOT trap                                           │
-├────────────────────────────────────────────────────────────────────────┤
-│ MEMBRANE = transitive proxy boundary                                    │
-│   1. wrap everything crossing OUT and IN                                │
-│   2. WeakMap target→wrapper  (identity preserved)                       │
-│   3. one revoke() cuts the whole graph                                  │
-├────────────────────────────────────────────────────────────────────────┤
-│ Self-healing dispatch: Ruby define_method / Python descriptor caching   │
-│   pay synthesis ONCE, then dispatch directly                            │
-├────────────────────────────────────────────────────────────────────────┤
-│ Collateral damage: instanceof · ==/is · equals/hashCode · serialization │
-└────────────────────────────────────────────────────────────────────────┘
-```
+## Review questions
 
----
-
-## Summary
-
-- A production proxy is **runtime code synthesis**: ByteBuddy/CGLIB describe a subclass, ASM emits bytecode, a classloader defines it, Objenesis/constructor instantiates it, and the JIT warms the interceptor path. Each step has a real cost (metaspace, warm-up, classloader/module visibility).
-- Forwarding speed ranges from **`Method.invoke`** (reflective, exception-wrapping) through **`MethodHandle`/invokedynamic** to a direct **`@SuperCall`/`invokeSuper`**. Hot paths should avoid reflection.
-- JS `Proxy` is bound by **invariants** that keep it sound against frozen/non-configurable targets; forwarding to **`Reflect`** satisfies them automatically. `#private` fields don't trap.
-- A **membrane** extends a single proxy to a whole graph: transitive wrapping both directions, **identity preservation via a `WeakMap`**, and **shared revocation**. It's the basis of sandboxes and transparent persistence/transaction boundaries.
-- The metaobject protocols (Python descriptors/`__getattribute__`, Ruby `method_missing`/`define_method`, JS traps) let you **synthesize** behavior — and you can **promote** a dynamic dispatch into a real cached method to pay the cost only once.
-- Interception inflicts **collateral damage** on identity, equality/hashing, `instanceof`, and serialization; mature frameworks forward `equals`/`hashCode` (Hibernate), unwrap before serializing, and document their identity story.
-
----
-
-## What You Can Build
-
-- **A minimal ByteBuddy/CGLIB AOP engine**: annotation-driven `@Timed`/`@Logged` advice applied to overridable methods, with a generated-class cache; measure metaspace growth.
-- **A JS membrane library**: transitive wrapping, `WeakMap` identity, `revoke()`, and a test proving `===` holds inside and throws after revocation.
-- **A MethodHandle-based dynamic proxy** that benchmarks forward latency against a `Method.invoke` version.
-- **A lazy object graph** in Python using descriptors, with identity preserved across repeated access and a flag proving the factory runs exactly once.
-- **A self-healing Ruby proxy** that promotes `method_missing` hits into real methods and benchmarks call N=1 vs N=2.
-- **A serialization-safe proxy**: detect a proxy, unwrap to the target on the write path, and re-proxy on read.
-
----
-
-## Further Reading
-
-- *ByteBuddy tutorial & Javadoc* — `MethodDelegation`, `@SuperCall`, `@Origin`. https://bytebuddy.net/#/tutorial
-- *ASM User Guide* — https://asm.ow2.io/
-- *Tom Van Cutsem — "Membranes in JavaScript"* and the harmony-reflect work; the canonical membrane references.
-- *ECMAScript spec — Proxy internal methods and invariants* — https://tc39.es/ecma262/#sec-proxy-object-internal-methods-and-internal-slots
-- *Java `MethodHandles`/`invokedynamic`* — JSR-292 background; John Rose's blog.
-- *Python Descriptor HowTo Guide* — https://docs.python.org/3/howto/descriptor.html
-- *Hibernate User Guide — bytecode enhancement & proxies* — lazy loading internals.
-- *Mockito inline mock maker design notes* — ByteBuddy-based mocking of finals/statics.
-
----
-
-## Related Topics
-
-- This folder, other levels: [`junior.md`](junior.md), [`middle.md`](middle.md), [`professional.md`](professional.md), [`interview.md`](interview.md), [`tasks.md`](tasks.md).
-- Sibling metaprogramming topics in this section — runtime code generation, reflection, and AST/bytecode manipulation — supply the generation substrate that proxies depend on.
-- The runtime-systems coverage of vtables/inline caches and JIT deoptimization complements the performance discussion here; that topic explains *how* dispatch is optimized, while this one is about *intercepting and synthesizing* it.
+- Which invariant must remain true when Dynamic Dispatch & Proxies fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

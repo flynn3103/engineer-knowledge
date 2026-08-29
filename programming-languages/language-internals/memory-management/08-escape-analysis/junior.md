@@ -1,45 +1,11 @@
-# Escape Analysis — Junior Level
+# Escape Analysis — Junior
 
-> **Topic:** Escape Analysis
-> **Focus:** What escape analysis is, why "stack vs heap" is a decision the compiler makes for you, and the intuition for when a value escapes.
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **Escape Analysis** in one small example and prove the result?
 
-## Introduction
-
-Every value your program creates has to live *somewhere* in memory. Two of the most important places are the **stack** and the **heap**. The stack is fast, automatic, and freed for you when a function returns. The heap is more flexible but costs more — something (a garbage collector or an allocator/`free` call) has to track it and clean it up later.
-
-**Escape analysis** is the compiler optimization that answers one question for each value you allocate:
-
-> *Does this value need to outlive the function that created it?*
-
-If the answer is **no**, the value "does not escape," and the compiler can keep it on the stack — cheap, fast, zero garbage-collection cost. If the answer is **yes** (or "I can't prove otherwise"), the value "escapes to the heap," and it gets the more expensive treatment.
-
-The beautiful part: in languages like Go and Java, **you don't write `malloc` or `new` on the stack vs heap explicitly**. You just create values, and the compiler decides placement for you based on how the value is used. Escape analysis is the brain behind that decision.
-
----
-
-## Prerequisites
-
-- You know what a **function call** is and that local variables exist while the function runs.
-- You have a rough idea of **the stack** (where local variables and call frames live) and **the heap** (a larger pool of memory managed separately).
-- You've heard of a **garbage collector (GC)** — a background process that reclaims heap memory no longer in use. (Go and Java both have one.)
-- Basic familiarity with **pointers / references** — a value that "points to" another value somewhere in memory.
-
-You do *not* need to know how a compiler is built. We stay at the level of intuition and observable behavior.
-
----
-
-## Glossary
-
-- **Stack:** Memory tied to a function call. Allocating is nearly free (move a pointer); it's reclaimed automatically when the function returns. Each goroutine/thread has its own.
-- **Heap:** A shared memory pool for values whose lifetime isn't tied to a single function call. More expensive to allocate and must be reclaimed later (by GC or manual `free`).
-- **Allocation:** Reserving memory to hold a value.
-- **Escape:** When a value must live on the heap because it could be reachable *after* the function that created it returns.
-- **Does not escape:** The value's lifetime fits entirely inside the function — safe to keep on the stack.
-- **Garbage Collector (GC):** Background system that finds and frees heap memory no longer reachable.
-- **Pointer / Reference:** A value holding the address of another value.
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -72,24 +38,6 @@ If none of these happen, the value does not escape.
 ### 3. "I can't prove it's safe" means "escape"
 
 Escape analysis is **conservative**. When the compiler is unsure — for example, you call a method through an interface and it can't tell which concrete code runs — it assumes the value escapes. Being conservative keeps your program correct; the cost is a few extra heap allocations.
-
----
-
-## Real-World Analogies
-
-**The scratch-paper analogy.** Imagine you're doing a calculation. If you need a number only for the next few steps, you jot it on scratch paper and throw it away when you're done — that's the **stack**. But if you compute a result someone else will pick up later (you leave it in the shared inbox), you can't throw it away when you finish — it has to go somewhere durable — that's the **heap**. Escape analysis is you deciding: "Is this just for me right now (scratch), or will someone need it after I leave (inbox)?"
-
-**The hotel room analogy.** A stack value is like a hotel room you check out of when you leave — housekeeping resets it automatically. A heap value is like a storage unit you rent: it stays until *someone* decides to clear it out. If you'll need your stuff after you leave the hotel, you can't leave it in the room; it must go to storage. "Does it escape?" = "Will I need this after checkout?"
-
----
-
-## Mental Models
-
-- **"Lifetime fits the function" → stack.** Picture the function as a box. If the value never leaves the box, it lives in the box (stack). If a thread of reachability leads *out* of the box, the value must live in the shared house (heap).
-
-- **Escape = a reference leaking outward.** Track where references to a value can travel. If any path leads to something that outlives the function, it escapes.
-
-- **The compiler is a cautious lawyer.** It will only allow stack placement if it can *prove* there's no way the value outlives the call. Doubt = heap.
 
 ---
 
@@ -148,28 +96,6 @@ For the code above you'll see lines like:
 
 ---
 
-## Pros & Cons
-
-**Pros**
-- **Free performance.** You write natural code; the compiler removes heap allocations where it safely can.
-- **Less GC pressure** automatically, which means fewer/shorter GC pauses.
-- **Safety + speed together.** You can return pointers to locals without worrying about dangling references; the analysis handles it.
-
-**Cons**
-- **You can't fully control or rely on it.** A small code change can flip a value from stack to heap unexpectedly.
-- **It's conservative.** When the compiler is unsure, it heap-allocates even if you "know" it's safe.
-- **Invisible by default.** You only see what happened if you ask the compiler (e.g., `-gcflags=-m`).
-
----
-
-## Use Cases
-
-- **Hot loops** that create many small temporary values — keeping them on the stack avoids flooding the GC.
-- **Constructors / factory functions** that build a small value and return it — knowing whether it escapes tells you the allocation cost.
-- **Performance-sensitive services** (web servers, data pipelines) where reducing allocations measurably improves latency.
-
----
-
 ## Best Practices
 
 - **Write clear code first; measure later.** Don't contort code to avoid escapes until profiling shows allocations matter.
@@ -188,11 +114,24 @@ For the code above you'll see lines like:
 
 ---
 
-## Summary
+## Apply it
 
-- Values live on the **stack** (cheap, auto-freed) or the **heap** (flexible, GC-managed, more expensive).
-- **Escape analysis** is the compiler optimization that decides which, by asking: *can this value outlive the function that made it?*
-- **No → stack** (no GC cost). **Yes / unsure → heap.**
-- Values escape mainly by being **returned as pointers, stored somewhere long-lived, captured by closures, or passed to code the compiler can't analyze**.
-- In Go you can *see* the decisions with `go build -gcflags='-m'` (look for `moved to heap` / `escapes to heap` / `does not escape`).
-- It's a powerful, free optimization — but **conservative and not guaranteed**, so understand it, but never rely on it for correctness.
+1. Choose one small, known input for **Escape Analysis**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
+
+## Verify your work
+
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
+
+## Review questions
+
+- What problem does Escape Analysis solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

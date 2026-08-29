@@ -95,7 +95,7 @@ You're advising on a green-field service. Two candidate languages: **"Maturelang
 - [ ] The verdict names the bet explicitly: "choosing Freshlang = we personally own the gaps" vs "Maturelang = boring, durable, judged on worst-case fit."
 - [ ] Includes a **sensitivity note**: which weight, if changed, flips the result?
 
-> **Lesson:** a scorecard makes the decision *honest*, not automatic. The same two languages can correctly score differently for a throwaway tool versus a decade-long platform — because the *weights* encode the stakes, exactly as in [`01-language-selection-criteria`](../01-language-selection-criteria/)'s weighted matrix.
+> **Lesson:** a scorecard makes the decision *honest*, not automatic. The same two languages can correctly score differently for a throwaway tool versus a decade-long platform — because the *weights* encode the stakes, exactly as in [`01-language-selection-criteria`](../01-language-selection-criteria/README.md)'s weighted matrix.
 
 ---
 

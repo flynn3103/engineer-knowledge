@@ -1,59 +1,11 @@
-# Fixed-Point & Arbitrary Precision — Middle Level
+# Fixed-Point & Arbitrary Precision — Middle
 
-> **Topic:** Fixed-Point & Arbitrary Precision
-> **Focus:** Q-notation and fixed-point arithmetic that doesn't overflow; scale vs precision in decimal types; the rounding rules that decide who gets the half-cent; and how to allocate money so the pennies always add up.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **Fixed-Point & Arbitrary Precision** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-> Focus: **Now that you know *not* to use floats for money, how do you actually do the arithmetic correctly — including the awkward part where someone has to get the leftover penny?**
-
-The junior page established the *what* and *why*: store money as scaled integers or decimal types, never floats. This page is about the *how*, and specifically the parts that bite once you go past addition.
-
-Three things separate a junior money implementation from a correct one:
-
-1. **Multiplication and division change the scale.** Adding two cent-amounts is trivial. Multiplying a price by a tax rate, or splitting a bill three ways, is where rounding enters — and where most bugs live. You need to understand **scale** and **precision** precisely, and you need a deliberate **rounding mode**.
-2. **Fixed-point math overflows in the intermediate product.** When you multiply two `Q16.16` numbers, the *true* product needs 64 bits before you rescale it back to 32. Forget the wider intermediate and you get garbage. Q-notation makes this explicit and tractable.
-3. **Allocation must conserve the total.** Split $100 three ways and naive rounding gives you $33.33 × 3 = $99.99. A cent vanished. Correct money systems use an **allocation** algorithm that distributes the remainder so the parts always sum to the whole.
-
-> 🎓 **Why this matters for a mid-level engineer:** Anyone can store cents in an `int`. The mid-level skill is handling the *operations* — tax, discounts, splits, currency conversion — so that rounding is intentional, documented, and conserves money. This is exactly the code that ends up under audit, and "the pennies don't add up" is a real, recurring incident in real billing systems.
-
-This page covers: Q-notation and fixed-point multiply/divide with overflow-safe intermediates; the scale/precision model of decimal types and `MathContext`; the standard rounding modes (half-up, half-even/banker's) and when each is correct; and the penny-allocation algorithm. `senior.md` goes deeper into bignum internals and the cost model; `professional.md` covers production money systems end to end.
-
----
-
-## Prerequisites
-
-- **Required:** The junior page — fixed-point as scaled integers, decimal types, bignums, "never floats for money."
-- **Required:** Comfort with integer division and remainder (`/` and `%`), and bit widths (32-bit vs 64-bit).
-- **Required:** Basic binary — you know `2^16 = 65536`.
-- **Helpful:** Having used `BigDecimal` / `Decimal` once.
-
-You do **not** need:
-
-- Bignum multiplication algorithms (Karatsuba, FFT) — that's `senior.md`.
-- Constant-time / crypto considerations — that's `senior.md`/`professional.md`.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Q-notation (Qm.n)** | A fixed-point format with `m` integer bits and `n` fractional bits. `Q16.16` = 16.16, stored in a 32-bit int. The *scale* is `2^n`. |
-| **Scale (fixed-point)** | The implicit multiplier. For `Qm.n` it's `2^n`; for decimal cents it's `10^2 = 100`. |
-| **Scale (decimal type)** | The number of digits to the right of the decimal point. `1.230` has scale 3. |
-| **Precision (decimal type)** | The total count of significant digits. `1.230` has precision 4. |
-| **Unscaled value** | The raw integer inside a decimal: `BigDecimal("1.23")` is unscaled `123` with scale `2`. |
-| **MathContext** | Java's object bundling a *precision* (digit count) and a *RoundingMode*. Controls how operations round. |
-| **Rounding mode** | The rule for picking a representable value: HALF_UP, HALF_EVEN (banker's), FLOOR, CEILING, DOWN, UP, etc. |
-| **Banker's rounding** | HALF_EVEN: ties round to the nearest *even* last digit. 2.5→2, 3.5→4, 2.45→2.4. Unbiased over many roundings. |
-| **Half-up rounding** | Ties round away from zero. 2.5→3, -2.5→-3. What most humans learned in school. |
-| **Allocation** | Splitting a total into parts so the parts sum *exactly* to the total, distributing the leftover minor units. |
-| **Intermediate overflow** | When the true product of two fixed-point values exceeds the storage type *before* you rescale it. The classic fixed-point trap. |
-| **Saturating arithmetic** | On overflow, clamp to max/min instead of wrapping. Common in DSP. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -140,30 +92,6 @@ shares = [3334, 3333, 3333]   # sums to exactly 10000
 ```
 
 For weighted/ratio splits (e.g., allocate by 1:1:1 or by a tax breakdown), the same principle holds: compute each share by rounding *down*, then distribute the leftover units to the shares with the largest fractional remainders (largest-remainder method). The invariant is sacred: **the parts must sum to the whole.** Never round each share independently and hope.
-
----
-
-## Real-World Analogies
-
-**The recipe that scales.** Doubling a recipe that calls for "1.5 eggs" forces a decision: 3 eggs (exact) is fine, but "0.5 egg" rounded independently per ingredient drifts. Allocation is deciding *up front* how the leftover gets assigned so the totals still match.
-
-**Cutting a pizza for an odd group.** Eight slices, three people. Everyone gets two; the remaining two slices must go *somewhere* specific — you don't pretend they evaporated. Allocation names who gets the extras.
-
-**The ruler that measures in 1/16 inch.** `Q16.16`'s fractional part is exactly this: a binary ruler subdivided into `2^16` ticks. Multiplying two measurements needs a bigger workspace (the wide intermediate) before you read the result back off the same ruler.
-
-**The casino chip.** Banker's rounding is the casino insisting ties alternate fairly so the house doesn't quietly skim — over a million spins, "always round up" *is* skimming.
-
----
-
-## Mental Models
-
-**Model 1 — "Multiply widens, then you rescale."** Any fixed-point multiply produces a value at *double* the scale in *double* the bit-width. Always: compute wide, shift/divide back, narrow. Forgetting the wide intermediate is *the* fixed-point bug.
-
-**Model 2 — "A decimal is an integer wearing a decimal point."** `BigDecimal` = bignum + scale. Operations are integer operations on the unscaled value, with bookkeeping on the scale. Once you see that, scale rules stop being magic.
-
-**Model 3 — "Rounding mode is a policy, not a default."** Treat the rounding mode as a business decision you write down explicitly. The default is whatever the language picked, which is rarely what your regulator requires.
-
-**Model 4 — "Allocation conserves; independent rounding leaks."** The moment you split a total, switch from "round each part" to "round n−1 parts and let the last absorb the remainder" (or largest-remainder). The sum-equals-whole invariant is the test.
 
 ---
 
@@ -280,32 +208,6 @@ func applyRate(cents int64, basisPoints int64) int64 {
 
 ---
 
-## Pros & Cons
-
-### Q-notation / binary fixed-point
-
-**Pros:** integer-speed math on hardware without an FPU; deterministic across platforms; predictable bit cost. **Cons:** the programmer manages scale and overflow by hand; limited dynamic range (a `Q16.16` can't hold both 0.0001 and 1,000,000); multiply needs wide intermediates.
-
-### Decimal types with explicit scale/rounding
-
-**Pros:** exact base-10, flexible precision, controllable rounding; matches accounting mental model. **Cons:** slower; division forces an explicit scale/mode; `equals`-vs-value confusion; per-value memory overhead.
-
-### Allocation algorithms
-
-**Pros:** conserve the total exactly; auditable; fair distribution of remainders. **Cons:** a little more code than naive rounding; you must decide the tie-breaking policy (largest-remainder vs first-come) and document it.
-
----
-
-## Use Cases
-
-- **Tax, discount, interest, FX:** decimal types with an explicit rounding mode chosen per regulation.
-- **Bill splitting, payouts, revenue share:** allocation algorithms so distributed amounts sum to the source.
-- **DSP / audio / sensor math on MCUs:** `Qm.n` fixed-point with saturating arithmetic.
-- **Deterministic game/sim physics:** integer or fixed-point so all peers compute bit-identical results.
-- **Invoice rounding:** CEILING/FLOOR for billable units that can't be sold fractionally.
-
----
-
 ## Coding Patterns
 
 **Pattern 1 — "Wide intermediate, then rescale."** Every fixed-point multiply/divide: promote to a wider type, do the op, rescale, narrow. Encapsulate it so callers can't forget.
@@ -345,19 +247,24 @@ func applyRate(cents int64, basisPoints int64) int64 {
 
 ---
 
-## Summary
+## Apply it
 
-- **Q-notation (`Qm.n`)** stores a binary fixed-point value as an integer with scale `2^n`. Add/subtract is trivial; **multiply/divide require a wider intermediate then a rescale** — the central fixed-point skill.
-- **Decimal types are a bignum plus a scale.** Understand scale (fractional digits), precision (significant digits), and that multiply adds scales while divide may not terminate.
-- **Rounding mode is a policy.** HALF_EVEN (banker's) is unbiased and the common financial default; HALF_UP is mandated in some jurisdictions. Choose explicitly.
-- **Allocation conserves the total.** Never round split-shares independently; distribute the leftover minor units (largest-remainder) so the parts sum to the whole.
+1. Find a real component where **Fixed-Point & Arbitrary Precision** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
----
+## Verify your work
 
-## Further Reading
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
 
-- Martin Fowler, *Patterns of Enterprise Application Architecture* — **Money** and its `allocate` operation.
-- IEEE 754 on round-half-to-even as the default rounding rule.
-- Java `BigDecimal`, `MathContext`, `RoundingMode` API docs; Python `decimal` module and its context/rounding constants.
-- *The Art of Computer Programming, Vol. 2* (Knuth) — fixed-point and floating-point arithmetic foundations.
-- Next: `senior.md` for bignum internals (limbs, Karatsuba, FFT) and the performance cost model.
+## Review questions
+
+- Which boundary is most affected by Fixed-Point & Arbitrary Precision?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

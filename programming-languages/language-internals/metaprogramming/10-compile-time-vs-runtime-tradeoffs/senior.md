@@ -1,22 +1,11 @@
-# Compile-Time vs Runtime Trade-offs — Senior Level
+# Compile-Time vs Runtime Trade-offs — Senior
 
-> **Topic:** Compile-Time vs Runtime Trade-offs
-> **Focus:** The dimension-by-dimension comparison that decides where the meta-level should run — and the modern shift toward compile time.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Compile-Time vs Runtime Trade-offs** under failure, load, and change?
 
-## Introduction
-
-This is the synthesis topic of the section. Every technique covered so far —
-reflection, metaclasses, proxies, macros, code generation, annotations — is a point on
-one axis: **when does the meta-level run?** A derive macro and runtime reflection can
-produce the *same* serializer; the difference is entirely *when* the work happens and
-therefore what it costs. At the senior level you stop treating "compile-time" and
-"runtime" as language trivia and start using the axis as a design tool: given a problem,
-you decide where the meta-level belongs by reasoning through performance, startup, type
-safety, flexibility, tooling, and AOT-compatibility — and you recognize the strong
-industry current now pulling toward compile time.
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## The Two Camps
@@ -79,20 +68,6 @@ visibly moved to compile time.
 
 ---
 
-## Mental Models
-
-- **"Pay once vs pay forever."** Compile-time pays the meta cost once, at build; runtime
-  pays a slice of it on every execution and every boot.
-- **"Known-when?"** If the variation is known at build time, compile-time fits; if it's
-  only known at runtime (plugins, dynamic schemas), runtime is required. This single
-  question resolves most cases.
-- **"Closed world vs open world."** Compile-time/AOT assumes the whole program is known
-  at build; runtime reflection thrives in an open world where new types arrive later.
-- **Multi-stage programming** is "have it both ways": stage some computation to compile
-  time while keeping runtime flexibility where needed.
-
----
-
 ## Code Examples
 
 The same serializer, two camps:
@@ -144,13 +119,24 @@ Dagger  (compile DI):  generates the graph at build → instant startup, AOT-fri
 
 ---
 
-## Summary
+## Apply it
 
-The compile-time vs runtime axis is the organizing principle of metaprogramming: the same
-outcome from either camp, with costs that diverge across performance, startup, type
-safety, flexibility, tooling, and AOT-compatibility. Seniors decide by the dominant
-dimension and the "known-when?" question — build-time variation goes compile-time, runtime
-variation goes runtime. The modern current, driven by serverless cold-start, native-image
-AOT, and fail-fast observability, runs strongly toward compile time (Quarkus/Micronaut,
-Dagger, serde, Spring AOT) — but runtime metaprogramming remains the right tool wherever
-genuine dynamism is the requirement.
+1. State the system invariant that **Compile-Time vs Runtime Trade-offs** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
+
+## Verify your work
+
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
+
+## Review questions
+
+- Which invariant must remain true when Compile-Time vs Runtime Trade-offs fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

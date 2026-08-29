@@ -38,13 +38,13 @@ bail out when the bet is wrong.*
 
 | # | Topic | The question it answers |
 |---|---|---|
-| 01 | [Object Model & Layout](01-object-model-and-layout/) | How is an object actually arranged in memory — fields, header, vtable, hidden class? |
-| 02 | [Method Dispatch & Inline Caches](02-method-dispatch-and-inline-caches/) | How does a call find its target, and how is dynamic dispatch made nearly free? |
-| 03 | [Dynamic Linking & Loading](03-dynamic-linking-and-loading/) | How are symbols resolved across shared libraries at load and run time? |
-| 04 | [JIT Compilation & Tiering](04-jit-compilation-and-tiering/) | How does code compile itself at runtime and get hotter in stages? |
-| 05 | [Deoptimization & Speculation](05-deoptimization-and-speculation/) | What happens when a runtime's optimistic bet turns out wrong? |
-| 06 | [Stack Management & Unwinding](06-stack-management-and-unwinding/) | How is the call stack laid out, grown, walked, and unwound? |
-| 07 | [Runtime ↔ GC Integration](07-runtime-gc-integration/) | How do the JIT, stack maps, safepoints, and write barriers cooperate with the collector? |
+| 01 | [Object Model & Layout](01-object-model-and-layout/README.md) | How is an object actually arranged in memory — fields, header, vtable, hidden class? |
+| 02 | [Method Dispatch & Inline Caches](02-method-dispatch-and-inline-caches/README.md) | How does a call find its target, and how is dynamic dispatch made nearly free? |
+| 03 | [Dynamic Linking & Loading](03-dynamic-linking-and-loading/README.md) | How are symbols resolved across shared libraries at load and run time? |
+| 04 | [JIT Compilation & Tiering](04-jit-compilation-and-tiering/README.md) | How does code compile itself at runtime and get hotter in stages? |
+| 05 | [Deoptimization & Speculation](05-deoptimization-and-speculation/README.md) | What happens when a runtime's optimistic bet turns out wrong? |
+| 06 | [Stack Management & Unwinding](06-stack-management-and-unwinding/README.md) | How is the call stack laid out, grown, walked, and unwound? |
+| 07 | [Runtime ↔ GC Integration](07-runtime-gc-integration/README.md) | How do the JIT, stack maps, safepoints, and write barriers cooperate with the collector? |
 
 ---
 
@@ -67,7 +67,7 @@ tiers plus `interview` and `tasks`.
 
 ## Related sections
 
-- **[Evaluation & Execution Models](../evaluation-and-execution-models/)** — the interpret→JIT→AOT spectrum, seen here from the runtime's side.
-- **[Memory Management](../memory-management/)** — the GC whose integration topic 07 is about.
-- **[Data Representation & Numerics](../data-representation-and-numerics/)** — boxing, tagging, and NaN-boxing are object-model decisions.
-- **[Language Security Internals](../language-security-internals/)** — JITs are both an attack surface (W^X, JIT spray) and an enforcement point (V8 isolates).
+- **[Evaluation & Execution Models](../evaluation-and-execution-models/README.md)** — the interpret→JIT→AOT spectrum, seen here from the runtime's side.
+- **[Memory Management](../memory-management/README.md)** — the GC whose integration topic 07 is about.
+- **[Data Representation & Numerics](../data-representation-and-numerics/README.md)** — boxing, tagging, and NaN-boxing are object-model decisions.
+- **[Language Security Internals](../language-security-internals/README.md)** — JITs are both an attack surface (W^X, JIT spray) and an enforcement point (V8 isolates).

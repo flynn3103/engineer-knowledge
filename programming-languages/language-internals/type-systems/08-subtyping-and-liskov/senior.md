@@ -1,64 +1,11 @@
-# Subtyping & Liskov Substitution — Senior Level
+# Subtyping & Liskov Substitution — Senior
 
-> **Topic:** Subtyping & Liskov Substitution
-> **Focus:** The type-theory of subtyping — the subsumption judgment, variance as the formal core of LSP, declaration-site vs use-site variance, why arrays are unsoundly covariant, and where nominal and structural subtyping really diverge.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Subtyping & Liskov Substitution** under failure, load, and change?
 
-## Introduction
-
-> Focus: **What are the formal rules that *define* `S <: T`?** And **why is variance — not inheritance — the deepest expression of the Liskov Substitution Principle?**
-
-At the middle level, LSP became four concrete rules and we saw that two of them line up with variance. At the senior level we close the loop: subtyping is a **formal relation defined by inference rules**, the subsumption rule is the bridge between it and type-checking, and **variance is LSP lifted from values to type constructors**. When you understand variance properly, every behavioral LSP rule falls out of it as a special case — the behavioral notion and the type-theoretic notion are the same theorem stated in two vocabularies.
-
-The senior insight is this: *LSP is not an OO design tip; it is the soundness condition for subtype polymorphism.* A type system with subtyping is sound exactly when "if `S <: T` then an `S` is safely usable as a `T`" — and that is LSP, by definition. The four behavioral rules are the consequences of that soundness condition applied to method contracts. Variance annotations (`out`/`in` in C#, `+`/`-` in Scala, `extends`/`super` wildcards in Java) are the *type-system's* way of letting the programmer assert and the compiler verify LSP-preserving relationships between *parameterized* types.
-
-This level also confronts the places where mainstream languages **deliberately break LSP in their own type systems** — Java/C# covariant arrays are the famous unsound choice — and explains *why* (historical, pre-generics expedience) and what it costs (a runtime check, `ArrayStoreException`). We'll formalize nominal vs structural subtyping, look at the subsumption typing rule, contrast declaration-site and use-site variance, and connect all of it back to the substitution principle that names the topic.
-
-> 🎓 **Why this matters at the senior level:** You will design APIs whose subtyping and variance choices ripple through every consumer for years. Getting `List<? extends T>` vs `List<? super T>` right, deciding whether your `Repository<T>` should be covariant, knowing that an immutable container *can* be covariant while a mutable one *cannot* — these are LSP decisions encoded in the type system, and getting them wrong either over-constrains your users or ships an unsound API.
-
-This page covers: the subtyping relation as inference rules, the subsumption typing rule, variance of every common type constructor, declaration-site vs use-site variance, the array unsoundness, nominal vs structural subtyping formally, and bounded/recursive subtyping in brief. `professional.md` turns this theory toward real library and API design and the engineering war stories.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** Everything in `middle.md` — the four LSP rules, function-type subtyping, record width/depth, covariant returns.
-- **Required:** Comfort reading generic/parameterized types and bounded type parameters (`<T extends Number>`).
-- **Required:** Familiarity with at least one language with explicit variance: Scala (`+T`/`-T`), C# (`out`/`in`), or Java wildcards (`? extends`/`? super`).
-- **Helpful but not required:** Some exposure to typing judgments (`Γ ⊢ e : T`) and inference-rule notation.
-- **Helpful but not required:** Awareness of generics erasure vs reification.
-
-You do **not** need to know:
-
-- Higher-kinded types or type-constructor polymorphism in depth.
-- Full subtyping algorithms for recursive types (coinductive checking) — mentioned only.
-- Dependent types or refinement types.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Subtyping relation `<:`** | A reflexive, transitive relation on types defined by inference rules; `S <: T` means an `S` value is usable as a `T`. |
-| **Subsumption rule** | The typing rule `Γ ⊢ e : S, S <: T ⟹ Γ ⊢ e : T` — lets a value of a subtype be typed at the supertype. |
-| **Variance** | How subtyping of type arguments lifts to subtyping of a parameterized type. Covariant, contravariant, or invariant. |
-| **Covariance** | `S <: T ⟹ F<S> <: F<T>`. Output positions (returns, read-only fields, producers). C#/Kotlin `out`, Scala `+`. |
-| **Contravariance** | `S <: T ⟹ F<T> <: F<S>`. Input positions (parameters, consumers). C#/Kotlin `in`, Scala `-`. |
-| **Invariance** | Neither: `F<S>` and `F<T>` are unrelated unless `S = T`. Mutable containers must be invariant. |
-| **Declaration-site variance** | Variance fixed where the type is *defined* (`interface List<out T>` in Kotlin/C#, `class List[+T]` in Scala). |
-| **Use-site variance** | Variance chosen where the type is *used* (Java wildcards: `List<? extends T>`, `List<? super T>`). |
-| **PECS** | "Producer Extends, Consumer Super" — Java's mnemonic: read-source ⇒ `? extends`, write-sink ⇒ `? super`. |
-| **Nominal subtyping** | `S <: T` holds iff explicitly declared (`extends`/`implements`). Identity by name. |
-| **Structural subtyping** | `S <: T` holds iff `S`'s structure includes `T`'s. Identity by shape. |
-| **Bounded quantification** | Generics constrained by a subtype bound: `<T extends Comparable<T>>`. |
-| **F-bounded polymorphism** | A bound that mentions the type variable itself: `T extends Comparable<T>`. |
-| **Top / Bottom type** | Top (`Object`, `any`, `Any`) is a supertype of all; Bottom (`Nothing`, `never`) a subtype of all. |
-| **Soundness** | The property that a well-typed program "can't go wrong" — the very thing LSP guarantees for subtyping. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -161,32 +108,6 @@ Both are *type-level* subtyping. Neither checks the *behavioral* contract — th
 
 ---
 
-## Real-World Analogies
-
-**The one-way valve.** Covariance and contravariance are about which way data flows. A *producer* is a faucet — data flows out — and a faucet of dog-water can stand in for a faucet of animal-water (covariant). A *consumer* is a drain — data flows in — and a drain that accepts any animal can stand in for a drain that accepts dogs (contravariant). A *pipe with flow both ways* (mutable container) can't substitute in either direction; it must match exactly (invariant).
-
-**The unsound shortcut with a safety net.** Covariant arrays are like a building with a fire door propped open for convenience (the static type system lets the unsafe assignment through) but with a guard posted who tackles anyone who actually walks through wrong (`ArrayStoreException`). It works, but you've moved a compile-time guarantee into a runtime cost on every pass.
-
-**Declaration-site as factory labeling vs use-site as buyer's choice.** Declaration-site variance is the manufacturer stamping "read-only" on the product for everyone. Use-site variance (wildcards) is the buyer deciding, per purchase, "I'll treat this one as read-only" — more flexible, more verbose, more chances to choose wrong.
-
-**The passport (nominal) vs the costume (structural).** Nominal subtyping is a passport: you *are* a citizen because a registry says so. Structural subtyping is a costume: you're treated as a guard because you're *dressed* like one. The costume is convenient and retrofittable, but it lets impostors through — a type that *looks* right but doesn't *behave* right.
-
----
-
-## Mental Models
-
-**Model 1 — "Variance follows the data flow."** To decide a type parameter's variance, ask: does `T` come *out* (covariant), go *in* (contravariant), or both (invariant)? Output ⇒ `out`/`+`/`extends`. Input ⇒ `in`/`-`/`super`. Both ⇒ invariant. This single rule subsumes function variance, array safety, and PECS.
-
-**Model 2 — "Subsumption is the only door; variance is who's allowed through it carrying boxes."** `(sub)` is the rule that lets any subtype pass as a supertype. Variance extends that permission to *parameterized* types, and only when the data-flow direction makes it safe. LSP is the guarantee that everyone who passes through the door can actually do the supertype's job.
-
-**Model 3 — "LSP is soundness; the four rules are corollaries."** Don't think of LSP as advice and variance as theory. LSP *is* the soundness condition for subtype polymorphism. The behavioral rules (preconditions/postconditions/invariants/history) are what soundness *requires* of method contracts. Variance is what soundness *requires* of type constructors. One principle, two surfaces.
-
-**Model 4 — "Mutability is the enemy of variance."** Every time you want a container to be covariant or contravariant and the compiler refuses, the culprit is a method that uses `T` in the *other* direction. Make the container immutable (or split read/write interfaces) and the variance you want becomes sound.
-
-**Model 5 — "Structural typing widens the behavioral gap."** Nominal subtyping at least forces an *intentional* declaration, a hook for the author to consider the contract. Structural subtyping grants the type-level relation automatically, so the behavioral (LSP) obligation is entirely on discipline — there isn't even a declaration site to attach intent to.
-
----
-
 ## Code Examples
 
 ### Example 1: Variance verified at the declaration site (Scala)
@@ -272,34 +193,6 @@ totalArea(new ArrayList<Circle>());   // ✓ List<Circle> accepted via the bound
 
 ---
 
-## Pros & Cons
-
-**Pros of the type-theoretic view:**
-
-- **One principle explains everything.** Function variance, PECS, array safety, immutable-container covariance, and the four behavioral rules are all the same soundness condition.
-- **Predictable API design.** Knowing data-flow ⇒ variance lets you choose `out`/`in`/invariant correctly the first time.
-- **Compiler-verified LSP for type constructors.** Declaration-site variance turns a behavioral discipline into a checked property *for the parameterized part* of the design.
-- **Names the language's own sins.** You can articulate exactly why covariant arrays are unsound and what they cost.
-
-**Cons / costs:**
-
-- **Variance is genuinely hard for users.** Wildcards (`? extends`/`? super`) are a notorious source of confusion and verbose signatures.
-- **It only covers the type-level half.** Even perfect variance doesn't enforce behavioral LSP (an `IEnumerable<Dog>` can still lie about its elements).
-- **Language inconsistency.** Arrays vs generics, Java's invariant method parameters, site-vs-declaration differences — the theory is clean, the languages are not.
-- **Over-constraining is easy.** Declaring a type invariant when it could be covariant needlessly limits your users; getting it wrong the other way is unsound.
-
----
-
-## Use Cases
-
-- **Designing a generic library API.** Decide each type parameter's variance from its data-flow before publishing — it's a breaking change to alter later.
-- **Read/write interface separation.** Expose `IReadOnlyList<out T>` (covariant) separately from `IList<T>` (invariant) so consumers get the most substitutable view that's still sound.
-- **Functional callbacks and event systems.** Function/delegate variance decides which handlers are interchangeable — `Action<in T>`/`Func<out T>` in C#, function-type subtyping in TS/Scala.
-- **Comparator and consumer plumbing.** PECS-style signatures (`Comparator<? super T>`, `Consumer<? super T>`) maximize the inputs a method accepts without sacrificing soundness.
-- **Auditing a hierarchy for soundness.** Spot where a "subtype" uses a parameter in the wrong-variance position — that's the LSP break the compiler can't see for behavior but variance can for types.
-
----
-
 ## Coding Patterns
 
 **Pattern 1 — Derive variance from positions, then annotate.** For each type parameter, classify every occurrence as input or output. All-output ⇒ covariant. All-input ⇒ contravariant. Mixed ⇒ invariant (or split the type).
@@ -341,14 +234,24 @@ interface Cell<T> : Source<T>, Sink<T>              // invariant where both are 
 
 ---
 
-## Summary
+## Apply it
 
-- **Subtyping is a formal relation** defined by reflexivity, transitivity, and per-constructor rules; the **function rule** (`T1 <: S1, S2 <: T2 ⟹ S1→S2 <: T1→T2`) encodes contravariant parameters and covariant returns.
-- The **subsumption rule** (`e : S, S <: T ⟹ e : T`) is the bridge that makes subtyping usable, and **LSP is the soundness guarantee** that subsumption is safe.
-- **Variance is LSP for type constructors.** Output positions ⇒ **covariant** (`out`/`+`/`? extends`), input positions ⇒ **contravariant** (`in`/`-`/`? super`), both ⇒ **invariant**. Mutable containers are invariant by necessity.
-- **Java/C# arrays are covariant and therefore unsound**, patched with a runtime `ArrayStoreException` — the textbook case of a language breaking LSP in its own type system; **generics fixed it by being invariant**.
-- **Declaration-site variance** (Scala/C#/Kotlin) fixes variance at the type definition and verifies it; **use-site variance** (Java wildcards, **PECS** — Producer Extends, Consumer Super) chooses it per use.
-- **Nominal** subtyping is by declaration (intentional, no accidents); **structural** is by shape (retrofittable, but *widens* the behavioral-contract gap LSP must still close by discipline).
-- Variance and subsumption cover the **type-level** half of LSP; the **behavioral** half (preconditions/postconditions/invariants/history) still has no compiler and remains the engineer's responsibility.
+1. State the system invariant that **Subtyping & Liskov Substitution** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
-Move on to `professional.md` for how these choices play out in real library and API design — the war stories, the migration costs, and the judgment calls that decide whether an LSP-shaped abstraction helps or hurts in production.
+## Verify your work
+
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
+
+## Review questions
+
+- Which invariant must remain true when Subtyping & Liskov Substitution fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

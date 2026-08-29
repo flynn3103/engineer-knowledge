@@ -1,25 +1,31 @@
 # Go
 
-> The practical, production-facing slice of Go: the seven things that actually decide whether a Go service holds up once it leaves your laptop — concurrency, the runtime underneath it, interfaces, errors, HTTP, data, and how you debug all of it live.
+> Write a small correct program, shape it into maintainable packages, then operate it under real traffic.
 
-This roadmap is intentionally narrow. It does not re-teach Go syntax — it assumes you can already write a working program — and it skips ecosystem trivia (which CLI framework, which ORM). Instead it goes deep on the handful of things that separate "it compiles" from "it survives production": how goroutines and channels actually behave under load, what the runtime is doing behind the scenes, how to design interfaces and errors that don't rot, how to build HTTP services and data layers that fail gracefully, and how to debug a live service without guessing.
+Follow the roadmap in order if Go is new. If you already ship Go, start at the production problem you need to solve and use the earlier sections to close gaps.
 
-## Topics
+## Roadmap
 
-| # | Topic | What you'll learn |
-|---|-------|-------------------|
-| 01 | [Goroutines and Concurrency](01-goroutines-and-concurrency/junior.md) | Goroutines, channels, worker pools, fan-in, fan-out, context cancellation, race conditions, deadlocks, and when *not* to use channels |
-| 02 | [Go Runtime](02-go-runtime/junior.md) | Scheduler, garbage collector, stack growth, escape analysis, memory allocation, and why simple Go code can still behave differently under load |
-| 03 | [Interfaces](03-interfaces/junior.md) | Implicit interfaces, type assertions, the empty interface, interface design, mocks, dependency injection, and why small interfaces are usually better |
-| 04 | [Error Handling](04-error-handling/junior.md) | `error`, wrapping, sentinel errors, custom errors, `errors.Is`, `errors.As`, and building error flows that are boring but debuggable |
-| 05 | [HTTP and APIs](05-http-and-apis/junior.md) | Middleware, handlers, timeouts, retries, connection pooling, graceful shutdown, request context, and writing APIs that do not fall apart in production |
-| 06 | [Database and Distributed Systems](06-database-and-distributed-systems/junior.md) | Transactions, connection pools, idempotency, queues, caching, rate limits, retries, locks, and handling partial failures properly |
-| 07 | [Production Debugging](07-production-debugging/junior.md) | `pprof`, traces, logs, metrics, goroutine leaks, memory leaks, slow queries, high latency, and how to debug a live service without randomly guessing |
+| Stage | Topic | Practice outcome |
+|---|---|---|
+| 1 | [Introduction to Go](01-introduction-to-go/README.md) | Install the toolchain, run a program, and use core Go commands. |
+| 2 | [Goroutines and Concurrency](01-goroutines-and-concurrency/junior.md) | Coordinate work, cancellation, ownership, and shutdown. |
+| 3 | [Go Runtime](02-go-runtime/junior.md) | Explain scheduler, allocation, stack, and garbage-collection evidence. |
+| 4 | [Interfaces](03-interfaces/junior.md) | Put small contracts at consumer boundaries. |
+| 5 | [Error Handling](04-error-handling/junior.md) | Preserve meaning, context, and retry decisions. |
+| 6 | [HTTP and APIs](05-http-and-apis/junior.md) | Bound request lifetime and shut services down safely. |
+| 7 | [Code Organization](06-code-organization/README.md) | Organize modules, packages, dependencies, and releases. |
+| 8 | [Database and Distributed Systems](06-database-and-distributed-systems/junior.md) | Handle transactions, retries, queues, caching, and partial failure. |
+| 9 | [Production Debugging](07-production-debugging/junior.md) | Use profiles, traces, logs, and metrics to test a diagnosis. |
 
-## How to use this section
+## Use the roadmap on real work
 
-Each topic has four depth levels—**junior → middle → senior → professional**—and every guide ends with unanswered comprehension questions. Start at your level and climb. The topics build on each other loosely: concurrency and the runtime (01–02) explain *why* Go behaves the way it does; interfaces and errors (03–04) are the design vocabulary you use everywhere; HTTP, data, and debugging (05–07) are where all of it gets exercised under real traffic.
+1. Reproduce one behavior with `go test`, a focused program, or a controlled request.
+2. Run `go test -race ./...` when shared state or concurrency is involved.
+3. Capture a benchmark, profile, trace, or request timing before optimizing.
+4. Make one reversible change.
+5. Run the same evidence collection again and compare.
 
----
+Avoid memorizing Go trivia without a program that makes the rule observable.
 
-> Part of the [Programming Languages](../README.md) roadmap.
+Part of the [Programming Languages](../README.md) roadmap.

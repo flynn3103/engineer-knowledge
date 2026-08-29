@@ -4,6 +4,8 @@ nav:
     - ... | regex=^Craftsmanship/.+
   - Programming Languages:
     - ... | regex=^Programming-Languages/.+
+  - Networking:
+    - ... | regex=^Networking/.+
   - Engineering Thinking:
     - ... | regex=^Engineering-Thinking/.+
   - Data Engineering:

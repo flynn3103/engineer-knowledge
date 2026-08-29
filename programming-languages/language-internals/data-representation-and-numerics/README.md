@@ -25,12 +25,12 @@ None of these are exotic. They are the everyday physics of how data is stored, a
 
 | # | Topic | The question it answers |
 |---|---|---|
-| 01 | [Integer Representation & Overflow](01-integer-representation-and-overflow/) | How are signed/unsigned integers stored, and what happens at the boundaries? |
-| 02 | [Floating-Point (IEEE 754)](02-floating-point-ieee-754/) | Why is floating-point "wrong," and how is it actually defined? |
-| 03 | [Fixed-Point & Arbitrary Precision](03-fixed-point-and-arbitrary-precision/) | What do you reach for when `float` isn't exact enough — money, crypto, bignums? |
-| 04 | [Endianness & Byte Order](04-endianness-and-byte-order/) | In what order do bytes hit memory and the wire, and when does it bite? |
-| 05 | [Character & String Internals (Unicode)](05-character-and-string-internals-unicode/) | What is a "character," and what is a string *really* made of? |
-| 06 | [Boxing, Tagging & NaN-Boxing](06-boxing-tagging-and-nan-boxing/) | How do dynamic runtimes pack a type tag and a value into one word? |
+| 01 | [Integer Representation & Overflow](01-integer-representation-and-overflow/README.md) | How are signed/unsigned integers stored, and what happens at the boundaries? |
+| 02 | [Floating-Point (IEEE 754)](02-floating-point-ieee-754/README.md) | Why is floating-point "wrong," and how is it actually defined? |
+| 03 | [Fixed-Point & Arbitrary Precision](03-fixed-point-and-arbitrary-precision/README.md) | What do you reach for when `float` isn't exact enough — money, crypto, bignums? |
+| 04 | [Endianness & Byte Order](04-endianness-and-byte-order/README.md) | In what order do bytes hit memory and the wire, and when does it bite? |
+| 05 | [Character & String Internals (Unicode)](05-character-and-string-internals-unicode/README.md) | What is a "character," and what is a string *really* made of? |
+| 06 | [Boxing, Tagging & NaN-Boxing](06-boxing-tagging-and-nan-boxing/README.md) | How do dynamic runtimes pack a type tag and a value into one word? |
 
 ---
 
@@ -44,7 +44,7 @@ Each topic ships the standard five-tier set — `junior` → `middle` → `senio
 
 ## Related sections
 
-- **[Memory Management](../memory-management/)** — boxing and tagging are fundamentally about where a value lives (stack word vs. heap object) and who owns it.
-- **[Runtime Systems](../runtime-systems/)** — the object model and value representation are two halves of the same story.
-- **[Compilers & Interpreters](../compilers-and-interpreters/)** — constant folding, overflow checks, and `NaN` handling are all things the compiler must reason about.
+- **[Memory Management](../memory-management/README.md)** — boxing and tagging are fundamentally about where a value lives (stack word vs. heap object) and who owns it.
+- **[Runtime Systems](../runtime-systems/README.md)** — the object model and value representation are two halves of the same story.
+- **[Compilers & Interpreters](../compilers-and-interpreters/README.md)** — constant folding, overflow checks, and `NaN` handling are all things the compiler must reason about.
 - **Concurrency, Async & Parallel** — atomicity of multi-word values and the memory model both assume a representation.

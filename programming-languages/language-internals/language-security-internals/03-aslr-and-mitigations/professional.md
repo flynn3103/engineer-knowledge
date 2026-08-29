@@ -1,50 +1,11 @@
-# ASLR & Mitigations — Professional Level
+# ASLR & Mitigations — Professional
 
-> **Topic:** ASLR & Mitigations
-> **Focus:** Operating a hardening program at scale — entropy economics across platforms, the full mitigation matrix (Linux/glibc, Windows, macOS/iOS, Android), measurement and enforcement, residual-risk modeling, and the trade-offs that decide what you actually ship.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **ASLR & Mitigations** with measurable outcomes and limited coordination?
 
-## Introduction
-
-> Focus: **How do you run ASLR-and-mitigations as a *program* — across platforms, at fleet scale, with measurable enforcement and explicit residual-risk accounting — rather than as a per-binary checkbox?**
-
-At the professional level the questions change. It's no longer "is PIE on?" but "across our entire artifact inventory — first-party binaries, vendored libraries, container base images, kernel, firmware — what is our weakest link, how do we *prove* the mitigation set on every build, and what is the residual exploitability when (not if) someone finds an info leak?" The mitigations themselves are the same primitives from earlier levels; what's new is the *operational discipline*: entropy economics (how many bits actually buy how much safety, and where the cheap wins are), the divergent platform stories (each OS implements ASLR, DEP, and control-flow enforcement differently, with different defaults and opt-ins), and the governance that keeps a one-non-PIE-module regression from silently un-hardening a whole product.
-
-You also own the **trade-off conversations**. Full RELRO costs startup latency; CET/shadow-stack and KPTI cost cycles; re-randomization costs complexity and pointer-fixup work; high-entropy ASLR can interact with huge address-space reservations. A professional quantifies these, sets policy with explicit exceptions, and can defend the policy to both security and performance stakeholders. And you model **residual risk** honestly: mitigations are probabilistic-or-deterministic cost increases, not guarantees, and the durable answer — memory safety — is a multi-year program, not a flag.
-
-This page is defensive and operational. We discuss attack classes only as risk inputs; there are no exploits.
-
----
-
-## Prerequisites
-
-- **Required:** The senior-level model: secrecy vs. enforcement layers; the bypass classes (info-leak, BROP/brute force, partial overwrite, JIT spray, side channel); shadow stacks/CET/PAC/CFI; KASLR/KPTI/FGKASLR.
-- **Required:** Build-system and CI fluency — you'll enforce flags and gate on attestations across many artifacts.
-- **Required:** Cross-platform deployment experience (at least two of Linux, Windows, macOS/iOS, Android).
-- **Helpful:** Familiarity with supply-chain concerns (vendored binaries, base images) and fleet-scale telemetry.
-- **Helpful:** Threat-modeling and risk-quantification background.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Mitigation matrix** | The table of (mitigation × platform × artifact) used to track coverage and gaps across a product. |
-| **Entropy budget** | The bits of randomization a region actually provides on a given platform/architecture, and the cost of increasing it. |
-| **High-entropy ASLR (HEASLR)** | Windows `/HIGHENTROPYVA`: 64-bit images get a much larger randomization range for the bottom-up allocation region. |
-| **Mandatory ASLR** | Windows Exploit-Protection / `ForceRelocateImages`: relocate even images that didn't opt into ASLR (with an entropy caveat without `BottomUpASLR`). |
-| **DYLD / dyld shared cache** | macOS/iOS loader and the prelinked system-library cache, randomized per-boot (slide). |
-| **Zygote** | Android's pre-forked app-template process; apps fork from it, sharing its (per-boot) layout — an ASLR consideration. |
-| **CET / shstk / IBT** | Intel Control-flow Enforcement: shadow stack + indirect-branch tracking. |
-| **PAC / BTI** | ARM Pointer Authentication / Branch Target Identification. |
-| **KPTI / KAISER** | Kernel Page-Table Isolation — Meltdown mitigation that also re-strengthens KASLR. |
-| **FGKASLR** | Function-granular KASLR — randomizes kernel function order, not just base. |
-| **Attestation / provenance** | Build metadata proving which mitigation flags an artifact was built with (SLSA-style). |
-| **Residual risk** | Exploitability remaining after mitigations, given a realistic bug (e.g., an info leak). |
-| **Hardening regression** | A build/config change that silently drops a mitigation (e.g., reverts to Partial RELRO or non-PIE). |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -124,35 +85,6 @@ The recurring failure mode is *silent regression*: a build flag dropped during a
 
 ---
 
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Entropy economics** | Buying locks: the first deadbolt (64-bit PIE) hugely improves safety cheaply; the tenth lock on the same door (more bits) barely helps if the burglar can just bribe the doorman (info leak). |
-| **Mitigation matrix** | A building-safety audit grid: every door (artifact) × every required control (sprinkler, alarm, fire door) × every wing (platform). One missing fire door fails the wing. |
-| **Weakest-link enforcement** | A convoy moves at the speed of its slowest ship; one non-PIE module sets the product's pace. |
-| **Residual risk** | Insurance underwriting: not "is the alarm on?" but "given a break-in attempt, what's the expected loss after all controls?" |
-| **Silent regression** | A fire door propped open during renovation that nobody closes — the audit passed last year, but the building is unsafe today. |
-| **Mandatory-ASLR footgun (Windows)** | Forcing a guest into a "random" room that's actually always Room 1 — technically relocated, practically predictable. |
-
----
-
-## Mental Models
-
-### The "minimum over the inventory" model
-
-A product's exploit-resistance is the *minimum* of its components' resistance, not the average and not the first-party subset. Your job is to find and raise that minimum — which is almost always a vendored binary, a base-image library, a JIT region, or a fork-shared layout, not your carefully-flagged main binary. Always ask: *what is the weakest loaded object, and who owns it?*
-
-### The "bits for brute force, leak-resistance for everything else" model
-
-Spend the entropy budget to cross the brute-force threshold (64-bit PIE), then stop optimizing bits and start optimizing **leak resistance** (enforcement layer, OOB-read elimination, re-randomization, side-channel mitigations). Most of your remaining risk is leak-driven, and leaks don't care about your bit count.
-
-### The "policy is the artifact" model
-
-The durable deliverable isn't a hardened binary; it's a *machine-checkable policy plus continuous enforcement* that keeps every binary hardened forever, including the ones engineers haven't written yet and the vendors you haven't onboarded yet. Manual `checksec` once is theater; gated, fleet-wide, re-scanned enforcement is the control.
-
----
-
 ## Code Examples
 
 Operational and defensive only.
@@ -217,30 +149,6 @@ echo "randomize_va_space=$(cat /proc/sys/kernel/randomize_va_space)"   # want 2
 echo "kpti: $(cat /sys/devices/system/cpu/vulnerabilities/meltdown)"
 grep -qw nokaslr /proc/cmdline && echo "WARN: KASLR disabled" || echo "kaslr: on"
 ```
-
----
-
-## Pros & Cons
-
-| Decision | Pro | Con / cost |
-|----------|-----|-----------|
-| **64-bit + PIE everywhere** | Largest entropy win; near-zero cost; crosses brute-force threshold. | Small PIE indirection overhead; legacy 32-bit/`MAP_FIXED` code may need work. |
-| **Full RELRO default** | Freezes GOT; closes a whole hijack class. | Startup latency for short-lived/forky processes; measure exceptions. |
-| **CET/shadow stack + PAC/BTI** | Deterministic — holds when ASLR is leaked. | Hardware/OS dependency; cycles; coverage gaps (forward edge, signing gadgets). |
-| **KPTI / KASLR / FGKASLR** | Restores kernel-base secrecy vs. Meltdown/side channels. | Context-switch cost; not free on syscall-heavy workloads. |
-| **Mandatory ASLR (Windows)** | Relocates legacy non-ASLR DLLs. | Without bottom-up ASLR, can land at low-entropy fixed slot — net negative if misconfigured. |
-| **Fleet enforcement + provenance** | Catches regressions; covers vendored/transitive artifacts. | Build/CI investment; exception governance overhead. |
-| **More entropy beyond threshold** | Helps brute-force/side-channel narrowing. | Poor ROI vs. leak resistance; the dominant threat is leak, which ignores bits. |
-
----
-
-## Use Cases
-
-- **Establishing org-wide hardening policy** with per-platform required-flag sets, machine-checked in CI and at deploy time, with a governed exception register.
-- **Supply-chain hardening:** scanning every vendored and transitive binary/library/base-image on ingest; rejecting non-PIE/Partial-RELRO/non-DYNAMICBASE artifacts or quarantining with compensating controls.
-- **Platform-specific rollouts:** enabling CET on x86 fleets, PAC/BTI/MTE on ARM mobile, KPTI/FGKASLR on kernels, `/HIGHENTROPYVA` + Bottom-up on Windows — each with measured cost.
-- **Residual-risk reporting** to leadership: not "we have ASLR" but "given a typical info leak, exploitation requires X additional capabilities, and our weakest components are Y and Z."
-- **Incident analysis:** determining whether a given crash was reachable as an exploit by reconstructing the layout, RELRO/CET state, and whether a leak primitive existed.
 
 ---
 
@@ -319,139 +227,24 @@ Use the platform's blessed W^X JIT mechanism (`MAP_JIT` + write-protect toggling
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. Your fleet is fully 64-bit PIE with Full RELRO and canaries. A team proposes spending a quarter increasing ASLR entropy by several bits. Argue, with the leak-vs-brute-force distinction, where that effort should go instead and when the entropy work *would* be justified.
-2. Build a per-platform mitigation matrix (rows: ASLR, DEP/NX, RELRO/GOT-protect, stack cookie, forward-edge CFI, return protection, kernel ASLR). Fill columns for Linux/glibc, Windows, macOS/iOS, Android with the concrete mechanism name for each cell.
-3. A binary passes `checksec` (PIE/Full RELRO/NX/canary all green) but the service is brute-forceable. Give two architectural reasons invisible to checksec, and how you'd detect each.
-4. Explain the Windows Mandatory-ASLR-without-bottom-up footgun. Why can force-relocation *reduce* effective entropy?
-5. Why does the macOS dyld shared cache slide simultaneously provide strong randomization *and* a large blast radius on a single leak?
-6. Define a CI gate that enforces hardening across vendored and transitive binaries, not just first-party. What does it check at build time vs. deploy time, and why both?
-7. Model the residual risk of a service with NX+ASLR+Full RELRO+canary+CET given a single out-of-bounds *read* bug. What capabilities does the attacker still need, and which mitigation does the read defeat?
-8. Where does MTE (ARM) fit relative to ASLR — secrecy, enforcement, or neither — and why does it change the strategic calculus?
+1. Define the user or business outcome that **ASLR & Mitigations** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
----
+## Verify your work
 
-## Cheat Sheet
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
 
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│        OPERATING ASLR & MITIGATIONS AT SCALE (PROFESSIONAL)     │
-├──────────────────────────────────────────────────────────────────┤
-│ ENTROPY ECONOMICS:                                              │
-│   64-bit + PIE = the cheap decisive win (crosses brute thresh.) │
-│   past threshold: bits buy little; LEAK ignores entropy         │
-│   => budget bits once, invest the rest in LEAK RESISTANCE       │
-├──────────────────────────────────────────────────────────────────┤
-│ PLATFORM MATRIX (mechanism names):                              │
-│   Linux  : randomize_va_space, -fPIE -pie, -z relro,now,        │
-│            -fstack-protector, FORTIFY, -fcf-protection (CET),    │
-│            KASLR/KPTI/FGKASLR                                    │
-│   Windows: /DYNAMICBASE, /HIGHENTROPYVA, /NXCOMPAT, /GS,         │
-│            /guard:cf (CFG), CET shstk; Exploit Protection (EMET  │
-│            successor); Mandatory+Bottom-up ASLR TOGETHER         │
-│   macOS/iOS: PIE default, dyld shared-cache slide, W^X+MAP_JIT,  │
-│              PAC + BTI (Apple Silicon)                           │
-│   Android: PIE required, Zygote shared layout, PAC/BTI/MTE,      │
-│            SELinux/seccomp/scudo                                 │
-├──────────────────────────────────────────────────────────────────┤
-│ ENFORCE: scan EVERY artifact (incl. vendored/transitive/base    │
-│   image); gate at build (provenance) + deploy (admission);      │
-│   posture telemetry across fleet; weakest link = product risk   │
-├──────────────────────────────────────────────────────────────────┤
-│ FOOTGUNS: Mandatory-ASLR low-entropy slot; fork-without-exec    │
-│   (checksec-invisible); shared cache/zygote blast radius;       │
-│   MAP_FIXED/huge VA; FORTIFY level downgrade; nokaslr in prod   │
-├──────────────────────────────────────────────────────────────────┤
-│ STRATEGIC ENDGAME: memory safety (safe langs, MTE) dissolves    │
-│   the bypass tree; mitigations buy time.                        │
-└──────────────────────────────────────────────────────────────────┘
-```
+## Review questions
 
----
-
-## Summary
-
-- At scale, ASLR-and-mitigations is a **program**, not a checkbox: entropy economics, a cross-platform mitigation matrix, fleet-wide measurement and enforcement, residual-risk modeling, and governance against silent regressions.
-- **Entropy economics:** 64-bit + PIE is the cheap, decisive win that crosses the brute-force threshold. Beyond it, more bits buy little because the dominant threat — the **info leak** — is entropy-independent. Budget bits once; invest the rest in **leak resistance** (enforcement layer, OOB-read elimination, re-randomization, side-channel mitigations).
-- **Each platform differs:** Linux (`randomize_va_space`, `-fPIE -pie`, `-z relro,now`, CET, KASLR/KPTI/FGKASLR); Windows (`/DYNAMICBASE`, `/HIGHENTROPYVA`, `/NXCOMPAT`, `/GS`, `/guard:cf` CFG, CET, Exploit Protection as EMET's successor — enable Mandatory *and* Bottom-up ASLR together); macOS/iOS (PIE default, dyld shared-cache slide, W^X + `MAP_JIT`, PAC/BTI on Apple Silicon); Android (PIE required, Zygote shared layout, PAC/BTI/MTE, SELinux/seccomp).
-- **Enforce on the weakest link** across the *entire* loaded-object inventory — vendored, transitive, base-image, JIT — at both build (provenance) and deploy (admission) gates, with fleet posture telemetry.
-- **Model residual risk by bug class × mitigation per component**, not by "mitigation on/off." A checksec-clean binary can still be brute-forceable (fork-without-exec) or JIT-exposed; tooling verifies flags, not architecture.
-- **Footguns:** Windows Mandatory-ASLR-without-bottom-up (low-entropy slot), fork/zygote/snapshot shared layouts (checksec-invisible), shared-cache blast radius, `MAP_FIXED`/huge-VA reservations, FORTIFY-level downgrade, `nokaslr` leaking to prod.
-- The **strategic endgame is memory safety** (safe languages, ARM MTE) — it removes the out-of-bounds reads/writes every bypass class depends on. Mitigations buy time; safety ends the class.
-
----
-
-## Further Reading
-
-- *Microsoft Docs* — "Exploit protection reference," `/DYNAMICBASE`, `/HIGHENTROPYVA`, `/NXCOMPAT`, `/GS`, `/guard:cf`; BinSkim policy scanner.
-- *Apple Platform Security Guide* — ASLR, dyld shared cache, W^X/`MAP_JIT`, Pointer Authentication on Apple Silicon.
-- *Android Platform Security* docs — ASLR, Zygote, MTE, scudo allocator, SELinux/seccomp.
-- *Intel CET specification* and Linux `-fcf-protection` / `-z shstk` documentation.
-- *ARM* — Pointer Authentication, BTI, and Memory Tagging Extension (MTE) architecture references.
-- *"KASLR is Dead: Long Live KASLR"* — Gruss et al. (KAISER/KPTI); Linux FGKASLR design.
-- *"On the Effectiveness of Address-Space Randomization"* — Shacham et al. (the entropy-vs-brute-force baseline).
-- *SLSA / supply-chain provenance* specifications — for build-flag attestation.
-- *Distribution hardening guides* — Debian, Fedora, Ubuntu, and the OpenSSF compiler-hardening best-practices guide.
-- *"What is Memory Safety and Why Does It Matter"* (CISA/industry guidance) — the strategic case for the endgame.
-
----
-
-## Diagrams & Visual Aids
-
-### Entropy economics curve
-
-```text
-  security
-  value
-    │           leak resistance (enforcement, OOB-read removal,
-    │         ╭─ re-randomization) — where residual risk lives
-    │        ╱
-    │   ╭───╯  <- diminishing returns: more ASLR bits buy little
-    │  ╱          because INFO LEAK ignores entropy
-    │ ╱
-    │╱  <- 64-bit + PIE: the cheap, decisive jump (beats brute force)
-    └────────────────────────────────────────────────────────► effort
-         32-bit   64-bit+PIE   +more bits      +leak resistance
-```
-
-### The mitigation matrix (rows × platforms)
-
-```text
-                 Linux/glibc     Windows        macOS/iOS     Android
-   ASLR          randomize_va    /DYNAMICBASE   on by default PIE required
-                 + -fPIE -pie    + /HIGHENTROPY dyld slide    + kernel KASLR
-   DEP/NX        -z noexecstack  /NXCOMPAT      W^X enforced  W^X enforced
-   GOT protect   Full RELRO      (loader/CFG)   read-only     RELRO
-   stack cookie  -fstack-prot.   /GS            stack guard   stack guard
-   fwd-edge CFI  CET IBT         CFG /guard:cf  BTI           BTI
-   return prot.  CET shstk       CET shstk      PAC           PAC
-   kernel ASLR   KASLR+KPTI      kernel ASLR    kernel ASLR   KASLR+KPTI
-   mem-safety hw  (—)            (—)            MTE (newer)   MTE
-```
-
-### Weakest-link enforcement across the inventory
-
-```text
-   PRODUCT POSTURE = min over ALL loaded objects
-   ┌──────────────────────────────────────────────────────────┐
-   │ main binary       : PIE  Full RELRO  NX  canary  CET  ✔   │
-   │ first-party libs  : PIE  Full RELRO  NX  canary       ✔   │
-   │ vendored lib X    : non-PIE  Partial RELRO            ✘ ◄─ weakest link
-   │ base-image lib Y  : PIE  NX                           ~   │
-   │ JIT region        : (needs W^X + blinding)            ~   │
-   └──────────────────────────────────────────────────────────┘
-   The product is as hard as vendored lib X — not as hard as main.
-```
-
-### Build + deploy enforcement gates
-
-```text
-   source ──► build ──[provenance: required flags attested?]──► artifact
-                                  │ fail -> reject
-                                  ▼
-   registry ──► deploy ──[admission: re-scan actual bytes; weakest link?]──► run
-                                  │ fail -> reject
-                                  ▼
-   fleet ──► telemetry [randomize_va_space=2? KPTI? CET? nokaslr?] ──► alert
-```
+- Which measurable outcome justifies investing in ASLR & Mitigations?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

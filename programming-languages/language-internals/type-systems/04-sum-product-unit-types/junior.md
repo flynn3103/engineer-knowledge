@@ -1,69 +1,11 @@
-# Sum, Product & Unit Types — Junior Level
+# Sum, Product & Unit Types — Junior
 
-> **Topic:** Sum, Product & Unit Types
-> **Focus:** The two ways to combine types — **AND** (product) and **OR** (sum) — plus the two boring-looking corner cases (Unit and Void) that make the whole system click.
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **Sum, Product & Unit Types** in one small example and prove the result?
 
-## Introduction
-
-> Focus: **What does it mean to combine two types?** There are exactly two fundamental ways, and most type systems give you both.
-
-When you design data, you constantly glue smaller types together to make bigger ones. There are two — and really only two — fundamental ways to do this:
-
-- **AND**: a value holds an `A` **and** a `B` at the same time. A `Point` has an `x` **and** a `y`. A `User` has a name **and** an email **and** an age. These are **product types**: structs, records, tuples, classes-with-fields.
-- **OR**: a value is an `A` **or** a `B`, but not both at once. A `Shape` is a `Circle` **or** a `Rectangle` **or** a `Triangle`. A network result is a `Success` **or** an `Error`. These are **sum types**: also called tagged unions, variants, discriminated unions, or "enums with data."
-
-Most languages give you products easily (every language has structs or objects). Many older mainstream languages historically made sum types *awkward* — you faked them with class hierarchies, interfaces, or a struct full of nullable fields and boolean flags. Modern languages (Rust, Swift, Kotlin, TypeScript, Haskell, OCaml, F#, recent Java) give you sum types directly, and once you have them, a huge category of bugs simply stops being possible.
-
-There are also two corner cases that look trivial but are load-bearing:
-
-- The **Unit type** — a type with **exactly one value**. In Rust it's `()`, in Haskell/OCaml it's `()` of type `unit`, in many languages `void` plays a similar role. "I return nothing useful, but I did finish."
-- The **Void type** (also called *never*, *bottom*, *Nothing*) — a type with **zero values**. You can never construct one. It marks "this code path never produces a value" — a function that always loops forever or always throws.
-
-In one sentence: **product = AND = struct, sum = OR = tagged union, Unit = exactly one value, Void = no values at all.** Together these are called **algebraic data types** (ADTs), and this page teaches you to see all your data through this lens.
-
-> 🎓 **Why this matters for a junior:** The single most common beginner data-modeling mistake is using a product type (a struct with optional fields and flags) where you needed a sum type. The result is a struct that can represent **illegal states** — combinations that should never exist — and then you sprinkle `if` checks everywhere to defend against them. Sum types let you make those illegal states *impossible to even write down*. That is a superpower, and it's learnable in an afternoon.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** What a `struct` / record / object with fields is, in at least one language.
-- **Required:** What an `enum` is in the simplest sense (a fixed list of named choices like `RED`, `GREEN`, `BLUE`).
-- **Required:** Basic `if`/`switch` and how function return types work.
-- **Helpful but not required:** Having been bitten by a `null` / `nil` / `None` once. (You'll appreciate the fix more.)
-- **Helpful but not required:** A vague memory of `true`/`false` being a type with exactly two values.
-
-You do **not** need:
-
-- Any category theory. We'll use the word "algebra" but only grade-school multiplication and addition.
-- The function-types-as-exponentials material (that's `middle.md` and `senior.md`).
-- Knowledge of any specific advanced language. Examples span several, but the idea is universal.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Type** | A set of possible values. `bool` is the set `{true, false}`. `u8` is `{0, 1, …, 255}`. |
-| **Inhabitant** | A value of a type. `true` is an inhabitant of `bool`. The number of inhabitants is the "size" of the type. |
-| **Product type** | A type whose value holds several fields **at once** (A **and** B). Structs, tuples, records. |
-| **Sum type** | A type whose value is **one of several** alternatives (A **or** B). Tagged unions, variants, "enums with data." |
-| **Tag (discriminant)** | The hidden marker inside a sum value that records *which* alternative it currently is. |
-| **Variant / case** | One of the alternatives of a sum type. `Circle` is a variant of `Shape`. |
-| **Unit type** | A type with **exactly one** value. `()` in Rust, `unit` in OCaml/Haskell. Means "no meaningful information." |
-| **Void / Never / Bottom** | A type with **zero** values. Cannot be constructed. Marks unreachable code. (Note: C's `void` is *not* this; see pitfalls.) |
-| **ADT (Algebraic Data Type)** | A type built from sums and products. The "algebraic" refers to multiplying and adding the sizes. |
-| **Pattern matching** | A control structure that inspects a sum value, figures out which variant it is, and pulls out the data inside. |
-| **Exhaustiveness** | The compiler checking that your pattern match handles **every** variant — no case forgotten. |
-| **`Option` / `Maybe`** | The canonical sum type: a value is either `Some(x)` (present) or `None` (absent). Replaces `null`. |
-| **`Result` / `Either`** | The canonical error sum type: either `Ok(value)` or `Err(error)`. Replaces exceptions/error codes. |
-| **Illegal state** | A combination of field values that *should* be impossible but that the type still allows you to construct. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -195,50 +137,6 @@ Put the four facts together:
 ```
 
 These obey the same rules as ordinary arithmetic. `A × Unit` ≅ `A` (multiply by 1). `A + Void` ≅ `A` (add 0). `A × Void` has 0 values (multiply by 0 — a struct with an uninhabitable field can never be built). This is why they're called **algebraic** data types: the *counts* of your types literally do arithmetic. You don't need this to use ADTs, but it's a beautiful sanity-check, and `middle.md` shows it explains `Option`, generics, and even function types.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Product type** | A meal combo: you get a drink **AND** a side **AND** a main. Total combos = drinks × sides × mains. |
-| **Sum type** | A "choose your protein": chicken **OR** beef **OR** tofu. You pick exactly one. |
-| **Tag (discriminant)** | The label on a takeout box that says what's inside, so you don't open beef expecting tofu. |
-| **Pattern matching** | A sorting machine that routes each labeled box to the correct handler. |
-| **Exhaustiveness** | A checklist at the end of a shift: every item must be ticked, or you can't clock out. |
-| **Unit type** | A receipt that says "transaction complete." It carries no other info — there's only one possible receipt. |
-| **Void type** | A door labeled "this leads nowhere." Nobody ever walks through; if they claim to, they're lying. |
-| **C union (untagged)** | An unlabeled box: maybe it's chicken, maybe tofu, you guess and hope. |
-| **Illegal state** | A form where "married" is checked but the "spouse name" is blank — a combination the form *shouldn't* allow but does. |
-
----
-
-## Mental Models
-
-### The "Count the Values" Model
-
-Whenever you meet a type, ask: *how many distinct values does it have?* A struct → multiply the fields. An enum-with-data → add the variants. This single habit tells you instantly whether two types are "the same shape," whether a refactor preserved information, and whether a type can represent states it shouldn't.
-
-### The "AND vs OR" Model
-
-Every time you bundle data, ask one question: **"Do I have all of these at once (AND), or exactly one of these (OR)?"**
-- AND → product → struct/record/tuple.
-- OR → sum → enum/variant/discriminated union.
-
-Beginners reach for AND by reflex (a struct with everything in it) even when the answer is OR. Train yourself to hear the word "or" in a spec — "a payment is *either* card *or* cash *or* voucher" — and reach for a sum type.
-
-### The "Make Illegal States Unrepresentable" Model
-
-Don't model a connection as `struct { is_connected: bool, socket: Socket?, retry_count: int }`. That struct lets you build nonsense: `is_connected = true` but `socket = null`. Instead, model it as a sum:
-
-```
-Disconnected
-Connecting { attempt: int }
-Connected { socket: Socket }
-```
-
-Now a `Connected` value *always* has a socket, and a `Disconnected` value *can't* have one. The illegal combinations don't just get rejected at runtime — they can't be written down at all. The type *is* the validation.
 
 ---
 
@@ -379,37 +277,6 @@ In a language with `null`, `find_user` would return a `String` that might secret
 
 ---
 
-## Pros & Cons
-
-| Aspect | Pros | Cons |
-|--------|------|------|
-| **Correctness** | Illegal states become unrepresentable; whole bug classes vanish. | Requires up-front thought about which states are legal. |
-| **Refactoring** | Add a variant → compiler lists every place to update (exhaustiveness). | Add a variant → you *must* touch every match (sometimes many files). |
-| **Null safety** | `Option`/`Maybe` make "absent" explicit and checked. | More verbose than just using `null` — until the first null crash. |
-| **Readability** | Data definitions read like the domain ("a Shape is a Circle or a Rectangle"). | Pattern matches can get long for large sums. |
-| **Performance** | Compact memory layout (tag + largest payload); no heap needed in many languages. | Every variant uses space for the largest variant in some layouts (size = biggest case). |
-| **Tooling/portability** | First-class in Rust/Swift/Haskell/OCaml/F#/Kotlin/TS/modern Java. | Faked awkwardly in Go and pre-sealed Java; no exhaustiveness there. |
-
----
-
-## Use Cases
-
-Reach for **sum types** when:
-
-- A value is "one of N kinds": shapes, AST nodes, JSON values, UI events, message types.
-- You're modeling **states** of something (a connection, an order, a request lifecycle).
-- A function can **succeed or fail** — use `Result`/`Either` instead of exceptions or sentinel values.
-- A value might be **absent** — use `Option`/`Maybe` instead of `null`.
-
-Reach for **product types** when:
-
-- A thing genuinely *has* several parts at once: coordinates, a configuration, a database row.
-- You're grouping related fields that always travel together.
-
-Reach for **Unit** when a function has nothing meaningful to return but does complete. Reach for **Void/Never** to mark "this never returns" (infinite loops, always-throwing functions) and to express impossible cases in generic code.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Replace flags-and-nullables with a sum
@@ -486,83 +353,24 @@ In TypeScript and Go, keep a `kind`/type-marker field and always switch on it. T
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. How many values does `(bool, Color)` have, if `Color` has 3 values? Show the multiplication.
-2. How many values does `enum E { A(bool), B }` have? Show the addition. (Hint: `B` carries no data.)
-3. Classify each as sum or product: a 2D point; an HTTP response that's `200 OK` or `404 Not Found`; a tuple `(String, u32)`; a JSON value (`null`/`bool`/`number`/`string`/`array`/`object`).
-4. Write the connection example as a struct-with-flags, then list one illegal state it allows, then rewrite it as a sum so that state is unrepresentable.
-5. `Option<Option<bool>>` — how many values does it have? Name them all. (Use `1 + (1 + 2)`.)
-6. Why does C's `void` behave more like Unit than like Void? What's the type that actually behaves like Void in your favorite language?
-7. In the Go example, add a `Triangle`. Nothing forces you to update `Area`. What goes wrong, and when do you find out? Contrast with the Rust or Swift versions.
+1. Choose one small, known input for **Sum, Product & Unit Types**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
----
+## Verify your work
 
-## Cheat Sheet
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
 
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│                 SUM, PRODUCT, UNIT, VOID                         │
-├──────────────────────────────────────────────────────────────────┤
-│ PRODUCT  =  AND   struct {a; b}    |A × B| = |A| × |B|           │
-│ SUM      =  OR    enum  A | B      |A + B| = |A| + |B|           │
-│ UNIT     =  ()    one value        |Unit|  = 1   (identity of ×) │
-│ VOID     =  !     zero values      |Void|  = 0   (identity of +) │
-├──────────────────────────────────────────────────────────────────┤
-│ Reflex test when bundling data:                                  │
-│   "all of these at once?"  → AND → product (struct/tuple)        │
-│   "exactly one of these?"  → OR  → sum (enum/variant)            │
-├──────────────────────────────────────────────────────────────────┤
-│ The killer feature: EXHAUSTIVENESS                               │
-│   add a variant → compiler lists every match to fix              │
-├──────────────────────────────────────────────────────────────────┤
-│ Canonical sums (learn these):                                    │
-│   Option<T> / Maybe   =  None  | Some(T)     =  1 + A   (no null) │
-│   Result<T,E> / Either =  Ok(T) | Err(E)     =  T + E   (no excn) │
-├──────────────────────────────────────────────────────────────────┤
-│ Native sums:  Rust, Swift, Haskell, OCaml, F#, Kotlin, TS,       │
-│               modern Java (sealed + record)                      │
-│ Faked sums:   Go (interface + type switch — NO exhaustiveness)   │
-│               old Java (class hierarchy / visitor)               │
-├──────────────────────────────────────────────────────────────────┤
-│ Watch out:                                                        │
-│   * void (C/Java/JS) is UNIT-like, NOT the zero-value Void       │
-│   * C union = UNTAGGED = unsafe; ADT = TAGGED = safe             │
-│   * wildcard `_ =>` silences exhaustiveness — use sparingly      │
-└──────────────────────────────────────────────────────────────────┘
-```
+## Review questions
 
----
-
-## Summary
-
-- There are exactly two fundamental ways to combine types: **product (AND** — a struct holding several fields at once) and **sum (OR** — a tagged union that is exactly one of several variants).
-- Treat a type as a **set of values** and count: products **multiply** the counts (`|A × B| = |A| × |B|`), sums **add** them (`|A + B| = |A| + |B|`). That arithmetic is why they're called **algebraic data types**.
-- **Unit** is the one-value type (identity of product, `|Unit| = 1`); **Void/Never** is the zero-value type (identity of sum, `|Void| = 0`). Beware: C/Java/JS `void` is Unit-like, not the real Void.
-- A sum carries a hidden **tag** that records which variant it currently is. That tag is the difference between a safe ADT and an unsafe C union.
-- **Pattern matching** reads a sum safely, and **exhaustiveness checking** makes the compiler prove you handled every case — so adding a variant turns into a compiler-guided to-do list instead of a runtime crash.
-- The headline technique is **"make illegal states unrepresentable":** replace structs-with-flags-and-nullables with sum types so impossible combinations can't be written.
-- `Option`/`Maybe` (= `1 + A`) replaces `null`; `Result`/`Either` (= `T + E`) replaces exceptions. Both are just sum types.
-- Native in Rust, Swift, Haskell, OCaml, F#, Kotlin, TypeScript, and modern Java; awkwardly faked (with no exhaustiveness) in Go and old Java.
-
----
-
-## What You Can Build
-
-- **A tiny shape library.** Define a `Shape` sum (circle/rectangle/triangle), write `area` and `perimeter` with exhaustive matches, then add a `Square` and let the compiler walk you through every site that needs updating.
-- **A safe-divide / safe-parse module.** Functions returning `Option` or `Result` instead of throwing or returning sentinels. Force the caller to handle the missing/failed case.
-- **A traffic-light state machine.** Model `Red | Yellow | Green` as a sum, write a `next()` transition, and prove with the compiler that you handled every state.
-- **A JSON value type.** A recursive sum: `Null | Bool(b) | Number(n) | String(s) | Array(list) | Object(map)`. Write a pretty-printer by pattern matching.
-- **A "before/after" refactor demo.** Take a struct-with-flags (say, a `Form` with `isSubmitted: bool`, `error: String?`) and rewrite it as a sum (`Editing | Submitting | Failed(error) | Done`). Count the illegal states you eliminated.
-
----
-
-## Further Reading
-
-- *Programming in Haskell* — Graham Hutton. The cleanest first introduction to algebraic data types and pattern matching.
-- *The Rust Programming Language* ("the Book"), chapters on Enums and Pattern Matching, and on `Option`. https://doc.rust-lang.org/book/ch06-00-enums.html
-- *Domain Modeling Made Functional* — Scott Wlaschin. The definitive practical treatment of "make illegal states unrepresentable" using sum types (in F#, but universally applicable).
-- "Null References: The Billion Dollar Mistake" — Tony Hoare's talk on why `null` was a mistake and how option types fix it.
-- *Real World OCaml* — Minsky, Madhavapeddy, Hickey. Variants and records with an engineering slant.
-- The Swift Language Guide, "Enumerations" chapter — associated values and exhaustive switches.
-- *Thinking with Types* — Sandy Maguire. Goes deep (later) on the algebra of types; the early chapters are very approachable.
+- What problem does Sum, Product & Unit Types solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

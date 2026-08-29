@@ -1,71 +1,11 @@
-# Reading Codegen (Disassembly & Compiler Output) — Junior Level
+# Reading Codegen (Disassembly & Compiler Output) — Junior
 
-> **Topic:** Reading Codegen (Disassembly & Compiler Output)
-> **Focus:** What did the compiler actually produce? How to open the hood, look at the machine code, and read enough of it to answer real questions.
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **Reading Codegen (Disassembly & Compiler Output)** in one small example and prove the result?
 
-## Introduction
-
-> Focus: **The compiler turns your source code into machine instructions. You can read those instructions. It is not magic, and it is not only for wizards.**
-
-When you write `a + b` in C, Rust, or any compiled language, the compiler translates it into a sequence of **machine instructions** — the actual numbers the CPU executes. Most of the time you never look at those instructions. You write source, you run the program, it works. But sometimes a question comes up that the source code *cannot* answer:
-
-- "Did the compiler turn my multiply-by-8 into a cheap shift?"
-- "Did this tiny function get *inlined* into its caller, or is there still a function call?"
-- "My loop is slow — what is it actually doing per iteration?"
-- "I added `const` and `-O2`; did the compiler actually compute the result at compile time?"
-
-The only way to answer these *with evidence instead of a guess* is to **read the codegen** — the code the compiler generated. This is a learnable, practical skill, and it is one of the highest-leverage things a performance-curious engineer can pick up early.
-
-In one sentence: **reading codegen is opening the box and looking at the gears, instead of arguing about what's inside.**
-
-> 🎓 **Why this matters for a junior:** You will constantly hear claims like "the compiler optimizes that away" or "this is faster." Most of those claims are *folklore* — repeated without anyone ever checking. Once you know how to look at the assembly, you can settle these debates in thirty seconds with a tool called **Compiler Explorer (Godbolt)**. You stop guessing. That alone will make you more trusted than engineers twice your experience who only have opinions.
-
-This page covers: what "the compiler's output" even is, the **one essential tool** (Compiler Explorer / Godbolt) and how to use it, the command-line flags that emit assembly (`gcc -S`, `clang -S`, `objdump -d`), the absolute basics of reading x86-64 assembly *accessibly* (registers, a handful of instructions, the AT&T-vs-Intel syntax trap), and how to recognize a few simple optimizations in the output. Higher tiers go deeper: `middle.md` covers vectorization, inlining, bounds-check elimination and `perf`; `senior.md` covers proving optimizations and the benchmark-optimized-away trap; `professional.md` covers JIT disassembly and aliasing.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** How to write and compile a small program in at least one compiled language — C, C++, Rust, or Go is ideal.
-- **Required:** What a function, a loop, and a variable are.
-- **Required:** A rough idea that a CPU runs "instructions" one after another.
-- **Helpful but not required:** Awareness that your computer has *registers* (a tiny number of super-fast storage slots inside the CPU) and *memory* (RAM, much bigger and slower).
-- **Helpful but not required:** Having heard the words "optimization level" and `-O2`.
-
-You do **not** need to know:
-
-- How to *write* assembly by hand (we only *read* it).
-- The full x86-64 instruction set (there are thousands of instructions; you need about a dozen).
-- How the compiler's internal passes work (that's other topics — here we just read the *result*).
-- Anything about SIMD, vectorization, or JITs yet — that's `middle.md` and up.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Codegen** | "Code generation" — the compiler's final output: machine instructions (or assembly, the human-readable form of them). |
-| **Assembly (asm)** | A human-readable text form of machine instructions. One line ≈ one CPU instruction. `mov`, `add`, `call`, etc. |
-| **Machine code** | The actual bytes the CPU executes. Assembly is the readable spelling of machine code. |
-| **Disassembly** | Going *backwards* — taking a compiled binary and turning its bytes back into readable assembly. The tool is a *disassembler* (e.g. `objdump -d`). |
-| **Compiler Explorer / Godbolt** | The essential web tool at godbolt.org: type source on the left, see the assembly on the right, instantly, for many compilers/flags/CPUs. |
-| **Register** | A tiny, extremely fast storage slot inside the CPU. x86-64 has 16 general-purpose ones: `rax`, `rbx`, `rcx`, … `r15`. |
-| **Instruction (opcode)** | One operation the CPU does: move a value, add two numbers, jump, call a function. The first word on an assembly line (`mov`, `add`, `cmp`). |
-| **Operand** | The thing an instruction acts on: a register, a constant (an *immediate*), or a memory location. |
-| **Immediate** | A constant baked directly into an instruction, e.g. the `5` in `add rax, 5`. |
-| **Optimization level** | A flag telling the compiler how hard to try: `-O0` (none, easy to debug), `-O1`, `-O2` (the usual release level), `-O3` (aggressive). |
-| **Inlining** | The compiler copies a small function's body directly into its caller, removing the `call`/`ret` overhead. |
-| **Constant folding** | The compiler computes a result at *compile time* (e.g. `2 + 3` becomes `5` in the output) instead of at runtime. |
-| **Strength reduction** | Replacing an expensive operation with a cheaper one, e.g. `x * 8` becomes a left-shift `x << 3`. |
-| **AT&T vs Intel syntax** | Two ways to *write* the same x86 assembly. They reverse operand order (`mov src, dst` vs `mov dst, src`). The single most common confusion. |
-| **Prologue / Epilogue** | The setup/teardown instructions at the start/end of a function (saving registers, adjusting the stack). |
-| **Label** | A named position in the assembly, like `.L3:`, used as a target for jumps. The compiler's version of "go here." |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -155,32 +95,6 @@ At your level, four optimizations are easy to spot and very satisfying:
 - **Dead code elimination:** you write a variable that's never used, and it simply doesn't appear in the output.
 
 Spotting these is the gateway drug. Once you see the compiler do something clever, you'll want to look every time.
-
----
-
-## Real-World Analogies
-
-**The recipe and the kitchen.** Your source code is a recipe ("make a sandwich"). The assembly is the actual sequence of hand motions ("pick up knife, cut bread, …"). Reading codegen is watching the cook's hands instead of reading the recipe — it tells you what *really* happens, including the shortcuts a clever cook takes that the recipe never mentioned.
-
-**Translating a sentence.** You write an idea in English (source). The compiler translates it to a very literal, very simple language with a tiny vocabulary (assembly). Reading codegen is reading the translation to check the translator didn't lose your meaning — or to admire how concisely they said it.
-
-**The receipt vs. the order.** You order "a coffee and a muffin" (source). The receipt itemizes exactly what was rung up (assembly). Sometimes the receipt reveals a free upgrade you didn't ask for (an optimization), or a charge you didn't expect (an extra function call). You read the receipt to see what *actually* happened at the register.
-
-**X-ray vs. opinion.** Two doctors arguing about a broken bone is folklore. An X-ray is evidence. Compiler Explorer is the X-ray for "is this optimization happening?"
-
----
-
-## Mental Models
-
-**Model 1: Source is *what*, assembly is *how*.** Your source says *what* you want. The assembly is the compiler's chosen *how*. There are usually many valid "how"s, and the compiler picks one based on the optimization level. Reading codegen tells you which "how" you got.
-
-**Model 2: One source line ≠ one instruction.** A single line like `total += arr[i] * 2` can become five instructions, or — if the compiler folds and vectorizes — far fewer than you'd expect across a whole loop. Don't map lines 1:1. Map *patterns*: a loop, an array index, a comparison.
-
-**Model 3: The compiler is a lazy genius.** It will do the *least work that produces your specified result*. If it can prove the answer at compile time, it bakes in the answer. If it can prove a function call is pointless, it deletes it. Reading codegen is watching this laziness in action — and noticing when it *fails* to be lazy (and asking why).
-
-**Model 4: Registers are fast, memory is slow.** When you see lots of `mov [rsp+...], reg` (writing registers out to the stack), the compiler ran out of registers and is "spilling" to memory — a sign of pressure. When everything stays in registers, the code is tight. You'll feel this distinction more at higher tiers, but plant the seed now.
-
-**Model 5: `-O0` is a literal translation; `-O2` is an interpretation.** At `-O0` the assembly mirrors your source almost line-for-line (great for learning and debugging). At `-O2` the compiler rearranges, deletes, and combines aggressively, so the output can look nothing like your source. To *learn* the mapping, read `-O0`. To see *optimizations*, read `-O2`.
 
 ---
 
@@ -345,38 +259,6 @@ That color-mapped, instant, side-by-side view is why every performance engineer 
 
 ---
 
-## Pros & Cons
-
-**Pros of reading codegen:**
-
-- **Evidence over folklore.** You can prove or disprove "the compiler optimizes that" instead of repeating rumors.
-- **It's a debugging superpower.** Performance mysteries ("why is this loop slow?") often have an obvious answer once you look at the instructions.
-- **It deepens your mental model of the machine.** You start writing code that's naturally friendlier to the compiler.
-- **The essential tool (Godbolt) is free, instant, and requires no setup.**
-- **Skills transfer.** The same reading skill works across C, C++, Rust, and even the output of JIT compilers.
-
-**Cons / costs:**
-
-- **There's a learning curve.** The first hour is disorienting (especially the AT&T/Intel trap).
-- **It can be a rabbit hole.** Not every micro-difference in assembly matters; you must learn what's worth caring about (higher tiers).
-- **Output is platform- and compiler-specific.** What gcc does on x86-64 may differ from clang on ARM64.
-- **At `-O2`/`-O3` the mapping from source to asm gets loose**, so it takes practice to follow.
-- **Reading asm tells you *what* but not always *how fast*** — you still need profiling (`perf`) to know which instructions actually cost time.
-
----
-
-## Use Cases
-
-- **Settling an optimization debate.** "Does the compiler turn `x / 2` into a shift?" Paste it into Godbolt, look, done.
-- **Verifying inlining.** A small hot function that *should* be inlined — check whether the `call` is gone.
-- **Confirming constant folding.** You expect a compile-time constant; confirm the output is a single `mov`.
-- **Understanding a slow loop.** Read the per-iteration instructions to see what work is really happening.
-- **Learning the machine.** Reading `-O0` codegen for small functions is the best way to *understand* how high-level constructs map to hardware.
-- **Comparing two ways to write the same thing.** Put both in Godbolt and see if they produce identical assembly (often they do — meaning style choice has zero runtime cost).
-- **Sanity-checking a microbenchmark.** Making sure the thing you're benchmarking wasn't optimized away entirely (a classic trap covered at higher tiers).
-
----
-
 ## Coding Patterns
 
 These are *reading* patterns — repeatable moves for getting answers fast.
@@ -447,3 +329,27 @@ The `-S` flag interleaves your *source lines* with the disassembly, so you don't
 - **Different compiler = different output.** gcc and clang make different (both valid) choices. If you compare to a tutorial that used the other compiler, the assembly won't match exactly — that's normal.
 - **The output for the *wrong architecture*.** Make sure Godbolt's compiler is `x86-64` if that's your target; selecting an ARM compiler gives totally different mnemonics, which is great to know but confusing if unexpected.
 - **Forgetting `-O2` entirely.** Many "the compiler didn't optimize this!" panics are just someone reading the default (often `-O0`) output. Add `-O2` and look again.
+
+---
+
+## Apply it
+
+1. Choose one small, known input for **Reading Codegen (Disassembly & Compiler Output)**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
+
+## Verify your work
+
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
+
+## Review questions
+
+- What problem does Reading Codegen (Disassembly & Compiler Output) solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

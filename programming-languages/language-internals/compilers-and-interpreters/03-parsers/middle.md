@@ -1,67 +1,11 @@
-# Parsers — Middle Level
+# Parsers — Middle
 
-> **Topic:** Parsers
-> **Focus:** The two parsing families in depth — LL (top-down) vs LR (bottom-up). FIRST/FOLLOW sets, left-recursion elimination, predictive parsing, shift-reduce, and Pratt parsing for expressions.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **Parsers** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-> Focus: **Given a grammar, which parsing algorithm fits, and why?** And: **how do you parse expressions with precedence cleanly?**
-
-At the junior level you hand-wrote a recursive-descent parser by following a grammar. That works beautifully for a carefully designed grammar — but it raises questions you can't answer yet. *Why* does left recursion break it? How does the parser *know* which rule to pick from the lookahead token? What grammars can recursive descent *not* handle, and what handles them instead? And is there a less repetitive way to parse expressions than writing a function for every precedence level?
-
-This level answers all four. The central organizing idea is that parsing algorithms split into two families. **Top-down (LL)** parsers — recursive descent and its table-driven cousin — build the tree from the root down by *predicting* rules from lookahead. **Bottom-up (LR)** parsers — shift-reduce, the engine behind yacc and bison — build the tree from the leaves up by *recognizing* completed rules on a stack. LL is what you write by hand; LR is what tools generate and handles a strictly larger class of grammars, including the left-recursive ones that defeat LL.
-
-In one sentence: **LL parsers decide what they're building before they've seen it; LR parsers decide what they built after they've seen it.** That single difference explains why LR is more powerful and why LL is easier to hand-write with great error messages.
-
-> 🎓 **Why this matters at the middle level:** You will read grammars written for tools (`.y` files for bison, `.g4` files for ANTLR) and need to understand their constraints — "this grammar isn't LL(1)," "this has a shift-reduce conflict." You'll design your own grammars and need to know which rewrites make them parseable. And when you reach for a clean expression parser, **Pratt parsing** is the technique every senior reaches for — it deserves to be in your toolkit now.
-
-This page covers: **FIRST and FOLLOW sets** (the math behind "which rule does the lookahead pick?"), **LL(1)** predictive parsing and what breaks it, **left-recursion elimination** and **left-factoring**, the **LR family** (LR(0), SLR, LALR(1), LR(1)) and the **shift-reduce** machine, the **dangling-else** ambiguity, and **Pratt parsing / precedence climbing** for expressions. `senior.md` goes into parser generators, PEG/packrat, GLR, and conflict resolution; `professional.md` covers production compiler architecture.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** Everything in `junior.md` — grammars, terminals/nonterminals, productions, parse tree vs AST, and a hand-written recursive-descent parser.
-- **Required:** Comfort with recursion and with thinking about a call stack.
-- **Required:** Basic set notation (union, membership) — FIRST/FOLLOW sets are literally sets.
-- **Helpful but not required:** Having used a parser generator once, even just to see what a `.y` or `.g4` file looks like.
-- **Helpful but not required:** A passing familiarity with finite-state machines — LR parsing is, under the hood, a state machine.
-
-You do **not** need to know:
-
-- How to *construct* LALR tables by hand (that's a tooling concern; we explain what they *do*, not the table-building algorithm in full).
-- PEG/packrat, GLR, or parser-combinator internals (those are `senior.md`).
-- Semantic analysis, type checking, or what happens to the AST after parsing.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **LL(k)** | Top-down parsing: **L**eft-to-right scan, **L**eftmost derivation, **k** tokens of lookahead. Recursive descent is hand-written LL. |
-| **LR(k)** | Bottom-up parsing: **L**eft-to-right scan, **R**ightmost derivation (in reverse), **k** tokens of lookahead. |
-| **FIRST(α)** | The set of terminals that can *begin* a string derived from α. Tells a top-down parser what to expect. |
-| **FOLLOW(A)** | The set of terminals that can appear *immediately after* nonterminal A in some derivation. Needed for rules that can be empty. |
-| **Nullable** | A nonterminal that can derive the empty string ε. Affects FIRST/FOLLOW computation. |
-| **Predictive parsing** | LL parsing where one lookahead token uniquely selects the production — no backtracking. |
-| **Left recursion** | A rule `A → A α` whose first symbol is itself. Kills naive top-down parsing. |
-| **Left factoring** | Rewriting `A → α β1 | α β2` as `A → α (β1 | β2)` so a common prefix doesn't force a guess. |
-| **Shift** | An LR action: push the next input token onto the parse stack. |
-| **Reduce** | An LR action: pop a production's right-hand side off the stack and push its left-hand nonterminal. |
-| **Handle** | The substring on top of the stack that matches a production's RHS and is ready to reduce. |
-| **LR(0) / SLR / LALR(1) / LR(1)** | A ladder of bottom-up parsers of increasing power (and table size). LALR(1) is the yacc/bison sweet spot. |
-| **Shift-reduce conflict** | The parser can't decide whether to shift or reduce. The dangling-else classic. |
-| **Reduce-reduce conflict** | The parser can't decide *which* production to reduce by. Usually a grammar design problem. |
-| **Ambiguous grammar** | A grammar where some input has more than one parse tree. |
-| **Pratt parsing** | A top-down expression-parsing technique driven by per-token **binding powers**; also called precedence climbing. |
-| **Binding power** | A numeric precedence assigned to an operator; higher binds tighter. The core of Pratt parsing. |
-| **nud / led** | Pratt terms: **nud** = null denotation (token with nothing to its left, e.g. a literal or prefix `-`); **led** = left denotation (token with an expression to its left, e.g. infix `+`). |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -212,39 +156,6 @@ This is why nearly every modern hand-written compiler uses recursive descent for
 
 ---
 
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **LL (top-down)** | Filling in an outline: you decide "this is a chapter, now its sections" before writing the content. |
-| **LR (bottom-up)** | Assembling furniture: you build small subassemblies, then recognize "ah, these three pieces form a drawer." |
-| **FIRST set** | The list of words that can legally *start* a particular kind of phrase. |
-| **FOLLOW set** | The list of words that can legally come *right after* a phrase ends. |
-| **Left recursion** | A dictionary defining a word using itself as the very first word — circular, you never get traction. |
-| **Shift** | Picking up the next puzzle piece and setting it on your work table. |
-| **Reduce** | Recognizing that several pieces on the table now form a complete edge, and snapping them into one unit. |
-| **Shift-reduce conflict** | Two equally-licensed ways to read "I saw the man with the telescope" — who has the telescope? |
-| **Binding power** | How "sticky" an operator is — `*` is stickier than `+`, so it grabs its neighbors first. |
-| **Dangling else** | "Press the button if the light is red if you are ready" — which condition does the last clause attach to? |
-
----
-
-## Mental Models
-
-### The "Predict vs Recognize" Model
-
-LL **predicts**: at a fork, it bets on a rule from the lookahead, then verifies the bet. LR **recognizes**: it accumulates tokens on a stack and waits until a complete rule is unmistakably present, then collapses it. Prediction is easier to write but needs a cooperative grammar; recognition is more powerful but needs a table you don't want to build by hand. Whenever you read a parser, ask: is it betting early (LL) or confirming late (LR)?
-
-### The "Stack Is the Frontier" Model (for LR)
-
-In an LR parser, the stack holds a mix of terminals and nonterminals representing *the part of the tree built so far, viewed at its growing edge*. Each reduce shrinks the frontier by one level (replacing a handle with its parent nonterminal); each shift extends it by one token. The whole parse is a sequence of "grow the frontier, then collapse a completed branch." When it finally collapses to just the start symbol, the tree is whole.
-
-### The "Binding Power Tug-of-War" Model (for Pratt)
-
-Picture each operand being pulled left and right by its neighboring operators, each pulling with a force equal to its binding power. `2 + 3 * 4`: the `3` is pulled left by `+` (force 10) and right by `*` (force 20). `*` wins, so `3` binds to `4` first. Pratt parsing is just this tug-of-war made into code: an operand goes to whichever operator pulls hardest, and the `min binding power` parameter is how much pull the current context can withstand before it has to stop and return.
-
----
-
 ## Code Examples
 
 ### A Pratt Parser for Expressions (Python)
@@ -377,32 +288,6 @@ Running this through bison prints: `warning: 1 shift/reduce conflict`. Bison res
 
 ---
 
-## Pros & Cons
-
-| Aspect | LL / recursive descent | LR / shift-reduce (generated) | Pratt (for expressions) |
-|--------|------------------------|-------------------------------|-------------------------|
-| **Hand-writable** | Yes — natural and readable. | Painful by hand; use a tool. | Yes — one compact function. |
-| **Grammar class** | LL(1)/LL(k): no left recursion, needs left-factoring. | Strictly larger; left recursion is fine. | Expressions only, but any precedence/assoc. |
-| **Left recursion** | Must be eliminated. | Handled natively. | N/A — binding powers replace grammar layering. |
-| **Error messages** | Excellent — you control them. | More uniform/generic; recovery is work. | Good, scoped to expressions. |
-| **Precedence handling** | Via layered functions (verbose). | Via the table's shift/reduce choices. | Via binding-power numbers (elegant). |
-| **Conflicts** | None (grammar is forced to be unambiguous). | Shift-reduce / reduce-reduce warnings to resolve. | None — binding powers are total. |
-| **Used in production** | GCC, Clang, Go, rustc, V8 (statements). | Many DSLs, SQL, older Cfront/GCC eras, Ruby. | Inside those same hand-written compilers (expressions). |
-
----
-
-## Use Cases
-
-- **Designing a new language grammar** — knowing LL(1) constraints tells you which rules need rewriting before recursive descent will work.
-- **Reading and fixing a `.y`/`.g4` file** — understanding shift-reduce conflicts lets you interpret and resolve generator warnings instead of guessing.
-- **Building an expression evaluator with many operators** — Pratt parsing is the right tool: comparison, logical, arithmetic, bitwise, ternary, all in one function.
-- **Choosing between hand-written and generated** — if your grammar is naturally left-recursive and you want it parsed quickly, an LR generator saves rewriting; if you want great diagnostics, recursive descent.
-- **Understanding why a grammar is "ambiguous"** — the dangling-else and expression-precedence ambiguities show up constantly; recognizing them saves hours.
-
-When the deeper machinery is overkill: a tiny config format with no nesting and no operators doesn't need FIRST/FOLLOW analysis or Pratt parsing — a flat hand-written reader is fine.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Eliminate Left Recursion → Loop
@@ -452,63 +337,24 @@ When you need to compute FIRST/FOLLOW (or any grammar analysis), use the loop-un
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. Compute FIRST and FOLLOW for the grammar `S → A B`, `A → a | ε`, `B → b`. Is the grammar LL(1)? Justify using the sets.
-2. Eliminate the left recursion from `E → E - T | T`, `T → id`. Write the transformed grammar, then write the recursive-descent function for the new `E`. Does it parse `id - id - id` left-associatively?
-3. Left-factor the grammar `cmd → go north | go south | stop`. Show the rewritten productions.
-4. Trace the shift-reduce parse of `id * id + id` against the expression grammar from Core Concept 5. At which step does the parser face a shift-vs-reduce choice, and which does it pick?
-5. In the Pratt parser, what binding powers would you assign to make `==` lower precedence than `+` and `&&` lower than `==`? Add them and trace `1 + 2 == 3 && true`.
-6. Explain in one sentence why LR(0) is too weak for most grammars but LALR(1) is enough. What does the lookahead buy you?
-7. The dangling-else grammar has a shift-reduce conflict. Describe the exact input position where the conflict occurs and what each action (shift vs reduce) would mean for the resulting tree.
-8. Change the Pratt parser's `^` binding power from `(31, 30)` to `(31, 32)`. Predict how `2 ^ 3 ^ 2` now parses and why.
+1. Find a real component where **Parsers** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
----
+## Verify your work
 
-## Cheat Sheet
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
 
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│                   LL vs LR (and Pratt)                           │
-├──────────────────────────────────────────────────────────────────┤
-│ LL (top-down)   predict rule from lookahead, build root→leaves   │
-│   leftmost derivation │ recursive descent │ hand-written         │
-│   ✗ left recursion  ✗ ambiguity  needs FIRST/FOLLOW disjoint     │
-│ LR (bottom-up)  recognize handle on a stack, build leaves→root   │
-│   rightmost-in-reverse │ shift-reduce │ yacc/bison generate it   │
-│   ✓ left recursion  larger grammar class  conflicts to resolve   │
-├──────────────────────────────────────────────────────────────────┤
-│ FIRST(α)  = terminals that can BEGIN α                           │
-│ FOLLOW(A) = terminals that can come right AFTER A                │
-│ LL(1) ⇔ productions' FIRST sets disjoint (+ FIRST/FOLLOW for ε)  │
-├──────────────────────────────────────────────────────────────────┤
-│ Grammar surgery for LL:                                          │
-│   left recursion  A→Aα|β  ⇒  A→βA' , A'→αA'|ε   (then loop)      │
-│   left factoring  A→γβ1|γβ2  ⇒  A→γ(β1|β2)                       │
-├──────────────────────────────────────────────────────────────────┤
-│ LR ladder: LR(0) < SLR < LALR(1) < LR(1)                         │
-│   LALR(1) = the yacc/bison default sweet spot                    │
-│   shift-reduce conflict = dangling else (default: SHIFT)         │
-│   reduce-reduce conflict = usually a real grammar bug            │
-├──────────────────────────────────────────────────────────────────┤
-│ Pratt parsing (expressions):                                     │
-│   binding power per operator; higher = binds tighter             │
-│   parse(min_bp): nud, then while op.left_bp >= min_bp absorb led │
-│   left-assoc: recurse with left_bp+1 │ right-assoc: left_bp-1    │
-│   ONE function for all precedence levels + prefix/infix          │
-└──────────────────────────────────────────────────────────────────┘
-```
+## Review questions
 
----
-
-## Summary
-
-- Parsing splits into **LL (top-down)** and **LR (bottom-up)**. LL **predicts** a rule from lookahead and builds root-to-leaves; LR **recognizes** a completed handle on a stack and builds leaves-to-root.
-- **FIRST(α)** is what can begin α; **FOLLOW(A)** is what can come after A. A grammar is **LL(1)** when the lookahead token uniquely picks a production — exactly what makes hand-written recursive descent deterministic.
-- **Left recursion** (`A → A α`) crashes naive top-down parsing; eliminate it by rewriting into a right-recursive form that you implement as a **loop**. **Left factoring** removes shared prefixes that defeat one-token lookahead. LR needs neither — it handles left recursion natively and a strictly larger grammar class.
-- An **LR/shift-reduce** parser is a stack machine that **shifts** tokens and **reduces** handles, guided by a table. Precedence lives in its shift-vs-reduce decisions. The power ladder is **LR(0) < SLR < LALR(1) < LR(1)**, with **LALR(1)** being the yacc/bison sweet spot.
-- **Conflicts** are the parser saying it can't decide: **shift-reduce** (the dangling-else classic; default resolution is to shift = bind to the nearest `if`) and **reduce-reduce** (usually a genuine grammar bug).
-- **Pratt parsing / precedence climbing** parses expressions with one function driven by per-operator **binding powers**, handling any number of precedence levels and both associativities elegantly. It's why production compilers pair **recursive descent for statements with Pratt for expressions**.
-- A middle engineer's habit: **read a grammar and immediately ask "is this LL(1)? does it have left recursion? where are the conflicts?"** — and reach for **binding powers, not stacked functions**, when parsing expressions.
-
----
+- Which boundary is most affected by Parsers?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

@@ -1,66 +1,11 @@
-# Interpreters — Professional Level
+# Interpreters — Professional
 
-> **Topic:** Interpreters
-> **Focus:** How real production interpreters are actually built — CPython's `ceval.c` and the GIL, Lua's register VM, V8 Ignition, Ruby YARV, the BEAM — plus value representation, GC integration, debugging/profiling interpreted code, and deriving compilers from interpreters.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Interpreters** with measurable outcomes and limited coordination?
 
-## Introduction
-
-> Focus: **What do real, shipped interpreters look like up close — and what production concerns (value layout, GC, threading, debugging, deopt) dominate once you leave the textbook?**
-
-At this level the question is no longer "how do I write an interpreter?" but "how do the interpreters that run a meaningful fraction of the world's software actually work, and what would I need to build one at that quality?" The answer involves a handful of canonical designs that every language-runtime engineer should be able to discuss precisely:
-
-- **CPython** — a stack-based bytecode VM whose eval loop lives in `ceval.c`, dispatched by a giant `switch` (or computed goto), guarded by the **GIL**, and, since 3.11, fronted by an **adaptive specializing interpreter**.
-- **Lua** — a register-based VM (`lvm.c`) famous for being one of the fastest interpreters ever written, thanks to register design, NaN-boxed/tagged values, upvalues, and a tiny, cache-friendly core.
-- **V8 Ignition** — a register-based bytecode interpreter that feeds the **TurboFan**/**Maglev** JITs, using inline caches and feedback vectors to specialize, with **deoptimization** back to the interpreter when speculation fails.
-- **Ruby YARV** — the stack-based bytecode VM that replaced Ruby's original tree-walker in 1.9, with its own GIL-equivalent (the GVL) and, more recently, the YJIT compiler.
-- **The BEAM** — Erlang/Elixir's register-based VM, built for massive concurrency: millions of lightweight processes, per-process heaps, preemptive reduction-counting scheduling, and soft-real-time GC.
-
-Around these designs sit the production concerns that the lower tiers only gestured at: **value representation** (tagged pointers, NaN-boxing, immediate small integers), **garbage-collection integration** (how the interpreter cooperates with the collector — stack maps, safepoints, write barriers), **threading models** (global locks vs. per-process heaps), **debugging and profiling interpreted code** (tracing hooks, sampling profilers, line tables), and **deriving a compiler from an interpreter** (meta-tracing in PyPy, partial evaluation in GraalVM/Truffle).
-
-> 🎓 **Why this matters for a professional:** Whether you are tuning a service that lives or dies by CPython's per-opcode cost, choosing between Lua and a custom VM for an embedded engine, debugging a deopt storm in a Node.js process, or designing a runtime from scratch, you need to reason about these systems as they really are. This page is the map of the production landscape and the concerns that separate a toy from a shippable runtime.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** Everything in `senior.md`: dispatch techniques, inline caching, closures/upvalues, exceptions, tail calls, the interpreter-to-JIT path.
-- **Required:** Solid grasp of the bytecode VM architecture and stack-vs-register trade-offs (`middle.md`).
-- **Required:** Working knowledge of garbage collection concepts (reachability, mark-sweep, generational, write barriers) at least at a conceptual level.
-- **Helpful but not required:** Having read parts of a real VM source (CPython `ceval.c`, Lua `lvm.c`, V8) or profiled a production interpreter.
-- **Helpful but not required:** Familiarity with one concurrency model (threads + a global lock, or actors).
-
-You do **not** need to know:
-
-- The internals of a specific optimizing JIT backend's register allocator or instruction selection (that is runtime-systems / codegen territory).
-- GC algorithm design at the research level — we treat GC as a system the interpreter must *cooperate with*, and describe the cooperation.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **`ceval.c`** | CPython's bytecode evaluation loop — the `_PyEval_EvalFrameDefault` function and its opcode handlers. |
-| **GIL (Global Interpreter Lock)** | CPython's mutex ensuring only one thread executes bytecode at a time; protects refcounts and internal state. |
-| **GVL (Global VM Lock)** | Ruby (MRI/YARV)'s equivalent of the GIL. |
-| **Adaptive specializing interpreter** | An interpreter that rewrites generic opcodes into type-specialized ones at runtime (CPython PEP 659). |
-| **NaN-boxing** | Encoding pointers and integers inside the unused bit-patterns of IEEE-754 double NaNs, so one 64-bit word is any value. |
-| **Tagged pointer / tagged union** | Using low (aligned) pointer bits or a tag field to distinguish value types (int vs pointer vs immediate). |
-| **Immediate value** | A value (small int, `nil`, `true`) stored inline in the value word, requiring no heap object. |
-| **Feedback vector / type feedback** | Per-call-site runtime data (observed types/shapes) used to specialize or to drive a JIT. |
-| **Deoptimization (deopt)** | Abandoning optimized/specialized code and resuming in the baseline interpreter at the exact equivalent state. |
-| **Safepoint / GC checkpoint** | A point where the interpreter guarantees a consistent state so the GC can run safely. |
-| **Stack map / root map** | Metadata telling the GC which stack/register slots hold live object references at a given point. |
-| **Write barrier** | Code the interpreter runs on pointer writes so a generational/concurrent GC can track cross-generation references. |
-| **Reduction (BEAM)** | The BEAM's unit of work; each process runs a budget of reductions before being preempted (cooperative-but-fair). |
-| **OSR (On-Stack Replacement)** | Switching a *running* function (e.g. a long loop) from interpreter to JIT mid-execution. |
-| **Frame object** | The interpreter's per-call record: locals, operand stack, IP, and back-pointer; CPython exposes these as objects. |
-| **`marshal` / `.pyc`** | CPython's serialized bytecode cache for fast startup. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -126,39 +71,6 @@ Both make concrete the slogan that *an interpreter plus a sufficiently clever sp
 ### 10. Engineering trade-offs that decide real designs
 
 Putting it together, the decisions that define a production interpreter are: **stack vs register** bytecode (generation ease vs instruction count), **value representation** (heap-everything vs tagged/NaN-boxed), **memory management** (refcounting vs tracing, and the threading consequences), **concurrency model** (global lock vs per-process heaps vs free-threading), **dispatch** (switch vs threaded vs JIT), **specialization** (none vs adaptive vs full JIT), and **introspectability** (how much debugging/profiling support to design in). These choices are interlocking — refcounting tends to imply a GIL; NaN-boxing assumes a tracing GC; a JIT needs deopt and OSR; per-process heaps enable BEAM-style concurrency but forbid cheap shared mutable state. Mastering interpreters at this level means reasoning about *the whole interlocking system*, not one loop.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **GIL** | A single talking stick in a meeting: only the holder may speak (run bytecode); simple and orderly, but no two people speak at once. |
-| **Adaptive specialization** | A factory line that, after seeing the same part repeatedly, swaps in a dedicated jig for it — and swaps back if a different part shows up. |
-| **NaN-boxing** | Hiding extra notes in the unused margins of a form you were already mailing — no extra envelope needed. |
-| **Tagged pointer** | Color-coding the last digit of an ID to say what kind of thing it is, without a separate label. |
-| **Deoptimization** | A self-driving car handing control back to the human the instant the road stops matching its model. |
-| **Safepoint** | A train only switching tracks at designated junctions, never mid-span. |
-| **Write barrier** | A logbook entry every time you move an item between the "old" and "new" warehouses, so the auditor can find cross-references fast. |
-| **BEAM reductions** | A board game where each player gets a fixed number of moves per turn, then must pass — fairness without a referee interrupting mid-move. |
-| **Per-process heaps (BEAM)** | Each tenant has their own apartment; cleaning (GC) one never disturbs the others. |
-| **Line table** | A page-number index that maps a sentence in the translated book back to the original page. |
-
----
-
-## Mental Models
-
-### The "Interlocking System" Model
-
-A production interpreter is not a dispatch loop with features bolted on; it is a *system of coupled decisions*. Refcounting pulls in a GIL. A GIL caps parallelism but simplifies everything. NaN-boxing presupposes a tracing GC and shapes every opcode. A JIT demands deopt, which demands precise interpreter state, which constrains your dispatch optimizations. Per-process heaps unlock BEAM concurrency but forbid shared mutable state. Whenever you evaluate or design a runtime, trace these dependencies — changing one corner moves the others.
-
-### The "Baseline + Accelerator + Escape Hatch" Model
-
-Modern high-performance runtimes share one shape: a fast-starting **baseline interpreter** (Ignition, YARV, CPython's eval loop), an **accelerator** that specializes hot code from runtime feedback (TurboFan, Maglev, YJIT, the JIT trace), and an **escape hatch** — **deoptimization** — that bails back to the baseline whenever a speculative assumption is violated. The interpreter is never discarded; it is the correctness reference and the safe landing zone. If you can place CPython, V8, the JVM, Ruby, and PyPy into this triad, you understand the modern landscape.
-
-### The "Value is a Word" Model
-
-The biggest single lever in interpreter performance is making the common values cost nothing. If every integer is a heap object with a refcount (CPython), arithmetic is allocation-heavy and pointer-chasing — the price of simplicity and C-extension compatibility. If a value is one word with a tag or NaN-box (Lua, V8, LuaJIT, JSC), small ints and immediates are free and number-crunching flies. When you compare two runtimes' speed, look first at *how a value is represented*; it often explains the gap before dispatch ever enters the discussion.
 
 ---
 
@@ -278,38 +190,6 @@ The specialized fast path checks its assumption; on a miss it falls back to the 
 
 ---
 
-## Pros & Cons
-
-| System / Choice | Pros | Cons |
-|-----------------|------|------|
-| **CPython (refcount + GIL + adaptive)** | Simple object model, immediate reclamation, vast C-extension ecosystem, deterministic finalization; adaptive interp closes some speed gap. | GIL caps CPU-bound parallelism; refcount churn; per-object overhead; slower than register/NaN-boxed peers. |
-| **Lua (register VM, tagged values)** | Tiny, blazingly fast, embeddable, low memory; gold standard for embedded scripting. | Smaller stdlib by design; register allocation makes the compiler more complex. |
-| **V8 Ignition + TurboFan** | Fast startup + native peak speed; feedback-driven specialization; mature tooling. | Enormous complexity; deopt storms when code is megamorphic; large memory for the JIT. |
-| **Ruby YARV (+ YJIT)** | Big leap over the old tree-walker; pragmatic; YJIT adds native speed. | GVL limits parallelism; historically slower than V8-class engines. |
-| **BEAM** | Millions of isolated processes, low-pause per-process GC, soft real-time, fault tolerance. | Not built for raw single-thread number-crunching; different mental model. |
-| **NaN-boxing / tagged values** | Eliminates allocation for numbers/immediates; major speedup. | Bit-twiddling complexity; assumes a tracing GC; platform/pointer-width assumptions. |
-| **Tracing GC** | Reclaims cycles, parallelizable, no refcount churn. | Needs safepoints, root maps, write barriers; pause-time engineering. |
-| **Meta-tracing / partial eval** | A JIT derived from the interpreter; less hand-written codegen. | Heavy frameworks (RPython, Graal); warmup cost; harder to reason about than a direct JIT. |
-
----
-
-## Use Cases
-
-Reasoning at this level applies when:
-
-- **You operate or tune a service bound by a specific interpreter.** Knowing CPython's per-opcode and GIL behavior (or V8's deopt triggers) turns guesswork into targeted optimization.
-- **You choose an embedding language for a product** (game engine, database UDFs, config). Lua's size/speed, or a sandboxed JS engine, are concrete, comparable options.
-- **You design a new language runtime** and must pick stack-vs-register, value representation, GC strategy, and concurrency model as an interlocking whole.
-- **You decide build-vs-derive for performance:** hand-write a JIT, adopt meta-tracing (RPython), or build on partial evaluation (Truffle) — each a strategic, multi-year choice.
-- **You build language tooling** — debuggers, profilers, coverage — that must hook into a real interpreter's frame and line-table machinery.
-
-It is **out of scope / overkill** when:
-
-- You only need a small embedded evaluator — a tree-walker or simple bytecode VM (earlier tiers) is the right engineering, and these production concerns are premature.
-- You are using a runtime as a black box and never need to reason about its internals or performance cliffs.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Uniform `Value` word for GC-friendliness
@@ -366,90 +246,24 @@ For low-overhead profiling, read frame objects from outside the running process 
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. Explain precisely why CPython has a GIL. Tie it to the object model (hint: refcounting). What does PEP 703 change, and what new burden does it place on C extensions?
-2. `a = b + c` is one instruction in Lua and four in CPython's stack VM. Walk through both encodings and explain the performance consequence.
-3. Describe the "baseline + accelerator + escape hatch" triad for V8. Name V8's component for each role and what triggers the escape hatch.
-4. What problem does NaN-boxing solve, and what does it assume about the garbage collector? Why can't a refcounting-everything VM like classic CPython benefit from it as directly?
-5. Ruby went from a tree-walker (1.8) to YARV bytecode (1.9). In terms of `junior.md`/`middle.md`, what changed and why was it faster?
-6. The BEAM schedules with "reductions." Contrast this with OS-thread preemption and explain how it gives soft-real-time fairness across millions of processes.
-7. Why must GC run only at safepoints? Give a concrete corruption that occurs if it runs mid-instruction with a raw pointer on the operand stack.
-8. A specialized `BINARY_OP_ADD_INT` site suddenly sees a float. Trace what CPython's adaptive interpreter does. How is this the interpreter-level analogue of a JIT deopt?
-9. Compare meta-tracing (PyPy) and partial evaluation (Truffle/GraalVM) as ways to *derive* a compiler from an interpreter. What does the implementer write in each case?
-10. You must profile a CPython service in production with minimal overhead. Why is `sys.setprofile` the wrong tool, and what class of profiler do you reach for instead?
+1. Define the user or business outcome that **Interpreters** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
----
+## Verify your work
 
-## Cheat Sheet
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
 
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│            PRODUCTION INTERPRETERS — THE LANDSCAPE                │
-├──────────────────────────────────────────────────────────────────┤
-│ CPython : stack VM (ceval.c switch/computed-goto) + GIL +         │
-│           refcount GC + adaptive specializing interp (PEP 659);   │
-│           3.13 free-threading (PEP 703) + experimental JIT        │
-│ Lua     : REGISTER VM (lvm.c), tagged/NaN-box values, upvalues,   │
-│           tiny cache-resident core -> famously fast               │
-│ V8      : Ignition (register bytecode interp) + Maglev/TurboFan   │
-│           JITs, feedback vectors, hidden classes, DEOPT to interp │
-│ Ruby    : 1.8 tree-walk -> 1.9 YARV stack VM; GVL; YJIT           │
-│ BEAM    : register VM, millions of processes, per-process heaps,  │
-│           reduction-count preemption, soft real-time, low pause   │
-├──────────────────────────────────────────────────────────────────┤
-│ VALUE REP (biggest perf lever):                                   │
-│   heap-everything (CPython)  vs  tagged ptr (V8 Smi, OCaml)       │
-│   vs  NaN-boxing (LuaJIT, JSC, SpiderMonkey)                      │
-│   -> tagged/NaN-box = no alloc for ints/immediates               │
-├──────────────────────────────────────────────────────────────────┤
-│ GC INTEGRATION: safepoints + root/stack maps + write barriers     │
-│   refcount (CPython) -> implies GIL | tracing -> needs barriers   │
-├──────────────────────────────────────────────────────────────────┤
-│ MODERN SHAPE: baseline interp + feedback-driven accelerator +     │
-│               DEOPT escape hatch (interp is correctness ref)      │
-│ DERIVE A JIT: meta-tracing (PyPy/RPython) | partial eval (Graal)  │
-├──────────────────────────────────────────────────────────────────┤
-│ TOOLING: line tables, frame introspection, settrace (slow) vs     │
-│          out-of-process sampling (py-spy/Austin, low overhead)    │
-└──────────────────────────────────────────────────────────────────┘
-```
+## Review questions
 
----
-
-## Summary
-
-- Production interpreters cluster around a few canonical designs: **CPython** (stack VM, GIL, refcounting, adaptive specialization), **Lua** (register VM, tagged/NaN-boxed values, famously fast and tiny), **V8 Ignition** (register bytecode interpreter feeding TurboFan/Maglev with feedback and deopt), **Ruby YARV** (the bytecode VM that replaced Ruby's tree-walker, now with YJIT), and the **BEAM** (a concurrency-first register VM with per-process heaps and reduction scheduling).
-- **Value representation** is the biggest single performance lever: **tagged pointers** (V8 Smi) and **NaN-boxing** (LuaJIT, JSC) make integers and immediates cost no allocation, unlike CPython's heap-everything model.
-- The interpreter must **cooperate with the GC**: safepoints for consistent state, root/stack maps so the collector finds live references, and write barriers for generational/concurrent collection. **Refcounting** (CPython) is simple but implies the **GIL**; **tracing** GCs need the barrier/map machinery.
-- The **modern high-performance shape** is a triad: a fast-starting **baseline interpreter**, a feedback-driven **accelerator** (JIT or adaptive specialization), and **deoptimization** as the escape hatch back to the baseline, which remains the correctness reference.
-- You can **derive a compiler from an interpreter**: **meta-tracing** (PyPy/RPython traces the interpreter) or **partial evaluation** (Truffle/GraalVM specializes an AST interpreter) — strategic alternatives to hand-writing a JIT.
-- **Debugging and profiling** require exposing interpreter state (line tables, frame objects, trace hooks) — and the fastest dispatch/JIT techniques are precisely the ones that make this hardest, a core professional trade-off.
-- The professional throughline: a real interpreter is an **interlocking system** — value representation, GC, concurrency model, dispatch, specialization, and introspectability are coupled decisions, not independent features. Mastery is reasoning about the whole.
-
----
-
-## What You Can Build
-
-- **A NaN-boxed value system** for your VM, then a benchmark proving integer arithmetic no longer allocates versus a heap-everything baseline.
-- **An adaptive specializing opcode** (e.g. `ADD` → `ADD_INT` with an inline cache and deopt-on-miss), instrumented to show the specialize/deopt transitions.
-- **A safepoint-and-write-barrier integration** with a toy generational GC, including a test that *removes* a barrier to observe the resulting use-after-free.
-- **A CPython internals explorer:** a tool over `dis`, `marshal`, and frame objects that visualizes bytecode, the line table, and (via `sys.monitoring`/`settrace`) live execution.
-- **A per-process-heap actor runtime** in miniature (BEAM-inspired): lightweight tasks with isolated heaps and reduction-budget scheduling.
-- **A deopt-correctness differential tester** that runs every operation through both a generic and a specialized path and asserts identical results, including on guard-miss boundaries.
-- **A comparison write-up/benchmark** of stack vs register bytecode for the same language, measuring instruction count and dispatch count on real programs.
-
----
-
-## Further Reading
-
-- CPython internals: `Python/ceval.c`; PEP 659 (Specializing Adaptive Interpreter); PEP 703 (free-threading); PEP 684 (per-interpreter GIL); PEP 744 (JIT). The CPython Internals book by Anthony Shaw.
-- *The Implementation of Lua 5.0* — Ierusalimschy, de Figueiredo, Celes. Register VM, tagged values, upvalues, GC. https://www.lua.org/doc/jucs05.pdf
-- *Understanding V8's Bytecode* — Franziska Hinkelmann; and the V8 blog posts on Ignition, TurboFan, Maglev, and deoptimization.
-- *Ruby Under a Microscope* — Pat Shaughnessy. YARV internals. Plus the YJIT papers from Shopify (basic-block versioning).
-- *The BEAM Book* (open source) and *Erlang and OTP in Action* — the BEAM's process model, scheduling, and per-process GC.
-- *Crafting Interpreters* — Robert Nystrom. NaN-boxing, GC, and upvalues in a real C VM. https://craftinginterpreters.com/
-- *A Tutorial on Behavior of Efficient Virtual Machine Interpreters* and Ertl & Gregg's body of work on dispatch and value representation.
-- *Tracing the Meta-Level: PyPy's Tracing JIT* — Bolz et al.; and *Practical Partial Evaluation for High-Performance Dynamic Language Runtimes* — Würthinger et al. (Truffle/Graal).
-- *The Garbage Collection Handbook* — Jones, Hosking, Moss. The reference for the GC side of interpreter/GC cooperation.
-- *Smalltalk-80: The Language and its Implementation* (the "Blue Book") — the historical root of bytecode VMs, inline caches, and much of this lineage.
+- Which measurable outcome justifies investing in Interpreters?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

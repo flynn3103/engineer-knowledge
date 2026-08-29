@@ -1,20 +1,11 @@
 # Database and Distributed Systems — Senior
 
-> **Topic:** [Database and Distributed Systems](../README.md)
-> **Focus:** Handling partial failures correctly (the two-phase problem), distributed locks, connection pool sizing under real load, saga-style compensation instead of distributed transactions, and designing for a downstream that's sometimes just gone.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Database and Distributed Systems** under failure, load, and change?
 
-## Introduction
-
-At scale, "the database call failed" stops being a single failure mode. It might mean the write never reached the database, or it reached the database and committed but the response was lost on the way back, or it's still in flight and you genuinely don't know. Senior-level distributed-systems work is designing systems that behave correctly under this ambiguity, not just under the happy path.
-
----
-
-## Prerequisites
-
-- Comfortable with idempotency keys, queue consumers, and optimistic/pessimistic locking (middle level).
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -63,16 +54,6 @@ A payment service call timed out client-side after 5 seconds; the client, having
 
 ---
 
-## Pros & Cons
-
-| Approach | Pros | Cons |
-|---|---|---|
-| Idempotency keys under ambiguous failures | The only reliable way to make retries safe | Requires the key to be generated and reused correctly by the *caller*, which you don't fully control |
-| Redis-based lock (`SETNX` + TTL) | Simple, fast | Not safe against process pauses exceeding the TTL — use a proper algorithm/service if correctness depends on it |
-| Sagas with compensation | Avoids fragile distributed transactions, resilient to partial failure | Requires designing and testing a compensating action for every step |
-
----
-
 ## Best Practices
 
 1. Treat every write across a network boundary as potentially ambiguous on failure; require an idempotency key.
@@ -102,46 +83,24 @@ A payment service call timed out client-side after 5 seconds; the client, having
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```
-Partial failure  → 3 possibilities on timeout: never started / failed / succeeded-but-lost-response
-Idempotency key  → the only safe way to retry under that ambiguity
-Distributed lock → SETNX+TTL is NOT safe against long pauses; use Redlock/etcd/ZK properly
-Saga             → sequence of local txns + compensating actions, avoid distributed 2PC
-Pool math        → MaxOpenConns * instance_count <= DB's actual max connections
-```
+1. State the system invariant that **Database and Distributed Systems** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
----
+## Verify your work
 
-## Summary
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
 
-- A network-boundary write's failure is fundamentally ambiguous (never started / failed / succeeded-but-lost) — idempotency keys are the only reliable fix, not a nice-to-have.
-- Naive distributed locks (`SETNX` + TTL) are not safe against process pauses exceeding the TTL; use a properly reviewed algorithm or coordination service when correctness genuinely depends on mutual exclusion.
-- Prefer sagas with idempotent compensating actions over distributed transactions across services.
-- Recalculate total connection-pool capacity against the database's real limit on every scale-up.
-- Decide explicitly, per operation, how to behave when a downstream is unreachable for an extended period.
+## Review questions
 
----
-
-## Further Reading
-
-- Martin Kleppmann — *How to do distributed locking* (critique of naive Redis locks): <https://martin.kleppmann.com/2016/02/08/how-to-do-distributed-locking.html>
-- Chris Richardson — *Pattern: Saga*: <https://microservices.io/patterns/data/saga.html>
-
----
-
-## Related Topics
-
-- [HTTP and APIs — Senior](../05-http-and-apis/senior.md) — circuit breakers and deadline propagation for the same failure modes.
-- [Production Debugging — Senior](../07-production-debugging/senior.md)
-
----
-
-## Check your understanding
-
-1. Explain Database and Distributed Systems — Senior Level in your own words and name the problem it solves.
-2. How would you apply the ideas around Introduction, Prerequisites, Core Concepts in a realistic engineering change?
-3. What failure mode or misuse should you look for, and what evidence would reveal it?
-4. How would you validate a system-level decision about Database and Distributed Systems — Senior Level under uncertainty?
-5. What observable result would convince you that the approach improved the system?
+- Which invariant must remain true when Database and Distributed Systems fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

@@ -1,61 +1,11 @@
-# Annotations & Decorators — Middle Level
+# Annotations & Decorators — Middle
 
-> **Topic:** Annotations & Decorators
-> **Focus:** How annotations are *processed* (retention, targets, meta-annotations, APT vs reflection) and how decorators are *built* (factories, arguments, class decorators, stacking, `wraps`).
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **Annotations & Decorators** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-> Focus: **The junior page told you annotations are inert metadata and decorators are live code. Now you learn the machinery: *how* each is processed, and the full toolkit for building both.**
-
-At junior level you could classify any `@Something` as metadata or behavior and name its reader. That's the conceptual foundation. This page makes you *productive*: you'll be able to define your own annotations with the right **retention** and **targets**, understand the deep split between **compile-time processing (APT)** and **runtime reflection**, and on the decorator side, write **decorator factories** (decorators that take arguments), **class decorators**, and correctly handle **stacking** and **metadata preservation**.
-
-The unifying axis to hold in your head — and it mirrors the whole metaprogramming section — is **when does the work happen?**
-
-- **Compile time:** Java annotation processors (APT) and tools like Lombok and Dagger read annotations *during the build* and generate code or errors. The result is baked in before the program ever runs.
-- **Runtime:** frameworks read annotations *while the program runs*, via reflection (Spring, JUnit, Jackson, Hibernate). Python and TypeScript decorators run at *definition time* — a third moment, between "build" and "steady-state runtime."
-
-Once you can place any `@`-feature on this timeline — when it's read, by whom, to what effect — the "magic" disappears and you can reason about cost, ordering, and failure modes.
-
----
-
-## Prerequisites
-
-- **Required:** The junior page's core split: annotation = inert metadata read by someone else; decorator = live wrapping code.
-- **Required:** Comfort writing a Python decorator and a basic Java class.
-- **Required:** Knowing what reflection is (inspecting types/methods at runtime).
-- **Helpful but not required:** Having seen a build tool (Maven/Gradle, `javac`) run, and the idea of generated source folders.
-- **Helpful but not required:** Familiarity with closures (a function capturing variables from an enclosing scope) — decorator factories rely on them.
-
-You do **not** yet need:
-
-- The internals of writing a full `javax.annotation.processing.Processor` round-by-round (that's `senior.md`).
-- `reflect-metadata` design-type emission internals (that's `senior.md`).
-- TC39 Stage-3 vs legacy `experimentalDecorators` differences (that's `professional.md`).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Retention policy** | (Java) `SOURCE`, `CLASS`, or `RUNTIME` — how long an annotation survives the compilation pipeline. |
-| **`@Target`** | A meta-annotation restricting *where* an annotation may be applied (method, field, type, parameter…). |
-| **Meta-annotation** | An annotation placed on *another annotation's definition* (`@Retention`, `@Target`, `@Documented`, `@Inherited`). |
-| **APT** | Annotation Processing Tool: the `javac` mechanism that runs `Processor`s at compile time. |
-| **`javax.annotation.processing`** | The Java API for writing annotation processors. |
-| **Code generation** | A processor emitting *new* source files during compilation (Dagger, Lombok-ish, MapStruct). |
-| **Reflection scanning** | Walking loaded classes at runtime to find annotated elements (Spring component scan). |
-| **Decorator factory** | A function returning a decorator, used to pass arguments: `@retry(times=3)`. |
-| **Class decorator** | A decorator applied to a class rather than a function; receives and may replace the class. |
-| **Stacking** | Applying multiple decorators/annotations to one target; order is significant. |
-| **`functools.wraps`** | Copies `__name__`, `__doc__`, `__wrapped__`, `__dict__`, signature onto the wrapper. |
-| **Definition time** | When a Python/TS decorator executes — as the `def`/`class` statement is evaluated. |
-| **Element** | (Java) The thing an annotation is attached to, as seen by a processor: `TypeElement`, `ExecutableElement`, etc. |
-| **`@Repeatable`** | A meta-annotation allowing the same annotation to be applied more than once to one target. |
-| **Marker annotation** | An annotation with no members; its mere presence is the signal (`@Override`, `@Deprecated`). |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -164,53 +114,6 @@ is `f = a(b(c(f)))`. Applied **bottom-up** (`c` first), but at call time execute
 ### 8. `functools.wraps` — what it actually copies, and why
 
 Without it, the wrapper *is* a different object: `f.__name__ == "wrapper"`, `f.__doc__ is None`, `help(f)` is useless, and tools relying on `inspect.signature` see `(*args, **kwargs)`. `functools.wraps(func)` copies `__module__`, `__name__`, `__qualname__`, `__doc__`, `__dict__`, and sets `__wrapped__ = func` so introspection can recover the original. Treat it as non-optional on any function-wrapping decorator.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **`SOURCE` retention** | A pencil note on a blueprint that the builder reads, then erases before construction. Gone by move-in. |
-| **`RUNTIME` retention** | A permanent engraved plaque the building staff can read forever while the building operates. |
-| **Annotation processor (APT)** | A pre-construction inspector who reads the blueprint notes and *fabricates extra parts* before building starts. |
-| **Runtime reflection** | A live audit team walking the finished building, reading plaques, and acting on them. |
-| **`@Target`** | A rule on the sticky-note pad: "these notes may only go on doors, never on windows." |
-| **Meta-annotation** | A note *on the note pad itself* describing how its notes behave. |
-| **Decorator factory** | A vending machine for gift-wrappers: insert your choice (paper color), out comes the specific wrapper. |
-| **Stacking** | Nesting boxes inside boxes; the last box you wrap is the first one a recipient opens. |
-| **`functools.wraps`** | Re-printing the original product's barcode and label onto the outer box so scanners still recognize it. |
-
----
-
-## Mental Models
-
-### The Timeline Model
-
-Place every `@`-feature on a single timeline: **source → compile → class-load/definition → steady-state runtime.**
-
-- `SOURCE` annotations + APT act at **compile**.
-- `RUNTIME` annotations act at **steady-state runtime** (and are *read* via reflection, often at class-load/startup).
-- Python/TS decorators act at **definition** (module import / class load).
-
-If you can mark *where on this line* a feature acts, you can predict its cost and its failure mode.
-
-### The "Two Halves" Model (annotations)
-
-An annotation is always **half a feature**. The other half is the reader: a processor (compile half) or reflection code (runtime half). When debugging "my annotation does nothing," you've almost always built only one half. Ask: *where is the code that looks for this annotation, and does the retention let it see it?*
-
-### The "Peel the Onion" Model (decorators)
-
-A stacked, factory-built decorator is layers of onion. To understand it, peel from the inside out by rewriting:
-
-```python
-@retry(3)
-@log
-def f(): ...
-# f = retry(3)(log(f))
-```
-
-Evaluate `retry(3)` → decorator; `log(f)` → wrapped; then outer decorator wraps that. Mechanical rewriting beats intuition every time.
 
 ---
 
@@ -371,31 +274,6 @@ int times = attr?.Times ?? 1;
 
 ---
 
-## Pros & Cons
-
-| Aspect | Pros | Cons |
-|--------|------|------|
-| **Compile-time processing (APT)** | Zero runtime cost; errors caught at build; generated code is debuggable. | Slower builds; processors are hard to write; generated code can confuse newcomers. |
-| **Runtime reflection** | No build step; flexible; frameworks can adapt to any annotated code. | Startup scanning cost; reflection is slower than direct calls; errors surface late (at runtime). |
-| **Decorator factories** | Configurable, reusable cross-cutting logic. | Easy to forget parentheses; three nesting levels are error-prone to read. |
-| **Stacking** | Clean composition of concerns (auth + cache + log). | Order bugs are subtle and can be security-relevant (cache before auth). |
-| **`functools.wraps`** | Preserves identity, docs, signature for tooling. | One more thing to forget; its absence fails silently until something introspects. |
-| **Meta-annotations / retention** | Precise control over where and how long metadata lives. | Wrong retention = framework sees nothing, with no error. |
-
----
-
-## Use Cases
-
-- **DI containers** (Spring, Dagger, NestJS): `@Autowired`/`@Inject`/`@Injectable` — Dagger at compile time, Spring at runtime.
-- **ORM mapping** (Hibernate/JPA, EF Core): `@Entity`, `@Column`, `[Key]` — read by reflection at startup.
-- **Validation** (Bean Validation, FluentValidation): `@NotNull`, `[Range]` — read by a validator at runtime.
-- **Routing** (Flask, FastAPI, Spring MVC, NestJS): factory decorators/annotations registering handlers.
-- **Serialization** (Jackson, System.Text.Json): `@JsonProperty`, `[JsonPropertyName]` — read during (de)serialization.
-- **Boilerplate elimination** (Lombok, AutoValue, MapStruct): compile-time generation from annotations.
-- **Cross-cutting behavior** (Python): `@retry`, `@cache`, `@timed`, `@require_role` — runtime wrapping.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: The factory-decorator-wrapper triple (Python)
@@ -474,3 +352,27 @@ original = wrapper.__wrapped__
 - **Repeatable annotations need a container.** Before `@Repeatable`, you couldn't apply the same annotation twice; mixing old code with repeatable usage causes confusing `getAnnotation` vs `getAnnotationsByType` differences.
 - **Reflection cost.** Reading annotations per call (rather than caching the lookup) can dominate a hot loop — cache the reflective lookups.
 - **Class decorator replacing the class** can break `isinstance` checks and pickling if it returns a function instead of a class (as the naive `@singleton` above does).
+
+---
+
+## Apply it
+
+1. Find a real component where **Annotations & Decorators** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
+
+## Verify your work
+
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
+
+## Review questions
+
+- Which boundary is most affected by Annotations & Decorators?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

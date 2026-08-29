@@ -1,41 +1,11 @@
-# Memory Safety — Middle Level
+# Memory Safety — Middle
 
-> **Topic:** Memory Safety
-> **Focus:** The mechanisms behind each violation category, how detection tooling actually works, and why some "safe" languages still have unsafe corners.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **Memory Safety** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-At the junior tier we named the two pillars — spatial and temporal safety — and the violation categories. This tier goes one level deeper: *why* each violation is dangerous at the mechanism level, *how* detection tools like AddressSanitizer find them, and *where* the supposedly safe languages have holes (Go data races, Java's `Unsafe`, Rust's `unsafe`).
-
-The throughline: memory safety is not a single switch. It's a set of guarantees, each enforced by a specific mechanism with a specific cost, and each with specific boundaries beyond which the guarantee no longer holds.
-
----
-
-## Prerequisites
-
-- The junior tier's two pillars and violation list.
-- Heap vs. stack allocation; what `malloc`/`free` (or `new`/`delete`) do conceptually.
-- Pointers and references, and the idea that a pointer is just an address (a number).
-- Basic understanding of what a compiler vs. a runtime does.
-
----
-
-## Glossary
-
-| Term | Meaning |
-| --- | --- |
-| **Type confusion** | Treating bytes of one type as if they were another, incompatible type. |
-| **Integer overflow → undersized allocation** | An arithmetic overflow producing a too-small buffer that is then overflowed. |
-| **Data race** | Two threads accessing the same memory concurrently, at least one writing, with no synchronization. |
-| **Shadow memory** | A parallel region a sanitizer uses to record metadata about each byte of program memory. |
-| **Redzone** | Poisoned padding a sanitizer places around allocations to detect overflows. |
-| **Quarantine** | A sanitizer's pool of freed memory held back from reuse to catch use-after-free. |
-| **Soundness** | A safety mechanism is *sound* if it admits **no** unsafe program (no false negatives in its guarantee). |
-| **`unsafe` / escape hatch** | A region where the language's safety checks are suspended and the programmer asserts correctness. |
-| **Sanitizer** | A compiler-instrumented runtime detector (ASan, MSan, TSan, UBSan). |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -102,30 +72,6 @@ These are *dynamic* — they only catch bugs on code paths your tests actually e
 
 ---
 
-## Real-World Analogies
-
-- **Redzones = wet paint barriers.** ASan paints a poisoned strip around each allocation. The instant a write strays into the strip, you know — and you know exactly where, because the alarm fires immediately, not three corruptions later.
-
-- **Quarantine = not re-renting a hotel room the instant a guest checks out.** Hold the room empty for a while. If the old guest's keycard (stale pointer) tries the door, it opens onto a *known-empty, alarmed* room instead of a new guest's occupied one.
-
-- **The borrow checker = a strict lab safety officer.** They won't let you run an experiment until you *prove* on paper that no two people will touch the same sample while one is modifying it. Sometimes they reject a perfectly fine experiment because your proof was incomplete — annoying, but no accidents ever happen.
-
-- **`unsafe` = a signed waiver at the door.** Inside, the safety rails are off and you've taken personal responsibility. The smaller the room behind that door, the easier it is to be sure nothing escapes to hurt others.
-
----
-
-## Mental Models
-
-**Model 1: Detection vs. prevention.** Safe languages *prevent* (the bug can't exist). Sanitizers *detect* (the bug exists, but you find it when it triggers). Prevention is strictly better; detection is what you use when prevention isn't available.
-
-**Model 2: The unsafe surface is the real attack surface.** In a mostly-safe codebase, vulnerabilities cluster at the boundaries: `unsafe` blocks, FFI calls, deserialization, data races. Audit effort should follow the unsafe surface, not be spread uniformly.
-
-**Model 3: Integer math is part of memory safety.** A buffer size is computed by arithmetic. If the arithmetic can overflow, the buffer can be undersized. Treat size calculations as safety-critical.
-
-**Model 4: A data race is undefined behavior, not "just" a race.** In C/C++ and even partly in Go, a race isn't merely nondeterministic output — it can produce torn values that break spatial/temporal invariants.
-
----
-
 ## Code Examples
 
 ### Integer overflow producing an undersized allocation
@@ -188,30 +134,6 @@ go func() { shared = make([]int, 1000000) }()
 
 ---
 
-## Pros & Cons
-
-**Managed-runtime safety (GC family):**
-- ✅ Simple mental model, no lifetimes to reason about, very productive.
-- ❌ GC pauses and memory overhead; less predictable latency; bounds-check cost.
-
-**Compile-time ownership (Rust):**
-- ✅ Safety with no GC, predictable performance, data-race freedom in safe code.
-- ❌ Steeper learning curve; borrow checker rejects some valid programs; `unsafe` still needed at the edges.
-
-**Sanitizers (for unsafe languages):**
-- ✅ Find real bugs precisely, with stack traces; near-zero false positives (ASan).
-- ❌ Only catch executed paths; significant runtime/memory cost; not a production safeguard.
-
----
-
-## Use Cases
-
-- **Choosing between Go and Rust** for a new service: Go for fastest delivery and simplest concurrency story (mind the race detector); Rust where you need predictable latency, no GC, or are writing systems/security-critical code.
-- **Hardening an existing C/C++ codebase:** run the test suite and fuzzers under ASan/MSan/UBSan/TSan in CI.
-- **Reviewing a Rust PR:** scrutinize every `unsafe` block and every `unsafe`-adjacent invariant; the safe parts are guaranteed by the compiler.
-
----
-
 ## Coding Patterns
 
 - **Wrap `unsafe` in a safe API.** The pattern is "small audited `unsafe` core, large safe surface." Callers never see the unsafe operations.
@@ -243,10 +165,24 @@ go func() { shared = make([]int, 1000000) }()
 
 ---
 
-## Summary
+## Apply it
 
-- Each violation category has a concrete mechanism: overflows hit adjacent memory; UAF aliases reused memory; integer overflow produces undersized buffers; data races tear multi-word values.
-- Two families achieve safety: **managed runtimes** (bounds checks + GC + no pointer arithmetic) and **compile-time ownership** (Rust's borrow checker), each with different costs.
-- **Soundness** means the safe subset admits no unsafe program; the **`unsafe`/FFI escape hatch** is where that guarantee is handed back to the programmer — and where bugs concentrate.
-- **Sanitizers** (ASan via shadow memory + redzones + quarantine; MSan, UBSan, TSan) *detect* bugs at runtime with precision but only on executed paths — pair them with **fuzzing**.
-- "Safe" languages still have unsafe corners: Go data races, Java's `Unsafe`, Rust's `unsafe`. Audit effort should follow the unsafe surface.
+1. Find a real component where **Memory Safety** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
+
+## Verify your work
+
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
+
+## Review questions
+
+- Which boundary is most affected by Memory Safety?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

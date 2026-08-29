@@ -1,62 +1,11 @@
-# What Is a Type — Professional Level
+# What Is a Type — Professional
 
-> **Topic:** What Is a Type
-> **Focus:** Types as an engineering instrument — type vs runtime representation, type safety vs memory safety, the "type of a type" (kinds), and using types as the cheapest tests to make whole bug classes vanish in real production systems.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **What Is a Type** with measurable outcomes and limited coordination?
 
-## Introduction
-
-> Focus: **What does a type *cost*, *guarantee*, and *enable* in a real system?** And how do staff-level engineers wield "a type" as a lever to delete entire categories of incidents?
-
-By this level you know what a type is from several angles — a set of values with operations, a contract, a proposition with values as proofs, an interface. This page is about the engineering consequences: the places where the abstract notion of "type" cashes out into bytes, latency, incident counts, and the design decisions you defend in a review.
-
-Four threads run through it:
-
-1. **A type is a representation decision.** The compiler turns "this is an `int32`" into "four bytes, two's-complement, here." A type's *logical* identity and its *physical* layout are linked but distinct, and senior engineers exploit the gap (newtypes with zero runtime cost, niche-filling optimizations, cache-friendly struct layout).
-2. **Type safety and memory safety are different guarantees.** Conflating them causes real incidents. You can have type safety without memory safety and vice versa; the most valuable systems work has them as separate, deliberately-chosen dials.
-3. **The "type of a type."** Just as values have types, types have **kinds**. `int` has kind `*` (a concrete type); `List` is `* → *` (a type that *takes* a type). Knowing this prevents a class of confusions and unlocks higher-kinded abstractions.
-4. **Types as the cheapest tests.** The professional payoff: a type catches a bug at compile time, once, for every input and call site — cheaper than any test, review, or runtime assertion. "Make illegal states unrepresentable" stops being a slogan and becomes an incident-reduction strategy you can quantify.
-
-> 🎓 **Why this matters at this level:** At scale, the question isn't "static or dynamic?" It's "which guarantees do I buy with types, what do they cost in compile time / runtime / cognitive load, and which incident classes do they eliminate?" A staff engineer who says "we'll model this as a sum type so the impossible state can't reach production" is making a risk-and-cost argument, not a stylistic one.
-
----
-
-## Prerequisites
-
-- **Required:** The senior-level lenses — types-as-sets and its limits, Curry–Howard (types as propositions, values as proofs), interfaces/capabilities, uni-typed dynamics.
-- **Required:** The middle-level static/dynamic, inference, erasure, and soundness framework.
-- **Required:** Real exposure to a systems language (C, C++, Rust, Go) *and* a managed one (Java, C#, Python, TS); ideally you've debugged a layout, alignment, or `null` bug in production.
-- **Helpful but not required:** Familiarity with generics/templates, higher-kinded types or their absence, and serialization boundaries.
-- **Helpful but not required:** Having read a struct's memory layout in a debugger or with `sizeof`/`offsetof`.
-
-You do **not** need:
-
-- A compiler-construction background; representation is discussed at the engineering level, not as codegen internals.
-- Category theory; kinds are introduced operationally.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Representation** | The concrete bytes/layout the compiler uses to store a value of a type. |
-| **Newtype** | A distinct type wrapping an existing one, often with zero runtime overhead. |
-| **Niche / niche-filling** | Using an invalid bit-pattern of a type to encode an extra case for free (e.g. `Option<&T>` reusing the null pointer). |
-| **Type safety** | The guarantee that operations are never applied to operands of the wrong type. |
-| **Memory safety** | The guarantee that programs never access memory out of bounds, after free, or uninitialized. |
-| **Type punning** | Reinterpreting the same bytes under a different type (`union`, `reinterpret_cast`, `transmute`). |
-| **Kind** | The "type of a type." `*` = concrete type; `* → *` = a type constructor taking one type. |
-| **Type constructor** | A type that takes type arguments to produce a type: `List`, `Option`, `Map`. |
-| **Higher-kinded type (HKT)** | Abstraction over type constructors themselves (`F[_]`), not just types. |
-| **Phantom type** | A type parameter that appears in the type but not in the runtime representation, used to encode state/units at compile time. |
-| **Tagged union / sum** | A type holding one of several variants plus a discriminant tag. |
-| **Discriminant** | The runtime tag identifying which variant of a sum type is present. |
-| **ABI** | Application Binary Interface — how types are laid out and passed at the machine level. |
-| **Boxing** | Storing a value behind a heap pointer (often to give it a uniform representation). |
-| **Monomorphization** | Generating a specialized copy of generic code per concrete type. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -142,40 +91,6 @@ A type is a test that:
 - **can't be skipped** (you can't merge code that violates it).
 
 This is why "make illegal states unrepresentable" is an incident-reduction strategy, not an aesthetic preference. Every invariant you lift into a type is a bug class you delete *permanently*, for the whole team, with no ongoing maintenance — strictly dominating the equivalent runtime check or test suite for that property. The art is knowing *which* invariants are worth the modeling effort (the high-frequency, high-cost ones) versus which are cheaper to assert at run time.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Type vs representation** | A "designated parking spot" sign (logical) vs the painted rectangle of asphalt (physical). Same car fits; the sign adds meaning, not material. |
-| **Newtype, zero cost** | Two identical keys cut the same, but stamped "FRONT" and "BACK" — indistinguishable metal, distinct *meaning* you can't mix up. |
-| **Niche-filling** | Using the one empty mailbox slot to also mean "resident moved out" — no new mailbox needed; an unused state carries extra info. |
-| **Type vs memory safety** | Type safety = "you used the right tool for the job." Memory safety = "you stayed inside the workshop and didn't reach into the machinery." Different rules, different injuries. |
-| **Kinds (type of a type)** | A recipe *template* ("a pie of X") vs a finished recipe ("apple pie"). `Pie` is a template (`* → *`); `ApplePie` is concrete (`*`). |
-| **Phantom type** | A wristband color at an event: doesn't change who you are, but the gate enforces "red bands only past this point." |
-| **Types as cheapest tests** | A door frame that physically can't admit oversized furniture — no inspector, no checklist, no incident; the geometry enforces it for every item, forever. |
-
----
-
-## Mental Models
-
-### The "Two Identities" Model
-
-Every type has a **logical identity** (meaning + operations, what you reason with) and a **physical identity** (bytes + layout, what it costs). Senior work lives in the gap: maximize logical distinctions (safety) while minimizing physical cost (newtypes, phantom types, niches that erase to nothing). When you propose a type, state both: "logically a validated email, physically just a `String` — zero overhead."
-
-### The "Two Dials" Model
-
-Type safety and memory safety are **separate dials** you set per component. Don't ask "is this safe?" — ask "is this *type*-safe?" and "is this *memory*-safe?" separately, because the failure modes and fixes differ. A type-confusion CVE and an off-by-one are different bugs even when one causes the other. Rust's `unsafe` is literally a knob that lowers the memory-safety dial in a scoped region while keeping type safety.
-
-### The "Kind Ladder" Model
-
-There's a ladder: **values** are classified by **types**, which are classified by **kinds**. `42 : Int : *`. `[1,2] : List<Int>`, where `List : * → *`. When the compiler complains about an unapplied `List` or a "type constructor where a type is expected," you've stepped on the wrong rung. When you wish to abstract over "any `F` that's a container," you want to quantify one rung up — higher-kinded types.
-
-### The "Test That Can't Be Skipped" Model
-
-Reframe every type decision as a test-design decision. A `string` parameter is a test with *zero* assertions — it asserts nothing about the content. A `NonEmptyList<EmailAddress>` parameter is a *battery* of tests (non-empty, all valid emails) that runs on every value at every call, can't be forgotten, and costs no runtime. Ask of every boundary: "what is the cheapest type that makes the bad input not typecheck?"
 
 ---
 
@@ -316,31 +231,6 @@ if (e) sendWelcome(e);       // ok
 
 ---
 
-## Pros & Cons
-
-| Decision | Pros | Cons |
-|----------|------|------|
-| **Newtypes / branded types** | Type safety at zero runtime cost; prevents ID/unit mix-ups. | Boilerplate (wrapping/unwrapping, trait derivation). |
-| **Refined / phantom types** | Encode state, units, permissions; illegal transitions don't compile. | Steeper learning curve; error messages get hairier. |
-| **Aggressive layout control** | Smaller, cache-friendlier, faster. | Fragile across ABIs/targets; can hurt readability. |
-| **Monomorphized generics** | No indirection; full inlining and speed. | Code bloat, longer compile times. |
-| **Erased/boxed generics** | One copy, fast compile, dynamic dispatch flexibility. | Pointer indirection; no runtime type info (erasure). |
-| **Higher-kinded abstraction** | Write once over any container/effect. | Only some languages support it; high abstraction cost. |
-| **Types-as-tests** | Bug classes deleted permanently, no runtime cost, full coverage. | Over-modeling cheap invariants wastes effort; not every property is type-expressible. |
-
----
-
-## Use Cases
-
-- **Newtypes/branded types** wherever IDs, units, or validation states are mixed: payments, multi-tenant systems, physical-unit math, anything with multiple `string` or `u64` concepts that must not cross.
-- **Phantom/typestate** for protocol state machines (connections, sessions, builders), permission tiers (admin vs user tokens), and validated-vs-raw input boundaries.
-- **Layout control** in hot paths, serialization formats, FFI/ABI boundaries, and memory-constrained or cache-sensitive systems.
-- **Memory-vs-type-safety reasoning** when integrating native code, writing `unsafe`/FFI, sandboxing untrusted plugins, or doing security review.
-- **Kinds/HKTs** when designing generic libraries (parsers, effect systems, container abstractions) in languages that support them; knowing the *absence* of HKTs explains library shape in those that don't.
-- **Types-as-tests** as a standing strategy: in every postmortem, ask "could a type have made this unrepresentable?" and convert recurring incident classes into compile errors.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Parse, don't validate
@@ -400,89 +290,24 @@ When a sum type has one huge variant, the whole enum pays for it on every value.
 
 ---
 
-## War Stories
+## Apply it
 
-**The transposed IDs.** A service passed `(userId, orgId)` — both `int64` — into a permissions check whose signature was `check(int64, int64)`. A refactor swapped the argument order at one call site. It compiled, passed the existing tests (which happened to use equal IDs), and shipped a privilege-escalation bug. Fix: newtype `UserId`/`OrgId`. The transposition became a compile error; the bug class was deleted for every call site at once, at zero runtime cost.
+1. Define the user or business outcome that **What Is a Type** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
-**The unit that crashed a spacecraft.** The Mars Climate Orbiter was lost because one module produced pound-force-seconds and another consumed newton-seconds — both bare floating-point numbers. A phantom-typed `Impulse<Imperial>` vs `Impulse<Metric>` would have made the mismatched handoff fail to compile. The numbers were right; the *types* were missing.
+## Verify your work
 
-**The type confusion that became an RCE.** A scripting-engine optimization assumed an object's shape (its hidden-class type) was stable across a callback; an attacker mutated it mid-operation, so the engine read one type's field layout over another type's bytes — a textbook type confusion that handed the attacker an out-of-bounds read/write. The lesson the team took: type safety is a *memory-safety and security* boundary, and "the JIT trusts this type" is a load-bearing assumption that must hold under adversarial input.
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
 
-**The enum that ate the cache.** A hot event struct was a sum type whose rare variant carried a 1 KB inline buffer. Every event — 99% of them the tiny common variant — occupied 1 KB, blowing the L1/L2 cache and tanking throughput. Boxing the rare variant dropped the common case to 16 bytes and tripled throughput. Same logical type; a representation co-design fixed it.
+## Review questions
 
----
-
-## Test Yourself
-
-1. Explain why `UserId(u64)` and `OrderId(u64)` are logically distinct but physically identical, and what "zero-cost" means precisely here.
-2. Reorder `struct { a: u8; b: u64; c: u8 }` to shrink it, and explain why the size changes though the content doesn't.
-3. Define type safety and memory safety separately. Give a bug that violates one but not the other, in each direction.
-4. Why does a type confusion in a VM/JIT so often escalate to memory corruption? What does this imply about type safety as a security property?
-5. Give the kinds of `Int`, `List`, `Either`, and a `Functor`'s parameter `f`. Why can't Java/Go express the last one?
-6. How does a phantom type encode "this connection is open" with zero runtime storage? What happens to that guarantee across serialization?
-7. Compare a `NonEmptyList` type, a unit test, and a runtime assertion as ways to enforce non-emptiness — on *when* they check, *what* they cover, and *what* they cost.
-8. When is "make illegal states unrepresentable" free, and when does it cost representation? Tie your answer to discriminants and niche-filling.
-
----
-
-## Cheat Sheet
-
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│           TYPES AS AN ENGINEERING INSTRUMENT                    │
-├──────────────────────────────────────────────────────────────────┤
-│ TYPE vs REPRESENTATION                                           │
-│   logical identity (meaning + ops)  ≠  physical bytes/layout     │
-│   newtype: distinct type, identical bytes → ZERO-COST safety     │
-│   niche-fill: reuse invalid pattern → Option<&T> == &T in size   │
-│   field order → padding → size (a:u8,b:u64,c:u8 = 24 vs 16)      │
-│   sum type cost = discriminant + LARGEST variant (box the big)   │
-├──────────────────────────────────────────────────────────────────┤
-│ TWO DIALS — set them separately                                  │
-│   TYPE safety   = right op on right type                         │
-│   MEMORY safety = no OOB / use-after-free / uninit               │
-│   type confusion → memory corruption → RCE (security boundary!)  │
-│   Rust: safe = both; `unsafe` lowers the memory dial, scoped     │
-├──────────────────────────────────────────────────────────────────┤
-│ KINDS = the type of a type                                       │
-│   Int :: *        List :: * -> *       Either :: * -> * -> *      │
-│   value : type : KIND   (the ladder)                             │
-│   higher-kinded (F[_]) → Functor/Monad; absent in Java/Go/Rust   │
-├──────────────────────────────────────────────────────────────────┤
-│ PHANTOM TYPES — compile-time state, zero runtime bytes           │
-│   Conn<Open> vs Conn<Closed>;  Temp<C> vs Temp<F>                │
-│   illegal transition = does not compile (not a runtime check)    │
-│   NOTE: phantom state is lost across serialization               │
-├──────────────────────────────────────────────────────────────────┤
-│ TYPES ARE THE CHEAPEST TESTS                                     │
-│   written once | compile-time | ALL inputs & call sites | unskippable│
-│   "parse, don't validate" → value carries the proof              │
-│   every postmortem: "could a type make this unrepresentable?"    │
-│   (free when it ERASES; costs bytes when it adds a discriminant) │
-└──────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## Summary
-
-- A type has a **logical identity** (meaning + operations) and a **physical representation** (bytes + layout). Senior engineering exploits the gap: **newtypes** and **phantom types** add safety the compiler *erases* — distinct types, identical bytes, zero runtime cost — while **niche-filling** and **field ordering** turn type choices into real size/cache wins.
-- A type is the compiler's **layout contract**: field order drives padding and size, sum types cost a discriminant plus their largest variant, and generics force a representation strategy (monomorphization vs erasure/boxing).
-- **Type safety and memory safety are separate dials.** Type safety = right operation on right type; memory safety = no OOB/use-after-free. They're independent, but **type confusion is the classic bridge to memory corruption** — making type safety a *security* property. Audit every `unsafe`/FFI/cast where the dials drop.
-- Types have **kinds** — the type of a type. `Int : *`, `List : * → *`, `Either : * → * → *`. **Higher-kinded types** abstract over constructors (`Functor f`); their absence in Java/Go/Rust/TS explains those languages' library shapes.
-- **Phantom types** encode state, units, and permissions purely in the type system with zero runtime storage, making illegal transitions fail to *compile* — but the guarantee evaporates across serialization.
-- **Types are the cheapest tests:** written once, checked at compile time, covering *every* input and call site, impossible to skip, at no runtime cost. "Make illegal states unrepresentable" is therefore an **incident-reduction strategy** — free when the distinction erases, modestly costly when it adds representation. In every postmortem, ask whether a type could have made the failure unrepresentable.
-
----
-
-## Further Reading
-
-- *Programming with Types* — Vlad Riscutia. Practical, production-oriented type design.
-- "Parse, Don't Validate" — Alexis King. The definitive essay on construction-as-proof for working engineers. https://lexi-lambda.github.io/blog/2019/11/05/parse-don-t-validate/
-- *The Rustonomicon* — https://doc.rust-lang.org/nomicon/ — representation, niches, `unsafe`, and the type/memory-safety boundary.
-- "Type Confusion" CWE-843 and real-world VM/browser exploit writeups — how type violations become memory corruption.
-- *Real World Haskell* / *Programming in Scala* — chapters on kinds and higher-kinded abstractions.
-- "The Typestate Pattern in Rust" — Cliff Biffle and others; phantom-type state machines in practice.
-- *Computer Systems: A Programmer's Perspective* — Bryant & O'Hallaron. Memory representation, alignment, and layout from the systems side.
-- *Effective Java* / *API Design for C++* — using types to make interfaces hard to misuse.
-- Mars Climate Orbiter mishap report (NASA, 1999) — the canonical units-mismatch failure phantom types prevent.
+- Which measurable outcome justifies investing in What Is a Type?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

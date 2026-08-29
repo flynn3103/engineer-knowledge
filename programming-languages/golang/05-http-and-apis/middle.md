@@ -1,20 +1,11 @@
 # HTTP and APIs — Middle
 
-> **Topic:** [HTTP and APIs](../README.md)
-> **Focus:** Graceful shutdown, connection pooling and reuse on the client side, retries with backoff, middleware chains done right, and structuring an API's error responses consistently.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **HTTP and APIs** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-A junior-level server survives a demo. A middle-level server survives a deploy — it drains in-flight requests instead of dropping them, reuses connections to downstream services efficiently instead of exhausting sockets under load, and retries transient failures without amplifying an outage.
-
----
-
-## Prerequisites
-
-- Comfortable with `http.Server`/`http.Client` timeouts and basic middleware (junior level).
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -145,16 +136,6 @@ Retries are only safe by default for idempotent methods (`GET`, `PUT`, `DELETE`)
 
 ---
 
-## Pros & Cons
-
-| Approach | Pros | Cons |
-|---|---|---|
-| Graceful shutdown | Zero dropped requests during deploys | Adds startup complexity; needs a correctly-tuned drain timeout |
-| Reused `http.Client`/`Transport` | Major latency/resource win under load | Requires care with per-request customization (headers, timeouts) since the client is shared |
-| Backoff + jitter retries | Avoids thundering herd, more resilient to transient blips | Adds latency to the failure path; needs a cap to avoid unbounded retry storms |
-
----
-
 ## Best Practices
 
 1. Always implement graceful shutdown for any long-running server (`http.Server.Shutdown`).
@@ -191,45 +172,24 @@ Retries are only safe by default for idempotent methods (`GET`, `PUT`, `DELETE`)
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```go
-srv.Shutdown(ctx)                          // drain in-flight requests
-client := &http.Client{Transport: tr}      // reuse across requests
-backoff *= 2; jitter := rand...            // exponential + jitter
-handler := withRecover(withLogging(mux))   // recover outermost
-```
+1. Find a real component where **HTTP and APIs** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
----
+## Verify your work
 
-## Summary
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
 
-- Graceful shutdown (`Shutdown(ctx)`) drains in-flight requests instead of dropping them during deploys.
-- Reuse `http.Client`/`Transport` per destination to get connection pooling; creating one per request defeats it.
-- Retry only idempotent operations, with exponential backoff and jitter, capped at a fixed number of attempts.
-- Panic-recovery middleware must be the outermost wrapper to protect the entire chain.
-- Standardize the API's error response shape across every endpoint.
+## Review questions
 
----
-
-## Further Reading
-
-- `net/http` — `Server.Shutdown` docs: <https://pkg.go.dev/net/http#Server.Shutdown>
-- Google Cloud — *Retry strategy* guidance (language-agnostic, principles transfer): <https://cloud.google.com/storage/docs/retry-strategy>
-
----
-
-## Related Topics
-
-- [HTTP and APIs — Junior](junior.md)
-- [Database and Distributed Systems — Middle](../06-database-and-distributed-systems/middle.md) — idempotency in more depth.
-
----
-
-## Check your understanding
-
-1. Explain HTTP and APIs — Middle Level in your own words and name the problem it solves.
-2. How would you apply the ideas around Introduction, Prerequisites, Core Concepts in a realistic engineering change?
-3. What failure mode or misuse should you look for, and what evidence would reveal it?
-4. Which local design trade-off would make you choose or reject HTTP and APIs — Middle Level in an existing codebase?
-5. What observable result would convince you that the approach improved the system?
+- Which boundary is most affected by HTTP and APIs?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

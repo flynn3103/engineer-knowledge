@@ -1,18 +1,11 @@
-# What Is an ABI — Professional Level
+# What Is an ABI — Professional
 
-> **Topic:** What Is an ABI
-> **Focus:** Operating ABI stability as a production discipline — shipping plugins and shared libraries that upgrade in place, diagnosing "compiled fine but crashes" mismatches, and stewarding an organization's ABI policy across compilers, platforms, and years.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **What Is an ABI** with measurable outcomes and limited coordination?
 
-## Introduction
-
-At the professional tier — Staff, Principal, the person who owns the SDK other teams build against — "what is an ABI" stops being a definition and becomes an operational responsibility measured in support tickets, deprecation windows, and 3 a.m. pages. You are the person who decides whether a customer can drop in a new `libyourproduct.so.4.2.1` and have every binary that was linked against `libyourproduct.so.4` keep working without recompiling. You are the one who signs off when someone proposes adding a field to a struct that ships in a public header. You are the one who gets the bug report titled "it compiled fine but segfaults on startup after we upgraded the library," and you are expected to name the exact ABI clause that was violated, in the first reply, before lunch.
-
-The unifying skill at this level is *thinking about binary compatibility as a contract with a long support window and a blast radius you do not control*. An API break is a compile error — loud, local, caught in CI, fixed by the person who triggered it. An ABI break is a runtime corruption — silent, remote, triggered by an end user who upgraded one component and not another, manifesting as a crash that looks nothing like its cause. The professional engineer's job is to make ABI breaks structurally impossible where they can, loud where they cannot prevent them, and at minimum versioned so the loader refuses the mismatch instead of running it.
-
-This document covers the production disciplines: how a shared library evolves in place without recompiling its callers, the difference between breaking the API and breaking the ABI, the libstdc++ dual-ABI `std::string` episode that has cost the industry uncountable engineer-hours, glibc symbol versioning, the LP64/LLP64 data-model split that makes `long` a 32-bit type on 64-bit Windows, how to ship a plugin ABI that survives compiler upgrades by flattening to C, why two C++ compilers will never reliably interoperate, the versioning discipline (soname, SemVer, `abidiff`) that operationalizes all of it, and the anatomy of the "compiled but crashes" mismatch.
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -257,23 +250,6 @@ Wiring this into the merge gate is the difference between learning about a break
 
 ---
 
-## Use Cases
-
-- **Distro-style in-place library upgrades** — ship `libfoo.so.1.2.4` that drops in over `libfoo.so.1.2.3` and is picked up by every installed binary with no recompilation, because the ABI is preserved.
-- **Third-party plugin SDKs** — VST audio plugins, browser native modules, game-engine extensions — where you flatten to a versioned C vtable plus opaque handles so any compiler and any language can build a plugin that loads.
-- **Long-support-window vendor SDKs** — a binary library shipped to customers on GCC, Clang, and MSVC simultaneously, exposing only `extern "C"` so all three link.
-- **Diagnosing field crashes after an upgrade** — recognizing the "compiled but crashes" signature and tracing it to a struct layout divergence, a dual-ABI mismatch, or a `version not found` symbol-versioning failure.
-- **Release engineering for portable Linux binaries** — building on the oldest supported glibc so symbol-version requirements stay satisfiable on customers' older systems.
-- **Cross-platform serialization and shared-memory layouts** — auditing every interface for bare `long`, replacing it with fixed-width types so Win64's LLP64 model does not silently change the layout.
-
-### When you do NOT need ABI stability
-
-- A statically linked monolith rebuilt from one source tree every deploy — there is no boundary across which an old binary meets a new library, so layout can change freely.
-- Internal libraries built and consumed within the same CI pipeline, version-locked together, never shipped to anyone who builds against them independently.
-- Throwaway or prototype code with no installed base. ABI discipline has real cost (opaque handles, marshaling, C seams); spend it only where a boundary you do not control actually exists.
-
----
-
 ## Best Practices
 
 - **Treat the exported-symbol set and every public type's layout as a frozen surface.** Evolve underneath it (implementation) or by adding to it (new symbols) — never by mutating layout or signatures.
@@ -303,25 +279,24 @@ Wiring this into the merge gate is the difference between learning about a break
 
 ---
 
-## War Stories
+## Apply it
 
-**The point release that wasn't.** A platform team shipped `libcore.so.2.4.0` → `2.4.1` as a "bug-fix point release," soname unchanged, so the distro pushed it as a drop-in. The "fix" had appended a field to a struct — but to a struct that several consuming services allocated *by value* on the stack and passed into the library. Old services allocated the old size; the new library wrote past it, corrupting the adjacent stack slot. Crashes appeared in unrelated functions across a dozen services, none reproducible in CI (which rebuilt everything from source). The root cause was found only when someone ran `abidiff 2.4.0 2.4.1` and saw the struct-size change in red. The permanent fix was a CI gate: `abidiff` against the last release, merge blocked unless the soname bump matched the reported ABI delta.
+1. Define the user or business outcome that **What Is an ABI** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
-**The vendor blob and the riddle link error.** A team integrated a proprietary analytics SDK shipped as a prebuilt `.a`. Their own build, on a modern toolchain, defaulted to `_GLIBCXX_USE_CXX11_ABI=1`. The vendor had built their blob years earlier with the legacy ABI (`=0`). The link failed with `undefined reference to 'Analytics::send(std::__cxx11::basic_string<...>)'`. The vendor's archive exported `send(std::basic_string<...>)`; the consumer called `send(std::__cxx11::string)`; the mangled names did not match. There was no clean fix — the vendor's blob could not be recompiled — so the team had to compile their *entire* product with `-D_GLIBCXX_USE_CXX11_ABI=0` to match the prebuilt blob, dragging the whole codebase back to the legacy string ABI until the vendor finally shipped a modern build. The lesson they wrote up: *never accept a third-party C++ binary that exposes STL types in its interface; demand a C interface.*
+## Verify your work
 
-**The Windows port where pointers vanished.** A networking library, rock-solid on Linux for years, was ported to 64-bit Windows. It stored connection handles as `long` and round-tripped them through callbacks. On Linux's LP64, `long` is 64-bit and held a pointer fine. On Win64's LLP64, `long` is 32-bit — every handle pointer was truncated to its low 32 bits, and dereferencing it crashed or, worse, hit a wrong-but-valid address and corrupted another connection's state. The bug was intermittent and looked like a race. The fix was a mechanical sweep replacing `long` with `intptr_t` throughout the interface. The lesson: `sizeof(long) == sizeof(void*)` is an LP64 assumption, not a C guarantee, and the data model is part of the ABI.
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
 
-**The upgrade that wouldn't start downlevel.** A service built on a brand-new build image (newer glibc) deployed fine to staging but failed to start on a fleet of older production hosts with `version 'GLIBC_2.32' not found`. Nothing in the source had changed; the build *image* had been bumped, so the linker recorded dependencies on newer versioned libc symbols that the older production glibc did not export. The diagnosis was `readelf -V` on the binary versus the production libc. The fix was to pin the build image to the oldest glibc in the fleet, codifying the rule "you can run against a newer libc, never an older one" into the release pipeline.
+## Review questions
 
----
-
-## Summary
-
-- The core production use case for ABI stability is **upgrading a `.so` in place without recompiling its callers** — the entire reason shared libraries are a distribution mechanism. It requires treating the exported-symbol set and every public type's layout as a **frozen surface**, evolved only underneath or by addition.
-- **API break vs ABI break are independent axes.** An API break is a compile error caught locally in CI; an ABI break is a runtime corruption triggered remotely by mixed binaries. The dangerous quadrant — **ABI break without API break** (reorder a field, insert a virtual, grow a by-value struct) — compiles cleanly and corrupts silently.
-- The **libstdc++ dual-ABI `std::string` saga** is the canonical industrial break: a mandatory C++11 layout change handled by coexisting old and new strings selected by `_GLIBCXX_USE_CXX11_ABI`, producing the famous `undefined reference to std::__cxx11::...` link error and teaching "never expose STL types across a binary boundary."
-- **glibc symbol versioning** (`memcpy@GLIBC_2.2.5` vs `@@GLIBC_2.14`) lets one library export many versioned symbols so decades-old binaries keep working; the operational corollary is "build on the oldest glibc you support" to avoid `version not found`.
-- **LP64 vs LLP64**: `long` is **32-bit on Win64** and 64-bit on Unix. Never put a bare `long` in a cross-platform interface; use fixed-width and pointer-sized types. The data model is part of the ABI.
-- **C++ has no stable ABI across compilers** (Itanium vs MSVC differ on mangling, vtables, exceptions, STL layout), so the only durable interop and plugin contract is **flattening to `extern "C"`** with opaque handles, fixed-width types, a checked version field, and catch-all exception handling at the seam.
-- **Versioning discipline** operationalizes all of it: soname major-bump on every ABI break, SemVer mapped to real binary compatibility, and **`abidiff` gating CI** so you learn about breaks before your customers do.
-- The signature incident is **"compiled but crashes"** — the compiler validated the API and never saw the ABI; the cause and symptom are decoupled in space and time. Recognize the shape (appears after upgrading one component, vanishes on a full rebuild) and ask "what binary met what other binary, and did they actually agree on the contract."
+- Which measurable outcome justifies investing in What Is an ABI?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

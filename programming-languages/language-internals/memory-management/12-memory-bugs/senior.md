@@ -1,42 +1,11 @@
-# Memory Bugs — Senior Level
+# Memory Bugs — Senior
 
-> **Topic:** Memory Bugs
-> **Focus:** Systemic patterns across GC and non-GC runtimes — fragmentation, allocator behavior, off-heap leaks, retention design, and how to engineer systems that *resist* these bugs rather than merely fixing them one at a time.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Memory Bugs** under failure, load, and change?
 
-## Introduction
-
-A junior recognizes leaks; a mid-level engineer diagnoses one. A senior engineer reasons about **whole classes of memory bugs across runtimes** and designs systems where these bugs are hard to introduce, cheap to detect, and bounded in blast radius.
-
-That demands a model that spans the GC / non-GC divide. The same RSS-creep symptom can be a reachable-object leak (your references), heap **fragmentation** (the allocator can't reuse freed space), **off-heap** growth (memory the GC never sees), or **allocation churn** stressing the collector. These have different root causes in different runtimes — a non-compacting collector fragments where a compacting one doesn't; an arena allocator behaves nothing like `malloc`; Go's `tcmalloc`-style size classes waste memory differently than the JVM's regions. A senior must hold all of these in one framework.
-
-The throughline of this tier: **memory bugs are usually lifetime and ownership bugs in disguise.** Whether you have a GC or not, the question is always "who owns this, for how long, and what bounds its growth?" Get ownership and lifetime right architecturally and most of these bugs cease to be possible.
-
----
-
-## Prerequisites
-
-- Middle-level mastery: leak mechanisms, retention-vs-churn, dominator trees, the RSS-vs-live 2×2, and a working diagnosis methodology.
-- A mental model of how at least one GC works (generational, tracing, mark-sweep-compact) and how at least one manual allocator works (`malloc`/`free`, arenas, pools).
-- Experience operating a system in production: metrics, dashboards, and incident response.
-
----
-
-## Glossary
-
-| Term | Meaning |
-|---|---|
-| **External fragmentation** | Free memory exists in total, but it's split into pieces too small/scattered to satisfy a request. |
-| **Internal fragmentation** | Wasted space *inside* an allocation because the allocator rounds up to a size class (a 17-byte object in a 32-byte slot wastes 15 bytes). |
-| **Compaction** | A GC phase that relocates live objects together, eliminating external fragmentation (and enabling bump-pointer allocation). |
-| **Size class** | A fixed bucket of sizes an allocator serves from (e.g., 8, 16, 32, … bytes). Source of internal fragmentation. |
-| **Arena / region** | A block of memory allocated and freed as a unit; great for known-lifetime workloads, dangerous if a single object outlives the arena. |
-| **Off-heap / native leak** | Growth in memory the managed runtime doesn't track: direct `ByteBuffer`, `mmap`, JNI/cgo allocations, native libraries. |
-| **Dominator** | An object through which all root paths to a target must pass; removing it frees the whole dominated subtree. |
-| **Retention root** | The specific GC root (static, thread, JNI global ref, classloader) that anchors a leaked subgraph. |
-| **Classloader leak** | A JVM-specific leak where an undeployed app's classes (and all their statics) stay reachable, retaining the whole classloader. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -80,34 +49,6 @@ At scale, you don't fix leaks one reference at a time; you design lifetimes so l
 ### 5. Churn as a GC-pressure systemic bug
 
 A system can be leak-free and fragmentation-free and *still* be a memory disaster because it allocates too fast. Every short-lived object is work for the collector. Defensive copying, autoboxing (`Integer` per `int`), per-request allocation in hot paths, and excessive intermediate collections in stream pipelines can push allocation rate to gigabytes/second, forcing constant minor GCs and tail-latency spikes. The senior treats *allocation rate* as a first-class SLI and uses pooling, value types, slice reuse, and `sync.Pool`-style mechanisms to flatten it — while staying alert that pooling reintroduces lifetime bugs (a pooled object used after return is the manual-memory bug class sneaking back in).
-
----
-
-## Real-World Analogies
-
-- **External fragmentation = a parking lot of odd gaps.** The lot is half empty, but every free space is too small for a bus. Total capacity is irrelevant; *contiguous* capacity is what matters. Compaction is repainting the lines and shuffling cars to free a bus-sized space.
-
-- **Internal fragmentation = shipping with fixed box sizes.** You only stock three box sizes. A medium item goes in a large box; the empty volume ships air. Across a million parcels, you're paying to move a warehouse of air.
-
-- **Off-heap leak = a storage unit you rented through a shell company.** Your home (the heap) is tidy and inspectable. Meanwhile a separate storage unit (native memory) fills up, and the home inspector (heap dump) has no idea it exists.
-
-- **Arena = a whiteboard you wipe after the meeting.** Everyone scribbles freely; at the end you erase the whole board at once (fast, no per-note cleanup). Disaster only if someone photographs a note and relies on it after the wipe (escaping pointer).
-
----
-
-## Mental Models
-
-### The four-cause branch
-
-Internalize the decision tree: *Is the post-GC live set rising?* If yes → retention leak. If no, *is RSS rising?* If no → healthy. If yes, *is the managed heap accounting for it?* If no → off-heap. If yes but unpackable → fragmentation. And orthogonally, *is GC CPU/frequency high with flat memory?* → churn. Every memory incident routes through this branch within the first ten minutes.
-
-### Lifetime as the real variable
-
-Reframe every object as having a *intended* lifetime (how long the program needs it) and an *actual* lifetime (how long it stays reachable / allocated). Every memory bug is a gap between these. Leaks: actual ≫ intended. Use-after-free (non-GC): actual < intended. Good design makes actual lifetime *track* intended lifetime automatically — via ownership, scopes, and bounds.
-
-### Density, not just volume
-
-Memory health isn't "how much is alive" but "how *densely* is it packed and how *fast* does it turn over." Two systems with identical live sets can have wildly different RSS (fragmentation) and wildly different GC cost (churn). Seniors reason about the *shape and rate* of allocation, not only the total.
 
 ---
 
@@ -161,35 +102,6 @@ When `VM.native_memory` shows "Internal" or "Other" ballooning while the heap is
 
 ---
 
-## Pros & Cons
-
-**Compacting (moving) collectors**
-- Pro: eliminate external fragmentation; enable cheap bump-pointer allocation.
-- Con: relocation cost; must update all references; can add pause time or write-barrier overhead.
-
-**Non-compacting / manual allocators**
-- Pro: no relocation cost; predictable addresses; simpler.
-- Con: external fragmentation under mixed long-running workloads; RSS creep that looks like a leak.
-
-**Arenas / pools**
-- Pro: near-zero per-object cost; flatten churn; bulk release.
-- Con: reintroduce lifetime/ownership bugs; an escaping reference is a leak or a corruption.
-
-**Weak/soft references**
-- Pro: let the GC reclaim despite a reference; dissolve whole leak classes.
-- Con: nondeterministic eviction; subtle correctness bugs if code assumes presence.
-
----
-
-## Use Cases
-
-- **Long-running native/mixed services** where fragmentation dominates → choose a compacting collector or restructure allocation sizes; consider jemalloc/tcmalloc with tuned arenas.
-- **JVM app servers with redeploy** → audit for classloader and thread leaks; treat redeploy as a leak test.
-- **High-throughput data planes** (proxies, serializers) → churn is the enemy; pool, reuse buffers, avoid boxing, but guard pooled lifetimes.
-- **Services using native libraries / direct buffers** → instrument native memory from day one; the heap view alone will mislead.
-
----
-
 ## Coding Patterns
 
 - **Bounded-by-type:** caches are LRU/TTL types, queues have capacity, batches have limits — bounds enforced by the data structure, not the reviewer.
@@ -224,10 +136,24 @@ When `VM.native_memory` shows "Internal" or "Other" ballooning while the heap is
 
 ---
 
-## Summary
+## Apply it
 
-- "RSS is too high" has **four** systemic causes — **retention leak, fragmentation, off-heap growth, churn** — and the senior skill is cheaply distinguishing them before investing in a deep dive.
-- **Fragmentation** (external and internal) is real free memory you can't use; it explains RSS creep with a *flat live set* and is the central tension between **compacting and non-compacting** allocators/collectors.
-- **Off-heap leaks** are the heap dump's blind spot: direct buffers, JNI/cgo, `mmap`. When the heap is clean but RSS climbs, switch to native accounting instead of re-reading the dump.
-- Most memory bugs are **lifetime and ownership bugs**: actual lifetime drifting from intended lifetime. Engineer ownership (single-owner + borrow), structural bounds (typed caches/queues), weak back-edges, and scope-bound allocation so the bugs become *impossible*, not just fixable.
-- **Churn** is a memory-shaped latency bug; treat allocation rate as an SLI and flatten it with pooling — while respecting that pooling drags manual-lifetime risk back in.
+1. State the system invariant that **Memory Bugs** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
+
+## Verify your work
+
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
+
+## Review questions
+
+- Which invariant must remain true when Memory Bugs fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

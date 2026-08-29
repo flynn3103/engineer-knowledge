@@ -1,8 +1,11 @@
 # Total Cost of Ownership & Team Skills — Junior
 
-> **What?** The *total* cost of choosing a language — not "how much fun is it to write," but everything you'll pay across the whole life of the code: writing it, reviewing it, debugging it, maintaining it for years, hiring people who know it, onboarding them, and running it in production. The syntax is the cheapest part of that bill.
-> **How?** Before you fall in love with a language because it's pleasant to type, ask the boring question that actually decides the cost: *who is going to own this code for the next five years, and what will that cost in people and time?* The CPU is rarely the expensive component. The humans are.
+<!-- level-focus -->
+At junior level, focus on this question:
 
+> How can I apply **Total Cost of Ownership & Team Skills** in one small example and prove the result?
+
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## 1. The iceberg — writing code is the tip
@@ -96,7 +99,7 @@ Walk the ownership cost a junior should now see:
 - **Bus factor:** Right now, one person is excited and fluent. If they leave, the rest are stranded with code in a language they barely know.
 - **Operating cost saved:** The faster runtime saves maybe a few hundred dollars a month in servers.
 
-**Verdict:** the rewrite trades a few hundred dollars of monthly server savings for months of lost team velocity, a brutal hiring problem, and a single-person dependency. The "fun to write" and "faster" arguments are real — and far too small to win against the ownership costs they ignore. (The discipline of *resisting* this is its own topic: [`05-when-to-introduce-a-new-language`](../05-when-to-introduce-a-new-language/).)
+**Verdict:** the rewrite trades a few hundred dollars of monthly server savings for months of lost team velocity, a brutal hiring problem, and a single-person dependency. The "fun to write" and "faster" arguments are real — and far too small to win against the ownership costs they ignore. (The discipline of *resisting* this is its own topic: [`05-when-to-introduce-a-new-language`](../05-when-to-introduce-a-new-language/README.md).)
 
 ---
 
@@ -106,7 +109,7 @@ Walk the ownership cost a junior should now see:
 
 **Mistake 2: optimizing CPU cost while ignoring people cost.** Servers are cheap; engineers are not. Saving machine time at the expense of human time is usually backwards.
 
-**Mistake 3: forgetting hireability exists.** "It's the best language for the job" means nothing if you can't staff it. (See the deal-breaker thinking in [`01-language-selection-criteria`](../01-language-selection-criteria/).)
+**Mistake 3: forgetting hireability exists.** "It's the best language for the job" means nothing if you can't staff it. (See the deal-breaker thinking in [`01-language-selection-criteria`](../01-language-selection-criteria/README.md).)
 
 **Mistake 4: ignoring the bus factor.** One excited expert is not a team. If only one person can maintain it, you have a person-shaped single point of failure.
 
@@ -125,16 +128,24 @@ Walk the ownership cost a junior should now see:
 
 ---
 
-## 9. What's next
+## Apply it
 
-| Topic | File |
-|---|---|
-| Breaking TCO into concrete, estimable numbers | `middle.md` |
-| The hard tradeoffs — talent markets, runtime cost flipping decisions | `senior.md` |
-| Org-level economics, Conway's law, and the leadership business case | `professional.md` |
-| Interview questions on cost of ownership | `interview.md` |
-| Exercises: build a multi-year TCO model | `tasks.md` |
+1. Choose one small, known input for **Total Cost of Ownership & Team Skills**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
----
+## Verify your work
 
-**Memorize this:** a language's real cost is the whole lifecycle — writing, reviewing, debugging, maintaining, hiring, onboarding, operating — and the team, not the CPU, is the most expensive component. "Fun to write" is real but tiny; "cheap to own" and "can we hire for it" are where the money actually is.
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
+
+## Review questions
+
+- What problem does Total Cost of Ownership & Team Skills solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

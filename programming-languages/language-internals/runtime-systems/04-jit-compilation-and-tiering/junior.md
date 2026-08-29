@@ -1,71 +1,11 @@
-# JIT Compilation & Tiering — Junior Level
+# JIT Compilation & Tiering — Junior
 
-> **Topic:** JIT Compilation & Tiering
-> **Focus:** What a Just-In-Time compiler actually does while your program runs, why "slow at first, fast later" is normal, and why a JIT can sometimes beat a compiler that ran ahead of time.
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **JIT Compilation & Tiering** in one small example and prove the result?
 
-## Introduction
-
-> Focus: **What does "Just-In-Time" mean?** And **why does the same program run slowly for the first second and then suddenly speed up?**
-
-When you run a Java program, a JavaScript file in a browser, or a C# service, the code does **not** start as fast machine instructions. It starts as something slower — bytecode that an **interpreter** reads and executes one operation at a time. The interpreter is like a person reading a recipe out loud and doing each step as they read it: correct, but not fast.
-
-A **Just-In-Time compiler** (JIT) is a piece of the language runtime that watches your program run, notices which functions get called over and over, and **translates those hot functions into native machine code on the fly** — *just in time*, right when they are needed, while the program is still running. After that translation, the runtime stops interpreting those functions and runs the compiled machine code directly. That is the speed-up you feel.
-
-The single most surprising idea on this page is this: **a JIT can produce faster code than a normal ahead-of-time compiler** like a C compiler. That sounds impossible — the C compiler had all the time in the world and the JIT is rushed. The reason is that the JIT has something the C compiler never had: it can *watch the program actually run* and see real data. It learns "this list almost always holds `String` objects," "this `if` is taken 99% of the time," "this method is always the same concrete type," and it compiles code that is optimized for *what really happens*, not for every theoretical possibility. The ahead-of-time compiler had to be cautious because it could not see the future. The JIT lives in the future.
-
-In one sentence: **a JIT trades a slow start for a fast steady state, by spying on your running program and compiling the parts that matter into machine code tuned to the real data.**
-
-> 🎓 **Why this matters for a junior:** You will eventually hear someone say "the JVM is slow" or "Java is slow," usually after timing a program that ran for half a second. They measured the *warmup* — the period before the JIT kicked in — and mistook it for the program's real speed. Understanding warmup is the difference between writing a correct benchmark and writing a misleading one. It also explains why your service is sluggish for the first few seconds after a deploy, and why "just restart it" sometimes makes performance *worse* for a while.
-
-This page covers: what an interpreter is and why it is slow, what the JIT does and *when*, the idea of **counters** that decide when a function is "hot," **tiered compilation** (a fast-but-rough compiler first, a slow-but-excellent compiler later), why warmup happens, and how to actually *see* the JIT working with simple flags. The next level (`middle.md`) goes deep into the real tiers of HotSpot and V8 and on-stack replacement; `senior.md` covers the profile-guided optimizations themselves; `professional.md` covers code-cache management and production warmup strategy.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** How to write and run a simple program in at least one managed language — Java, C#, JavaScript (Node.js), or Python.
-- **Required:** What a function/method is and what "calling a function many times in a loop" means.
-- **Required:** A rough idea that your CPU runs *machine instructions* and that source code has to become those instructions somehow.
-- **Helpful but not required:** Having seen the words "compiler" and "interpreter" before.
-- **Helpful but not required:** A vague sense that a `for` loop body might run millions of times.
-
-You do **not** need to know:
-
-- How a register allocator or instruction scheduler works (that is far beyond this level).
-- The specific optimization passes a JIT applies (that is `senior.md`).
-- How deoptimization undoes a bad guess (that is a separate topic, mentioned only in passing here).
-- Assembly language. We will talk *about* machine code without reading any.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Source code** | The text you write (`.java`, `.js`, `.cs`). Humans read it; CPUs cannot run it directly. |
-| **Machine code** | The raw native instructions the CPU actually executes. Fast. This is what a JIT produces. |
-| **Bytecode** | A compact, portable middle form between source and machine code (Java `.class`, .NET IL, Python `.pyc`). Not native; needs an interpreter or JIT. |
-| **Interpreter** | A program that reads bytecode and performs each operation one at a time. Simple, portable, slow. |
-| **Compiler** | A program that translates code into machine code. A JIT is a compiler that runs *during* your program. |
-| **AOT (Ahead-Of-Time)** | Compiling to machine code *before* the program runs (the classic C/C++/Go/Rust model). The opposite of JIT in timing. |
-| **JIT (Just-In-Time)** | Compiling to machine code *while* the program runs, on demand, guided by what the program is doing. |
-| **Hot code** | A function or loop that runs often enough to be worth compiling. The JIT focuses only on hot code. |
-| **Cold code** | Code that runs rarely (error handlers, startup). Usually left to the interpreter — compiling it would not pay off. |
-| **Counter** | A small tally the runtime keeps: "how many times has this method been called?" When it crosses a threshold, the JIT compiles the method. |
-| **Threshold** | The counter value that triggers compilation (e.g., "compile after 10,000 invocations"). |
-| **Warmup** | The early phase where code is still interpreted (or only lightly compiled) and the program is slower than its eventual steady state. |
-| **Steady state** | After warmup, when hot code has been compiled and the program runs at full speed. |
-| **Profile / profiling data** | The facts the runtime gathers while running: which types appear, which branches are taken, how often a loop spins. Fuel for smart compilation. |
-| **Tier** | A level in a multi-stage compilation pipeline. Lower tiers compile fast and produce so-so code; higher tiers compile slowly and produce great code. |
-| **Tiered compilation** | The strategy of moving a hot method up through tiers as it proves itself worth more effort. |
-| **OSR (On-Stack Replacement)** | Swapping a long-running loop from interpreted to compiled code *while it is still running*, without waiting for the function to be called again. |
-| **Code cache** | The region of memory where the JIT stores the machine code it generates. It has a size limit. |
-| **Inlining** | Pasting a small called function's body directly into the caller, removing the call. The JIT's most important optimization. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -128,28 +68,6 @@ Put the pieces together and warmup is obvious:
 So the *same program* gets faster over its first several seconds without you changing anything. If you measure its speed at second 0 and announce "this language is slow," you measured warmup, not the language.
 
 This is also why **a fresh process is slow**. After a deploy or a restart, every JIT-managed service starts cold and has to warm up all over again. Senior engineers plan for this; juniors are surprised by it.
-
----
-
-## Real-World Analogies
-
-**The new line cook.** A new cook reads every order off the ticket, looks up the recipe, and follows it step by step — that is the interpreter. After making the same burger fifty times, the cook has it memorized and makes it without looking — that is compiled hot code. They never bother memorizing the dish that gets ordered once a month — that stays "interpreted." And crucially, after watching which dishes actually sell, the kitchen reorganizes the station to make the popular ones fast. That reorganization based on *observed* demand is profile-guided optimization: the cook optimized for the real menu, not the theoretical one.
-
-**Paving the desire path.** A new park has grass everywhere and concrete nowhere — walk anywhere, slowly (interpreter). The groundskeeper watches where people actually walk, and after a while pours concrete on the worn dirt tracks — the *desire paths* (hot code). They do not pave the whole park; they pave only where traffic proved it was worth it. An architect drawing paths before the park opened (AOT) would have guessed; the groundskeeper *measured*.
-
-**Learning a commute.** Your first drive to a new job, you follow the GPS turn by turn (interpreter, slow). After a month you know the route cold and even know which lane to be in before each turn (top-tier compiled). And you have learned real traffic patterns the map app could not predict in advance — "this shortcut is faster at 5pm" — so you sometimes beat the GPS's a-priori plan. That is the JIT beating AOT.
-
----
-
-## Mental Models
-
-**Model 1 — The escalator of tiers.** Picture code riding an escalator. The bottom is the interpreter (everyone starts here). The middle step is the quick compiler. The top is the optimizing compiler. Cold code stands at the bottom forever. Warm code rides up one step. Truly hot code rides all the way to the top. Nothing is forced up; you have to earn each step by being run often enough.
-
-**Model 2 — The counter is a thermostat.** Each method has a little thermometer (its counter). Below the threshold it is "cold" — leave it interpreted. Cross the threshold and it is "hot" — turn on the compiler. The thermostat is what makes the system *adaptive*: it spends compilation effort exactly where the program actually puts its time.
-
-**Model 3 — The JIT is a gambler with hindsight.** Every optimization the JIT makes is a *bet* based on what it has seen: "this variable has always been an integer, so I'll compile integer-only code." Usually the bet pays off and the code is fast. Occasionally the program does something new and the bet was wrong — at which point the runtime quietly throws away the compiled code and falls back to the interpreter (that fallback is "deoptimization," covered in its own topic). The key intuition: **fast JIT code is fast precisely because it assumes things, and assumptions can be wrong.**
-
-**Model 4 — Warmup is a loan you pay back.** The program "borrows" speed by spending early CPU on compilation. The loan is repaid every time the fast compiled code runs instead of the slow interpreter. Short-lived programs (run for half a second) never run long enough to repay the loan — they pay the warmup cost and quit before reaping the reward. Long-lived servers repay it millions of times over. This is the single most important practical fact about JITs.
 
 ---
 
@@ -257,44 +175,6 @@ Because `work` is called once, the JIT may never compile it (or compiles it via 
 
 ---
 
-## Pros & Cons
-
-**Pros of JIT compilation**
-
-- **Profile-guided speed.** The JIT optimizes for what the program *actually* does, not for every theoretical case. This is why it can beat a cautious AOT compiler on the same code.
-- **One binary, many CPUs.** Ship portable bytecode; the JIT compiles to the exact CPU it lands on (using whatever instruction-set features that chip has).
-- **Pays effort only where it matters.** Cold code stays cheap (interpreted); only hot code gets expensive compilation. Compilation budget follows the program's real hotspots.
-- **Aggressive optimization is safe.** Because the runtime can undo a bad guess (deoptimize), the JIT can make optimistic assumptions an AOT compiler could never risk.
-
-**Cons of JIT compilation**
-
-- **Warmup.** Slow until hot code is compiled. Brutal for short-lived processes and serverless functions that may finish before they warm up.
-- **Memory and CPU overhead at runtime.** The compiler itself, the profiling counters, and the generated machine code (the code cache) all consume resources *while your program runs*.
-- **Unpredictable latency.** A compilation or deoptimization can happen mid-request, adding a latency spike. Bad for hard real-time systems.
-- **Complexity.** A JIT runtime is vastly more complex than a simple AOT toolchain, which means more things that can go subtly wrong (code-cache exhaustion, deopt storms — later topics).
-
-> 🎓 The pros and cons are really one trade-off seen from two sides: **a JIT spends resources during execution to learn from the running program.** If the program runs long enough, the learning pays for itself many times over. If it does not, you paid the cost and left before collecting the reward.
-
----
-
-## Use Cases
-
-**Where JITs shine:**
-
-- **Long-running servers.** A web service that runs for days warms up once and then runs at full speed essentially forever. The ideal JIT scenario.
-- **Heavy compute loops.** Numerical kernels, data processing, game logic — code dominated by tight hot loops that the optimizing tier loves.
-- **Browsers.** JavaScript on a page you keep open (a web app, a game) gets hot and fast. V8, SpiderMonkey, and JavaScriptCore are all JITs for exactly this reason.
-- **Dynamic languages.** Languages where types are not known ahead of time (JavaScript, Python via PyPy, Ruby) benefit enormously, because the JIT can *observe* the types at runtime and specialize.
-
-**Where JITs struggle (and AOT often wins):**
-
-- **Command-line tools** that start, do one thing, and exit. They die during warmup. (This is a major reason native-image / AOT options exist for the JVM.)
-- **Serverless functions** billed per invocation with cold starts — paying warmup on every cold start is expensive and slow.
-- **Hard real-time / embedded** systems that cannot tolerate a surprise compilation pause or the memory cost of a code cache.
-- **Tiny memory environments** where the runtime, profiler, and code cache do not fit.
-
----
-
 ## Coding Patterns
 
 These are habits that help you *work with* a JIT rather than against it. None require you to understand the JIT internals.
@@ -349,22 +229,24 @@ Or better: use a real harness (JMH, `benchmark.js`) that does this correctly for
 
 ---
 
-## Summary
+## Apply it
 
-- Managed languages (Java, JavaScript, C#) start by **interpreting** bytecode — portable but slow.
-- A **JIT compiler** watches the program run, finds **hot** code via **counters**, and compiles it to **machine code** on the fly.
-- A JIT can **beat an AOT compiler** because it optimizes for what the program *actually* does, using runtime **profiling data** the AOT compiler never had.
-- **Tiered compilation** uses a fast-but-rough compiler first (good startup) and a slow-but-excellent compiler later for the hottest code (good steady-state speed).
-- **On-Stack Replacement (OSR)** upgrades a long-running loop to compiled code without stopping it.
-- **Warmup** — slow at first, fast later — is normal and expected; it is the cost of the JIT's bargain. Short-lived programs may quit before warmup pays off, which is why AOT exists.
-- Practically: warm up before benchmarking, consume your benchmark results, keep hot paths type-stable and small, trust the defaults, and plan for cold starts in production.
+1. Choose one small, known input for **JIT Compilation & Tiering**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
----
+## Verify your work
 
-## Further Reading
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
 
-- The Java HotSpot virtual machine documentation on tiered compilation and the `-XX:+PrintCompilation` flag.
-- V8's blog posts on Ignition (the interpreter) and the optimizing pipeline.
-- "The Java Performance Companion" and "Optimizing Java" for practical warmup and benchmarking guidance.
-- JMH (Java Microbenchmark Harness) documentation — the canonical explanation of why naive benchmarks lie.
-- The middle, senior, and professional tiers of this topic, which go from "what the JIT does" to "how the tiers really work," "which optimizations it applies," and "how to run it in production."
+## Review questions
+
+- What problem does JIT Compilation & Tiering solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

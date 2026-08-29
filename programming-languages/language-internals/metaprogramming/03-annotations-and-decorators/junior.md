@@ -1,67 +1,11 @@
-# Annotations & Decorators — Junior Level
+# Annotations & Decorators — Junior
 
-> **Topic:** Annotations & Decorators
-> **Focus:** Two different language features that share a `@` symbol — one attaches *metadata*, the other attaches *behavior*. Learn the difference and never confuse them again.
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **Annotations & Decorators** in one small example and prove the result?
 
-## Introduction
-
-> Focus: **The `@` symbol means two completely different things in two language families. Knowing which one you're looking at is the whole game.**
-
-You have seen `@` glued to the top of a function or class. It looks the same in Java, Python, TypeScript, and C#, but it does two fundamentally different jobs:
-
-- A **Java annotation** (and a **C# attribute**) is **pure metadata**. Writing `@Override` above a method *does nothing* on its own. It is a sticky note. It sits there, inert, until some *other* program — the compiler, a test runner, a framework — comes along, *reads* the sticky note, and decides to do something because it saw it. The annotation has zero behavior of its own.
-
-- A **Python decorator** (and a **TypeScript/Angular decorator**) is the opposite: it is **actual running code** — a function — that **wraps or replaces** the thing it decorates. Writing `@timer` above a function in Python *literally calls* `timer(your_function)` and your function is now whatever `timer` returned. The decorator *does* something the moment the file loads.
-
-This is the single most important idea on this page, so here it is in one sentence:
-
-> **An annotation is inert metadata that someone else must read to matter. A decorator is live code that changes the thing below it immediately.**
-
-People use the words loosely and interchangeably, which is exactly why beginners get confused. The `@` is shared syntax, but the semantics are worlds apart. By the end of this page you will be able to look at any `@Something` and answer two questions: *(1) Is this metadata or behavior?* and *(2) Who, if anyone, reads or runs it, and when?*
-
-> 🎓 **Why this matters for a junior:** Almost every modern framework you'll touch — Spring, JUnit, Flask, FastAPI, Angular, NestJS, Hibernate, .NET — is built out of these. When code "magically works" because you put `@Autowired` or `@app.route("/")` on it, that magic is annotations and decorators. Understanding the mechanism turns magic into something you can predict, debug, and trust.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** How to write a function and a class in at least one of Java, Python, TypeScript/JavaScript, or C#.
-- **Required:** That functions are *things* — in Python and JS especially, a function is a value you can store in a variable and pass around.
-- **Required:** Basic understanding of "the compiler" vs "the program running" — that some work happens when code is built and some happens when it runs.
-- **Helpful but not required:** Having used a framework (Spring, Flask, FastAPI, Angular, JUnit) and seen these `@` things in the wild.
-- **Helpful but not required:** A vague idea of what "reflection" means (a program inspecting its own structure at runtime).
-
-You do **not** need to know:
-
-- How annotation processors generate code (that's `middle.md` and `senior.md`).
-- How `reflect-metadata` and TypeScript's `emitDecoratorMetadata` work (that's `senior.md`).
-- The difference between the old "experimental" decorators and the TC39 Stage-3 standard (that's `professional.md`).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Annotation** | (Java) Pure metadata attached to code: a class, method, field, or parameter. Does nothing by itself. |
-| **Attribute** | (C#/.NET) The same idea as a Java annotation: declarative metadata, read later via reflection. |
-| **Decorator** | (Python, TypeScript) A function that wraps or replaces the thing below it, running at definition time. |
-| **Metadata** | Data *about* code, not data the program computes. "This method overrides a parent method" is metadata. |
-| **Reflection** | A program inspecting its own structure at runtime — listing a class's methods, reading its annotations. |
-| **Retention** | (Java) How long an annotation survives: only in source, into the `.class` file, or available at runtime. |
-| **Annotation processor** | A compile-time tool (APT) that reads annotations and generates code or errors during the build. |
-| **Inert / declarative** | Describes something that states a fact but performs no action until something else acts on it. |
-| **Wrapping** | Putting code *around* a function — run something before, run the function, run something after. |
-| **Decorator factory** | A function that *returns* a decorator, used when a decorator needs arguments: `@route("/users")`. |
-| **`functools.wraps`** | A Python helper that copies a function's name, docstring, etc. onto its wrapper so identity isn't lost. |
-| **Definition time** | The moment a function or class is first defined/loaded — when Python decorators run. |
-| **Runtime scanning** | A framework looking through your loaded classes for annotations to act on (Spring, JUnit do this). |
-| **Action at a distance** | When behavior is caused by something not visible at the call site — a known cost of both features. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -159,61 +103,6 @@ For any `@Something` you encounter, ask: **"If I delete the framework/processor/
 
 - **Yes** → it was an annotation (inert metadata). The effect lived in the *reader*.
 - **No** → it was a decorator (active code). The effect lived in the `@` itself.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Java annotation** | A sticky note on a folder that says "FRAGILE." The note does nothing — until a *person* who knows to look for it handles the folder carefully. |
-| **Annotation processor (compile time)** | A clerk who, before filing, reads every sticky note and stamps/sorts folders accordingly. Happens once, up front. |
-| **Runtime reflection of annotations** | A security guard who, while the office runs, walks around reading the "AUTHORIZED" stickers and lets people through. |
-| **No reader = no effect** | A "FRAGILE" sticker in an empty building. Perfectly valid sticker; nobody reads it; nothing happens. |
-| **Python decorator** | A gift-wrapping service. You hand it a gift (your function); it hands back a *wrapped* gift. The wrapping is real and around your actual present. |
-| **Decorator factory (`@route("/x")`)** | A wrapping service that first asks "what paper color?" before it can wrap — you configure it, *then* it wraps. |
-| **`functools.wraps`** | Writing the original gift's label back onto the wrapped box, so people still know what's inside. |
-| **Stacking decorators** | Wrapping a box, then wrapping the wrapped box again. The outermost wrap is applied last but unwrapped first. |
-| **C# attribute** | The same "FRAGILE" sticky note, just printed on square paper instead of with an `@`. |
-| **Action at a distance** | A folder behaves oddly and you can't tell why — until you find the sticky note someone put on the *back*. |
-
----
-
-## Mental Models
-
-### The Sticky Note vs The Gift Wrap
-
-Hold these two images side by side and you will rarely get confused:
-
-- **Annotation = sticky note.** It carries information. It changes nothing until a reader who cares walks by. Java annotations and C# attributes are sticky notes.
-- **Decorator = gift wrap.** It physically goes *around* your thing and changes what you receive. Python decorators wrap and replace. TypeScript decorators usually *attach a sticky note* (metadata) but are *technically* wrapping machinery.
-
-### The "Who Reads It, When" Model
-
-For any annotation, immediately ask the two-part question: **who reads this, and when?**
-
-- "The compiler reads `@Override`, at compile time." → so its whole effect is a compile-time check.
-- "Spring reads `@Component`, at startup via reflection." → so its effect appears when the app boots and scans.
-- "Nobody reads my custom `@Cool` annotation." → so it does literally nothing. (A real and common beginner trap.)
-
-### The "Rewrite It Without the @" Model (for decorators)
-
-Whenever a Python decorator confuses you, mechanically rewrite it:
-
-```python
-@a
-@b
-def f(): ...
-```
-
-becomes
-
-```python
-def f(): ...
-f = a(b(f))
-```
-
-Read inside-out: `b` wraps `f` first, then `a` wraps the result. Once you can do this rewrite in your head, decorators stop being magic and become ordinary function calls.
 
 ---
 
@@ -365,35 +254,6 @@ public class User
 
 ---
 
-## Pros & Cons
-
-| Aspect | Pros | Cons |
-|--------|------|------|
-| **Readability of intent** | `@Test`, `@Override`, `@property` declare intent crisply at the declaration. | The *effect* is invisible at the call site (action at a distance). |
-| **Boilerplate** | Decorators and processors remove huge amounts of repetitive code (logging, routing, validation). | The removed code still runs; you just can't see it, which can surprise newcomers. |
-| **Annotations: zero runtime cost (sometimes)** | SOURCE/CLASS-retained annotations vanish before runtime — free. | RUNTIME annotations require reflection scanning, which costs startup time. |
-| **Decorators: real, immediate power** | Can genuinely wrap, time, cache, retry, authorize. | Can hide bugs: forgetting `@wraps` loses the function's name; wrong stack order misbehaves. |
-| **Framework integration** | Spring/Flask/Angular use them to wire your code with near-zero glue. | "Magic" is hard to debug when you don't know which reader is acting. |
-| **Composability** | Stack several decorators/annotations to combine concerns. | Order matters and is easy to get wrong, especially when stacking. |
-
----
-
-## Use Cases
-
-You will meet annotations and decorators most often for:
-
-- **Routing.** `@app.route` (Flask), `@GetMapping` (Spring), `@Get()` (NestJS) — map a URL to a function.
-- **Testing.** `@Test`, `@BeforeEach` (JUnit), `@pytest.fixture` — mark and configure tests.
-- **Validation.** `@NotNull`, `@Size` (Bean Validation), `[Required]` (C#) — declare rules read by a validator.
-- **Serialization hints.** `@JsonProperty`, `@JsonIgnore` — tell a serializer how to map fields to JSON.
-- **Dependency injection.** `@Autowired`, `@Inject`, `@Injectable` — let a framework supply dependencies.
-- **ORM mapping.** `@Entity`, `@Column`, `@Id` — map classes and fields to database tables and columns.
-- **Memoization / caching.** `@lru_cache`, `@cache` — store and reuse results.
-- **Authorization.** `@RequireRole`, `@PreAuthorize` — gate access by role/permission.
-- **Deprecation & overrides.** `@Deprecated`, `@Override`, `[Obsolete]` — compiler-checked hygiene.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: The simple wrapping decorator (Python)
@@ -474,3 +334,27 @@ Then reason about it as plain function composition. This is the fastest way to d
 - **Mutating shared state inside a decorator at import time.** Decorators run at definition time — if your decorator has side effects (registering routes, opening files), they happen when the module is *imported*, not when functions are called. Surprising if you don't expect it.
 - **`@property` on the wrong thing.** Accessing `c.radius()` with parentheses after using `@property` calls the *returned value*, not the method — a common "object is not callable" error.
 - **C# attributes look different but behave the same.** Don't treat `[Required]` as if it actively validates; a validator must read it. Same inert-metadata rule as Java.
+
+---
+
+## Apply it
+
+1. Choose one small, known input for **Annotations & Decorators**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
+
+## Verify your work
+
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
+
+## Review questions
+
+- What problem does Annotations & Decorators solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

@@ -1,8 +1,11 @@
 # Total Cost of Ownership & Team Skills — Middle
 
-> **What?** TCO broken into its actual line items, each one estimable in real numbers — hiring cost and time-to-fill, salary differences, onboarding/ramp, training, multi-year maintenance, operational compute cost, and tooling. The junior level taught you *that* the iceberg exists; this level teaches you how to **put numbers on the parts under the water.**
-> **How?** Treat a language choice like a budget. For each cost line, estimate a figure — even a rough one — over the realistic life of the system (think 3–5 years, not the first sprint). The point isn't false precision; it's making the hidden costs *visible and comparable* so the decision stops being driven by the one cost everyone can feel (writing) and starts accounting for the costs that dominate (everything else).
+<!-- level-focus -->
+At middle level, focus on this question:
 
+> Where does **Total Cost of Ownership & Team Skills** belong in a maintainable component, and which trade-off selects the design?
+
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## 1. Cheap to *start* vs cheap to *own*
@@ -132,7 +135,7 @@ At 10 servers the $20k/year gap is noise next to one engineer's salary. At 1,000
 Most modern languages have free, excellent open-source tooling, so this line is often near zero. Watch for the exceptions:
 - **Commercial ecosystems** with per-seat license costs (some enterprise IDEs, some proprietary runtimes or app servers).
 - **Build/CI cost** — a language with slow compiles burns CI minutes and engineer wait-time. A 10-minute build × dozens of pushes a day × a team is a real, if diffuse, cost.
-- **Observability gaps** — if your APM/tracing vendor doesn't support the language well, you pay in custom instrumentation. (Tooling maturity has its own topic: [`03-ecosystem-and-tooling-maturity`](../03-ecosystem-and-tooling-maturity/).)
+- **Observability gaps** — if your APM/tracing vendor doesn't support the language well, you pay in custom instrumentation. (Tooling maturity has its own topic: [`03-ecosystem-and-tooling-maturity`](../03-ecosystem-and-tooling-maturity/README.md).)
 
 ---
 
@@ -168,7 +171,7 @@ The niche language wins *only* if its advantages — runtime savings at large sc
 
 **Treating onboarding as one-time.** It recurs on every hire. Multiply by your real hiring rate over the horizon.
 
-**False precision.** These are estimates with wide error bars. Use ranges, do a sensitivity check (which assumption, if wrong, flips the answer?), and present it as "here's the shape," not "here's the number." (Same discipline as the decision matrix in [`01-language-selection-criteria`](../01-language-selection-criteria/).)
+**False precision.** These are estimates with wide error bars. Use ranges, do a sensitivity check (which assumption, if wrong, flips the answer?), and present it as "here's the shape," not "here's the number." (Same discipline as the decision matrix in [`01-language-selection-criteria`](../01-language-selection-criteria/README.md).)
 
 ---
 
@@ -184,15 +187,24 @@ The niche language wins *only* if its advantages — runtime savings at large sc
 
 ---
 
-## 12. What's next
+## Apply it
 
-| Topic | File |
-|---|---|
-| Talent market as a hard constraint; runtime cost flipping decisions at scale | `senior.md` |
-| Org economics, Conway's law, standardization, the leadership case | `professional.md` |
-| Interview questions on TCO | `interview.md` |
-| Build a multi-year TCO model and a hiring-difficulty estimate | `tasks.md` |
+1. Find a real component where **Total Cost of Ownership & Team Skills** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
----
+## Verify your work
 
-**Memorize this:** TCO is seven line items over years — initial dev, hiring, salary premium, onboarding, maintenance, operations, tooling — and a language can be cheap to start but expensive to own. Put rough numbers on every line at your expected scale, and the niche language only wins if its advantages buy back the salary, vacancy, and onboarding premium it costs.
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
+
+## Review questions
+
+- Which boundary is most affected by Total Cost of Ownership & Team Skills?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

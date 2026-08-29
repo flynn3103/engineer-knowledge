@@ -1,71 +1,11 @@
-# Interpretation, Compilation, JIT, AOT — Junior Level
+# Interpretation, Compilation, JIT, AOT — Junior
 
-> **Topic:** Interpretation, Compilation, JIT, AOT
-> **Focus:** What actually happens to your source code between "save file" and "CPU runs it" — and the four big strategies (interpret, compile, JIT, AOT) for getting there.
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **Interpretation, Compilation, JIT, AOT** in one small example and prove the result?
 
-## Introduction
-
-> Focus: **How does a CPU end up running the program you typed?** And **why are there four different answers to that question instead of one?**
-
-When you write `print("hello")` in Python, or `fmt.Println("hello")` in Go, you are writing text. The CPU does not understand text. It understands **machine code** — raw numbers that mean "add these two registers," "jump to this address," "load from memory." Somewhere between your text file and the running CPU, something has to bridge that gap. **That bridge is the subject of this whole topic.**
-
-There are, broadly, four strategies for crossing the bridge:
-
-1. **Interpretation** — a program (the *interpreter*) reads your code and *does what it says*, step by step, while your program runs. Python, Ruby, and classic JavaScript started here.
-2. **Compilation (ahead-of-time / AOT)** — a program (the *compiler*) translates *all* your code into machine code *before* you run it, producing a standalone executable. C, C++, Rust, and Go work this way.
-3. **JIT (Just-In-Time) compilation** — a hybrid. The program *starts* interpreting, watches which parts run a lot ("hot" code), and *compiles those parts to machine code while the program is running.* Java's HotSpot JVM and JavaScript's V8 do this.
-4. **Bytecode interpretation** — a middle ground used by almost everyone. Your source is first compiled into a compact intermediate form called **bytecode**, and *that* is interpreted. CPython does exactly this: it compiles `.py` into `.pyc` bytecode, then interprets the bytecode.
-
-In one sentence: **interpretation reads and acts as it goes; compilation translates everything up front; a JIT does both — interpret first, then compile the hot parts on the fly; and AOT is just "compile everything before running."**
-
-> 🎓 **Why this matters for a junior:** You will constantly hear "Python is slow," "Java is slow to start but fast once warmed up," "Go produces a single binary," "use a JIT for peak performance." None of those statements make sense until you understand these four strategies. They explain *why* your CLI tool starts instantly but your Java service takes ten seconds to warm up, *why* a Python loop is 50× slower than the same loop in C, and *why* serverless functions love AOT.
-
-This page covers the four strategies, what bytecode is, the difference between "compile to machine code" and "compile to bytecode," what a JIT actually does and why it can be *faster* than AOT, and a tour of how the languages you use fit into this picture. The deeper levels go into dispatch techniques, tiered compilation, deoptimization, and the engineering trade-offs.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** You can write and run a simple program in at least one language (Python, JavaScript, Java, Go, or C).
-- **Required:** You know the difference between *source code* (the text you write) and *running a program* (what happens after).
-- **Required:** A vague idea that a CPU executes "instructions."
-- **Helpful but not required:** You have seen a `.pyc`, `.class`, or `.exe` file and wondered what it is.
-- **Helpful but not required:** You have noticed that some languages need a "compile step" (`go build`, `javac`) and some don't (`python script.py`).
-
-You do **not** need to know:
-
-- How a JIT decides what to compile (that's `middle.md` and `senior.md`).
-- What a register allocator or SSA form is (that's `professional.md`).
-- Assembly language. We will show *what* machine code is, not how to write it.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Source code** | The human-readable text you write: `.py`, `.js`, `.java`, `.go`, `.c`. |
-| **Machine code** | Raw binary instructions a specific CPU executes directly. Architecture-specific (x86-64 ≠ ARM64). |
-| **Interpreter** | A program that reads your code (or bytecode) and performs its actions directly, without producing a standalone executable. |
-| **Compiler** | A program that translates source code into another form — usually machine code or bytecode. |
-| **AOT (Ahead-Of-Time)** | Compiling the whole program to machine code *before* you run it. The classic meaning of "compiled language." |
-| **JIT (Just-In-Time)** | Compiling parts of the program to machine code *while the program is running.* |
-| **Bytecode** | A compact, CPU-independent instruction set designed to be interpreted (or JIT-compiled). Examples: Python bytecode, Java bytecode, .NET IL/CIL. |
-| **Virtual machine (VM)** | The runtime that executes bytecode. The JVM, the CPython VM, the .NET CLR. (Not the same as a "virtual machine" like VirtualBox.) |
-| **AST (Abstract Syntax Tree)** | A tree representation of your code's structure. `2 + 3 * 4` becomes a tree with `+` at the top. |
-| **Tree-walking interpreter** | An interpreter that executes by walking the AST node by node. The simplest, slowest kind. |
-| **Bytecode interpreter** | An interpreter that executes a flat list of bytecode instructions in a loop. Faster than tree-walking. |
-| **Warmup** | The period at the start of a JIT'd program where it runs *slowly* (interpreting) before the JIT compiles the hot code. |
-| **Hot code** | Code that runs many times — a loop body, a frequently called function. The JIT focuses here. |
-| **Native code / native binary** | Machine code for the actual hardware, as opposed to bytecode for a VM. |
-| **Profile** | Information collected *while the program runs* about what's actually happening — which branches are taken, which types appear. JITs use profiles; AOT compilers usually can't. |
-| **Startup time** | How long from launch to "doing useful work." AOT wins here; JIT loses (warmup). |
-| **Peak performance** | How fast the program runs *after* it's fully warmed up. A good JIT can beat or match AOT here. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -148,64 +88,6 @@ For decades, "AOT" meant C/C++/Rust/Go. But recently, languages that traditional
 - A **serverless function** (AWS Lambda, etc.) spins up a fresh process per request burst. JIT warmup happens *on every cold start*, adding latency the user feels. AOT eliminates the warmup entirely.
 
 So AOT "came back" for managed languages, driven by CLIs and serverless cold-starts. The trade-off: AOT gives up the JIT's runtime adaptive specialization, and it struggles with features like reflection (more on that at higher levels).
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Interpreter** | A live interpreter at the UN, translating a speech sentence-by-sentence *as it's being given*. Flexible, immediate, but adds delay to every sentence. |
-| **AOT compiler** | A professional translator who takes the whole book, translates it over weeks, and hands you a finished translated book. Slow up front; instant to read afterward. |
-| **Bytecode** | Translating a Japanese novel into Esperanto first — a simpler, regular intermediate language — so that translating from Esperanto to any other language is easier. |
-| **JIT** | A simultaneous interpreter who, realizing the speaker keeps repeating the same paragraph, writes out a polished translation of *that paragraph* and just reads it aloud each time it recurs. |
-| **Warmup** | The first few minutes of that interpreter's shift — rough and slow — before they've found their rhythm and pre-written the common phrases. |
-| **Profile-guided optimization** | The JIT-interpreter noticing "this speaker always says 'um' before a number" and optimizing for that exact habit. |
-| **Hot code** | The chorus of a song — sung many times, so worth memorizing perfectly. The verses (cold code) you can sight-read. |
-| **Deoptimization** | The interpreter confidently pre-translated a sentence assuming a topic, then the speaker veers off — so they throw away the pre-written version and go back to translating live. |
-| **Native binary** | A book printed in the reader's own native language. No translator needed at all. |
-
----
-
-## Mental Models
-
-### The "Translation Timing" Model
-
-The single most useful idea: **all four strategies do the same job — turn source into something the CPU runs — they just do it at different *times*.**
-
-```text
-            BUILD TIME            │            RUN TIME
-─────────────────────────────────┼──────────────────────────────
-Interpreter:    (nothing)        │  translate + run, line by line, every time
-Bytecode:    source → bytecode   │  interpret bytecode every time
-JIT:         source → bytecode   │  interpret, then compile hot parts mid-run
-AOT:    source → machine code    │  just run the machine code
-```
-
-Shift the translation work *left* (toward build time) and you get fast startup and no runtime overhead, but you lose runtime knowledge. Shift it *right* (toward run time) and you gain flexibility and runtime knowledge, but you pay for it while the user is waiting.
-
-### The "Who Pays, and When" Model
-
-Every strategy answers: *who pays the translation cost, and when?*
-
-- **AOT:** the developer pays once, at build time. Users pay nothing.
-- **Interpreter:** users pay a little, continuously, every time a line runs.
-- **JIT:** users pay a lot up front (warmup), then nothing (peak).
-
-This model instantly explains language choice. Short-lived program with many users (a CLI)? Don't make users pay warmup — use AOT. Long-running server processing millions of requests? Pay warmup once, reap peak speed forever — JIT is great.
-
-### The "Interpreter is Just a Big Loop" Model
-
-A bytecode interpreter is, at its heart, this loop:
-
-```text
-while True:
-    instruction = bytecode[program_counter]
-    program_counter += 1
-    do_what_instruction_says(instruction)   # a giant switch statement
-```
-
-Hold this picture. The "do what it says" is a `switch` over every possible instruction. The overhead of *fetching* the next instruction and *jumping* to the right case — done millions of times — is the interpreter's tax. Compiling to machine code removes that loop entirely: the instructions *become* the program.
 
 ---
 
@@ -346,40 +228,6 @@ Build with `go build` and run. Every round is roughly the same speed — *there 
 
 ---
 
-## Pros & Cons
-
-| Strategy | Pros | Cons |
-|----------|------|------|
-| **Pure interpreter (tree-walking)** | Simplest to build; flexible; instant "edit and run"; trivially portable. | Slowest execution; re-does work every time a line runs. |
-| **Bytecode interpreter** | Much faster than tree-walking; still portable; fast startup; small memory. | Still has per-instruction dispatch overhead; far from native speed. |
-| **JIT** | Highest peak performance; adapts to real runtime behavior; only compiles hot code. | Warmup cost; high memory use (compiler + compiled code in RAM); slow startup; complex; generating code at runtime is a security surface. |
-| **AOT to native** | Fastest startup; lowest memory; no warmup; single distributable binary; predictable performance. | No runtime adaptation; longer build times; binary tied to one CPU/OS; managed-language AOT breaks reflection and other dynamic features. |
-
----
-
-## Use Cases
-
-**Reach for an interpreter / bytecode VM when:**
-
-- You're scripting, prototyping, or doing data analysis where developer speed beats execution speed (Python notebooks, shell-like glue).
-- Edit-run cycles matter more than raw throughput.
-- Portability across machines without recompiling is valuable.
-
-**Reach for a JIT when:**
-
-- The program is **long-running**: a web server, a database, a big-data job that runs for minutes or hours. Warmup is a one-time cost amortized over a long life.
-- You want peak throughput *and* the convenience of a managed runtime (GC, portability).
-- This is why Java and modern JS engines dominate long-lived servers.
-
-**Reach for AOT when:**
-
-- The program is **short-lived** or **starts often**: CLI tools, serverless functions, desktop apps that must feel instant.
-- You need a **single self-contained binary** to ship (Go's killer feature).
-- Low and predictable memory matters (embedded, containers with tight limits).
-- Cold-start latency is user-visible (serverless) — AOT removes warmup entirely.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: "Warm up before you measure" (for JIT languages)
@@ -437,62 +285,24 @@ When using GraalVM native-image or .NET NativeAOT, anything reflective (loading 
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│           HOW SOURCE BECOMES SOMETHING THE CPU RUNS               │
-├──────────────────────────────────────────────────────────────────┤
-│  INTERPRET   read code, do what it says, line by line, every time │
-│  BYTECODE    source → bytecode, then interpret the bytecode       │
-│  JIT         interpret first; compile HOT parts to native mid-run │
-│  AOT         compile ALL to native machine code before running    │
-├──────────────────────────────────────────────────────────────────┤
-│  Translation timing:                                              │
-│    AOT ........... build time (developer pays once)               │
-│    Interpret ..... run time, continuously (user pays a little)    │
-│    JIT ........... run time, up front (user pays warmup, then 0)  │
-├──────────────────────────────────────────────────────────────────┤
-│  Startup speed:   AOT  >  bytecode  >  JIT   (AOT wins)           │
-│  Peak speed:      JIT  ≈  AOT  >>  interpret (JIT/AOT win)        │
-│  Memory:          AOT  <  bytecode  <  JIT   (AOT lightest)       │
-├──────────────────────────────────────────────────────────────────┤
-│  Where languages sit:                                             │
-│    CPython, Ruby     bytecode interpreter                         │
-│    Java (HotSpot)    bytecode + tiered JIT                        │
-│    JavaScript (V8)   bytecode + tiered JIT                        │
-│    C, C++, Rust, Go  AOT to native                                │
-│    Java GraalVM /                                                 │
-│    C# NativeAOT      AOT of a normally-JIT'd language             │
-├──────────────────────────────────────────────────────────────────┤
-│  Rules of thumb:                                                  │
-│    short-lived / starts often (CLI, serverless)  → AOT            │
-│    long-lived server / daemon                     → JIT           │
-│    scripting, prototyping                         → interpreter   │
-└──────────────────────────────────────────────────────────────────┘
-```
+1. Choose one small, known input for **Interpretation, Compilation, JIT, AOT**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
----
+## Verify your work
 
-## Summary
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
 
-- The CPU only runs **machine code**. Every strategy is about *when* and *how* your source becomes machine code (or gets executed without ever fully becoming it).
-- **Interpretation** reads your code and acts on it as it runs, paying overhead every time. A **tree-walking** interpreter is the simplest and slowest; a **bytecode** interpreter (CPython, Ruby) is much faster.
-- **AOT compilation** (C, C++, Rust, Go) translates everything to native code *before* running. Result: instant startup, low memory, no warmup, a single binary — but no runtime adaptivity and a platform-specific binary.
-- **JIT compilation** (Java HotSpot, JavaScript V8) interprets first, then compiles the *hot* code to native *while running*, using **profiles** of real behavior. Result: top peak performance and adaptivity — at the cost of **warmup**, memory, and complexity.
-- It is a **spectrum, not a binary.** Most real languages mix ingredients: Python compiles to bytecode *then* interprets; Java compiles to bytecode *and* interprets *and* JITs; .NET can JIT or AOT.
-- **Who pays, and when** is the key trade-off: AOT charges the developer at build time; interpreters charge users a little continuously; JITs charge users a lot up front (warmup), then nothing.
-- **AOT for managed languages** (GraalVM native-image, .NET NativeAOT) came back because of CLI tools and serverless cold-starts, where JIT warmup is a dealbreaker — at the cost of breaking reflection and runtime specialization.
-- A junior's takeaway: stop saying "compiled vs interpreted"; instead, ask *when does translation happen, and does the program live long enough to make warmup worth it?*
+## Review questions
 
----
-
-## Further Reading
-
-- *Crafting Interpreters* — Robert Nystrom. Builds a tree-walking interpreter *and* a bytecode VM from scratch. The single best introduction to this whole topic. Free online at https://craftinginterpreters.com/
-- *Python documentation — the `dis` module.* Disassemble your own functions and see the bytecode. https://docs.python.org/3/library/dis.html
-- *The Java HotSpot Performance Engine Architecture* — Oracle whitepaper. The classic explanation of tiered JIT.
-- *Understanding V8's Bytecode* — Franziska Hinkelmann. A clear blog post on how V8 turns JS into bytecode and beyond.
-- *GraalVM Native Image* documentation — https://www.graalvm.org/latest/reference-manual/native-image/ — for how a JIT'd language gets AOT-compiled.
-- *A Crash Course in Just-In-Time (JIT) Compilation* — Eli Bendersky's blog. Builds a tiny JIT in a few hundred lines.
-- *The Go Programming Language* — Donovan & Kernighan. For the AOT, single-binary philosophy in practice.
+- What problem does Interpretation, Compilation, JIT, AOT solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

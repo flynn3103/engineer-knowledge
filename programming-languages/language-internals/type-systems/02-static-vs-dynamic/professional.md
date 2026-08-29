@@ -1,55 +1,11 @@
-# Static vs Dynamic Typing — Professional Level
+# Static vs Dynamic Typing — Professional
 
-> **Topic:** Static vs Dynamic Typing
-> **Focus:** The engineering consequences that decide real systems — performance, the empirical bug-rate evidence, the industry's static-over-dynamic trend, and what it actually takes to migrate a large Python/JS codebase.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Static vs Dynamic Typing** with measurable outcomes and limited coordination?
 
-## Introduction
-
-> Focus: **When the architecture review asks "static or dynamic, and why," what evidence and engineering reality do you bring?** Performance characteristics, the (genuinely mixed but trending-positive) research on bugs, the reason every major dynamic language is bolting on static checking, and the playbook for migrating a million-line codebase without stopping the world.
-
-By this level the *mechanics* are settled. The professional questions are economic and empirical:
-
-- **Performance:** static typing isn't just a correctness tool — it's a *performance* enabler. Knowing a value's type at compile time lets the compiler do **monomorphization**, **inlining**, and **field-offset addressing**, and skip **runtime type tags and checks** entirely. Dynamic languages pay a per-operation tax — but modern JITs (V8, PyPy, the JVM) claw most of it back with **inline caches** and **hidden classes / shapes**, which is why "dynamic = slow" is a decade out of date. You need to articulate *where* the costs are and *how* JITs recover them.
-- **Does it actually reduce bugs?** This is where seniors who've read the literature separate from those repeating folklore. The empirical record is **mixed but trends positive**, especially for *large, long-lived, multi-contributor* codebases — and the most-cited industrial results (the TypeScript/Flow study finding ~15% of public bugs were preventable by types) come with real caveats about what "preventable" means.
-- **The industry trend is unmistakable and one-directional:** TypeScript ate JavaScript; mypy/Pyright are standard at scale; Stripe built Sorbet for Ruby; Meta built Hack for PHP; Instagram, Dropbox, and others publicly migrated. *Nobody* is building a static-to-dynamic migration tool. Understanding *why* the gradient points one way is core professional judgment.
-- **Migration is a discipline, not a flag.** Turning on a type checker over a large dynamic codebase is a multi-quarter program with its own failure modes (the `any` flood, the unsound boundary, the stub-quality problem). You need the playbook.
-
-> 🎓 **Why this matters for a professional:** You will own the call on language and type-discipline for systems that outlive your tenure, and you'll defend it to people who hold strong priors in both directions. "I prefer types" is not an argument. "Here's the JIT cost model, here's what the bug research actually shows and its limits, here's why every comparable org migrated *toward* static and what it cost them" — that's an argument. This page is that argument, with its caveats intact.
-
----
-
-## Prerequisites
-
-- **Required:** `junior.md`, `middle.md`, `senior.md` — especially soundness, erasure vs reification, gradual typing, and the `any` boundary.
-- **Required:** A working mental model of how a JIT works (interpret → profile → compile hot paths) and what a CPU cache line is.
-- **Required:** Experience operating a real codebase of nontrivial size in at least one dynamic language.
-- **Helpful:** Having read or skimmed at least one empirical typing study, or having lived through a TypeScript/mypy adoption.
-
-You do **not** need to know:
-
-- The internal IR of a specific JIT compiler.
-- The statistical methods of the empirical studies in depth (we discuss their *claims and caveats*).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Monomorphization** | Compiling a generic/polymorphic function into a separate specialized copy per concrete type, enabling inlining and zero dispatch. Rust, C++ templates, some Swift. |
-| **Boxing** | Wrapping a value in a heap object carrying a type tag (so it can be treated uniformly/dynamically), vs. an unboxed raw machine value. |
-| **Type tag** | Runtime metadata on a (reified) value identifying its type; read on every dynamic operation. |
-| **Inline cache (IC)** | A JIT optimization caching the resolved type/method at a call site so repeat executions skip the lookup. Monomorphic/polymorphic/megamorphic. |
-| **Hidden class / shape / map** | A JIT's runtime structure assigning fixed field offsets to objects with the same layout, turning dynamic property access into a fast offset read. |
-| **Speculation / deopt** | A JIT compiles assuming observed types hold; if an assumption breaks, it **deoptimizes** back to the interpreter. |
-| **Stub / `.d.ts` / `.pyi`** | External type declarations for code whose source isn't annotated (libraries) — the boundary quality determines migration safety. |
-| **`any` flood** | The failure mode where a migration types everything as `any` to silence errors, producing the appearance of types with none of the safety. |
-| **DefinitelyTyped / typeshed** | Community repositories of type stubs for the JS and Python ecosystems. |
-| **Strict mode** | The strongest checker configuration (`strict: true`, `--strict`, `strictNullChecks`) — where most of the safety actually lives. |
-| **Ratchet** | A CI policy that lets type coverage only increase, never regress, during a long migration. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -135,37 +91,6 @@ A static system that **tracks nullability** (`strictNullChecks`, `Optional[Accou
 
 ---
 
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Static types enabling speed** | A factory line built for one exact part: no measuring each item, every station pre-positioned — fast because the shape is known in advance. |
-| **Dynamic per-op type check** | A general-purpose workshop measuring every item before each cut — flexible, but slower per item. |
-| **JIT inline cache / hidden class** | The workshop noticing it's been cutting the same part all morning, pre-setting the jigs, and matching the factory's speed — until a different part arrives and it has to reset. |
-| **Deoptimization** | That reset: an unexpected part forces the workshop back to measure-everything mode. |
-| **Empirical bug research caveats** | Drug trials that show a real but modest effect, larger in chronic cases (big codebases) than acute ones (scripts) — and you must read the methods before quoting the headline. |
-| **Refactor safety** | A blueprint change that auto-highlights every wall, pipe, and wire affected — versus walking the building hoping to spot them all. |
-| **`any` flood during migration** | Painting over rot to pass inspection — the report says "renovated," the structure is unchanged. |
-| **The industry trend** | Every large city eventually adding building codes: fine to skip for a shed, non-negotiable for a skyscraper full of tenants. |
-
----
-
-## Mental Models
-
-### The "Information You Can Spend" Model (performance)
-
-A statically known type is *currency the compiler spends* to buy speed: spend "it's an int" to buy an unboxed register operation; spend "it's this concrete class" to buy devirtualization and inlining; spend "this generic is instantiated at `i32`" to buy monomorphization. Dynamic code starts the runtime *broke* — it must *earn* the information by observing types at runtime (the JIT's job) before it can spend it, and a deopt is going bankrupt and starting over. This frames the whole performance discussion: static gets the information for free up front; dynamic must mine it at runtime and can lose it.
-
-### The "Cost Curve Crossover" Model (the trend)
-
-Plot two cost curves against codebase size/age. Dynamic typing's cost starts low (fast to write) and rises steeply (untested-path crashes, scary refactors, shape archaeology grow with the code). Static typing's cost starts higher (annotations, conservatism) and rises *slowly* (the compiler absorbs the growth). The curves **cross** somewhere in the large/long-lived regime — and that crossover point is exactly where every major org migrated. Your job in an architecture review is to estimate where a given system sits relative to the crossover, not to argue an absolute.
-
-### The "Prepayment" Model (refactoring and crashes)
-
-Static typing is **prepaying** the cost of every future rename and every unhandled-`None`. You pay annotation cost now to avoid (a) manual refactor archaeology and (b) production crashes later. For code that won't change and won't run the risky path, the prepayment is wasted (scripts). For code that will be refactored for years and run every path eventually (platforms), the prepayment is deeply in the money. Match the discipline to whether the future costs you're prepaying will actually materialize.
-
----
-
 ## Code Examples
 
 ### The performance gap, concretely (and the JIT closing it)
@@ -244,30 +169,6 @@ function process(data: any) {                  // any in
 
 ---
 
-## Pros & Cons
-
-| Aspect | Static (esp. at scale) | Dynamic (esp. small/early) |
-|--------|------------------------|----------------------------|
-| **Peak performance** | Predictable, no warmup, monomorphized, unboxed. | JIT can approach it but with warmup + fragility. |
-| **Performance predictability** | High — the compiler *proved* the layout. | Lower — depends on type/shape stability; deopts. |
-| **Bug prevention (large/long-lived)** | Strong, evidence-supported for the null/shape/rename classes. | Defers these to runtime/production. |
-| **Bug prevention (small/short scripts)** | Marginal; controlled evidence mixed. | Fine — the deferred cost may never come due. |
-| **Refactoring safety** | The killer feature — exhaustive, compiler-verified. | grep + tests + hope. |
-| **Time-to-first-running-code** | Slower — fight the checker. | Fastest. |
-| **Onboarding to a large codebase** | Types document shapes; IDE navigates precisely. | Read code / run it to learn shapes. |
-| **Migration cost** | N/A (born static). | Real, multi-quarter, with `any`-flood failure modes. |
-
----
-
-## Use Cases
-
-- **Choose static (or migrate to it) when** the system is large, long-lived, multi-team, refactored often, or has expensive failures — platforms, infrastructure, payment/financial logic, widely-depended-on libraries. The cost-curve crossover is behind you.
-- **Stay dynamic when** code is small, short-lived, exploratory, or shape-varies-by-input — data science notebooks, one-off automation, glue scripts, early-stage prototypes whose design is still molten. The prepayment wouldn't pay back.
-- **Choose gradual static-over-dynamic when** you have a large *existing* dynamic codebase you can't rewrite — adopt TypeScript/mypy/Sorbet/Hack, type the hot and bug-prone modules first, and ratchet coverage up. This is the dominant real-world scenario at established companies.
-- **Optimize for JIT-friendliness when** stuck with dynamic performance needs: keep object shapes stable, keep call sites monomorphic, avoid heterogeneous arrays, warm up hot paths — you're hand-maintaining the type stability a static compiler would guarantee.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Migrate in strictness tiers, ratchet forward
@@ -317,62 +218,24 @@ A migration is only as safe as the types of the libraries you call. Use/maintain
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. List four concrete optimizations a statically known type enables (e.g., unboxing) and explain why each is hard or impossible without the static type.
-2. Explain how hidden classes and inline caches let a JIT make dynamic `obj.x` access nearly as fast as a static field access — and what breaks the fast path.
-3. What is deoptimization, and why does it make dynamic-language *latency* less predictable than static-language latency even when *throughput* is comparable?
-4. State the claim of the *To Type or Not to Type* (Gao et al.) study and three caveats that mean it is *not* "types cut bugs by 15%."
-5. Why is the empirical signal for static typing stronger for large, long-lived codebases than for small lab tasks? Frame it with the cost-curve crossover.
-6. Name four major dynamic languages that bolted on static checking and the org/pressure behind each. Why is the migration gradient one-directional?
-7. Describe the `any` flood failure mode and two controls (metric + policy) that prevent it during a migration.
-8. A team wants to type their 800k-line Python codebase. Give your migration playbook: order of operations, first strict flag, boundary strategy, and how you'd measure progress.
+1. Define the user or business outcome that **Static vs Dynamic Typing** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
----
+## Verify your work
 
-## Cheat Sheet
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
 
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│         PERFORMANCE · EVIDENCE · TREND · MIGRATION               │
-├──────────────────────────────────────────────────────────────────┤
-│ STATIC TYPES BUY SPEED (info the compiler spends):               │
-│   no runtime tag/check · unboxed values · fixed field offsets    │
-│   monomorphization + inlining · devirtualization                 │
-│ DYNAMIC PAYS per-op (tag check, dispatch, box, dict lookup)      │
-│   JIT CLAWS BACK: hidden classes (offset access) +               │
-│     inline caches (mono fast, mega slow) + speculation/deopt     │
-│   => warm JIT ~ native; gaps = warmup, locality, deopt, megamo.  │
-├──────────────────────────────────────────────────────────────────┤
-│ DOES STATIC REDUCE BUGS? mixed but trends positive               │
-│   Gao et al. ICSE'17: ~15% of public JS bugs catchable by TS/Flow│
-│     (lower bound on one slice — NOT "15% fewer bugs")            │
-│   small lab studies: mixed / sometimes no effect                 │
-│   payoff is SUPERLINEAR in size, team, age                       │
-│   biggest real wins: REFACTOR SAFETY + null/shape crash class    │
-├──────────────────────────────────────────────────────────────────┤
-│ INDUSTRY TREND (one-directional, all GRADUAL):                   │
-│   TS<-JS · mypy/Pyright<-Python · Sorbet<-Ruby · Hack<-PHP       │
-│   why: large+old+multi-team -> dynamic's deferred costs exceed   │
-│         its front-loaded benefits; cost curves CROSS             │
-│   nobody migrates static -> dynamic                              │
-├──────────────────────────────────────────────────────────────────┤
-│ MIGRATION PLAYBOOK:                                              │
-│   permissive build green -> strictNullChecks FIRST               │
-│   type boundaries/signatures before internals                    │
-│   validate+narrow at every dynamic edge (unknown, not any)       │
-│   RATCHET: any/ignore count only decreases                       │
-│   measure real coverage (non-any flow), beware the `any` flood   │
-│   beware wrong stubs (worse than none)                           │
-└──────────────────────────────────────────────────────────────────┘
-```
+## Review questions
 
----
-
-## Summary
-
-- **Static typing is a performance enabler, not just a correctness tool.** A statically known type lets the compiler skip runtime type tags/checks, use **unboxed** values and **fixed field offsets**, and perform **monomorphization, inlining, and devirtualization** — "facts are free at runtime." Dynamic code pays a per-operation tax (tag check, dispatch, boxing, dict lookup), but modern **JITs claw most of it back** with **hidden classes** (offset-based property access), **inline caches** (fast while monomorphic), and **speculative specialization** (with **deopt** when assumptions break). "Dynamic is slow" is outdated; "dynamic makes *predictable, warmup-free, peak* performance harder" is accurate.
-- **The empirical bug question is mixed but trends positive.** The most-cited industrial study (Gao et al., ICSE 2017) found ~15% of public JS bugs were catchable by TypeScript/Flow — a meaningful but heavily-caveated lower bound, not "15% fewer bugs." Small controlled studies are mixed; the signal is **superlinear in codebase size, team size, and age**. The defensible, evidence-backed wins are **refactoring safety** and catching the **`null`/wrong-shape-on-an-untested-path** crash class before production.
-- **The industry trend is unmistakable and one-directional:** every major dynamic language bolted on *gradual* static checking — **TypeScript** over JS, **mypy/Pyright** over Python, **Sorbet** over Ruby, **Hack** over PHP — driven by *large, long-lived, multi-team* codebases where dynamic typing's deferred costs (production crashes, terrifying refactors, shape archaeology) outgrew its front-loaded benefits. The cost curves **cross** in the large/old regime, which is exactly where everyone migrated. Nobody migrates the other way.
-- **Migration is a multi-quarter discipline, not a flag.** Go permissive-then-strict (enable `strictNullChecks` first), type **boundaries before internals**, **validate-and-narrow** at every dynamic edge (because erased annotations don't check runtime input), and install a **ratchet** so `any`/`ignore` counts only fall. The defining failure mode is the **`any` flood** — types in name only — so measure *real* coverage (non-`any` data flow) and audit library **stubs** (a wrong stub is worse than none).
-- The professional's posture: **match the type discipline to the system's size, lifetime, and failure cost; argue from the JIT cost model and the caveated evidence, not from preference; and when migrating, lean on the gradual guarantee to do it incrementally and safely.**
+- Which measurable outcome justifies investing in Static vs Dynamic Typing?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

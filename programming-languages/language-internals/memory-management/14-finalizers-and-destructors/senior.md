@@ -1,21 +1,11 @@
-# Finalizers & Destructors — Senior Level
+# Finalizers & Destructors — Senior
 
-> **Topic:** Finalizers & Destructors
-> **Focus:** The design space of object teardown — deterministic destruction vs. non-deterministic finalization — across C++, Rust, Swift, Python, Go, Java, and C#, and the trade-offs each runtime makes.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Finalizers & Destructors** under failure, load, and change?
 
-## Introduction
-
-Every object that owns a resource — heap memory, a file descriptor, a socket, a mutex, a database connection, a GPU buffer — eventually needs to release it. The language gives you a hook to run code at the end of an object's life. The single most consequential design question is **when** that hook fires, and **whether it fires at all**.
-
-Two answers exist, and they are not interchangeable:
-
-- A **destructor** runs at a *statically known program point* — scope exit, explicit drop, or the end of a `using`/`with` block. The compiler emits the call. It is **deterministic**: you can point at the source line where the resource is released.
-- A **finalizer** runs *whenever the garbage collector decides*, possibly long after the object is unreachable, possibly never (e.g. at process exit). It is **non-deterministic**: the timing is a property of the GC's mood, not your code.
-
-Conflating these two is the root of most resource-management bugs in managed languages. This section maps the design space so you can reason about any runtime's teardown model from first principles.
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -100,20 +90,6 @@ The throughline: **languages with ownership types or refcounting make destructio
 
 ---
 
-## Pros & Cons
-
-**Deterministic destructors**
-
-- Pros: predictable resource release; no leak window; exception/panic safe; composes (a struct's destructor runs its fields' destructors); zero or near-zero runtime cost.
-- Cons: requires a disciplined ownership model; refcounted variants leak on cycles; ties resource lifetime to *lexical* lifetime, which can be awkward for objects with dynamic, graph-shaped lifetimes.
-
-**Non-deterministic finalizers**
-
-- Pros: a true safety net — if a developer forgets to `close()`, native memory is still eventually reclaimed; the only practical way to free memory owned by unmanaged/native code in a GC'd language; requires no caller discipline.
-- Cons: no timing or execution guarantee; never safe for scarce handles; resurrection and cycle-ordering hazards; finalizer-thread stalls cascade; swallowed exceptions; measurable GC throughput cost (a finalizable object survives at least one extra GC cycle).
-
----
-
 ## Edge Cases & Pitfalls
 
 - **The finalizer-as-primary anti-pattern.** Releasing a file/socket/lock/DB connection *only* in a finalizer means you exhaust the OS handle table long before the GC feels memory pressure. The pool drains; the heap looks fine. Classic "we ran out of file descriptors but have 4 GB free" incident.
@@ -137,6 +113,24 @@ The throughline: **languages with ownership types or refcounting make destructio
 
 ---
 
-## Summary
+## Apply it
 
-Destruction and finalization answer the same question — "what runs when this object dies?" — with opposite guarantees. Destructors fire at a known point and are the correct tool for releasing anything scarce. Finalizers fire on the GC's schedule, possibly never, and are correct only as a last-resort safety net for native memory. Every mature runtime reflects this: ownership-typed and refcounted languages lean entirely on deterministic destruction, while tracing-GC languages bolt a deliberately second-class finalizer onto a first-class explicit-lifecycle interface. Design your resource types the same way: explicit close as the contract, finalizer as the alarm that tells you the contract was broken.
+1. State the system invariant that **Finalizers & Destructors** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
+
+## Verify your work
+
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
+
+## Review questions
+
+- Which invariant must remain true when Finalizers & Destructors fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

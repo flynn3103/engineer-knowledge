@@ -1,20 +1,11 @@
 # Interfaces — Senior
 
-> **Topic:** [Interfaces](../README.md)
-> **Focus:** Interface design at package-boundary scale, the performance cost of interface dispatch and boxing, avoiding leaky abstractions, and designing interfaces that survive years of evolution.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Interfaces** under failure, load, and change?
 
-## Introduction
-
-At scale, interface design decisions outlive the people who made them. A too-broad interface exposed at a package boundary becomes nearly impossible to change without breaking every caller; a too-narrow one forces awkward workarounds. This level is about designing interfaces as long-lived contracts, and understanding the real runtime cost of the abstraction you're introducing.
-
----
-
-## Prerequisites
-
-- Comfortable with dependency injection, interface embedding, and generics vs. interfaces (middle level).
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -62,16 +53,6 @@ type TTLStore interface {
 
 ---
 
-## Pros & Cons
-
-| Approach | Pros | Cons |
-|---|---|---|
-| Narrow, per-capability interfaces | Minimal per-consumer dependency, easy to fake in tests | More interface types to name and track |
-| Adding a new interface instead of widening an existing one | Non-breaking for existing implementers | Slight proliferation of interface types over time |
-| Concrete types on genuinely hot paths | Avoids indirect-call and boxing overhead | Loses substitutability; only justified with a profile showing real cost |
-
----
-
 ## Best Practices
 
 1. Before exporting a public interface, ask whether it would still make sense with a second, very different implementation.
@@ -106,43 +87,24 @@ type TTLStore interface {
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```
-Before adding a method to a public interface: can I make a NEW interface instead?
-Before removing an interface for perf: do I have a benchmark proving the cost?
-Interface value ≈ {type pointer, data pointer} — method call ≈ indirect call
-```
+1. State the system invariant that **Interfaces** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
----
+## Verify your work
 
-## Summary
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
 
-- Interface values carry a real (usually small, occasionally measurable) runtime cost via indirect dispatch and potential boxing allocations.
-- A good interface should still make sense if you had to write a genuinely different second implementation today.
-- Public interfaces are contracts — widen them by adding new interfaces, not by adding methods to existing ones.
-- Interface segregation keeps per-consumer dependencies minimal; the cost is more interface types to track, which is usually worth it.
+## Review questions
 
----
-
-## Further Reading
-
-- Dave Cheney — *Interface Pollution*: search "Dave Cheney interface pollution" for the canonical post.
-- Go Data Structures — *Interfaces* (Russ Cox): <https://research.swtch.com/interfaces>
-
----
-
-## Related Topics
-
-- [Interfaces — Middle](middle.md)
-- [Go Runtime — Senior](../02-go-runtime/senior.md) — allocation cost of boxing values into interfaces.
-
----
-
-## Check your understanding
-
-1. Explain Interfaces — Senior Level in your own words and name the problem it solves.
-2. How would you apply the ideas around Introduction, Prerequisites, Core Concepts in a realistic engineering change?
-3. What failure mode or misuse should you look for, and what evidence would reveal it?
-4. How would you validate a system-level decision about Interfaces — Senior Level under uncertainty?
-5. What observable result would convince you that the approach improved the system?
+- Which invariant must remain true when Interfaces fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

@@ -1,16 +1,11 @@
-# Escape Analysis — Professional Level
+# Escape Analysis — Professional
 
-> **Topic:** Escape Analysis
-> **Focus:** Reading compiler/JIT output end-to-end, building an allocation-regression workflow, and concrete perf-tuning recipes for Go and Java hot paths.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Escape Analysis** with measurable outcomes and limited coordination?
 
-## Introduction
-
-This tier is operational. You will be handed a service with a p99 latency problem traced to GC pressure, or a hot function allocating in a tight loop, and asked to fix it without rewriting the architecture. The toolchain — `-gcflags='-m -m'`, `pprof`, `benchstat`, HotSpot diagnostic options, JITWatch, async-profiler — is how you turn "the optimizer should handle this" into a verified, regression-guarded result.
-
-The discipline: **profile to find the allocation, read the escape report to understand *why*, make the smallest change that fixes it, and verify with before/after numbers — then lock it in CI.**
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## The Professional Workflow
@@ -205,20 +200,6 @@ A token formatter built strings with a per-call `StringBuilder`. `-XX:-DoEscapeA
 
 ---
 
-## Pros & Cons
-
-**Pros**
-- Tooling gives **direct, line-level attribution** of allocations and the escape reason.
-- Fixes are usually **small and local** (remove boxing, return by value, caller-owned buffer).
-- Wins are **measurable and guardable** in CI.
-
-**Cons**
-- Requires **discipline**: profile → explain → fix → verify → guard, every time.
-- Java's picture is **non-deterministic**; conclusions demand warmup and repeated runs.
-- Over-tuning (manual pooling, premature reuse) can **regress** by forcing escapes that EA would have deleted.
-
----
-
 ## Best Practices
 
 - **Always pair a fix with a before/after `benchstat` (Go) or warmed JMH `-prof gc` (Java).** No numbers, no claim.
@@ -240,10 +221,24 @@ A token formatter built strings with a per-call `StringBuilder`. `-XX:-DoEscapeA
 
 ---
 
-## Summary
+## Apply it
 
-- The professional loop is **confirm GC matters → localize with a profile → explain with the escape report → fix minimally → verify with statistics → guard in CI.**
-- **Go:** `go build -gcflags='-m -m'` (read the *flow* chains), `-benchmem` + `benchstat`, `pprof -alloc_objects/-alloc_space`. Top fixes: kill boxing, return by value, caller-owned buffers, preallocate, pool only true escapes.
-- **Java/HotSpot:** EA is on by default — A/B with `-XX:-DoEscapeAnalysis`, read decisions via diagnostic options / JITWatch, profile allocations with async-profiler `-e alloc`, and **always warm up**. Watch for deopt; consider GraalVM's PEA for rare-branch escapes.
-- **Lock wins in CI** with allocation benchmarks or escape-output diffs — escape gains are fragile to inlining and a stray boxing call.
-- The most counterintuitive pro lesson: **don't manually pool an object EA can delete** — forcing it to escape to "reuse" it is often slower than letting the optimizer make it vanish.
+1. Define the user or business outcome that **Escape Analysis** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
+
+## Verify your work
+
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
+
+## Review questions
+
+- Which measurable outcome justifies investing in Escape Analysis?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

@@ -1,14 +1,11 @@
 # Database and Distributed Systems — Professional
 
-> **Topic:** [Database and Distributed Systems](../README.md)
-> **Focus:** Data-consistency standards across an organization, capacity planning for shared databases, leading a data-loss or data-corruption incident, and governance for idempotency/locking conventions fleet-wide.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Database and Distributed Systems** with measurable outcomes and limited coordination?
 
-## Introduction
-
-At professional level, data-correctness decisions ripple across every team sharing infrastructure. An under-provisioned connection pool policy, an inconsistent idempotency convention, or a poorly reviewed distributed lock affects everyone using the same database or coordination service — this level is about the governance that keeps those shared foundations reliable.
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -64,16 +61,6 @@ database:
 
 ---
 
-## Pros & Cons
-
-| Approach | Pros | Cons |
-|---|---|---|
-| Shared idempotency-key standard/library | Prevents cross-team boundary bugs | Requires org-wide adoption and a migration for existing endpoints |
-| Documented per-service connection budgets | Prevents self-inflicted pool exhaustion at scale | Requires an ongoing review process as services scale |
-| Stop-assess-remediate-then-root-cause incident order | Minimizes blast radius during active data incidents | Requires training; instinct under pressure often skips to root-cause first |
-
----
-
 ## Best Practices
 
 1. Standardize idempotency-key format and enforcement via a shared library, not per-team convention.
@@ -101,46 +88,24 @@ database:
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```
-Org-wide data-correctness checklist:
-  [ ] Standardized idempotency-key format/library, adopted across write endpoints
-  [ ] Documented, reviewed connection budgets per service on shared databases
-  [ ] Data-incident response order: stop -> assess blast radius -> remediate -> root-cause
-  [ ] Postmortems audit idempotency/locking coverage explicitly
-  [ ] Migrations: backward-compatible only, tested at production-like data volume
-```
+1. Define the user or business outcome that **Database and Distributed Systems** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
----
+## Verify your work
 
-## Summary
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
 
-- Idempotency-key conventions need to be standardized org-wide, not left to per-team invention, since they often cross service boundaries.
-- Shared databases need documented, enforced per-service connection budgets, reviewed at every scale-up.
-- Data-correctness incidents have a distinct response order: stop the write path, assess blast radius, remediate, then root-cause — not the reverse.
-- Postmortems for data incidents should explicitly audit idempotency and locking coverage fleet-wide, not just fix the one affected path.
-- Migration governance (backward-compatible only, production-volume tested) prevents an entire class of self-inflicted incidents.
+## Review questions
 
----
-
-## Further Reading
-
-- Google SRE Book — *Data Integrity: What You Read Is What You Wrote*: <https://sre.google/sre-book/data-integrity/>
-
----
-
-## Related Topics
-
-- [HTTP and APIs — Professional](../05-http-and-apis/professional.md)
-- [Production Debugging — Professional](../07-production-debugging/professional.md)
-
----
-
-## Check your understanding
-
-1. Explain Database and Distributed Systems — Professional Level in your own words and name the problem it solves.
-2. How would you apply the ideas around Introduction, Core Concepts, Code Examples in a realistic engineering change?
-3. What failure mode or misuse should you look for, and what evidence would reveal it?
-4. How would you introduce and govern Database and Distributed Systems — Professional Level across teams through reversible, measurable increments?
-5. What observable result would convince you that the approach improved the system?
+- Which measurable outcome justifies investing in Database and Distributed Systems?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

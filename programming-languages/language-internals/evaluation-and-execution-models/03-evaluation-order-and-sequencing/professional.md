@@ -1,51 +1,11 @@
-# Evaluation Order & Sequencing — Professional Level
+# Evaluation Order & Sequencing — Professional
 
-> **Topic:** Evaluation Order & Sequencing
-> **Focus:** The optimizer's mechanics — what reorderings the as-if rule actually permits, how UB from unsequenced side effects gets *exploited*, side-effect hoisting, and the engineering disciplines that keep large polyglot codebases sequencing-safe.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Evaluation Order & Sequencing** with measurable outcomes and limited coordination?
 
-## Introduction
-
-> Focus: **What the compiler is actually allowed to do with your unspecified and undefined sequencing — and how to architect a codebase so that freedom never burns you.**
-
-The professional level is where sequencing meets the optimizer and the org chart. Two themes dominate:
-
-1. **The optimizer's actual behavior.** "Unspecified argument order" and "the as-if rule" are not academic. Modern compilers reorder, fuse, eliminate, and reschedule side effects aggressively, and — critically — they *exploit undefined behavior as a license to assume it never happens*. A program with an unsequenced read+write doesn't just produce a "random" answer; the optimizer may delete surrounding code, assume a branch is unreachable, or miscompile in ways that look like the laws of arithmetic broke. Understanding *why* an optimizer does this is the difference between cargo-culting "don't do UB" and being able to predict and diagnose the resulting miscompilations.
-
-2. **Engineering at scale.** In a real codebase — often polyglot, with C/C++ next to Go, Java, Python, Rust, JavaScript — you cannot rely on every engineer to know which language pins evaluation order. The professional response is *systemic*: lint rules, compiler flags treated as errors, code-review checklists, ABI-aware FFI boundaries, and a house style that hoists side effects out of expressions so that order *cannot* matter. The goal is to make sequencing bugs *structurally impossible*, not merely *discouraged*.
-
-> 🎓 **Why this matters at the professional level:** You own the build configuration, the lint policy, and the architectural conventions that hundreds of commits flow through. A single missing `-Werror=sequence-point` or a permissive macro can let a UB landmine sit dormant for years until a compiler upgrade detonates it across a release. Your job is to design the guardrails.
-
-This page covers: concrete reorderings the as-if rule permits, how compilers exploit unsequenced-modification UB (with a real miscompilation flavor), side-effect hoisting and common-subexpression elimination, the cross-ABI argument-order reality at FFI boundaries, `volatile` and atomics in the optimizer's view, and a tooling/policy playbook for keeping a large team safe. The interview drill is in `interview.md`; hands-on exercises in `tasks.md`.
-
----
-
-## Prerequisites
-
-- **Required:** The senior-level material — sequenced-before/happens-before, init order, the as-if rule, `volatile` vs atomics.
-- **Required:** Working knowledge of at least two languages from different sequencing buckets (e.g. C/C++ and Java/Go).
-- **Required:** Familiarity with compiler flags and a CI/build pipeline.
-- **Helpful:** Having read optimizer output (assembly or IR) at least once.
-- **Helpful:** Experience owning an FFI/ABI boundary or a polyglot service.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **As-if rule** | The compiler may emit any code with the same observable behavior as the abstract machine. |
-| **UB exploitation** | The optimizer assuming undefined behavior cannot occur, then deleting/transforming code based on that assumption. |
-| **Common subexpression elimination (CSE)** | Computing a repeated subexpression once. Safe only when the subexpression has no observable side effects. |
-| **Side-effect hoisting** | Moving a side-effecting operation out of an expression (or loop) to a fixed, sequenced position. |
-| **Strict aliasing** | The rule that lets the compiler assume differently-typed pointers don't alias, enabling reordering of loads/stores. |
-| **Sequence-point UB** | UB from modifying a scalar more than once, or read+write without sequencing, in one full expression. |
-| **ABI** | Application Binary Interface — defines, among other things, how arguments are passed; influences (but does not standardize) eval order at the boundary. |
-| **FFI** | Foreign Function Interface — calling across language boundaries, where argument-order assumptions can silently differ. |
-| **Reordering barrier** | A construct (atomic with ordering, fence, `asm volatile("":::"memory")`, function-call boundary in some cases) that restricts the compiler/CPU's freedom to move accesses. |
-| **Speculative execution** | CPU executing instructions ahead of knowing they're needed; part of why observed order ≠ program order at the hardware level. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -128,50 +88,6 @@ Integer reassociation is generally value-preserving, but floating-point addition
 
 ---
 
-## Real-World Analogies
-
-**The contractor with a results-only contract (as-if).** You hired a contractor and specified the *finished house* (observable behavior), not the build sequence. They may pour the driveway before or after framing, skip a step that doesn't affect the result, or do two independent rooms in parallel — all fine. But the moment you wrote a self-contradictory spec (UB), the contract is void and they may legally do *anything*, including bulldoze the lot. That's UB exploitation: a void contract, not a "random" build.
-
-**Translating an idiom across languages (FFI).** Passing `f(next(), next())` across an FFI boundary is like handing a sentence with an idiom to a translator who resolves word order by *their* native grammar, not yours. Bind the words to fixed positions first (named temporaries) and the translation can't scramble them.
-
-**Two accountants who can add in any order — except cents that don't carry cleanly (FP).** Integer sums come out the same regardless of order. But floating-point sums are like adding amounts where rounding loses fractions of a cent each time — the *order* you add changes the total, so you can't let anyone reshuffle the additions.
-
----
-
-## Mental Models
-
-### Model 1: UB is a contract void, not a dice roll
-
-```
-Defined behavior    → the standard binds the compiler to a result set.
-Unspecified         → the standard binds it to a known SET of results; impl picks one.
-Implementation-def. → like unspecified, but the impl must DOCUMENT its choice.
-Undefined (UB)      → NO binding at all. Optimizer may assume it never happens and
-                      transform/delete surrounding code. Reasoning about "the value" is moot.
-```
-
-### Model 2: The reorder-barrier map
-
-```
-NOT a barrier:   ordinary loads/stores, plain function-internal arithmetic
-PARTIAL barrier: volatile (orders volatile-vs-volatile only; no fence)
-FULL barrier:    atomic acquire/release/seq_cst, mutex lock/unlock, std::atomic_thread_fence
-```
-
-When you need to *stop* the optimizer (or CPU) from moving something, you must use a real barrier — `volatile` is rarely the right one.
-
-### Model 3: Make order structurally irrelevant
-
-The professional default is to *engineer away* the dependence on order:
-- Hoist every side effect to its own statement.
-- Bind FFI/macro arguments to temporaries.
-- Forbid read+write of one scalar per expression via lint.
-- Pin FP reproducibility explicitly; never globally enable fast-math by accident.
-
-When order can't be observed, no compiler or platform difference can hurt you.
-
----
-
 ## Code Examples
 
 ### Example 1 — The optimizer reordering invisible side-effect-free calls
@@ -239,27 +155,6 @@ if (published.load(std::memory_order_acquire)) consume(payload);
 
 ---
 
-## Pros & Cons
-
-| Decision | Pros | Cons |
-|----------|------|------|
-| **Trusting the optimizer's freedom** | Significant speedups; you write clear code, it schedules. | Single-thread intuition fails across threads; UB gets exploited. |
-| **Manual side-effect hoisting** | Reorder-proof, clearer, often unlocks more optimization. | More lines; mild verbosity. |
-| **`-ffast-math`** | Faster FP, vectorizable reductions. | Non-reproducible results; can break numerically careful code. |
-| **Lint/flags as errors** | Catches sequencing UB at build time across the whole team. | Upfront config + occasional false-positive triage. |
-
----
-
-## Use Cases
-
-- **Build-policy ownership:** mandate `-Werror=sequence-point` / `-Werror=unsequenced` and a clang-tidy ruleset across all C/C++ targets.
-- **Polyglot service hygiene:** establish the "no side-effecting expression as an argument, especially across FFI" convention and enforce it in review.
-- **Numerical code:** make FP reproducibility an explicit, per-module decision; gate `-ffast-math` behind a documented flag.
-- **Lock-free fast paths:** reason explicitly about reorder barriers (atomics, fences) rather than `volatile`.
-- **Compiler-upgrade readiness:** audit for dormant UB before bumping toolchains, since upgrades frequently start exploiting previously-benign UB.
-
----
-
 ## Coding Patterns
 
 **Pattern: One observable side effect per statement, enforced by lint.**
@@ -309,32 +204,24 @@ if (published.load(std::memory_order_acquire)) consume(payload);
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```
-AS-IF: compiler may do ANYTHING preserving observable behavior (I/O, volatile, atomics).
-UB:    NOT a random value -> a license to assume-unreachable and DELETE code. Sev-1.
+1. Define the user or business outcome that **Evaluation Order & Sequencing** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
-REORDER BARRIERS
-  none    : plain loads/stores, internal arithmetic
-  partial : volatile (volatile-vs-volatile only; NO fence)
-  full    : atomic acquire/release/seq_cst, mutex, std::atomic_thread_fence
+## Verify your work
 
-STRUCTURAL DEFENSES
-  - one observable side effect per statement
-  - bind FFI/macro/vararg args to named temporaries (fixes unspecified arg order)
-  - forbid read+write of one scalar per expression (lint)
-  - -Werror=sequence-point / -Werror=unsequenced ; UBSan/TSan in CI
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
 
-FLOATING POINT
-  FP add is NOT associative -> order is OBSERVABLE -> compiler can't reorder
-  -ffast-math: faster but non-reproducible; can break Kahan summation. Opt-in, documented.
+## Review questions
 
-STANDARD-ERA: a[i]=i++  is UB in C and C++14, DEFINED in C++17. State your era.
-```
-
----
-
-## Summary
-
-The professional level reframes evaluation order as an *optimizer-and-organization* problem. The **as-if rule** lets the compiler reorder, fuse, eliminate, and reschedule anything that preserves observable behavior (I/O, `volatile`, atomics), so source-level left-to-right order for side-effect-free code is *not* a guarantee about the emitted binary. More dangerously, **undefined behavior from unsequenced modifications is not a random value — it is a license for the optimizer to assume the code is unreachable and delete surrounding logic**, including security-relevant checks, which is why UB is a severity-one defect rather than a style nit. The structural defense is to make order *irrelevant by construction*: hoist every observable side effect to its own statement, bind FFI/macro/vararg arguments to named temporaries (neutralizing the still-unspecified, often right-to-left argument order across GCC/Clang/MSVC), and forbid read-plus-write of a single scalar per expression via lint and `-Werror=sequence-point`/`-Werror=unsequenced`. For cross-thread ordering, use *real* reorder barriers — atomics and mutexes — never `volatile`, which orders only volatile-vs-volatile and emits no fence. Floating-point is the one place where association order is *observable* (FP add is not associative), so the compiler may not reorder it without the opt-in, reproducibility-destroying `-ffast-math`. Finally, always pin the **standard era** in both build and reasoning, audit for dormant UB before every toolchain upgrade, and run UBSan/ASan/TSan in CI — because the gap between "compiles clean today" and "miscompiles after the next upgrade" is exactly the dormant sequencing bug you didn't lint away.
+- Which measurable outcome justifies investing in Evaluation Order & Sequencing?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

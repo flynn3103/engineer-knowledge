@@ -1,65 +1,11 @@
-# Parsers — Junior Level
+# Parsers — Junior
 
-> **Topic:** Parsers
-> **Focus:** Turning a flat stream of tokens into a tree. What a grammar is, what a parse tree and an AST are, and how to write a parser by hand for simple expressions.
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **Parsers** in one small example and prove the result?
 
-## Introduction
-
-> Focus: **What is parsing, and why is it a separate step from reading characters?**
-
-A compiler reads your source code in two stages. First the **lexer** (or scanner) chops the raw character stream into **tokens** — the words of the language: `if`, `(`, `x`, `<`, `10`, `)`, `{`. Then the **parser** takes that flat list of tokens and discovers its *structure*: that `x < 10` is a comparison, that the comparison is the condition of an `if`, that the `if` has a body. The parser's output is a **tree**, because the structure of a program is fundamentally nested — expressions inside conditions inside statements inside functions.
-
-That is the whole job of a parser: **a flat sequence in, a tree out**, where the tree must obey the rules of the language's **grammar**. If the tokens don't fit the grammar — `if x < { 10` — the parser reports a **syntax error**.
-
-In one sentence: **the lexer turns characters into words; the parser turns words into sentences.** And just like English, the "sentence" has a hidden tree shape — subject, verb, object, clauses — that you don't see written out but that determines what the sentence *means*.
-
-> 🎓 **Why this matters for a junior:** Almost every tool you use is a parser underneath. JSON loaders, config readers, SQL clients, template engines, regular-expression engines, the compiler for whatever language you write in, your editor's syntax highlighter — all of them parse. Once you understand the parse-tree idea and can write a small recursive-descent parser by hand, a huge category of "magic" tools stops being magic. You will also write better grammars, get clearer error messages, and stop being afraid of the phrase "context-free grammar."
-
-This page covers: what a **grammar** is (terminals, nonterminals, productions), what a **parse tree** is versus an **abstract syntax tree (AST)**, the difference between **top-down** and **bottom-up** parsing at a beginner level, and how to hand-write a small **recursive-descent** parser and evaluator for arithmetic with correct precedence. The next level (`middle.md`) goes deep on LL vs LR, FIRST/FOLLOW sets, and Pratt parsing; `senior.md` covers parser generators, PEG/packrat, and conflict resolution; `professional.md` covers production compiler architecture and error-tolerant IDE parsing.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** How to write functions, loops, and `if` statements in at least one language (Python, JavaScript, Go, Java, or C are all fine).
-- **Required:** What **recursion** is — a function calling itself. Parsers are built on recursion.
-- **Required:** What an **array** or **list** is, and how to walk through one with an index.
-- **Helpful but not required:** A vague sense of what a **token** is — the smallest meaningful unit of code, like a keyword or a number. We treat tokens as already produced by a lexer.
-- **Helpful but not required:** Having seen a **tree** data structure (nodes with children). The output of a parser *is* a tree.
-
-You do **not** need to know:
-
-- Formal language theory, automata, or the Chomsky hierarchy (touched on lightly in `middle.md`).
-- How lexers are built (that is the previous topic — we assume tokens already exist).
-- LR parsing tables, FIRST/FOLLOW sets, or parser generators (those are `middle.md` and `senior.md`).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Token** | The smallest meaningful unit produced by the lexer: a keyword, identifier, number, operator, or punctuation. The parser's *input*. |
-| **Lexer / Scanner** | The stage *before* the parser. Turns characters into tokens. Not covered here in depth. |
-| **Parser** | The stage that turns a flat token stream into a tree, checking it against the grammar. |
-| **Grammar** | A formal set of rules describing which token sequences are valid and how they nest. |
-| **Terminal** | A symbol that appears literally in the input: a token like `+`, `if`, or `NUMBER`. The "leaves." |
-| **Nonterminal** | A named grammar rule that expands into other symbols: `Expression`, `Statement`. The "branches." |
-| **Production / Rule** | One way a nonterminal can expand, e.g. `Expression → Expression + Term`. |
-| **Parse tree (CST)** | A tree that records *every* grammar rule applied, including punctuation. Also called the **concrete syntax tree**. |
-| **AST** | **Abstract syntax tree** — a cleaned-up tree that keeps only what matters for meaning, dropping parentheses and redundant nodes. |
-| **Syntax error** | The input does not match the grammar. The parser's job is to detect and report it. |
-| **Recursive descent** | The most common hand-written parsing style: one function per grammar rule, calling each other recursively. |
-| **Top-down parsing** | Building the tree from the root (start symbol) downward, predicting which rule applies next. |
-| **Bottom-up parsing** | Building the tree from the leaves (tokens) upward, combining pieces into bigger ones. |
-| **Precedence** | Which operator binds tighter: `*` binds tighter than `+`, so `2 + 3 * 4` is `2 + (3 * 4)`. |
-| **Associativity** | Which way same-precedence operators group: `1 - 2 - 3` is `(1 - 2) - 3` (left-associative). |
-| **Lookahead** | The next token(s) the parser peeks at to decide what to do, without consuming them. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -167,40 +113,6 @@ Two rules govern how operators group:
 - **Associativity**: when operators have the *same* precedence, which side wins? Subtraction is **left-associative**: `10 - 3 - 2` is `(10 - 3) - 2 = 5`, not `10 - (3 - 2) = 9`. Exponentiation (in many languages) is **right-associative**: `2 ^ 3 ^ 2` is `2 ^ (3 ^ 2)`.
 
 A parser must get these right, or `1 + 2 * 3` computes the wrong answer. The grammar above bakes precedence in by *layering* the rules (`Expression` over `Term` over `Factor`). In recursive descent, this becomes a chain of functions: `parseExpression` calls `parseTerm` calls `parseFactor`.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Lexer** | Cutting a sentence into individual words and punctuation marks. |
-| **Parser** | Diagramming the sentence — finding subject, verb, object, and clauses. |
-| **Grammar** | The rules of English grammar that say a sentence needs a subject and a verb. |
-| **Terminal** | An actual word, like "cat" or "runs." |
-| **Nonterminal** | A grammatical category, like "noun phrase" or "verb phrase." |
-| **Parse tree** | The full sentence diagram with every word labeled. |
-| **AST** | A summary that keeps only "who did what to whom," dropping filler words. |
-| **Syntax error** | A sentence that breaks the rules: "Cat the runs quickly the." |
-| **Recursive descent** | Reading a nested outline: heading, then sub-points, then sub-sub-points, descending into each. |
-| **Precedence** | Order of operations in math class: multiply before you add. |
-| **Lookahead** | Peeking at the next word to decide what kind of phrase you're starting. |
-
----
-
-## Mental Models
-
-### The "One Function Per Rule" Model
-
-In recursive descent, the grammar and the code line up almost one-to-one. A rule `Expression → Term (('+' | '-') Term)*` becomes a function `parseExpression()` that calls `parseTerm()`, then loops while the next token is `+` or `-`. The grammar is your blueprint; the functions are the building. If you can read the grammar, you can write the parser.
-
-### The "Call Stack Is the Tree" Model
-
-When `parseExpression` calls `parseTerm` which calls `parseFactor`, the chain of pending function calls *mirrors the shape of the tree you're building*. The deepest call is at a leaf (a number); as each function returns, it hands a finished subtree up to its caller, who plugs it in. You don't build the tree separately — the recursion builds it for you. Picture the call stack growing down into the input and the tree growing up out of the returns.
-
-### The "Predict, Then Commit" Model (top-down)
-
-A top-down parser is always at some point in the grammar with a choice: which rule applies next? It looks at the next token (lookahead) to *predict* the right rule, then commits to it. "The next token is `(`, so I'm parsing a parenthesized group." "The next token is a number, so I'm parsing a literal." When the language is designed so one token of lookahead always picks the right rule, parsing is clean and fast. When it isn't, you need cleverness (later levels cover this).
 
 ---
 
@@ -431,41 +343,6 @@ Three languages, one idea. This *is* how production compilers parse — they han
 
 ---
 
-## Pros & Cons
-
-This section compares **hand-written recursive descent** (what a junior should learn first) against the broad alternative of using a tool.
-
-| Aspect | Recursive descent (hand-written) | Parser generator (tool-built) |
-|--------|----------------------------------|-------------------------------|
-| **Ease of starting** | Write functions that mirror the grammar — very intuitive. | Write a grammar file; the tool generates code you don't read. |
-| **Readability** | The code *is* the grammar; easy to follow and debug. | Generated tables are opaque; debugging means reading the grammar, not the code. |
-| **Error messages** | You control them — can be excellent and specific. | Often generic ("syntax error near X") unless heavily customized. |
-| **Grammar power** | Handles most real languages, but you must rewrite left recursion. | Bottom-up generators handle a larger grammar class with less rewriting. |
-| **Speed to a working parser** | Slower for big grammars — lots of functions to write. | Fast — feed a grammar, get a parser. |
-| **Used by** | GCC, Clang, Go, rustc, V8 — most production compilers. | Many DSLs, SQL engines, quick prototypes, academic projects. |
-
-For a junior, recursive descent wins because it teaches you what's actually happening. Generators are covered in `senior.md`.
-
----
-
-## Use Cases
-
-You are (often without realizing it) writing a parser whenever you:
-
-- **Read a config or data format** — JSON, YAML, TOML, `.env`, CSV. Each has a grammar.
-- **Build a calculator or formula engine** — spreadsheets, query filters, rule engines.
-- **Write a mini-language or DSL** — a template language, a search-query syntax (`status:open AND priority:high`), a command interpreter.
-- **Process structured text** — parsing log lines with a fixed structure, URL routes, version strings.
-- **Implement an interpreter or compiler** — the obvious one. The parser is stage two.
-- **Validate input with structure** — phone numbers, dates, arithmetic in a form field.
-
-When *not* to hand-write a parser as a junior:
-
-- If a **library already exists** (JSON, YAML, a real SQL parser), use it. Don't reinvent.
-- If the input is **truly flat** with no nesting, a simple split or a regex may be enough — you don't need a tree.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: One Function Per Nonterminal
@@ -525,66 +402,24 @@ Lowest-precedence operator at the top, highest at the bottom: `expression` (`+ -
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. Write the grammar (in `nonterminal → ...` form) for a comma-separated list of numbers, like `1, 2, 3`. What's the terminal, what's the nonterminal?
-2. In the calculator code, trace by hand what happens when parsing `2 * 3 + 4`. Which function gets called first, and what does the final AST look like?
-3. Why does `expression` call `term`, and `term` call `factor`, rather than the other way around? What would break if you swapped them?
-4. The loop `while peek is + or -` gives left-associativity. Rewrite `expression` using recursion instead of a loop and trace `10 - 3 - 2`. What answer do you get, and why is it wrong?
-5. Add support for unary minus (`-5`, `-(2 + 3)`) to the `factor` function. Where does it go, and why there?
-6. What is the difference between a parse tree and an AST for the input `(7)`? Draw both.
-7. Feed the parser the invalid input `3 + + 4`. At which function does it fail, and what token is it looking at when it does?
-8. The grammar `Expression → Expression + Term` is left-recursive. Rewrite it so recursive descent can handle it, and explain in one sentence why the rewrite terminates.
+1. Choose one small, known input for **Parsers**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
----
+## Verify your work
 
-## Cheat Sheet
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
 
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│                        PARSING BASICS                            │
-├──────────────────────────────────────────────────────────────────┤
-│ Pipeline:   characters ─► LEXER ─► tokens ─► PARSER ─► tree (AST) │
-├──────────────────────────────────────────────────────────────────┤
-│ Grammar parts:                                                   │
-│   terminal     = a real token  (+  NUMBER  if  ( )               │
-│   nonterminal  = a named rule  (Expression, Term, Factor)        │
-│   production   = one expansion (Expression → Term + Term)        │
-│   start symbol = the top rule  (whole program)                   │
-├──────────────────────────────────────────────────────────────────┤
-│ Parse tree (CST) = every rule + every token (verbose)            │
-│ AST              = only meaning, no parens/noise (use this)      │
-├──────────────────────────────────────────────────────────────────┤
-│ Recursive descent recipe:                                        │
-│   * one function per nonterminal                                 │
-│   * peek() to decide, advance() to consume, expect() to require  │
-│   * loop for ( ... )*   recursion for nesting                    │
-│   * build & return AST nodes as you go                           │
-├──────────────────────────────────────────────────────────────────┤
-│ Precedence:  layer functions  expression → term → factor         │
-│   (lower precedence on top, higher on the bottom)                │
-│ Associativity:  while-loop = left-assoc (10-3-2 = 5)             │
-├──────────────────────────────────────────────────────────────────┤
-│ Top pitfalls:                                                    │
-│   * LEFT RECURSION = infinite loop → rewrite as a loop           │
-│   * forgetting to advance() = stuck forever                      │
-│   * flat grammar = wrong precedence                              │
-│   * leftover tokens not checked = silent partial parse           │
-└──────────────────────────────────────────────────────────────────┘
-```
+## Review questions
 
----
-
-## Summary
-
-- A **parser** turns a flat stream of **tokens** (from the lexer) into a **tree** that obeys the language's **grammar**.
-- A **grammar** is a set of **productions** built from **terminals** (real tokens) and **nonterminals** (named rules). The kind used for programming languages is a **context-free grammar (CFG)**.
-- The verbose **parse tree (CST)** records every rule and token; the clean **AST** keeps only meaning. **Every later compiler stage works on the AST.**
-- There are two families: **top-down** (build from the root, e.g. recursive descent) and **bottom-up** (build from the leaves, e.g. shift-reduce). Most real compilers hand-write **recursive descent**.
-- **Recursive descent** = one function per nonterminal, using `peek`/`advance`/`expect`, loops for repetition, and recursion for nesting. The call stack mirrors the tree.
-- **Precedence** comes from *layering* functions (`expression → term → factor`); **associativity** comes from using a loop (left) vs recursion (right).
-- The #1 beginner pitfall is **left recursion**, which makes naive recursive descent loop forever — rewrite `A → A op B` as `A → B (op B)*`.
-- You parse constantly without noticing: config files, calculators, DSLs, query syntaxes. Knowing the parse-tree idea demystifies a huge swath of everyday tools.
-- A junior's #1 habit: **write the grammar first, then transcribe it into one function per rule, and always return an AST.**
-
----
+- What problem does Parsers solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

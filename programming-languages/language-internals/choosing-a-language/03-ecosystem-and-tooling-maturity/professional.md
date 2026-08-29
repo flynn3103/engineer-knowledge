@@ -1,8 +1,11 @@
 # Ecosystem & Tooling Maturity — Professional
 
-> **What?** Ecosystem and tooling as an *organizational* asset and liability — something you govern, invest in, and bet the company on, not something each team rediscovers alone. Senior reasoned about ecosystem risk for one system; this level reasons about it across many teams, many years, and a balance sheet: golden paths, private registries, supply-chain governance (SBOMs), the economics of tooling investment, and evaluating an ecosystem for a 5-10 year corporate commitment.
-> **How?** Stop treating the public ecosystem as something teams consume directly and start treating it as a *supply chain you curate.* Wrap it in internal platforms, gate it with governance, standardize the tooling, and account for it as a line item — because at org scale, the ecosystem is a dependency on *other organizations'* health, and that's a business risk, not a technical detail.
+<!-- level-focus -->
+At professional level, focus on this question:
 
+> How should teams adopt and operate **Ecosystem & Tooling Maturity** with measurable outcomes and limited coordination?
+
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## 1. The org consumes ecosystems differently than an individual
@@ -93,7 +96,7 @@ The mistake an immature org makes is treating tooling as *overhead* to minimize 
 
 ## 6. Evaluating an ecosystem for a 5-10 year bet
 
-When an org standardizes on a language, it's not a project decision — it's a *decade-long* commitment that shapes hiring, training, and architecture (deeply connected to [`07-total-cost-of-ownership-and-team-skills`](../07-total-cost-of-ownership-and-team-skills/) and [`08-language-longevity-and-lock-in-risk`](../08-language-longevity-and-lock-in-risk/)). The ecosystem questions change at this time horizon:
+When an org standardizes on a language, it's not a project decision — it's a *decade-long* commitment that shapes hiring, training, and architecture (deeply connected to [`07-total-cost-of-ownership-and-team-skills`](../07-total-cost-of-ownership-and-team-skills/README.md) and [`08-language-longevity-and-lock-in-risk`](../08-language-longevity-and-lock-in-risk/README.md)). The ecosystem questions change at this time horizon:
 
 - **Governance & funding of the ecosystem itself.** Is the language run by a foundation (Python/PSF, Rust Foundation, CNCF-adjacent Go), a single company (Swift→Apple, formerly), or a fragile volunteer effort? A foundation with corporate backing is a more durable bet than a single vendor's whim or a charismatic-founder project. **You are taking on the ecosystem's governance as your own organizational dependency.**
 - **Compatibility/stability guarantees.** Does the language promise backward compatibility (Go's Go-1 promise), or does it have a history of ecosystem-splitting migrations (Python 2→3)? A 10-year bet cannot absorb a Python-2→3-scale schism without enormous cost.
@@ -101,7 +104,7 @@ When an org standardizes on a language, it's not a project decision — it's a *
 - **Vendor ecosystem commitment.** Will the clouds and SaaS vendors you depend on keep shipping first-party SDKs for this language in 2030? First-party SDK support tends to follow popularity — betting on a declining language risks losing official SDK support mid-life.
 - **Long-term support (LTS) discipline.** Does the ecosystem ship LTS releases with multi-year security support (Java LTS, Node LTS, Ubuntu LTS), or must you chase every release? A regulated org *needs* LTS — running on an unsupported version is an audit finding.
 
-For a decade-long bet, the boring, foundation-backed, compatibility-promising, LTS-shipping ecosystem usually wins over the exciting one — for the same reason a default language (from [`01-language-selection-criteria`](../01-language-selection-criteria/)) is judged by its worst case across many teams and years, not its best case for one.
+For a decade-long bet, the boring, foundation-backed, compatibility-promising, LTS-shipping ecosystem usually wins over the exciting one — for the same reason a default language (from [`01-language-selection-criteria`](../01-language-selection-criteria/README.md)) is judged by its worst case across many teams and years, not its best case for one.
 
 ---
 
@@ -142,15 +145,24 @@ The community that maintains your ecosystem is, functionally, an *unpaid part of
 
 ---
 
-## 10. What's next
+## Apply it
 
-| Topic | File |
-|---|---|
-| Interview questions — staff-level supply-chain and ecosystem governance reasoning | `interview.md` |
-| Practice — design an adoption checklist, build a maturity scorecard, audit a dependency tree | `tasks.md` |
+1. Define the user or business outcome that **Ecosystem & Tooling Maturity** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
-Related: this connects tightly to [`07-total-cost-of-ownership-and-team-skills`](../07-total-cost-of-ownership-and-team-skills/) (the economics) and [`08-language-longevity-and-lock-in-risk`](../08-language-longevity-and-lock-in-risk/) (the decade bet).
+## Verify your work
 
----
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
 
-**Memorize this:** at org scale the ecosystem is a *supply chain you govern*, not a thing teams consume raw. Wrap it in a golden path, gate it with a private registry and SBOMs, and fund the tooling — because good build systems pay for themselves many times over. A decade-long language bet is a bet on the *ecosystem's governance and community health*, which become your organization's dependencies whether you acknowledge them or not.
+## Review questions
+
+- Which measurable outcome justifies investing in Ecosystem & Tooling Maturity?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

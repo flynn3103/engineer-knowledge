@@ -1,14 +1,11 @@
-# The Memory Hierarchy — Professional Level
+# The Memory Hierarchy — Professional
 
-> **Topic:** The Memory Hierarchy
-> **Focus:** Profiling the hierarchy in production — perf counters, roofline, top-down analysis — plus hardware-level detail (MSHRs, DRAM banks, prefetch tuning) and war stories where the hierarchy decided the outcome.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **The Memory Hierarchy** with measurable outcomes and limited coordination?
 
-## Introduction
-
-At this level you stop reasoning about the hierarchy abstractly and start *measuring* it on real hardware under real load, then attributing wall-clock time to specific levels with hardware performance counters. The questions become precise: Is this loop bound by L3 latency or DRAM bandwidth? Are we losing 20% to TLB walks? Is a single false-sharing line costing us a core? The tools are `perf`, `toplev`, `likwid`, Intel VTune, AMD uProf, and the roofline model — and the fixes are informed by how the silicon actually behaves.
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Measuring the Hierarchy: the Counters That Matter
@@ -110,18 +107,6 @@ When you write data you will *not* read back soon (e.g. producing a large output
 
 ---
 
-## War Stories
-
-**1. The 40% NUMA tax nobody saw.** A Go service on a 2-socket box degraded under load. CPU wasn't saturated; `perf stat` showed low IPC and `numastat` showed ~45% remote memory accesses. The cause: a startup routine allocated and zeroed all caches/buffers on one goroutine (one socket), then the runtime scheduled workers across both sockets. Fix: NUMA-aware sharding of the buffers with per-shard worker affinity (and pinning with `GOMAXPROCS` + `numactl --cpunodebind`). Throughput rose ~35%.
-
-**2. A single line that cost a core.** A lock-free counter array `int64 hits[NumCPU]` showed near-zero scaling past 4 threads. `perf c2c` flagged one 64-byte line carrying eight adjacent counters — textbook false sharing, the line bouncing between cores thousands of times per millisecond. Padding each counter to its own line restored linear scaling. The diff was four lines; the speedup was 3×.
-
-**3. The hash map that was secretly disk-bound.** An "in-memory" cache spilled past RAM into swap on a memory-pressured node. Latency p99 jumped from microseconds to tens of milliseconds. `vmstat` showed `si/so` (swap-in/out) activity; the working set had quietly exceeded RAM and the kernel was paging to SSD. The hierarchy's bottom level had silently joined the hot path. Fix: cap the cache size below available RAM and add admission control — never let the working set cross the RAM→swap cliff.
-
-**4. Tiling a matrix kernel off the roofline.** A naive matrix multiply ran at a fraction of peak. Roofline analysis put it deep in the memory-bound region (intensity ~ O(1) because each element was re-fetched from DRAM). Blocking into L1/L2-sized tiles raised arithmetic intensity by reusing each loaded tile O(tile) times, moving the kernel toward the compute roof — a multi-× speedup with identical FLOP count.
-
----
-
 ## A Production Profiling Playbook
 
 1. **Establish boundness with TMA first.** `toplev -l1`. If not Backend/Memory-Bound, stop tuning memory.
@@ -157,10 +142,24 @@ When you write data you will *not* read back soon (e.g. producing a large output
 
 ---
 
-## Summary
+## Apply it
 
-- Use **perf counters + Top-Down (TMA)** to *attribute* wall-clock time to specific hierarchy levels, and **convert misses to time, not ratios**.
-- The **roofline model** tells you whether a kernel is memory- or compute-bound and therefore whether locality or compute tuning pays.
-- Hardware reality shapes the rules: **MSHRs** cap in-flight misses (latency vs bandwidth), **DRAM banks/rows** make random access doubly slow, **prefetchers** don't cross pages, and **non-temporal stores** save write bandwidth.
-- The most expensive production surprises come from the **bottom of the hierarchy** (swap) and from **coherence/NUMA** (false sharing, remote memory) — all measurable with `perf c2c`, `numastat`, and `vmstat`.
-- The professional discipline: **measure → attribute → fix the dominant level → verify with the same counter.**
+1. Define the user or business outcome that **The Memory Hierarchy** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
+
+## Verify your work
+
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
+
+## Review questions
+
+- Which measurable outcome justifies investing in The Memory Hierarchy?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

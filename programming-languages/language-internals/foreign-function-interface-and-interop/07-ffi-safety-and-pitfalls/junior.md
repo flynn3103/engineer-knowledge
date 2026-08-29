@@ -1,65 +1,11 @@
-# FFI Safety & Pitfalls — Junior Level
+# FFI Safety & Pitfalls — Junior
 
-> **Topic:** FFI Safety & Pitfalls
-> **Focus:** The moment your safe language calls into C, the safety net disappears. What goes wrong, and the first habits that keep you out of trouble.
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **FFI Safety & Pitfalls** in one small example and prove the result?
 
-## Introduction
-
-> Focus: **What happens to your language's safety guarantees the instant you cross the FFI boundary?** (Answer: they vanish.) And **what is the smallest set of habits that keeps you from corrupting memory or crashing the process?**
-
-A **Foreign Function Interface (FFI)** is the bridge that lets code written in one language call functions written in another — almost always a high-level, memory-managed language (Python, Java, C#, Go, Rust) calling into a lower-level one (C, or C++ exposed through a C interface). You reach for FFI when you need a battle-tested C library (OpenSSL, SQLite, libpng, zlib), when you need raw speed for a hot loop, or when you must talk to an operating-system API that only ships a C header.
-
-Here is the uncomfortable truth that makes this whole topic matter: **the FFI boundary is where a memory-safe language stops being memory-safe.** Inside Python, an out-of-bounds index raises a clean `IndexError`. Inside Java, a bad reference throws `NullPointerException`. Inside safe Rust, the borrow checker rejects use-after-free at compile time. The moment you call across to C, none of that applies. C will happily write past the end of a buffer, free a pointer twice, or hand you back a pointer to memory that no longer exists — and the result is not a clean exception. The result is **undefined behavior**: silent corruption, a crash minutes later in unrelated code, or a security hole.
-
-In one sentence: **FFI is a door in the wall of your safe language, and on the other side of that door there are no guardrails.** This page is about the things that go wrong at that door and the first habits that keep you safe.
-
-> 🎓 **Why this matters for a junior:** Your first FFI bug will not look like an FFI bug. The program will crash in a random place, or print garbage, or work fine on your laptop and corrupt data in production. You will lose hours hunting in the wrong file. Learning to recognize the *shape* of FFI failures — and to suspect the boundary first — is one of the highest-leverage debugging skills you can build early.
-
-This page covers: who owns and frees memory across the boundary, why the types on both sides have to match *exactly*, why a crash on the C side takes down your whole program, and the first defensive habits — null-check everything, read the ownership rules in the docs, and run your code under a memory checker.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** How to call a function and pass arguments in at least one high-level language (Python, Java, C#, Go, or Rust).
-- **Required:** A rough idea of what a **pointer** is — a value that holds the address of some memory, rather than the data itself.
-- **Required:** The difference between the **stack** (local variables, automatically cleaned up when a function returns) and the **heap** (memory you allocate explicitly and must free explicitly).
-- **Helpful but not required:** Having seen a C function signature, e.g. `int read(int fd, void *buf, size_t count)`.
-- **Helpful but not required:** A vague sense that your program is one **process** and a crash anywhere in it kills the whole thing.
-
-You do **not** need to know:
-
-- Calling conventions, name mangling, or ABI details (those live in sibling topics in this section).
-- How to write a full Rust `unsafe` wrapper or a complete JNI module (that is `middle.md` and `senior.md`).
-- The CPU-level mechanics of stack frames and registers.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **FFI** | Foreign Function Interface. The mechanism by which code in one language calls functions compiled from another. |
-| **The boundary** | The point in the program where control crosses from one language to the other. Almost everything in this topic is about what can go wrong exactly here. |
-| **Native code** | Compiled machine code, usually from C or C++. From the high-level language's point of view, code on the "other side" of the FFI. |
-| **Managed code** | Code that runs under a runtime with automatic memory management and safety checks (Java/JVM, C#/.NET, Python, Go). The "safe" side. |
-| **Undefined behavior (UB)** | A program operation for which the language standard imposes *no* requirements. Anything may happen: a crash, silent corruption, or apparent success. The defining hazard of C and therefore of FFI. |
-| **Ownership** | The question of *who is responsible for freeing* a piece of memory. The single most important contract to get right across an FFI boundary. |
-| **Allocator** | The component that hands out and reclaims heap memory (`malloc`/`free` in C, the GC in Java/Go, etc.). Memory must be freed by the *same* allocator that allocated it. |
-| **Use-after-free** | Reading or writing memory that has already been freed. Classic UB; a frequent FFI bug. |
-| **Double-free** | Calling `free` twice on the same pointer. Corrupts the allocator's bookkeeping; classic UB. |
-| **Dangling pointer** | A pointer to memory that has been freed, moved, or gone out of scope. Dereferencing it is UB. |
-| **Null pointer** | A pointer that points at "no object," conventionally address 0. C functions often return null to signal failure. Dereferencing it usually crashes. |
-| **Marshalling** | Converting data from the representation the high-level language uses into the representation C expects (and back). Where many silent type bugs live. |
-| **GC (Garbage Collector)** | The runtime component that automatically frees managed objects when they are no longer reachable. It can free — or even *move* — an object while native code still holds a pointer to it. |
-| **Pinning** | Telling the runtime "do not move or collect this object" while native code uses it. |
-| **errno** | A thread-local integer in C that holds the error code of the last failing system call. Must be read in a specific, careful way. |
-| **Sanitizer / Valgrind** | Tools (AddressSanitizer, Valgrind) that detect memory errors at runtime, including ones that cross the FFI boundary. Your best friend in this topic. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -93,28 +39,6 @@ Inside your managed language, an error throws an exception that you can catch. O
 ### 5. Null Is the C Way of Saying "Failure"
 
 A huge fraction of C functions return a null pointer to mean "I failed" (allocation failed, file not found, parse error). C does not throw; it returns null and expects *you* to check. If you forget to check and use the pointer, you dereference null and crash. **Null-checking every pointer that crosses the boundary is non-negotiable.**
-
----
-
-## Real-World Analogies
-
-**The hospital airlock.** A clean operating room (your safe language) connects to the outside world through an airlock (the FFI). Inside the OR, everything is sterile and the rules are strict. The airlock is the one place contamination can enter. You do not relax there — you scrub *harder*: gown up, check everything, assume the outside is dirty. The FFI boundary is that airlock. The discipline goes *up* at the boundary, not down.
-
-**Borrowing a power tool from a neighbor.** When you borrow a tool (a pointer), you must know the deal: do you return it, or did they give it to you to keep? If you keep something they meant to lend, they have nothing (use-after-free). If you try to return something they actually gave you, confusion ensues (double-free). The ownership contract has to be agreed in advance, in plain words. FFI documentation *is* that conversation — read it.
-
-**A phrasebook between two travelers.** Two people who do not share a language communicate through a phrasebook that maps words one-to-one. If the phrasebook says "*rojo* means blue" when it actually means red, both travelers follow it perfectly and still end up completely confused — no one made a "mistake," the *mapping* was wrong. A wrong FFI type declaration is exactly this: both sides behave correctly according to a mapping that lies.
-
----
-
-## Mental Models
-
-**Model 1: "The boundary is a trust handoff."** Inside your language, the runtime is responsible for safety. At the boundary, *you* become responsible. Visualize every FFI call as a moment where you personally sign off: "I promise this pointer is valid, this length is right, and I know who frees the result." If you cannot honestly sign, do not make the call yet.
-
-**Model 2: "C functions are honest about nothing and trust everything."** A C function will not tell you it failed unless you check its return value. It will not validate your arguments. It assumes you are perfect. Treat every C function as a contract written in fine print that *you* must enforce on both ends.
-
-**Model 3: "Type declarations are unverified promises."** When you write a foreign function declaration, you are not describing the C function — you are *promising* what it looks like, and nobody checks. A wrong promise is a silent, time-bombed corruption. Treat the declaration with the suspicion you would give a security boundary.
-
-**Model 4: "Far from the crash is near the boundary."** When an FFI-using program crashes in a strange place, your first hypothesis should be the boundary, not the place it crashed. Memory corruption travels.
 
 ---
 
@@ -235,37 +159,6 @@ The principle generalizes to every language: **an exception, panic, or error nat
 
 ---
 
-## Pros & Cons
-
-**Pros of using FFI at all (why we accept the risk):**
-
-- **Reuse.** Decades of hardened C libraries (SQLite, OpenSSL, libcurl, FFmpeg) are available instantly instead of rewriting them.
-- **Performance.** A tight numeric loop in C can run far faster than the equivalent in Python.
-- **System access.** Many OS and hardware APIs are C-only.
-
-**Cons / costs you take on at the boundary:**
-
-- **You lose your safety net.** Memory safety, exception safety, and type checking stop at the gate.
-- **Bugs are non-local and hard to debug.** The crash is far from the cause.
-- **No isolation.** One native crash kills the whole process.
-- **Maintenance burden.** Type declarations and ownership contracts must be kept in sync with the C library by hand; a library upgrade can silently break them.
-- **Build complexity.** You now need a C toolchain, headers, and the right shared libraries on every machine.
-
-The honest summary: **use FFI when the benefit clearly outweighs the cost, and then treat the boundary with discipline.** It is not free, and the bill arrives as production crashes if you are sloppy.
-
----
-
-## Use Cases
-
-- **Wrapping a C library.** Calling SQLite from Python, OpenSSL from Go, or zlib from Java — the most common reason juniors meet FFI.
-- **Speeding up a hot path.** Pushing a numeric inner loop into C (or a C-exposed Rust function) when the high-level version is too slow.
-- **Talking to the OS.** Calling a system API that has no high-level binding.
-- **Reusing internal C/C++ code.** A company has a large existing C++ engine and wants to drive it from a Python or Go service.
-
-In every case the value is real — and so is the obligation to handle the boundary carefully.
-
----
-
 ## Coding Patterns
 
 **Pattern 1: Always declare argument and return types.** Never let the FFI tool guess. In `ctypes` set `argtypes` and `restype`; in cgo and JNI the types come from the header, so include the *correct* header.
@@ -324,72 +217,24 @@ In every case the value is real — and so is the obligation to handle the bound
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. Why can an FFI bug crash your program in a place that has nothing to do with the bug?
-2. A C function returns a `char*`. What two questions must you answer before using it?
-3. What is the danger of *not* setting `restype` on a `ctypes` function whose C version returns `size_t`?
-4. Why does a C function returning a pointer to a local stack buffer produce undefined behavior?
-5. Why must a panic or exception never unwind across the boundary into C?
-6. Name one tool that can detect memory errors that occur on the C side of an FFI call.
+1. Choose one small, known input for **FFI Safety & Pitfalls**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
-<details>
-<summary>Answers</summary>
+## Verify your work
 
-1. Because C writes to invalid memory without crashing immediately; it corrupts unrelated data, and the crash happens later when that corrupted data is used.
-2. (a) Is it null (did the call fail)? (b) Who owns it — must I free it, and with which deallocator?
-3. `ctypes` defaults the return type to a 4-byte C `int`, but `size_t` is 8 bytes on 64-bit systems. The truncated/garbage value is sometimes right by accident and silently wrong for larger values.
-4. The stack frame is destroyed when the function returns, so the pointer immediately dangles; reading it reads reused/garbage memory.
-5. The C side has no notion of your language's exceptions; unwinding through C frames it does not understand is undefined behavior.
-6. AddressSanitizer (ASan) or Valgrind.
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
 
-</details>
+## Review questions
 
----
-
-## Cheat Sheet
-
-| Hazard | First-line defense |
-|--------|--------------------|
-| Null return | Null-check on the very next line |
-| Wrong type | Declare `argtypes`/`restype` (or use the correct header) |
-| Who frees? | Read the docs; pair alloc with the *matching* free in `finally`/`defer` |
-| Double-free / use-after-free | Free exactly once, with the matching deallocator; never free borrowed pointers |
-| Dangling pointer | Never return/store a pointer to a stack local |
-| Crash kills process | Catch native exceptions/panics at the boundary |
-| Silent corruption | Run tests under ASan / Valgrind |
-| Hard-to-find bug | Suspect the boundary first |
-
-**The golden rule:** at the boundary, *raise* your discipline; never lower it.
-
----
-
-## Summary
-
-FFI lets your safe language call C, and the moment it does, the safety guarantees stop. The four things that go wrong most often for a junior are: forgetting to check for a null return, getting the types wrong (which compiles and then silently corrupts), getting ownership wrong (leak, double-free, or use-after-free), and letting a crash or exception cross the boundary. The defenses are simple and non-negotiable: declare types explicitly, null-check every pointer, pair every allocation with the matching free, catch your own exceptions at the edge, copy data into safe native objects quickly, keep the boundary small, and run everything under a memory checker. Most of all, when an FFI-using program misbehaves, suspect the boundary first — the bug is rarely where the crash is.
-
----
-
-## What You Can Build
-
-- A small Python `ctypes` wrapper around one or two functions of a real C library (e.g. compute a SHA-256 hash with a C crypto library), with correct `argtypes`/`restype` and proper null-checks.
-- A Go program using cgo to call a C string function, demonstrating correct allocation and `C.free` of C-allocated memory.
-- A deliberately buggy FFI program (wrong `restype`, missing null check, return-pointer-to-local) plus a writeup of what each bug does and how ASan/Valgrind reports it.
-
----
-
-## Further Reading
-
-- The official FFI documentation for your language: Python `ctypes`, Go `cgo`, Java JNI, .NET P/Invoke, Rust `extern`/`std::ffi`.
-- The documentation of any C library you wrap — specifically its memory-ownership and threading sections.
-- AddressSanitizer and Valgrind getting-started guides.
-- The sibling topics in this section on data marshalling and memory layout, and on calling conventions and the ABI, which explain *why* types must match.
-
----
-
-## Related Topics
-
-- Data marshalling and memory layout — how data is converted across the boundary, and why struct layouts must match.
-- Calling conventions and the ABI — the lower-level reason type and convention mismatches corrupt the stack.
-- The security section of the roadmap — the FFI boundary as an attack surface when untrusted input crosses into C.
-- Process isolation and inter-process communication — the alternative when native code is too unstable to run in-process.
+- What problem does FFI Safety & Pitfalls solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

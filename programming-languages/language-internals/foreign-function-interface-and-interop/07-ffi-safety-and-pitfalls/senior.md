@@ -1,58 +1,11 @@
-# FFI Safety & Pitfalls — Senior Level
+# FFI Safety & Pitfalls — Senior
 
-> **Topic:** FFI Safety & Pitfalls
-> **Focus:** Threading and reentrancy across the boundary, resource and robustness hazards, and the discipline that makes an FFI surface auditable: a thin, validated unsafe boundary wrapping a safe API.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **FFI Safety & Pitfalls** under failure, load, and change?
 
-## Introduction
-
-> Focus: **What happens when threads, callbacks, signals, and long-lived resources meet the FFI boundary — and what discipline turns an inherently unsafe interface into one you can audit and trust?**
-
-The junior and middle tiers covered the boundary's loss of safety and the four core hazard classes (ownership, ABI, error handling, GC interaction). At the senior level we add the two hazard classes that bite hardest in real production systems — **threading/reentrancy** and **resource/robustness** — and then step back to the question that actually distinguishes senior FFI work: *how do you structure an FFI surface so that a reviewer can convince themselves it is correct?*
-
-The answer, distilled from the Rust ecosystem but applicable everywhere, is **a thin, audited unsafe boundary wrapping a safe API.** The unsafe operations — the raw pointers, the manual frees, the type punning — are confined to a small, heavily-validated layer. Everything above that layer is ordinary safe code that cannot misuse the boundary because the boundary will not let it. The unsafe surface is small enough to read in one sitting and prove correct; the safe surface is large and used everywhere.
-
-In one sentence: **senior FFI is the art of making the dangerous part small, validated, and provably correct, so the rest of the system can stay safe.** This page covers the threading and robustness hazards in depth, the playbook for the audited boundary, and the real incidents that show what happens when teams skip it.
-
-> 🎓 **Why this matters at the senior level:** You are the person who designs the FFI integration, reviews it, and owns the on-call pager when it crashes a service at 3 a.m. The threading and lifetime interactions you allow into the design determine whether the system is debuggable or a haunted house. The discipline you enforce on the boundary determines whether a junior can extend it without introducing UB.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** The middle-level hazard taxonomy — ownership/lifetime, ABI/type, error handling, GC-versus-native.
-- **Required:** Working knowledge of threads, the difference between thread-safe and non-thread-safe code, and what a deadlock is.
-- **Required:** Familiarity with how a garbage-collected runtime schedules work (the Python GIL, the JVM, goroutines and the Go scheduler).
-- **Helpful but not required:** Having written a non-trivial FFI wrapper yourself.
-- **Helpful but not required:** Awareness of `async-signal-safe` functions and the constraints on signal handlers.
-
-You do **not** need to know:
-
-- Out-of-process isolation architectures in depth (that is `professional.md`).
-- The full memory model of any one runtime (covered in the concurrency topics).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Reentrancy** | The property that a function can be safely re-entered (called again before a previous call completes), including via a callback. Many C libraries are *not* reentrant. |
-| **GIL (Global Interpreter Lock)** | CPython's lock that allows only one thread to execute Python bytecode at a time. Must be released around blocking native calls and held whenever touching Python objects. |
-| **Attach / detach (JNI)** | A native thread not created by the JVM must call `AttachCurrentThread` before it can make JNI calls, and `DetachCurrentThread` when done. |
-| **Local reference (JNI)** | A JNI reference to a Java object, valid only within the current native call and on the current thread, freed automatically when the native method returns. Limited in number. |
-| **Global reference (JNI)** | A JNI reference that survives across calls and threads; must be explicitly deleted or it leaks. |
-| **Callback** | A function pointer you give to a C library so it can call *back* into your code. The place where threading, reentrancy, and exception rules collide. |
-| **Async-signal-safe** | The small set of operations permitted inside a Unix signal handler. Most runtime calls (allocation, locks) are *not* async-signal-safe. |
-| **RAII** | "Resource Acquisition Is Initialization." Tying a resource's lifetime to an object's scope so cleanup is automatic. Does not naturally cross the FFI boundary. |
-| **Audited boundary** | A small, deliberately-unsafe layer where all FFI operations live, exhaustively validated, wrapping a safe API used by everyone else. |
-| **`-Xcheck:jni`** | A JVM flag that enables extensive runtime checking of JNI usage (bad references, pending exceptions, wrong-thread calls). Essential during development. |
-| **Native handle leak** | Failing to release a native resource (file descriptor, library handle, global reference) acquired through FFI. |
-| **Out-of-process isolation** | Running unstable or untrusted native code in a separate process so its crash cannot take down the main process. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -109,28 +62,6 @@ These are the shapes of real production failures; study them as failure modes to
 - **`ctypes` `restype`/`argtypes` mistakes corrupting results.** Production Python code that omitted `restype` for a function returning a pointer or `size_t` read a truncated value and either crashed or silently produced wrong data on certain inputs. The fix is explicit, reviewed type declarations and tests across value ranges.
 - **Panic/exception across FFI as UB.** Libraries exposing `extern "C"` functions that let a Rust panic or C++ exception unwind into a C caller exhibited crashes and corruption that varied by compiler and optimization level. The fix is `catch_unwind`/`catch(...)`/`recover` at every export.
 - **GC-collected object used by native code.** .NET and JVM integrations where a managed object backing a native pointer was collected or moved mid-call crashed only under load (when the GC actually ran). The fix is `GC.KeepAlive`/pinning for the precise lifetime of the native use.
-
----
-
-## Real-World Analogies
-
-**The embassy.** Your runtime is a country with its own laws (the GIL, the GC, exceptions). A native thread entering to do business is a foreigner who must first present papers at the embassy (JNI attach, acquire the GIL) before doing anything official, and must check out before leaving (detach, release). A foreigner who wanders into government offices without papers (touches managed state on an unattached thread) causes an international incident (a crash).
-
-**The bomb-disposal robot.** When the package might explode (untrusted or unstable native code), you do not open it on your desk — you put it behind a blast wall and operate it remotely (out-of-process isolation). If it goes off, you lose the robot, not the building. Choosing in-process versus out-of-process is choosing how much blast wall you want.
-
-**The clean-room with one airlock.** The audited boundary is a single, tightly-controlled airlock into the clean room. All contamination control happens there; inside, people work normally because nothing dirty can get past the airlock. Spreading FFI calls all over the codebase is like cutting a dozen unguarded doors into the clean room.
-
----
-
-## Mental Models
-
-**Model 1: "Which thread, and is it allowed here?"** For every callback and every native thread, ask: which thread runs this, does the runtime know about it, and is it permitted to touch managed state? If you cannot answer, you have a latent intermittent crash.
-
-**Model 2: "The unsafe part should be small enough to prove."** Measure your FFI surface by how long it would take a reviewer to convince themselves it has no UB. If the answer is "longer than an afternoon," the boundary is too big or too leaky.
-
-**Model 3: "Cleanup must be bridged explicitly."** Neither side's automatic cleanup runs on the other side. Every native resource needs a wrapper that frees it on all paths.
-
-**Model 4: "Blast radius is an architectural choice."** In-process FFI means one native crash kills everything. If that is unacceptable for some code, the boundary must be a process boundary.
 
 ---
 
@@ -266,33 +197,6 @@ If the C library keeps global state and is not reentrant, the mutex is the diffe
 
 ---
 
-## Pros & Cons
-
-**Pros of the senior discipline (audited boundary + isolation where needed):**
-
-- **Auditability.** A small unsafe surface can be reviewed to a high confidence; UB has nowhere to hide.
-- **Containment.** Out-of-process isolation bounds the blast radius of native crashes.
-- **Debuggability.** Clear thread rules and explicit cleanup make intermittent bugs reproducible.
-
-**Cons / costs:**
-
-- **Design effort.** Encoding ownership in types and confining unsafe code takes more thought than scattering FFI calls.
-- **Performance.** Locking a non-thread-safe library serializes it; out-of-process isolation adds IPC and serialization overhead.
-- **Complexity.** Attach/detach, GIL management, and local-frame discipline are extra moving parts.
-
-The trade is firmly worth it for anything beyond a throwaway script: the alternative is unbounded, intermittent, production-only failures.
-
----
-
-## Use Cases
-
-- **Wrapping a non-thread-safe C library** for use from a concurrent service — requires serialization or per-thread contexts.
-- **Native callbacks delivered on foreign threads** — event-driven libraries, GUI toolkits, hardware drivers.
-- **Parsing untrusted input in C** (media codecs, document parsers) — the canonical case for validation-at-the-boundary plus out-of-process isolation.
-- **Long-running JVM/.NET services** that integrate native code — where reference and handle leaks accumulate into OOMs over days.
-
----
-
 ## Coding Patterns
 
 **Pattern 1: One unsafe module, everything else safe.** Confine all FFI and raw-pointer code to a single, small, reviewable module.
@@ -359,63 +263,24 @@ The trade is firmly worth it for anything beyond a throwaway script: the alterna
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. Why must you release the GIL around a blocking native call, and what must you re-do before touching a Python object afterward?
-2. What three things must a native thread do to safely call a Java method via JNI?
-3. How does a loop in a long JNI native method crash the JVM, and how do you prevent it?
-4. Describe the "thin audited boundary" pattern and why it makes UB easier to rule out.
-5. When is out-of-process isolation the right architecture for native code?
-6. Why is a callback delivered on a foreign thread a hazard, and what is the safe handling pattern?
+1. State the system invariant that **FFI Safety & Pitfalls** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
-<details>
-<summary>Answers</summary>
+## Verify your work
 
-1. If a blocking call holds the GIL, all other Python threads freeze (and a call back into Python deadlocks). Re-acquire the GIL (`Py_END_ALLOW_THREADS` / `PyGILState_Ensure`) before touching any `PyObject`.
-2. Attach the thread (`AttachCurrentThread` to get a `JNIEnv`), check-and-clear pending exceptions after calls that can throw, and detach (`DetachCurrentThread`) before the thread exits — and never reuse a `JNIEnv` across threads.
-3. Each created Java object adds a local reference; a long loop exhausts the local-reference table and crashes. Prevent it with `PushLocalFrame`/`PopLocalFrame` per iteration or explicit `DeleteLocalRef`.
-4. All unsafe/FFI operations live in one small module that validates everything and exposes only safe types; callers cannot trigger UB because they never get a raw pointer. The small surface is reviewable to high confidence.
-5. When the native code is untrusted (attacker-controlled input) or unstable (flaky third party), so a crash must not take down the main process; the process boundary contains the blast radius.
-6. The library chooses the thread, which the runtime may not know about; touching managed state there is UB. Safely: attach/acquire, do minimal work, hand off to a runtime-owned thread (event loop, channel, executor).
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
 
-</details>
+## Review questions
 
----
-
-## Cheat Sheet
-
-| Hazard | Senior defense |
-|--------|----------------|
-| GIL deadlock / frozen threads | Release GIL around blocking calls; reacquire before any PyObject |
-| Foreign thread + JNI | Attach, exception-check, detach; never share `JNIEnv` |
-| JNI ref leak | Local frames in loops; delete globals explicitly; `-Xcheck:jni` |
-| Non-thread-safe library | Serialize with a lock or use per-thread contexts |
-| Callback on unknown thread | Assume foreign; attach/acquire, minimal work, hand off |
-| Signal handler | Async-signal-safe only; never call into the runtime |
-| Cleanup skipped | Wrapper destructor / `defer` / `finally` on all paths |
-| Native crash kills process | Audited boundary; out-of-process isolation for untrusted/unstable code |
-
----
-
-## Summary
-
-At the senior level, two hazard classes dominate real incidents. **Threading and reentrancy**: the GIL must be released around blocking calls and held whenever touching Python objects; native threads must attach to the JVM, check exceptions, and detach, never sharing a `JNIEnv`; callbacks run on whatever thread the library chooses, so they must attach/acquire and hand off to a runtime-owned thread; non-thread-safe libraries must be serialized; signal handlers and cgo have their own restrictions. **Resource and robustness**: native handles and JNI references leak unless released on every path; RAII does not cross the boundary, so cleanup must be bridged explicitly; and because a native crash kills the whole process, untrusted or unstable native code belongs out-of-process. Tying it together is the discipline of a **thin, audited unsafe boundary** that validates everything and exposes a safe API, encoding ownership in types and confining all dangerous operations to a small, reviewable surface — verified under ASan/Valgrind/TSan/`-Xcheck:jni`. The real-world incidents — JNI reference leaks, `ctypes` `restype` mistakes, panic-across-FFI UB, GC-collected objects used by native code — are exactly the failures this discipline prevents.
-
----
-
-## Further Reading
-
-- The JNI specification, especially local/global references, exception handling, and thread attachment.
-- CPython's C-API documentation on the GIL (`Py_BEGIN_ALLOW_THREADS`, `PyGILState_Ensure`).
-- The cgo documentation, including the pointer-passing rules and `GODEBUG=cgocheck`.
-- The Rust `std::panic::catch_unwind` docs and the Rustonomicon's FFI and unsafe chapters.
-- ThreadSanitizer, AddressSanitizer, and Valgrind documentation.
-
----
-
-## Related Topics
-
-- Concurrency and threading models — the underlying thread, lock, and memory-model concepts the FFI rules build on.
-- Cross-language interop — the broader patterns for combining languages, of which a safe FFI boundary is one.
-- The security section — untrusted input across the boundary and the case for isolation, treated defensively.
-- Process isolation and IPC — the mechanics of running native code out-of-process.
+- Which invariant must remain true when FFI Safety & Pitfalls fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

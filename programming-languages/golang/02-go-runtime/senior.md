@@ -1,20 +1,11 @@
 # Go Runtime — Senior
 
-> **Topic:** [Go Runtime](../README.md)
-> **Focus:** Diagnosing GC-driven latency and CPU cost in production, `GOMEMLIMIT` in practice, allocation-rate reduction strategies, and understanding why the same code behaves differently under different load shapes.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Go Runtime** under failure, load, and change?
 
-## Introduction
-
-At scale, the runtime stops being an abstraction you can ignore. GC CPU overhead becomes a line item you optimize. A service that's fine at 100 requests/second can show P99 latency spikes at 1,000 requests/second purely from GC pacing, with no logic change. This level is about connecting runtime internals to concrete production symptoms and fixing the actual cause instead of the closest lever.
-
----
-
-## Prerequisites
-
-- Comfortable with GMP scheduling, tri-color GC, and `GODEBUG` tracing (middle level).
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -85,16 +76,6 @@ GOMEMLIMIT=1800MiB ./myservice   # container hard limit: 2GiB
 
 ---
 
-## Pros & Cons
-
-| Lever | Pros | Cons |
-|---|---|---|
-| Reducing allocation rate (pooling, reuse) | Directly reduces GC work; often the biggest win | Requires profiling to find the right hot paths; `sync.Pool` misuse can hide bugs (reused-but-not-reset state) |
-| `GOMEMLIMIT` | Prevents OOM kills under bursty allocation | Purely a safety net — doesn't fix an underlying allocation-rate problem |
-| `GOGC` tuning | Simple, one env var | Blunt instrument; trades CPU for memory uniformly, not targeted |
-
----
-
 ## Best Practices
 
 1. Gate hot-path benchmarks on `allocs/op`, not just `ns/op`.
@@ -129,45 +110,24 @@ GOMEMLIMIT=1800MiB ./myservice   # container hard limit: 2GiB
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```
-go test -bench=X -benchmem       — allocation-rate regression check
-GOMEMLIMIT=<80-90% of hard limit> — safety net against OOM from GC lag
-sync.Pool                        — reduce allocation churn for reusable, resettable objects
-GODEBUG=gctrace=1                — correlate GC cycles with traffic bursts
-```
+1. State the system invariant that **Go Runtime** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
----
+## Verify your work
 
-## Summary
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
 
-- Allocation *rate* drives GC cost more than heap size — reducing allocations in hot paths beats GC tuning.
-- `GOMEMLIMIT` is a safety net against OOM kills, not a fix for an underlying allocation problem.
-- Escape-analysis regressions are real and recurring — gate hot-path benchmarks on `allocs/op`.
-- `sync.Pool` reduces churn but items can be reclaimed anytime; never rely on it for correctness.
-- GC-driven latency spikes are usually correlated with traffic bursts outrunning the pacer's estimate.
+## Review questions
 
----
-
-## Further Reading
-
-- Go GC Guide (official): <https://go.dev/doc/gc-guide>
-- `GOMEMLIMIT` design doc: <https://go.dev/doc/gc-guide#Memory_limit>
-
----
-
-## Related Topics
-
-- [Goroutines and Concurrency — Senior](../01-goroutines-and-concurrency/senior.md)
-- [Production Debugging — Senior](../07-production-debugging/senior.md) — profiling allocation and GC live.
-
----
-
-## Check your understanding
-
-1. Explain Go Runtime — Senior Level in your own words and name the problem it solves.
-2. How would you apply the ideas around Introduction, Prerequisites, Core Concepts in a realistic engineering change?
-3. What failure mode or misuse should you look for, and what evidence would reveal it?
-4. How would you validate a system-level decision about Go Runtime — Senior Level under uncertainty?
-5. What observable result would convince you that the approach improved the system?
+- Which invariant must remain true when Go Runtime fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

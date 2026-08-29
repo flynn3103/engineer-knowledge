@@ -1,50 +1,11 @@
-# When NOT to Metaprogram — Middle Level
+# When NOT to Metaprogram — Middle
 
-> **Topic:** When NOT to Metaprogram
-> **Focus:** Costing the magic. How to put a number on "this is too clever" so the decision stops being a vibe and becomes an engineering judgment.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **When NOT to Metaprogram** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-> Focus: **Turning "this feels too magic" into a defensible engineering decision — with the costs named, the alternatives ranked, and the break-even understood.**
-
-At the junior level the lesson was "magic has costs; prefer plain code." That's a good instinct, but instincts lose arguments. At the middle level you need to *cost the decision* — to walk into a design review and say, concretely, "this reflection-based approach saves us 40 lines today and costs us non-grep-able call sites, broken refactoring, and runtime-only failures; the plain version costs 40 lines once. The plain version wins, and here's the threshold where my answer would flip."
-
-This page is about that threshold. Metaprogramming is not always wrong — that would be a junior overcorrection. It is a *trade*, and like any trade it has a price and a break-even. The middle-level skill is knowing how to compute both: what magic costs (in comprehension, debugging, tooling, performance, and maintenance), what the plain alternative costs (usually: typing, and ongoing manual maintenance of boilerplate), and where the lines cross. Below break-even, magic is a liability dressed as cleverness. Above it — genuinely large, painful, error-prone, repeated boilerplate owned by a team — it pays for itself.
-
-> 🎓 **Why this matters for a mid-level engineer:** You are now the person who *introduces* abstractions, not just consumes them. The reflective helper or the decorator you add this sprint will be read by ten people for five years. The difference between a senior-track engineer and a clever-but-exhausting one is largely this single judgment, made correctly, hundreds of times.
-
-This page covers: the five concrete cost axes, the decision ladder with break-even reasoning, the specific anti-patterns (reflection where an interface works, DSL where a config works, magic for CRUD), and how to argue the case in a review.
-
----
-
-## Prerequisites
-
-- **Required:** Junior level of this topic — the four costs and the decision ladder.
-- **Required:** You have written *and maintained* code for at least a year, ideally inheriting code you didn't write.
-- **Required:** You have used reflection, a decorator/annotation, or codegen at least once for real.
-- **Helpful:** You have debugged through framework magic (Spring, an ORM, a serializer) and felt the stack-trace pain firsthand.
-- **Helpful:** You have onboarded someone, or *been* onboarded onto a magic-heavy codebase.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Break-even** | The point where the lifetime cost of the magic equals the lifetime cost of the plain alternative. Below it, plain wins. |
-| **Comprehension cost** | Mental effort to understand a plain-looking line because hidden magic is acting on it. Paid per reader, per read. |
-| **Debuggability cost** | Extra effort to diagnose failures because traces pass through generated/reflected/proxied code you can't breakpoint. |
-| **Tooling cost** | Loss of autocomplete, go-to-definition, find-references, safe rename, and grep when names/links are dynamic. |
-| **Maintenance cost** | Fragility under version skew, the bus-factor of "only the author understands it," and breakage on dependency upgrades. |
-| **Version skew** | When magic relies on internals of a tool/runtime/library that change between versions, silently breaking. |
-| **Bus factor** | How many people must be "hit by a bus" before knowledge is lost. Clever magic often has a bus factor of one. |
-| **Action at a distance** | A change in one place silently altering behavior elsewhere — the core readability tax of magic. |
-| **Cross-cutting concern** | Behavior (logging, auth, tx, serialization) that touches many places. The legitimate home of *framework-level* magic. |
-| **AOT compilation** | Ahead-of-time compilation (GraalVM native image, iOS). Reflection-heavy code often won't AOT-compile or needs heavy config. |
-| **Boilerplate** | Mechanical, repeated code. Sometimes worth automating, often just slightly annoying. The distinction is the whole game. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -90,24 +51,6 @@ A huge, under-appreciated cost of magic is *when it fails*. Plain typed code fai
 ### 5. "Explicit is better than implicit"
 
 The Zen of Python states it directly: *Explicit is better than implicit.* This is not a Python-only value — it's a general bias. Implicit (magic) behavior reads cleaner on the happy path and reads as a *mystery* on every other path. Go was designed around the same belief: deliberate minimalism, no exceptions hierarchy, no inheritance, long-resisted generics — not because the designers couldn't add power, but because they prized code being *obvious to a stranger* over code being clever. Whatever your language, when implicit and explicit both work, explicit ages better.
-
----
-
-## Real-World Analogies
-
-- **A self-tying knot vs. a knot you can see.** A clever rig that auto-tightens is great until it jams under load and you can't see the path of the rope to free it. Explicit wiring is the visible rope.
-- **Autopilot you can't override.** Convenient at cruise, terrifying in turbulence if you can't grab the controls. Magic you can't step into is autopilot with no manual mode.
-- **A house with hidden, undocumented wiring.** The previous owner ran a clever automation. It works beautifully until something trips and there's no diagram. Every electrician you call shrugs. That's a clever DSL with the author gone.
-- **A contract written in a private legal dialect.** Enforceable, even elegant — but every dispute needs the one lawyer who wrote it. Plain language ages better even if it's longer.
-
----
-
-## Mental Models
-
-- **Lifetime cost, not authoring cost.** Multiply the per-read comprehension cost by (readers × reads over the code's life). Magic that saves you 30 minutes of typing and adds 2 minutes to every read for ten people over five years is a terrible trade. Do the multiplication.
-- **The magic budget as a real budget.** A codebase can absorb some magic before reasoning collapses. Frameworks already spend a chunk. Each abstraction you add spends more. Ask: is this the best use of the remaining budget, or am I blowing it on three saved lines?
-- **The break-even curve.** Plain code is a flat ongoing cost (maintain N copies). Magic is a high upfront cost plus a low ongoing cost. The curves cross only when N (cases) and the per-case pain are both large. Below the crossing, plain wins; the junior error is assuming you're always above it, the over-engineer's error is the same.
-- **"Who debugs this at 3 a.m., and can they?"** Picture the on-call engineer — maybe not you, maybe a junior. Trace the failure path mentally. If it disappears into generated/proxied code, you've designed a system that punishes its own operators.
 
 ---
 
@@ -189,45 +132,6 @@ More lines. But go-to-definition works, breakpoints work, and onboarding dropped
 
 ---
 
-## Pros & Cons
-
-**Choosing plain code — pros:**
-
-- Predictable cost: flat, ongoing, no surprises.
-- Tooling fully intact; compile-time failures; debuggable.
-- Low bus factor; new hires productive fast.
-
-**Choosing plain code — cons (be honest):**
-
-- Genuinely large, repeated, error-prone boilerplate stays manual and can drift (copy-paste skew is its *own* bug source).
-- Some cross-cutting concerns become tedious and easy to forget (e.g., remembering to add a metric to every new handler).
-
-**Choosing metaprogramming — when it's the right call:**
-
-- The boilerplate is large *and* painful *and* error-prone *and* repeated across many sites.
-- It's framework-level, owned and tested by a team, not a one-off in app code.
-- It pays back its cost many times and you can still debug it (readable codegen beats invisible runtime magic).
-
----
-
-## Use Cases
-
-**Plain code wins (don't metaprogram):**
-
-- CRUD apps, admin panels, internal tools with a handful of entities.
-- Closed sets of types/cases (interface or `switch`).
-- One or two occurrences of a pattern.
-- Anything where failure would be runtime-only and hard to trace.
-- Anything you can't staff a second maintainer on.
-
-**Metaprogramming earns it (covered deeply at senior/professional):**
-
-- Serialization/ORM mapping across hundreds of types.
-- Framework-level cross-cutting concerns (request tracing, auth, transactions) written once.
-- API client generation from a schema (readable, committed codegen).
-
----
-
 ## Coding Patterns
 
 - **Score-before-you-build.** Before adding magic, write the five cost axes on a whiteboard and score the proposal. If three are red, stop.
@@ -262,6 +166,24 @@ More lines. But go-to-definition works, breakpoints work, and onboarding dropped
 
 ---
 
-## Summary
+## Apply it
 
-At the middle level, "too magic" stops being a feeling and becomes a calculation. Score every metaprogramming proposal on five axes — comprehension, debuggability, tooling, performance, maintenance — and weigh its lifetime cost (per-read, times readers, times years) against the plain alternative's flat ongoing cost. Walk down the decision ladder and compute the break-even in *cases*: one or two occurrences never justify magic; many large, painful, error-prone, repeated occurrences sometimes do. Beware the specific anti-patterns — reflection where an interface works, a DSL where config works, magic frameworks for CRUD, clever macros with a bus factor of one, monkeypatching third-party libs, stringly-typed dispatch. Prefer designs that fail at compile time over runtime, that stay grep-able, and that generate readable committed code rather than invisible runtime behavior. The author always underestimates the cost because they carry the magic in their head; the team carries it forever. Make the trade explicit, and default to boring.
+1. Find a real component where **When NOT to Metaprogram** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
+
+## Verify your work
+
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
+
+## Review questions
+
+- Which boundary is most affected by When NOT to Metaprogram?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

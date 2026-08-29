@@ -1,25 +1,43 @@
 # Programming Languages
 
-> Learn how languages express computation, manage resources, and behave in production—from practical language use to runtime internals.
+> Learn a language well enough to deliver software, then use runtime knowledge to explain what the program actually does under load and failure.
 
-This domain separates language knowledge from software craftsmanship. Start with a concrete language when you need delivery skills, then use Language Internals to understand the execution models and trade-offs shared across ecosystems.
+Choose a track from the problem in front of you. Use **Go** when you need to build or operate a Go program. Use **Language Internals** when a type, allocation, compiler, runtime, numeric, security, or interoperability decision is unclear.
 
-## Topics
+```mermaid
+flowchart LR
+    Need["Engineering task"] --> Build{"Build in Go?"}
+    Build -->|"Yes"| Go["Go track"]
+    Build -->|"No or uncertain"| Internals["Language Internals"]
+    Go --> Evidence["Tests, traces, profiles"]
+    Internals --> Evidence
+```
 
-| # | Topic | Focus |
+The destination is evidence: a test, compiler diagnostic, benchmark, profile, trace, or production measure that confirms the mental model.
+
+## Tracks
+
+| Track | Start here | Use it to |
 |---|---|---|
-| 01 | [Go](golang/README.md) | Concurrency, runtime behavior, interfaces, errors, HTTP services, distributed data, and production debugging. |
-| 02 | [Language Internals](language-internals/README.md) | Type systems, memory, runtimes, execution models, compilers, interoperability, and language selection. |
+| [Go](golang/README.md) | Set up, write, organize, and operate Go software. | Deliver services and tools with explicit concurrency, error, API, data, and debugging decisions. |
+| [Language Internals](language-internals/README.md) | Study concepts shared across languages and runtimes. | Predict behavior, compare language choices, and diagnose problems below source syntax. |
 
-## How to use this section
+## A practical study loop
 
-Each completed topic progresses through four levels:
+1. Pick one behavior you cannot yet predict.
+2. Write the expected result before running the program.
+3. Build the smallest example that can disprove the expectation.
+4. Inspect the relevant compiler, runtime, memory, or protocol evidence.
+5. Change one variable and repeat.
+6. Record the rule and its limit in your own words.
 
-| Level | Scope | Expected outcome |
-|---|---|---|
-| Junior | Language fundamentals in a small program | Write correct code and recognize common failures. |
-| Middle | Components and production services | Choose maintainable APIs, dependencies, and debugging strategies. |
-| Senior | Runtime and system boundaries | Reason about performance, failure, compatibility, and operations. |
-| Professional | Organization-wide language strategy | Govern adoption, migrations, platforms, and measurable outcomes. |
+## Level progression
 
-Every level guide ends with unanswered comprehension questions for active recall.
+| Level | Responsibility |
+|---|---|
+| Junior | Make a small program behave correctly and explain the result. |
+| Middle | Choose maintainable boundaries and verify component integration. |
+| Senior | Protect system invariants across performance, failure, and evolution. |
+| Professional | Govern adoption, ownership, migration, and measurable outcomes. |
+
+Move to the next level when you can reproduce the current level's evidence without copying the example.

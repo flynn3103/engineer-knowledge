@@ -1,55 +1,11 @@
-# Dynamic Linking & Loading — Senior Level
+# Dynamic Linking & Loading — Senior
 
-> **Topic:** Dynamic Linking & Loading
-> **Focus:** Symbol resolution rules, interposition and `LD_PRELOAD`, symbol versioning, the diamond/duplicate-symbol problem, and `dlopen`/`dlsym` for runtime plugins — the parts that decide *which* definition of a symbol actually wins.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Dynamic Linking & Loading** under failure, load, and change?
 
-## Introduction
-
-> Focus: **When several loaded objects all define a symbol named `malloc`, which one does a given call reach — and how do you deliberately control that?**
-
-The middle level explained the *mechanism* (PLT/GOT) by which a call reaches a resolved address. This level is about the *policy*: how the loader decides which definition a name resolves to when more than one is available, and how engineers exploit and fight that policy in practice.
-
-This is where dynamic linking stops being plumbing and becomes a design surface. **Interposition** — making the loader pick *your* `malloc` over libc's — powers allocator replacement (jemalloc, tcmalloc), sanitizers, leak detectors, mocking, and a whole genre of profiling tools. **Symbol versioning** is how glibc ships `memcpy@GLIBC_2.2.5` and `memcpy@GLIBC_2.14` in the same library so old binaries keep working. The **diamond / duplicate-symbol problem** is why two plugins that each statically link the same library can corrupt each other's global state. And `dlopen`/`dlsym` is how every plugin system on the planet loads code that wasn't known at build time.
-
-> 🎓 **Why this matters at the senior level:** The bugs here are the nastiest in native software because they are *non-local*: the symptom (a crash in library C) has its cause in *the interaction between* the load order of A and B, an `RTLD_GLOBAL` flag, or a versioned-symbol mismatch on a different machine. Engineers who understand resolution policy debug these in minutes; everyone else debugs them for days.
-
-This page covers: the loader's symbol search order and the global-scope rule; interposition via `LD_PRELOAD` and the `malloc` hook pattern; `RTLD_LOCAL` vs `RTLD_GLOBAL` and macOS two-level namespaces; symbol versioning and ABI compatibility; the diamond/duplicate-symbol problem; and `dlopen`/`dlsym`/`dlclose` plugin mechanics with constructors/destructors.
-
----
-
-## Prerequisites
-
-- **Required:** Middle level — GOT/PLT, lazy vs eager binding, the dynamic section.
-- **Required:** Comfort with C, pointers, function pointers, and building `.so` files with `gcc -shared -fPIC`.
-- **Required:** A working model of "a process has multiple loaded objects (the executable + several `.so`s), each with its own symbol table."
-- **Helpful:** Some exposure to a plugin architecture, or to running software under a sanitizer/allocator-replacement tool.
-
-You do **not** yet need: ABI-stability strategy at organizational scale, JVM class loaders, Windows IAT/delay-load internals, or large-scale startup-cost engineering — those are `professional.md`.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Symbol scope** | The set of objects the loader searches to resolve a given reference, and the order it searches them. |
-| **Global scope (default lookup scope)** | The ordered set of objects (executable first, then dependencies in load order) searched for normal symbol references. |
-| **Interposition** | Inserting a definition of a symbol *earlier* in the search order so it overrides the "real" one. |
-| **`LD_PRELOAD`** | An env var listing `.so`s to load *first*, before all dependencies — the canonical interposition lever on Linux. |
-| **`RTLD_GLOBAL`** | A `dlopen` flag: the library's symbols join the global scope and become available to interpose/resolve later loads. |
-| **`RTLD_LOCAL`** | A `dlopen` flag (default): the library's symbols are *not* added to the global scope; only it and its own deps see them. |
-| **`RTLD_NOW` / `RTLD_LAZY`** | `dlopen` flags choosing eager vs lazy binding for the opened library. |
-| **Symbol versioning** | Tagging symbols with a version (`memcpy@GLIBC_2.14`) so one library can ship multiple ABI-incompatible versions of a name. |
-| **Default version** | The version (`@@`) a symbol resolves to when a binary asks for the name without a version. |
-| **Two-level namespace** | macOS scheme where each imported symbol records *which library* it comes from, so the same name in two libraries doesn't collide. |
-| **Flat namespace** | The Linux-style scheme (and a macOS opt-in) where a name resolves by global search regardless of which library "owns" it. |
-| **`dlopen` / `dlsym` / `dlclose`** | Runtime API to load a library, look up a symbol by name, and unload it — the basis of plugins. |
-| **Diamond problem** | A and B both depend on C; if C is duplicated (e.g. statically linked into both), there are two copies of C's state. |
-| **`-Bsymbolic`** | A link flag making a library prefer its *own* definitions for internal references, resisting interposition. |
-| **`RTLD_NEXT`** | A `dlsym` pseudo-handle meaning "the *next* definition after me in the search order" — how a wrapper calls the real function. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -130,26 +86,6 @@ On Linux's flat namespace, if both copies export the symbols *globally*, interpo
 `dlopen` loads a library *while the program runs*; `dlsym` looks up a symbol by name and returns a pointer you cast and call; `dlclose` unloads. This is how editors load language servers, how databases load extensions, how media players load codecs. The plugin's constructors (`DT_INIT_ARRAY`) run during `dlopen`; its destructors run during the matching `dlclose` (or at exit).
 
 The portable contract is a small, C-linkage **entry point** the host looks up by a known name, returning a vtable of function pointers — never relying on the C++ ABI across the boundary (name mangling and ABI differences make C++ plugin interfaces fragile).
-
----
-
-## Real-World Analogies
-
-**The org chart that resolves "who do I ask?"** A symbol reference is "I need someone who does `malloc`." Resolution walks an org chart in a fixed order and stops at the first person with that job title. `LD_PRELOAD` is hiring a contractor and seating them at the *front* of the line, so every "who does malloc?" question reaches the contractor first. `RTLD_NEXT` is the contractor saying "let me forward this to the next person who also has that title" — the real malloc.
-
-**Two branch offices, two ledgers (the diamond problem).** Headquarters (C) should keep one ledger. If two departments (A and B) each photocopy the *code* of accounting and keep *their own* ledger, money "deposited" via A and "withdrawn" via B never reconciles — the books are corrupt. One shared accounting department (shared library) keeps one ledger.
-
-**Versioned recipes in one cookbook.** glibc is a cookbook with both "Grandma's gravy (1998 edition)" and "gravy (2014 edition)" printed under the heading "gravy." Old chefs follow the 1998 page they were trained on; new chefs follow 2014. Same dish name, both behaviors preserved — that's symbol versioning.
-
----
-
-## Mental Models
-
-**Model 1: Resolution is "first match in a fixed walk."** Everything — interposition, the diamond problem, `LD_PRELOAD`, `RTLD_GLOBAL` collisions — falls out of "the loader walks a defined order and takes the first definition." Master the order and you predict the outcome.
-
-**Model 2: `LD_PRELOAD` / interposition = jumping the queue.** You don't change anyone's code; you change *who's first in line* for a name. Powerful, invisible, and exactly why it's both a great tool and a security concern (an attacker who controls `LD_PRELOAD` controls every libc call).
-
-**Model 3: Symbol visibility is an API boundary.** Every *exported* symbol is part of your library's interface, interposable and collidable. `-fvisibility=hidden` + an explicit export list is how you say "this is my API; everything else is private," shrinking the resolution surface and the bug surface.
 
 ---
 
@@ -234,29 +170,6 @@ $ gcc -shared -fPIC -Wl,-Bsymbolic foo.c -o libfoo.so
 
 ---
 
-## Pros & Cons
-
-| Mechanism | Pros | Cons |
-|-----------|------|------|
-| **`LD_PRELOAD` interposition** | Replace/augment any symbol with no recompilation; basis of allocators, sanitizers, profilers, shims. | Process-wide and invisible; a security risk if attacker-controlled; behaves differently on macOS. |
-| **`RTLD_GLOBAL`** | Lets cooperating plugins share symbols. | Cross-plugin collisions; "first loaded wins"; hard-to-debug non-local failures. |
-| **`RTLD_LOCAL` (default)** | Isolation between plugins; predictable. | Cooperating plugins must export via explicit handles, not ambient global symbols. |
-| **Symbol versioning** | Ship multiple ABIs in one library; preserve old binaries forever. | Complex; `version not found` errors; requires version scripts to do well. |
-| **Two-level namespace (macOS)** | No accidental name collisions; each import bound to its provider. | Breaks Linux-style flat interposition; portability surprises. |
-| **`dlopen` plugins** | Load code unknown at build time; extensibility. | Lifetime/unload bugs; C++ ABI fragility; classloader-style leaks (see professional). |
-
----
-
-## Use Cases
-
-- **Allocator replacement / memory profiling:** `LD_PRELOAD` jemalloc/tcmalloc, or a counting/leak-tracking shim, across an unmodified binary.
-- **Sanitizers and fault injection:** interpose `malloc`/`open`/`connect` to inject failures or record behavior in tests.
-- **Plugin architectures:** `dlopen` codecs, database extensions, language servers, game mods — anything loaded after build.
-- **ABI longevity:** symbol versioning so a 2015 binary still runs on 2025's libc, and so your own shared library can evolve without breaking callers.
-- **Diagnosing "wrong function got called":** when two libraries define the same name, knowing the search order tells you instantly which one wins.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Wrapper-with-`RTLD_NEXT` for augmentation
@@ -307,52 +220,24 @@ To avoid `version not found`, build on (or target via toolchain) the oldest glib
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```text
-SEARCH ORDER (Linux, flat namespace) — first match wins:
-  1. LD_PRELOAD objects   2. the executable   3. needed libs (load order, BFS)
+1. State the system invariant that **Dynamic Linking & Loading** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
-INTERPOSITION
-  LD_PRELOAD=./shim.so prog        # shim's symbols win, no recompile
-  dlsym(RTLD_NEXT, "malloc")       # inside a wrapper: reach the REAL one
-  macOS: DYLD_INSERT_LIBRARIES + __interpose (two-level namespace differs!)
+## Verify your work
 
-dlopen FLAGS
-  RTLD_LOCAL  (default)  symbols NOT in global scope     <- default for plugins
-  RTLD_GLOBAL            symbols join global scope (collisions!)
-  RTLD_NOW              resolve all now    RTLD_LAZY  resolve on first call
-  RTLD_NODELETE        never unload on dlclose
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
 
-PLUGIN API
-  void *h = dlopen(path, RTLD_NOW|RTLD_LOCAL);
-  fn = dlsym(h, "entry"); if (dlerror()) ...;   // check dlerror(), not NULL
-  ... call ...; dlclose(h);                      // runs DT_FINI_ARRAY (best-effort)
-  Boundary = extern "C" vtable of fn pointers + version. NEVER C++ ABI.
+## Review questions
 
-SYMBOL VERSIONING
-  memcpy@GLIBC_2.2.5 (old)   memcpy@@GLIBC_2.14 (default)   in ONE libc.so.6
-  "version `GLIBC_2.34' not found" -> built newer than target; build on oldest
-
-DIAMOND / DUPLICATE SYMBOL
-  A->C, B->C : share ONE C (one state). Two static copies of C = two states = corruption.
-  defenses: link C once as .so; -fvisibility=hidden; version scripts; RTLD_LOCAL
-
-HARDEN A LIBRARY'S OWN CALLS
-  -Wl,-Bsymbolic        prefer own defs (resists interposition)
-  -fvisibility=hidden   export only your API
-```
-
----
-
-## Summary
-
-- Symbol resolution is **"first match in a fixed search order."** On Linux that order is preloads → executable → needed libs (load order). Master the order and every interposition/collision outcome becomes predictable.
-- **Interposition** exploits the order: `LD_PRELOAD` puts your `.so` first, so your `malloc` (or any symbol) wins with no recompilation — the basis of allocator replacement, sanitizers, and profilers. A wrapper reaches the original via `dlsym(RTLD_NEXT, name)`.
-- **`RTLD_LOCAL`** (the default) isolates a `dlopen`ed plugin's symbols; **`RTLD_GLOBAL`** merges them into global scope, enabling cooperation but inviting cross-plugin collisions. Default to local.
-- **macOS two-level namespaces** bind each import to a specific provider, preventing the silent name collisions Linux's flat namespace allows — and breaking flat-style interposition. A real portability difference.
-- **Symbol versioning** lets one library ship multiple ABIs of a name (`memcpy@GLIBC_2.2.5` vs `@@GLIBC_2.14`), preserving old binaries; mismatches surface as `version not found` when you build newer than the target runtime.
-- The **diamond / duplicate-symbol problem**: sharing one copy of a library means one set of globals; two static copies means two — and heap/state corruption when they interact. Link shared libraries once; hide internal symbols.
-- **`dlopen`/`dlsym`/`dlclose`** load plugins at runtime; cross the boundary with a C-linkage vtable, check `dlsym` via `dlerror()`, default to `RTLD_LOCAL`, and treat `dlclose` as best-effort.
-
-Next: `professional.md` scales this up — ABI-stability strategy, startup cost at fleet scale (why many `.so`s = slow start, prelink history, why static/AOT wins cold starts), Windows DLL search/hijacking and delay-loading, and JVM class loading + classloader leaks.
+- Which invariant must remain true when Dynamic Linking & Loading fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

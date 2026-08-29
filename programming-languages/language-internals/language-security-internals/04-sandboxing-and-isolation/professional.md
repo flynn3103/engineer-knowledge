@@ -1,24 +1,11 @@
-# Sandboxing & Isolation — Professional Level
+# Sandboxing & Isolation — Professional
 
-> **Topic:** Sandboxing & Isolation
-> **Focus:** Choosing and operating isolation in production — strength vs. cost, multi-tenancy, threat modeling, and breakout detection.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Sandboxing & Isolation** with measurable outcomes and limited coordination?
 
-## Introduction
-
-By the professional tier the question is never "should we sandbox?" but "which
-isolation boundary, at what cost, for this specific threat model?" A multi-tenant
-code runner, a browser, a serverless platform, and a plugin host all need
-isolation — but they sit at wildly different points on the strength/cost curve,
-and choosing wrong means either an unaffordable bill or a tenant escape on the
-front page. This tier is about making that choice deliberately, operating it, and
-detecting when it fails.
-
-The governing principle is **least authority at the execution boundary**: a
-component should reach only what it has been explicitly granted, and the cost of a
-compromise should be bounded by construction, not by hope.
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## The Isolation-Strength / Cost Curve
@@ -94,15 +81,6 @@ can touch only what it was handed, which is the capability model in practice.
 
 ---
 
-## Use Cases
-
-- **Multi-tenant code execution** (CI runners, online judges, notebook backends): microVM-per-job or gVisor; never bare containers for arbitrary tenant code.
-- **Edge / serverless functions**: V8 isolates (Workers) for JS-only at extreme density; Firecracker for arbitrary runtimes.
-- **Plugin systems**: Wasm with capability-scoped host functions — the plugin reaches only the host APIs you expose.
-- **Browsers / document viewers**: multi-process renderer sandbox + broker + site isolation.
-
----
-
 ## Best Practices
 
 - **Deny by default, allowlist explicitly** — syscalls, capabilities, mounts, network.
@@ -124,19 +102,24 @@ can touch only what it was handed, which is the capability model in practice.
 
 ---
 
-## War Stories
+## Apply it
 
-- **Default-profile escapes**: multiple container escapes have chained a permissive seccomp profile (an allowed `ioctl`/`userfaultfd`) with a kernel bug — the lesson that the syscall allowlist *is* the boundary.
-- **runc CVE-2019-5736**: a container could overwrite the host `runc` binary, escaping to the host — why read-only host binaries and microVM isolation for untrusted workloads matter.
-- **Spectre forced site isolation**: browsers moved to process-per-origin precisely because in-process isolation could not stop microarchitectural reads across origins.
+1. Define the user or business outcome that **Sandboxing & Isolation** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
----
+## Verify your work
 
-## Summary
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
 
-Production isolation is an engineering trade on a strength/cost curve: pick the
-cheapest boundary that contains your real attacker, drop ambient authority,
-allowlist the syscall and capability surface, layer multiple boundaries, keep
-secrets out of the blast radius, and monitor for breakout. "Containers are not a
-security boundary" is the line to remember: for untrusted code, put a real
-boundary (gVisor, microVM, or capability-scoped Wasm) underneath.
+## Review questions
+
+- Which measurable outcome justifies investing in Sandboxing & Isolation?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

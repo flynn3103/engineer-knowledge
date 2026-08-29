@@ -1,8 +1,11 @@
 # Language Longevity & Lock-In Risk — Junior
 
-> **What?** Choosing a language is a *bet on its future*. You're not just picking what's good today — you're betting that in five or ten years it will still be healthy, hireable, and supported. Lock-in is the flip side: once you've built on a language, getting off it is expensive, so a bad bet doesn't just hurt — it traps you.
-> **How?** Before you commit, ask "will this still be alive and well when this code is old?" Read the simple health signals — is it actively developed, does it have a big real community, do real companies run it in production — and steer away from fads that look exciting but could vanish.
+<!-- level-focus -->
+At junior level, focus on this question:
 
+> How can I apply **Language Longevity & Lock-In Risk** in one small example and prove the result?
+
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## 1. The choice is a bet, not a purchase
@@ -114,18 +117,24 @@ That's what makes longevity a *risk* and not just a preference: a healthy langua
 
 ---
 
-## 9. What's next
+## Apply it
 
-| Topic | File |
-|---|---|
-| How to actually *assess* longevity (governance, cadence, lock-in dimensions) | [`middle.md`](middle.md) |
-| Distinguishing "boring-stable" from "declining"; engineering for escape | [`senior.md`](senior.md) |
-| Managing decade-long bets at the org level | [`professional.md`](professional.md) |
-| Practice scorecards and lock-in mapping | [`tasks.md`](tasks.md) |
-| Interview questions on longevity and lock-in | [`interview.md`](interview.md) |
+1. Choose one small, known input for **Language Longevity & Lock-In Risk**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
-See also the sibling topics this connects to: [`01-language-selection-criteria`](../01-language-selection-criteria/) (where longevity is one factor), [`03-ecosystem-and-tooling-maturity`](../03-ecosystem-and-tooling-maturity/) (library health is part of language health), and [`06-migrating-between-languages`](../06-migrating-between-languages/) (what escaping a bad bet actually costs).
+## Verify your work
 
----
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
 
-**Memorize this:** picking a language is a multi-year bet on its future. Read the simple health signals — active development, a real community, and especially *real companies running it in production* — and steer clear of fads. A bad bet doesn't just disappoint you; because of lock-in, it *traps* you, and as COBOL proves, a dead language can keep charging you rent for decades.
+## Review questions
+
+- What problem does Language Longevity & Lock-In Risk solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

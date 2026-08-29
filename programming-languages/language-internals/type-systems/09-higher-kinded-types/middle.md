@@ -1,56 +1,11 @@
-# Higher-Kinded Types — Middle Level
+# Higher-Kinded Types — Middle
 
-> **Topic:** Higher-Kinded Types
-> **Focus:** From "kinds exist" to *writing* code generic over a container. The `Functor`/`Applicative`/`Monad` typeclass hierarchy in real Haskell and Scala, the laws, and the first encoding tricks for languages that lack native HKTs.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **Higher-Kinded Types** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-> Focus: **How do you actually express "for all containers `F`"?** And **what are the typeclasses Functor / Applicative / Monad, with their laws, in code you can run?**
-
-At the junior level you learned the vocabulary: kinds (`*`, `* -> *`, `* -> * -> *`), type constructors as type-level functions, and the *intuition* that a higher-kinded type abstracts over a container `F`. This level makes it concrete. You will see:
-
-- The **typeclass mechanism** — Haskell's `class`/`instance` and Scala's `trait` + given/implicit — that lets you *declare* "any `F` that supports `map`" and *provide* `map` per container.
-- The **Functor → Applicative → Monad** hierarchy written out, with the exact method signatures and the **laws** each must obey.
-- Concrete instances for `Option`/`Maybe`, `List`, `Either`, and a `Pair`, so the abstractions never float free of examples.
-- Why two-argument constructors like `Either` need **partial application at the type level** to fit a `* -> *` slot, and how Scala (`Either[E, *]`) and Haskell express that.
-- A first look at the **encoding problem**: how languages without native HKTs (TypeScript, Kotlin) *simulate* them, and why it's awkward.
-
-The throughline: **a higher-kinded type is a type parameter whose own kind is `* -> *`.** Everything here is a consequence of taking that seriously.
-
-> Engineering reality: this is where teams split. Used well, HKT-based abstractions remove enormous duplication (one `traverse` instead of twenty). Used carelessly, they produce code only the author can read. By the end of this page you should be able to *read* Cats/Haskell code fluently and *write* a `Functor`/`Monad` instance — and judge when not to.
-
----
-
-## Prerequisites
-
-- **Required:** The junior page — kinds, type constructors, the "count the holes" model, and the informal notion of `map`/`flatMap`.
-- **Required:** Generics with bounds/constraints in some language (`<T extends Comparable<T>>`, Rust trait bounds, or Scala/Haskell typeclass constraints). HKT typeclasses are "generics with a constraint that happens to be over a `* -> *` parameter".
-- **Required:** Comfort reading at least one of Haskell or Scala syntax at a basic level. We provide both.
-- **Helpful:** Having used Java `Optional.map/flatMap`, Rust `Option::map/and_then`, or JS `Promise.then` — these are Functor/Monad operations under other names.
-- **Helpful:** Knowing what "currying" and "partial application" mean for ordinary functions; we reuse the idea at the type level.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Typeclass** | A named bundle of operations a type can implement (Haskell `class`, Scala `trait`). Like an interface, but you can add instances *after the fact* and they can be higher-kinded. |
-| **Instance** | A concrete implementation of a typeclass for a specific type (`instance Functor Maybe`). |
-| **Constraint / context** | "This code requires `F` to be a Functor", written `Functor f =>` (Haskell) or `(using Functor[F])` (Scala). |
-| **`Functor`** | Typeclass with `map`/`fmap :: (a -> b) -> f a -> f b`, obeying identity & composition laws. |
-| **`Applicative`** | Adds `pure :: a -> f a` and `ap`/`<*> :: f (a -> b) -> f a -> f b` — combine independent effects. |
-| **`Monad`** | Adds `flatMap`/`>>= :: f a -> (a -> f b) -> f b` (and `pure`). Sequence dependent effects. |
-| **`pure` / `return` / `of`** | Lift a plain value into the minimal container. (`return` in Haskell is *not* control-flow return.) |
-| **`<$>`** | Infix `fmap` in Haskell: `f <$> fa == fmap f fa`. |
-| **`<*>`** | Infix `ap` ("apply"), the Applicative combine operator. |
-| **`>>=`** | Infix `flatMap`/`bind`, the Monad sequencing operator (pronounced "bind"). |
-| **Kind signature** | `Functor :: (* -> *) -> Constraint` — Functor is a typeclass *over one-hole constructors*. |
-| **Type lambda** | An anonymous, partially-applied type constructor, e.g. Scala `[X] =>> Either[E, X]`, to fit a `* -> *` slot. |
-| **Defunctionalization** | Encoding type-level functions as data + a separate "apply" — the trick TypeScript/Kotlin use to fake HKTs. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -222,41 +177,6 @@ It works, and it's type-safe, but it's verbose, the error messages are rough, an
 
 ---
 
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Typeclass (`Functor`)** | A certification standard: "to be Functor-certified, your container must provide a lawful `map`". |
-| **Instance** | A specific product passing the certification — `Maybe` is Functor-certified, `List` is Functor-certified. |
-| **Constraint `Functor f =>`** | A job posting: "applicant `F` must hold the Functor certification to apply for this generic function". |
-| **Functor** | A translator who changes the contents of a sealed package without opening the box's design. |
-| **Applicative** | A jig that bolts two *independently prepared* parts together; neither part's shape depends on the other. |
-| **Monad** | An assembly line where step 2's blueprint is chosen based on what step 1 produced. |
-| **Partial type application (`Either e`)** | A two-knob machine with one knob pre-set at the factory, sold as a one-knob machine. |
-| **Defunctionalization** | A coat-check: you can't hand the cloakroom your whole coat *constructor*, so you hand it a numbered ticket (tag) and a lookup desk reunites ticket with coat. |
-
----
-
-## Mental Models
-
-### The "interface, but the parameter is a container" model
-
-You already understand `interface Comparable<T>`. A higher-kinded typeclass is `interface Functor<F<_>>` — the *only* new thing is that the type parameter `F` has a hole in it. Everything else (declare operations, provide instances, constrain generic code) is familiar.
-
-### The "ladder of independence vs dependence" model
-
-- **Functor** — one effect, transform its contents.
-- **Applicative** — many **independent** effects, combine them. (Order doesn't create dependency; great for parallelism and error accumulation.)
-- **Monad** — many **dependent** effects, each chosen from the previous result. (Forces sequencing.)
-
-When you choose a constraint, you're choosing how much *dependency* your code is allowed to introduce. Less is more general.
-
-### The "currying at the type level" model
-
-Functions curry: `f : A -> B -> C` partially applies to `f a : B -> C`. Types curry too: `Either : * -> * -> *` partially applies to `Either E : * -> *`. The instant you see a two-hole constructor used where one hole is expected, look for a fixed first argument.
-
----
-
 ## Code Examples
 
 ### Generic code over an arbitrary Monad (Haskell)
@@ -354,29 +274,6 @@ Compare with Scala's `[F[_]: Monad]`: in TypeScript you thread the instance and 
 
 ---
 
-## Pros & Cons
-
-| Aspect | Pros | Cons |
-|--------|------|------|
-| **Code reuse** | One `traverse`, `sequence`, `foldMap`, validation pipeline reused across every effect. | Reuse only pays off past a threshold of containers; below it, plain code is clearer. |
-| **Precision of constraints** | Demanding `Functor` vs `Applicative` vs `Monad` documents exactly how much power a function uses. | Picking the wrong rung (over-asking `Monad`) needlessly restricts callers. |
-| **Law-based reasoning** | Laws license safe refactors (`map`/`map` fusion, bind reassociation). | Laws are *unchecked by the compiler*; a buggy instance silently breaks generic code. |
-| **Ecosystem** | Cats, ZIO, Haskell `base`, fp-ts give batteries-included instances. | Heavy dependency and a large conceptual surface for a team to absorb. |
-| **Native vs encoded** | Native (Haskell/Scala) is ergonomic. | Encoded (TS/Kotlin) is verbose, leaks tags, and gives worse errors. |
-
----
-
-## Use Cases
-
-- **Generic `traverse`/`sequence`:** turn a `List<F<A>>` into an `F<List<A>>` for any Applicative `F` — validate a list of inputs, run a list of async calls, etc., with one function.
-- **Effect-polymorphic business logic:** write `program[F[_]: Monad](...)` once and run it with `Option`, `Either`, `IO`, `Future`, or a test `Id` monad.
-- **Error-accumulating validation:** use an Applicative (`Validated`) to collect *all* form errors instead of bailing on the first.
-- **Library design:** expose `map`/`flatMap`/`traverse` so users' own types plug into your combinators by providing instances.
-
-Avoid when: you have a single concrete effect, your team isn't fluent in typeclasses, or your language lacks native support and the encoding cost dominates.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Constrain to the weakest typeclass that compiles
@@ -420,24 +317,24 @@ If sub-computations are independent, model them with Applicative so you can accu
 
 ---
 
-## Summary
+## Apply it
 
-- A **higher-kinded typeclass** is an interface whose type parameter is itself a `* -> *` constructor. Haskell infers the kind from `f a`; Scala declares it with `F[_]`.
-- **Functor** (`map`/`fmap`), **Applicative** (`pure` + `<*>`), **Monad** (`>>=`) form a hierarchy of increasing power: transform inside one effect → combine **independent** effects → sequence **dependent** effects.
-- Each layer carries **laws** the compiler can't check (identity/composition for Functor; left/right identity and associativity for Monad). Lawful instances are the contract that makes generic code correct.
-- Concrete instances ground everything: `Maybe`/`Either` short-circuit, `[]` does cartesian non-determinism — *same signatures, different behavior*.
-- Two-argument constructors like `Either` and `Map` fit a `* -> *` slot by **fixing all but the last type argument** — type-level partial application (`Either e`, Scala type lambdas).
-- **Applicative earns its own rung** by combining independent effects: it can accumulate *all* errors and parallelize, where Monad must sequence and short-circuit.
-- Languages without native HKTs **encode** them via defunctionalization (`Kind<F, A>` + tags, as in fp-ts) — sound but verbose; native support (Haskell/Scala) is what makes them ergonomic.
-- The senior skill is knowing the **weakest constraint** that works and the **runtime cost** hiding behind a generic `m`.
+1. Find a real component where **Higher-Kinded Types** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
----
+## Verify your work
 
-## Further Reading
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
 
-- *Functional Programming in Scala* — Chiusano & Bjarnason. Chapters on Functor/Applicative/Monad/Traverse built from scratch.
-- *Programming in Haskell* — Graham Hutton. Clear, formal treatment of the typeclass hierarchy and laws.
-- The Typeclassopedia — Brent Yorgey. The canonical map of Haskell's typeclass hierarchy. https://wiki.haskell.org/Typeclassopedia
-- Cats documentation — Functor, Applicative, Monad, Traverse, Validated. https://typelevel.org/cats/
-- *Lightweight Higher-Kinded Polymorphism* — Yallop & White. The paper behind the defunctionalization encoding. https://www.cl.cam.ac.uk/~jdy22/papers/lightweight-higher-kinded-polymorphism.pdf
-- fp-ts docs — the encoding in a mainstream language. https://gcanti.github.io/fp-ts/
+## Review questions
+
+- Which boundary is most affected by Higher-Kinded Types?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

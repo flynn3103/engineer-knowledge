@@ -1,19 +1,11 @@
-# Lexers & Tokenizers — Professional Level
+# Lexers & Tokenizers — Professional
 
-> **Topic:** Lexers & Tokenizers
-> **Focus:** Lexer performance, error recovery, and incremental/editor tokenization in production.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Lexers & Tokenizers** with measurable outcomes and limited coordination?
 
-## Introduction
-
-In production the lexer is judged on three axes the textbook ignores: **speed** (it
-touches every byte of every file, often repeatedly in an IDE), **error recovery**
-(it must keep going past bad input to report many errors and to feed editor tooling),
-and **incrementality** (re-lexing only what changed as a user types). On top of these
-sit real Unicode and security concerns. This tier is about making a lexer fast,
-resilient, and editor-ready.
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## The Lexer Is Often the Hot Path
@@ -112,27 +104,24 @@ window, often integrated with an incremental parser.
 
 ---
 
-## War Stories
+## Apply it
 
-- **Trojan Source (2021):** bidi-override Unicode characters let source code render in
-  one order while tokenizing/compiling in another, enabling invisible logic changes —
-  prompting compilers and linters to add detection and forcing lexer-level Unicode
-  vigilance.
-- **C++ `>>` ergonomics:** the pre-C++11 requirement to write `vector<vector<int> >`
-  with a space — a tokenization decision (maximal munch on `>>`) that annoyed a
-  generation of programmers until parsing was changed to special-case template context.
-- **IDE responsiveness:** moving from full re-lex to incremental lexing is what makes
-  large-file editing feel instant; getting the invalidation bounds wrong produces
-  flicker or stale highlighting.
+1. Define the user or business outcome that **Lexers & Tokenizers** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
----
+## Verify your work
 
-## Summary
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
 
-Professionally, a lexer must be fast (allocation-free inner loop, interning, buffered
-scanning — it's often the hottest phase), resilient (error tokens + resynchronization so
-one bad character doesn't abort the compile), and editor-ready (incremental re-lexing
-bounded around edits, as in Tree-sitter and Roslyn). Layered on top are real Unicode
-identifier rules and security concerns — homoglyphs and Trojan-Source bidi attacks —
-that make tokenization a correctness *and* a security surface, which is why production
-compilers hand-write and carefully tune their lexers.
+## Review questions
+
+- Which measurable outcome justifies investing in Lexers & Tokenizers?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

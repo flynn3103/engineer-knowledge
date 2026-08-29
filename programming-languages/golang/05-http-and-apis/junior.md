@@ -1,49 +1,11 @@
 # HTTP and APIs — Junior
 
-> **Topic:** [HTTP and APIs](../README.md)
-> **Focus:** `net/http` handlers, `http.ServeMux`, request/response basics, setting timeouts, and the difference between a demo server and one that survives a slow client.
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **HTTP and APIs** in one small example and prove the result?
 
-## Introduction
-
-Go's standard library ships a complete, production-capable HTTP stack in `net/http` — no framework required to get started. A handler is just a function (or anything implementing `http.Handler`):
-
-```go
-func hello(w http.ResponseWriter, r *http.Request) {
-    fmt.Fprintln(w, "Hello, world")
-}
-
-func main() {
-    http.HandleFunc("/hello", hello)
-    http.ListenAndServe(":8080", nil)
-}
-```
-
-That's a working server in six lines — and also a server with no timeouts, no graceful shutdown, and no protection against a slow or malicious client holding a connection open forever. This page covers the basics; the gap between "it works in a demo" and "it survives production" is most of what the rest of this topic is about.
-
----
-
-## Prerequisites
-
-- Comfortable with functions, structs, and basic error handling.
-- No prior web framework experience required.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **`http.Handler`** | Interface: `ServeHTTP(w http.ResponseWriter, r *http.Request)`. Anything satisfying it can handle requests. |
-| **`http.HandlerFunc`** | An adapter letting an ordinary function serve as an `http.Handler`. |
-| **`http.ServeMux`** | The standard library's request router/multiplexer, matching URL paths to handlers. |
-| **Middleware** | A function wrapping a handler to add behavior (logging, auth, timeouts) before/after it runs. |
-| **`http.Client`** | The standard library's HTTP client, used for outgoing requests. |
-| **Timeout** | A deadline after which an operation (read, write, or the whole request) is aborted. |
-| **Graceful shutdown** | Stopping a server such that in-flight requests finish before the process exits, instead of being cut off. |
-| **`context.Context`** | Carries per-request cancellation/deadline; `r.Context()` gives you the request's context. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -170,27 +132,6 @@ The zero-value `http.Client{}` (or the package-level `http.Get`) has **no timeou
 
 ---
 
-## Pros & Cons
-
-| | Pros | Cons |
-|---|---|---|
-| **`net/http` standard library** | No dependency, well-documented, battle-tested | More boilerplate for complex routing than a full framework |
-| **`ServeMux` (1.22+ patterns)** | Method + path patterns built in, no third-party router needed for basic cases | Still lacks some framework conveniences (built-in validation, OpenAPI generation) |
-| **Middleware via wrapping** | Simple, composable, no magic | Ordering matters and can be easy to get wrong; no built-in dependency injection |
-
----
-
-## Use Cases
-
-| Situation | Approach |
-|---|---|
-| A small internal API, few routes | Plain `net/http` + `ServeMux`, no framework needed |
-| Need path parameters, method routing | Go 1.22+ `ServeMux` patterns, or a router library for older Go |
-| Calling another service | `http.Client` with an explicit `Timeout` |
-| Every request needs logging/auth | Middleware wrapping the handler/mux |
-
----
-
 ## Best Practices
 
 1. Always set `ReadTimeout`, `WriteTimeout` (or `ReadHeaderTimeout` at minimum), and `IdleTimeout` on `http.Server`.
@@ -220,49 +161,24 @@ The zero-value `http.Client{}` (or the package-level `http.Get`) has **no timeou
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```go
-srv := &http.Server{
-    Addr: ":8080", Handler: mux,
-    ReadHeaderTimeout: 5 * time.Second,
-    ReadTimeout: 10 * time.Second, WriteTimeout: 10 * time.Second,
-    IdleTimeout: 120 * time.Second,
-}
-client := &http.Client{Timeout: 5 * time.Second}
-defer resp.Body.Close()
-ctx := r.Context()
-```
+1. Choose one small, known input for **HTTP and APIs**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
----
+## Verify your work
 
-## Summary
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
 
-- `net/http` gives you a complete HTTP stack with no framework; a handler is just a function with the right signature.
-- Always configure explicit timeouts on both `http.Server` and `http.Client` — the zero values are unlimited.
-- Always close response bodies on the client side to avoid leaking connections.
-- Pass `r.Context()` down so slow or canceled requests can stop downstream work early.
+## Review questions
 
----
-
-## Further Reading
-
-- The Go Blog — *The complete guide to Go net/http timeouts*: <https://blog.cloudflare.com/the-complete-guide-to-golang-net-http-timeouts/>
-- `net/http` package docs: <https://pkg.go.dev/net/http>
-
----
-
-## Related Topics
-
-- [Error Handling](../04-error-handling/junior.md) — mapping errors to HTTP status codes.
-- [Goroutines and Concurrency](../01-goroutines-and-concurrency/junior.md) — each request runs in its own goroutine.
-
----
-
-## Check your understanding
-
-1. Explain HTTP and APIs — Junior Level in your own words and name the problem it solves.
-2. How would you apply the ideas around Introduction, Prerequisites, Glossary in a realistic engineering change?
-3. What failure mode or misuse should you look for, and what evidence would reveal it?
-4. What small example would prove that you can apply HTTP and APIs — Junior Level correctly?
-5. What observable result would convince you that the approach improved the system?
+- What problem does HTTP and APIs solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

@@ -1,8 +1,11 @@
 # Language Longevity & Lock-In Risk — Senior
 
-> **What?** The deep analysis behind a durable language bet: telling a *mature, stable, "boring"* language apart from a *declining* one (both look quiet); reasoning about standards-based vs. single-implementation languages; weighing the corporate-backing double-edged sword; and — the senior's real deliverable — *engineering for portability* so that lock-in becomes a measured, bounded cost rather than a trap.
-> **How?** Stop reading activity charts and start reading *causes*. Treat migration cost as the true measure of lock-in, and architect deliberately to keep that cost low: isolate platform-specific code, define interop boundaries, and understand how lock-in *compounds* across the language, its ecosystem, its cloud, and its tooling. Portability is not a property you have; it's a property you *build*.
+<!-- level-focus -->
+At senior level, focus on this question:
 
+> Which system invariant is affected by **Language Longevity & Lock-In Risk** under failure, load, and change?
+
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## 1. Stable vs. declining: the distinction that matters most
@@ -77,7 +80,7 @@ Corporate-backed language risk ≈
 
 Here is the senior reframing of the entire topic: **lock-in is not a yes/no property — it is a cost, and that cost equals what it would take to migrate off.** Everything else is a proxy for this number. So the rigorous way to assess lock-in is to estimate the migration:
 
-- How many lines of business logic are in the language? (See [`06-migrating-between-languages`](../06-migrating-between-languages/) for *how* you'd move it.)
+- How many lines of business logic are in the language? (See [`06-migrating-between-languages`](../06-migrating-between-languages/README.md) for *how* you'd move it.)
 - How much of it is fused to a framework or a proprietary platform vs. portable?
 - How available are the target-language skills and the people to do the move?
 - Can it be done incrementally (strangler-fig) or only big-bang?
@@ -121,7 +124,7 @@ class S3ObjectStore implements ObjectStore { ... }   // <- the only AWS-aware co
 
 This is the **anti-corruption layer / ports-and-adapters** idea applied to longevity: the vendor lives at the edge, your domain lives at the center, and the boundary is the seam you'd cut along.
 
-**Define interop boundaries deliberately.** If you must use multiple languages or might migrate incrementally, design clean seams — service boundaries with versioned schemas, stable RPC contracts, FFI surfaces — so each side can be replaced independently. (This is the longevity motivation for the techniques in [`04-interop-and-polyglot-architectures`](../04-interop-and-polyglot-architectures/).) A migration is dramatically cheaper when the system is already cut into replaceable pieces along language/platform lines.
+**Define interop boundaries deliberately.** If you must use multiple languages or might migrate incrementally, design clean seams — service boundaries with versioned schemas, stable RPC contracts, FFI surfaces — so each side can be replaced independently. (This is the longevity motivation for the techniques in [`04-interop-and-polyglot-architectures`](../04-interop-and-polyglot-architectures/README.md).) A migration is dramatically cheaper when the system is already cut into replaceable pieces along language/platform lines.
 
 **Keep business logic framework-free.** Framework lock-in (from [`middle.md`](middle.md)) is escapable *if* your domain rules don't import the framework. Logic that doesn't know whether it's running under Spring or anything else can survive a framework migration untouched.
 
@@ -172,14 +175,24 @@ This compounding is why senior engineers (1) prefer languages whose ecosystems a
 
 ---
 
-## 9. What's next
+## Apply it
 
-| Topic | File |
-|---|---|
-| Org-level decade bets, exit optionality, the legacy end-game, talking to leadership | [`professional.md`](professional.md) |
-| Build scorecards, lock-in maps, and escape-hatch designs | [`tasks.md`](tasks.md) |
-| Interview framing, up to staff-level lock-in assessments | [`interview.md`](interview.md) |
+1. State the system invariant that **Language Longevity & Lock-In Risk** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
----
+## Verify your work
 
-**Memorize this:** stability is a feature — tell mature from declining by whether anyone starts *new* projects in it. Lock-in is a *cost*, equal to migration cost, and it *compounds* across language, ecosystem, platform, and tooling. You can't eliminate it, but you can bound it: isolate the vendor-specific code behind your own boundaries so the seam you'd cut along already exists before you need it.
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
+
+## Review questions
+
+- Which invariant must remain true when Language Longevity & Lock-In Risk fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

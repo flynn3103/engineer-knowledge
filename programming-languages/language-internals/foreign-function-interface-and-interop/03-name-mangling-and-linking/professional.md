@@ -1,51 +1,11 @@
-# Name Mangling & Linking — Professional Level
+# Name Mangling & Linking — Professional
 
-> **Topic:** Name Mangling & Linking
-> **Focus:** Treating the symbol table as a controlled ABI surface — visibility, versioning, weak/COMDAT folding, ODR hygiene, demangling in production tooling, and shipping stable cross-language exports.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Name Mangling & Linking** with measurable outcomes and limited coordination?
 
-## Introduction
-
-At the professional tier, name mangling and linking stop being a thing the toolchain does to you and become a thing you do to the toolchain. A library that ships to thousands of consumers is, in linker terms, a *contract printed in a symbol table*. Every symbol you export is a promise; every promise you cannot keep forever is a future ABI break, a future `undefined reference`, a future support ticket from a downstream team whose binary loaded yours and found the function gone. The senior tier taught you how mangling encodes types and how the linker folds vague-linkage duplicates. This tier is about governing that surface: deciding which symbols are public, versioning the ones that must evolve, hiding the rest, and reading the toolchain's diagnostics fluently enough to debug a corrupted production binary at 3 a.m.
-
-The unifying idea is **the dynamic symbol table is your ABI, and most of it should not exist**. A default C++ or Rust build exports far more than its public API — every external-linkage function, every template instantiation, every inline helper that happened to get a weak symbol. Each exported symbol enlarges the dynamic symbol table, slows every `dlopen`/program-load because the runtime linker must hash and relocate it, widens the surface that consumers can accidentally depend on, and makes every refactor a potential ABI break. The professional move is to *export nothing by default and opt specific symbols in* — `-fvisibility=hidden` plus explicit `__attribute__((visibility("default")))`, or `__declspec(dllexport)`, or a version script, or a `.def` file. This single discipline shrinks load time, shrinks the ABI, and turns "we accidentally broke a symbol nobody knew we exported" into a compile-time impossibility.
-
-This document covers visibility control on ELF and PE, why hiding helps, weak/COMDAT folding and the ODR violations it hides, glibc's `GLIBC_2.x` symbol versioning, fluent reading of `undefined reference to 'foo(int)'` and `multiple definition` errors, demangling inside stack traces and profilers, the `extern "C"` / `#[no_mangle]` export discipline for Rust and C++, and `strip` as the last step that decides what ships. The senior page covered the mangling schemes themselves and vague linkage mechanics; here we operationalize all of it.
-
----
-
-## Prerequisites
-
-- **Required:** `junior.md`, `middle.md`, and `senior.md` of this topic — symbols, the Itanium and MSVC mangling schemes, archives vs shared objects, `nm`/`c++filt`/`readelf`/`objdump`, weak/COMDAT and vague linkage.
-- **Required:** Practical experience building a shared library (`.so`/`.dylib`/`.dll`) that other code links against.
-- **Required:** Comfort reading linker error output and inspecting object files.
-- **Helpful:** Having shipped or maintained a library with a stability guarantee, or having debugged an ABI break in production.
-- **Helpful:** Some exposure to packaging (distro packages, `manylinux`, semantic versioning of `.so` SONAMEs).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **ABI surface** | The set of symbols, types, and layouts a binary exposes and promises to keep stable across versions. |
-| **Visibility** | Whether a symbol is exported in the dynamic symbol table (`default`) or internal to the module (`hidden`/`internal`/`protected`). |
-| **`-fvisibility=hidden`** | GCC/Clang flag making every symbol hidden by default; you then opt specific ones back to `default`. |
-| **`__declspec(dllexport/dllimport)`** | MSVC/PE attributes marking a symbol as exported from / imported into a DLL. |
-| **Version script** | A GNU `ld` linker script (`--version-script`) that lists which symbols are global vs local and attaches version tags. |
-| **`.def` file** | A module-definition file listing the symbols a Windows DLL exports (the PE analogue of a version script's export list). |
-| **COMDAT** | The section-grouping mechanism (ELF and PE) tagging vague-linkage symbols so duplicate copies fold to one. |
-| **Vague linkage** | Inline functions, templates, vtables, RTTI emitted in every using translation unit and deduplicated by the linker. |
-| **Weak symbol** | A symbol that may have multiple definitions (linker keeps one) or be overridden by a strong one. |
-| **ODR** | One Definition Rule — every entity must have exactly one definition; violations are undefined behavior. |
-| **Symbol versioning** | Attaching a version tag (e.g. `GLIBC_2.17`) to a symbol so one library can ship multiple ABI-incompatible versions of the same name. |
-| **`@GLIBC_2.x`** | The version node decorating a glibc symbol; `@@` marks the default version, `@` a non-default (compatibility) version. |
-| **Default version** | The version a fresh link binds to (one `@@` node per symbol); older binaries stay bound to older `@` nodes. |
-| **SONAME** | The "shared object name" a `.so` advertises; the runtime version identity distros depend on. |
-| **`strip`** | The tool that removes symbol-table and debug information from a binary after linking. |
-| **Demangle** | Convert a mangled symbol (`_ZN3foo3barEi`) back to source form (`foo::bar(int)`). |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -214,41 +174,6 @@ Critical caveat: `strip` removes *local* and *debug* symbols, but it does **not*
 
 ---
 
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Hidden-by-default visibility** | A building where every door is locked by default and you issue keys (export) only for the public entrances; nobody can wander into the server room. |
-| **Exported symbol as a liability** | Every public phone number you print is a number you must keep answered forever; an unlisted line you can change anytime. |
-| **Version script / `.def`** | The official "public directory" of a company — only listed extensions reach the outside; everything else is internal-only. |
-| **COMDAT folding** | A print shop receiving fifty identical copies of one form and filing a single master, shredding the rest. |
-| **ODR violation** | Fifty "identical" forms that actually have different fine print; the clerk files one at random and everyone now works from possibly-wrong text. |
-| **glibc symbol versioning** | An elevator that still stops at floors numbered under the old scheme *and* the new one, so old tenants and new tenants both find their floor. |
-| **`undefined reference`** | A recipe that calls for an ingredient nobody put on the shopping list — the dish (link) cannot be completed. |
-| **strip with debug sidecar** | Shipping the appliance without the wiring diagram taped inside, but keeping the diagram on file so a technician can still service a returned unit. |
-
----
-
-## Mental Models
-
-### The "Symbol Table Is a Published Contract" Model
-
-Treat every symbol in your dynamic symbol table as a clause in a contract you signed with every consumer, forever. Adding a clause (export) is cheap today and expensive for life. Removing or changing a clause breaks someone. The whole discipline of this tier is keeping the contract *as small as it can possibly be* — export only what is genuinely public — so that the surface you must keep stable is small enough to actually keep stable.
-
-### The "Hidden Is Free, Exported Is Forever" Model
-
-A hidden symbol costs nothing: no load-time hashing, no ABI promise, full optimization freedom. An exported symbol costs on every load and constrains every future refactor. So the default must be hidden, and each export must justify itself. When unsure, hide it — you can always export later (additive, safe); un-exporting later is an ABI break (subtractive, dangerous).
-
-### The "Folding Is Correct Only If Copies Are Identical" Model
-
-The linker folds vague-linkage duplicates trusting they are identical. That trust is yours to honor. Every inline function, template, and vtable in a shared header is a *promise of byte-identical emission everywhere*. The moment a flag, macro, or type definition diverges between two TUs, the promise breaks, the fold is wrong, and you get silent corruption. Flag consistency across TUs is not hygiene; it is a correctness requirement.
-
-### The "A Matching Name Is Not a Matching Contract" Model
-
-A resolved symbol means the *name* lined up. It does not mean the calling convention, the struct layout, the glibc version, or the C++ standard-library ABI lined up. The link succeeding is necessary, not sufficient. Narrow cross-boundary interfaces to a flat C ABI precisely because that is the one place where a matching name *does* reliably mean a matching contract.
-
----
-
 ## Code Examples
 
 ### Cross-platform export macro (build vs consume, ELF and PE)
@@ -372,29 +297,6 @@ A crash from the field, plus `app.debug`, still yields fully demangled, line-num
 
 ---
 
-## Pros & Cons
-
-| Aspect | Pros | Cons |
-|--------|------|------|
-| **`-fvisibility=hidden` + explicit exports** | Smaller ABI, faster load, better optimization, refactor freedom. | Must annotate the public API; forgetting a mark gives an `undefined reference` to your own consumers. |
-| **Version scripts / `.def`** | Lock the export list outside source; works on third-party objects; enables symbol versioning. | Another build artifact to maintain; wildcard mistakes can over- or under-export silently. |
-| **Symbol versioning** | Decade-long backward compatibility from one `.so`; old and new binaries coexist. | Intricate `.symver` mechanics; ELF/GNU-`ld`-specific; easy to get the default (`@@`) node wrong. |
-| **COMDAT / vague-linkage folding** | Inline functions and templates live in headers with no multiple-definition errors. | Hides ODR violations: divergent definitions fold silently into UB. |
-| **strip + debug sidecar** | Small shipped binary, no leaked internals, full crash symbolication retained. | Extra build step; lose the sidecar and field crashes become near-undebuggable. |
-
----
-
-## Use Cases
-
-- **Shipping a stable shared library** (a database client, a codec, an SDK) where the export list *is* the supported ABI and must stay small and versioned.
-- **Cross-language SDKs** implemented in C++/Rust, exposed as a flat `extern "C"`/`#[no_mangle]` C surface generated and audited as one module.
-- **Distro / `manylinux` packaging** where you must build against an old glibc so `@@GLIBC_2.x` bindings resolve on every target system.
-- **Plugin systems** using `dlopen` where load time scales with exported-symbol count, so hiding internals is a measurable startup win.
-- **Long-lived libraries** that must evolve a function's behavior without breaking already-shipped binaries — symbol versioning's home turf.
-- **Production debugging** of stripped binaries, where demangling and a debug sidecar turn a raw crash into a readable backtrace.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Hidden-by-default, exported-on-purpose
@@ -455,87 +357,24 @@ In CI, after link: `objcopy --only-keep-debug` to a sidecar archived in the symb
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. Build a small C++ shared library twice — once with default visibility, once with `-fvisibility=hidden -fvisibility-inlines-hidden` — and compare `nm -D | wc -l`. Explain the ratio and why load time differs.
-2. Write a version script with `local: *;` and confirm an internal helper that links fine in your own tests gives `undefined reference` when a *separate* program tries to use it. Why is that the desired outcome?
-3. Run `objdump -T /lib/.../libc.so.6 | grep memcpy`. Identify the `@@` default node and a `@` compatibility node. Explain what an old binary resolves to and why.
-4. Reproduce `version 'GLIBC_2.x' not found` by building on a new machine and running on an older one (or in an older container). Then rebuild against an old sysroot and show it resolves. Which environment was the bug?
-5. Trigger `undefined reference to 'foo(int)'` by defining `foo` in a C file and calling it from C++ without `extern "C"`. Add `extern "C"` and watch it link. What changed in the symbol names?
-6. Create the flag-dependent `Config` ODR trap, confirm it links cleanly, then add an ABI tag (inline namespace) and show the link now *fails* loudly. Why is the loud failure better?
-7. Strip a binary with `--only-keep-debug` + `--add-gnu-debuglink` and confirm you still get a demangled, line-numbered backtrace from a crash. Then delete the sidecar and observe what you lose.
-8. Pipe a Rust `v0` symbol through `c++filt` (Itanium) and through `rustfilt`. Explain why one is garbage and one is readable, and what this means for profiler output.
+1. Define the user or business outcome that **Name Mangling & Linking** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
----
+## Verify your work
 
-## Cheat Sheet
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
 
-```text
-┌──────────────────────────────────────────────────────────────────────┐
-│          NAME MANGLING & LINKING — PROFESSIONAL CHEAT SHEET           │
-├──────────────────────────────────────────────────────────────────────┤
-│  VISIBILITY = ABI SURFACE                                            │
-│   build .so with: -fvisibility=hidden -fvisibility-inlines-hidden    │
-│   export public API: __attribute__((visibility("default")))         │
-│                      / __declspec(dllexport) (PE)  / .def / .map     │
-│   hidden = free (no load cost, no promise, optimizable)             │
-│   exported = forever (load cost + permanent ABI promise)            │
-├──────────────────────────────────────────────────────────────────────┤
-│  VERSION SCRIPT (lock down + version)                                │
-│   MYLIB_1.0 { global: mylib_*; local: *; };                         │
-│   local:*  == hidden-by-default, even for 3rd-party objects         │
-├──────────────────────────────────────────────────────────────────────┤
-│  glibc SYMBOL VERSIONING                                             │
-│   memcpy@@GLIBC_2.14  (@@ = DEFAULT, new links bind here)            │
-│   memcpy@GLIBC_2.2.5  (@  = compat, old binaries stay here)         │
-│   RULE: build on OLDEST target → run forward only, never backward   │
-├──────────────────────────────────────────────────────────────────────┤
-│  ERRORS                                                             │
-│   undefined reference to `foo(int)'  → decl/def mismatch, missing   │
-│        extern "C", lib not linked / wrong order, hidden/stripped     │
-│   multiple definition of `foo'       → 2 strong defs (header def,    │
-│        non-inline var; fix: inline / one-TU / static / extern)       │
-├──────────────────────────────────────────────────────────────────────┤
-│  ODR: divergent defs fold SILENTLY under one weak symbol → UB.       │
-│   Defense: identical flags + no flag-dependent layouts + ABI tags.   │
-├──────────────────────────────────────────────────────────────────────┤
-│  DEMANGLE:  c++filt (Itanium) · rustfilt (Rust _R) · undname (MSVC)  │
-│   raw _Z/_R/? in a profiler = WRONG demangler, not corruption.      │
-├──────────────────────────────────────────────────────────────────────┤
-│  STRIP (keep symbolication):                                        │
-│   objcopy --only-keep-debug app app.debug                           │
-│   strip --strip-debug --strip-unneeded app                          │
-│   objcopy --add-gnu-debuglink=app.debug app                         │
-│   NOTE: strip does NOT remove the dynamic symbol table → ABI intact  │
-├──────────────────────────────────────────────────────────────────────┤
-│  EXPORT C SURFACE:  extern "C" (C++) / #[no_mangle] extern "C" (Rust)│
-│   opaque void* handles + POD/pointers = the only stable cross-ABI.   │
-└──────────────────────────────────────────────────────────────────────┘
-```
+## Review questions
 
----
-
-## Summary
-
-- **The dynamic symbol table is your ABI, and most of it should not exist.** Build shared libraries with `-fvisibility=hidden -fvisibility-inlines-hidden` (or a `local: *;` version script / a `.def` on Windows) and export only the deliberate public API.
-- **Hiding symbols speeds load, shrinks the binary, enables optimization, and — most importantly — shrinks the enforceable ABI.** A hidden symbol is free; an exported symbol is a permanent promise and a per-load cost. Export on purpose, hide by default.
-- **Vague-linkage symbols (inline functions, templates, vtables, RTTI) fold via COMDAT** to one copy — correct *only if the copies are byte-identical*. Divergent definitions under one weak symbol cause **ODR violations** that the linker resolves *silently*, producing location-independent corruption. Identical flags and no flag-dependent layouts are the defense.
-- **glibc symbol versioning** (`memcpy@@GLIBC_2.14` default vs `memcpy@GLIBC_2.2.5` compat) lets one library ship multiple ABI versions of a name; build against the *oldest* target you support because resolution only ever goes forward in version.
-- **Read the two key errors fluently:** `undefined reference to 'foo(int)'` (decl/def mismatch, missing `extern "C"`, unlinked/misordered library, hidden/stripped symbol) and `multiple definition` (two strong definitions — fix with `inline`/one-TU/`static`).
-- **Demangle in production tooling** with the scheme-correct tool — `c++filt`, `rustfilt`, `undname`. A raw symbol in a stack trace or flame graph almost always means the wrong demangler, not bad data.
-- **Expose cross-language/cross-compiler interfaces as a flat C ABI** (`extern "C"` / `#[no_mangle] extern "C"`, opaque handles + POD), the only contract that survives ABI drift.
-- **`strip` the shipped binary but keep a debug sidecar** (`--only-keep-debug` + `--add-gnu-debuglink`); note `strip` removes local/debug symbols but never the dynamic symbol table, so it cleans the artifact without changing your ABI.
-
----
-
-## Further Reading
-
-- *How To Write Shared Libraries* — Ulrich Drepper, on visibility, versioning, COMDAT, and load-time costs.
-- GCC docs — *Visibility* (`-fvisibility`, `-fvisibility-inlines-hidden`) and `__attribute__((visibility))`.
-- GNU `ld` manual — *Version Scripts* (`--version-script`) and `.symver` directives.
-- *Symbol Versioning* — the original Solaris/GNU symbol-versioning design notes and the glibc `Versions` files.
-- Microsoft docs — *Exporting from a DLL* (`__declspec(dllexport)`, module-definition `.def` files).
-- cppreference — *One Definition Rule (ODR)* page.
-- Rust — `cbindgen` documentation and the Rustonomicon FFI chapter on `#[no_mangle]`/`extern "C"`.
-- `binutils` manuals for `nm`, `objdump`, `readelf`, `strip`, `objcopy`, `c++filt`; LLVM `lld` docs on `--icf`.
-- *manylinux* project documentation on building against an old glibc for portable Linux wheels.
+- Which measurable outcome justifies investing in Name Mangling & Linking?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

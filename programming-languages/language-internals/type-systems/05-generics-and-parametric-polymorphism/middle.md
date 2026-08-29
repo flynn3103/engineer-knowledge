@@ -1,69 +1,11 @@
-# Generics & Parametric Polymorphism — Middle Level
+# Generics & Parametric Polymorphism — Middle
 
-> **Topic:** Generics & Parametric Polymorphism
-> **Focus:** The four kinds of polymorphism (and why parametric is special), and the two great implementation strategies — **monomorphization** vs. **type erasure** — plus the hybrids (Go's GC-shape dictionaries, C#'s reified generics). The same `<T>` source, four very different machines underneath.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **Generics & Parametric Polymorphism** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-> Focus: **There is exactly one generic *source program* but several possible generic *runtimes*.** Understanding which one your language uses explains almost every practical question you'll have about generics: why Java boxes, why Rust binaries are big, why `new T()` works in C# but not Java, why C++ template errors are pages long, and why Go's generics behave like neither.
-
-At the junior level, generics were a *programming model*: write `Stack<T>` once, use it for all types. That model is the same in every language. But the moment the compiler has to turn `Stack<T>` into actual machine code, it faces a fundamental fork in the road, and **different languages took different branches**. The branch a language chose ripples into everything: performance, binary size, compile time, what you can do with `T` at runtime, and the shape of the error messages you'll spend hours decoding.
-
-The two endpoints of the spectrum are:
-
-1. **Monomorphization** — generate a *separate, specialized copy* of the code for each concrete type it's used with. `Stack<int>` and `Stack<String>` become two distinct compiled types, each as if you'd hand-written it. Used by **C++ templates, Rust, and C# for value types.** Fast and inline-able (zero-cost), but produces more code, slower compiles, and "type information at runtime" only because each copy *is* a specific type.
-
-2. **Type erasure** — generate *one shared implementation* that treats every value uniformly (as a pointer/reference/`Object`), and *throw away* the type arguments after type-checking. There's one `Stack` machine; the `<String>` is a compile-time fiction. Used by **Java, Haskell, TypeScript (full erasure), and Go's early `interface{}` style.** Smaller code and faster compiles, but boxing/indirection costs, and the runtime can't see `T` (so `new T()`, `instanceof List<String>` are impossible).
-
-Then there are the **hybrids and refinements**:
-
-- **C# reified generics** — like monomorphization for value types (no boxing, `List<int>` stores real `int`s), but the *runtime itself* knows the type arguments (`typeof(T)` works, `new T()` works), and reference types *share* one instantiation. The best of both, paid for with a more sophisticated runtime (the CLR).
-- **Go's hybrid** — "GC-shape stenciling with dictionaries": Go generates one copy per *memory shape* (roughly: per pointer-vs-value layout), not per type, and passes a hidden **dictionary** of type-specific operations. A deliberate middle path between full monomorphization (too much code) and full boxing (too slow).
-
-This page first nails down the **four kinds of polymorphism** so you can place parametric polymorphism precisely, then dissects each implementation strategy with concrete observable consequences. By the end you should be able to look at any generic-using program and predict its memory layout, its `T`-at-runtime capabilities, and its rough performance profile.
-
----
-
-## Prerequisites
-
-- **Required:** Junior level of this topic — you know what `<T>`, type parameters, and parametric polymorphism are.
-- **Required:** The distinction between a **value type** (`int`, a `struct`) stored inline and a **reference type** (an object accessed via a pointer) stored on the heap.
-- **Required:** A rough sense of what "the compiler generates machine code" and "code lives in the binary" mean.
-- **Helpful:** Some awareness of garbage collection and the heap vs. stack.
-- **Helpful:** Having seen a Java `ClassCastException` from raw types, or a C++ template error message, in the wild.
-
-You do **not** need:
-
-- Parametricity / free theorems (`senior.md`).
-- Deep performance tuning, binary-size budgeting, or specialization heuristics (`professional.md`).
-- Variance or higher-kinded types (sibling topics).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Parametric polymorphism** | Code parameterized by a type variable, behaving uniformly for all types. The subject of this topic. |
-| **Ad-hoc polymorphism** | Different implementations selected per type: function **overloading** and **typeclasses**/traits/interfaces with methods. Behavior *varies* by type. |
-| **Subtype polymorphism** | One interface, many implementations chosen by the runtime type (virtual dispatch, method override). The OOP kind. |
-| **Coercion polymorphism** | Implicit conversion between types (`int` → `double`) so one operation accepts several types. |
-| **Monomorphization** | Compiling a generic into a separate specialized copy per concrete type argument. |
-| **Type erasure** | Compiling a generic into one shared implementation, discarding type arguments after type-checking. |
-| **Reified generics** | Generics whose type arguments are preserved and queryable at runtime (C#: `typeof(T)`, `new T()`). |
-| **Boxing** | Wrapping a value type in a heap object so it can be referenced uniformly. The recurring cost of erasure over value types. |
-| **Instantiation (compiler sense)** | The compiler producing code/metadata for a specific type argument (e.g. emitting `Vec<i32>`). |
-| **Code bloat** | The growth in binary size caused by emitting many monomorphized copies. |
-| **Dictionary (Go/Haskell sense)** | A hidden table of type-specific operations passed to a generic so one shared body can act on many types. |
-| **GC shape** | Go's notion of a type's memory layout category (e.g. "single pointer", "non-pointer 8 bytes") used to decide how many stencils to emit. |
-| **Stenciling** | Go's term for emitting a generic copy per GC shape rather than per type. |
-| **Raw type** | (Java) Using a generic type without its parameter (`List` instead of `List<String>`) — a backward-compat escape hatch that disables type checking. |
-| **Type token** | A runtime value carrying type information (`Class<T>`, `TypeReference`) used to recover what erasure removed. |
-| **SFINAE** | (C++) "Substitution Failure Is Not An Error" — a template metaprogramming technique for conditional instantiation. |
-| **Concepts** | (C++20) Named constraints on template parameters that produce clear errors and document requirements. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -152,37 +94,6 @@ Notice a pattern: Haskell typeclasses, Go's hybrid, and (conceptually) bounded g
 - **Erasing/dictionary languages** pass a `compare` function (in a dictionary) as a hidden argument — one shared `max` body, called with different dictionaries.
 
 This is *exactly* where parametric polymorphism (uniform structure) meets ad-hoc polymorphism (per-type operation). The bound is the bridge; the dictionary is the runtime mechanism. Keeping this in mind demystifies traits, typeclasses, interfaces-with-methods, and bounded generics — they're all "uniform code + a per-type operations table."
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Monomorphization** | A bakery that, for every cake flavor ordered, sets up a *complete dedicated production line*. Each line is maximally efficient, but you need a whole factory floor and long setup time. |
-| **Type erasure** | One universal production line that makes "a cake" and lets the customer add the flavor themselves. Cheap to run one line, but every cake needs an extra flavoring step (boxing) and the line never knows what flavor it made. |
-| **Reified generics (C#)** | A smart universal line that *reads an RFID tag* on each order, automatically specializes value-flavor runs, and shares the line for the standard reference-flavors — and always knows what it produced. More expensive machinery, more capability. |
-| **Go's dictionary hybrid** | One line per *cake shape* (round vs. sheet), with a small recipe card (the dictionary) clipped to each order telling the line the flavor-specific steps. Fewer lines than per-flavor, less manual work than the universal line. |
-| **Code bloat** | The factory floor filling up with near-identical production lines. |
-| **Boxing** | Wrapping each loose ingredient in a standard tub so the universal line can handle it — extra tubs, extra handling. |
-| **Dictionary passing** | The recipe card handed to a general-purpose chef who can cook anything *if you tell them the steps*. |
-| **`new T()` impossible under erasure** | The universal line was never told the flavor, so it literally cannot bake a fresh one of "whatever flavor this was." |
-
----
-
-## Mental Models
-
-### The "One Source, Many Machines" Model
-
-Hold two layers separate in your head: the **source program** (`Stack<T>`, identical everywhere) and the **generated machine** (wildly different per language). Every confusing generics question — "why does this box?", "why can't I do `new T()`?", "why is my binary huge?" — is answered at the *machine* layer, by which strategy the compiler used. Learn to ask "erased, monomorphized, reified, or hybrid?" first.
-
-### The Spectrum, Not a Binary
-
-Draw a line. On the left: **full monomorphization** (C++, Rust) — max runtime speed, max code size, full runtime type knowledge (because each copy *is* a type). On the right: **full erasure** (Java, TS, Haskell) — min code size, runtime indirection/boxing, no runtime `T`. **C# reified** sits left-of-center (specialize value types, share refs, *plus* runtime metadata). **Go's hybrid** sits in the middle (per-shape stencils + dictionaries). Place any language on this line and its behavior falls out.
-
-### The Dictionary Lens for Bounds
-
-Whenever you see a bounded generic, picture a hidden table of operations being threaded through. In a monomorphizing language the table is *inlined away* per copy; in an erasing language it's *passed at runtime*. Same idea, different binding time. This single lens unifies typeclasses, traits, interfaces, and bounded generics.
 
 ---
 
@@ -342,30 +253,6 @@ This is *exactly* the junior-level "stop casting `Object`" lesson, realized at t
 
 ---
 
-## Pros & Cons
-
-| Strategy | Pros | Cons | Used by |
-|----------|------|------|---------|
-| **Monomorphization** | Zero-cost: no boxing, full inlining/optimization, fastest runtime. Each copy *is* a concrete type. | Code bloat, slow compiles, no cross-instantiation code sharing, cryptic error timing (C++). | C++ templates, Rust, C# value types |
-| **Type erasure** | Smallest code, fastest compiles, trivial backward compatibility, one implementation to maintain. | Boxing of value types (heap, GC, cache misses), no runtime `T` (`new T()`, `instanceof List<String>` impossible), unchecked-cast hazards. | Java, Haskell, TypeScript, early Go |
-| **Reified (C#)** | No value-type boxing *and* runtime type info (`typeof(T)`, `new T()`, `is List<string>`); shares code for reference types. | Heavier runtime/JIT; some per-value-type specialization cost. | C# / .NET |
-| **GC-shape hybrid (Go)** | Middle ground: less bloat than full mono, less indirection than full boxing; keeps Go's fast builds. | Dictionary indirection (not always as fast as mono); more complex than either pure strategy; ongoing perf tuning. | Go 1.18+ |
-
----
-
-## Use Cases
-
-Knowing your language's strategy guides real decisions:
-
-- **Hot numeric loops in Java/erased systems** → avoid `List<Integer>`; use `int[]` or primitive-specialized libraries (e.g. `IntStream`, fastutil). The boxing tax is real.
-- **Hot numeric loops in C#/Rust/C++** → generics are free; `List<int>` / `Vec<i32>` are as fast as arrays. No special-casing needed.
-- **Plugin/serialization frameworks needing runtime type info** → easy in C# (`typeof(T)`); in Java you must thread `Class<T>` tokens or use the super-type-token trick (Jackson `TypeReference`). Design the API around tokens up front.
-- **Binary-size-sensitive targets (embedded, WASM, fast cold-start)** → be wary of monomorphization bloat in Rust/C++; consider erasing the hot generic behind a `dyn`/virtual boundary to share one copy.
-- **Build-time-sensitive large codebases** → heavy generic monomorphization (or template-heavy C++) lengthens compiles; erased/dictionary strategies compile the generic once.
-- **Cross-version interop (adding generics to a legacy API)** → erasure (Java's choice) makes new generic code coexist with old `Object`-based code seamlessly; that's *why* Java erases.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Pass a Type Token Under Erasure
@@ -437,14 +324,24 @@ T add(T a, T b) { return a + b; }
 
 ---
 
-## Summary
+## Apply it
 
-- There are **four kinds of polymorphism** — **parametric** (uniform, the subject here), **ad-hoc** (overloading + typeclasses/traits — varies by type), **subtype** (virtual dispatch), and **coercion** (implicit conversion). Parametric is the one whose behavior is *identical* across types.
-- One generic **source** can compile to several very different **runtimes**. The master question for any language is: **monomorphized, erased, reified, or hybrid?**
-- **Monomorphization** (C++ templates, Rust, C# value types) emits a specialized copy per type: zero-cost, fully inlinable, but bloats binaries and slows compiles.
-- **Type erasure** (Java, Haskell, TypeScript, early Go) shares one implementation and discards type arguments: small code, fast compiles, but boxing of value types and **no runtime `T`** (`new T()`, `instanceof List<String>` impossible; hence type tokens and the super-type-token trick).
-- **C# reified generics** specialize value types (no boxing) *and* keep type arguments at runtime (`typeof(T)`, `new T()`, `is List<string>`), sharing code for reference types — paid for with a heavier runtime.
-- **Go's hybrid** stencils per **GC shape** and passes a hidden **dictionary** of type operations — a deliberate middle path preserving fast builds at some runtime-indirection cost.
-- The **dictionary** idea unifies bounded generics, typeclasses, traits, and interfaces: *uniform code + a per-type operations table*, bound either at compile time (inlined per copy) or runtime (passed as an argument).
-- Practical fallout you can now predict: Java boxes `List<Integer>`; Rust/C++ binaries grow with instantiations; Java forbids same-erasure overloads and `new T()`; C# allows both; Go's generics aren't always as fast as Rust's.
-- The senior level builds on the *uniformity* of parametric polymorphism to extract **theorems for free** — what the type alone forces the code to do.
+1. Find a real component where **Generics & Parametric Polymorphism** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
+
+## Verify your work
+
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
+
+## Review questions
+
+- Which boundary is most affected by Generics & Parametric Polymorphism?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

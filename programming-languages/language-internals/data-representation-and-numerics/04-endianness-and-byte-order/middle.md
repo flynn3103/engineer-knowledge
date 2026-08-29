@@ -1,63 +1,11 @@
-# Endianness & Byte Order — Middle Level
+# Endianness & Byte Order — Middle
 
-> **Topic:** Endianness & Byte Order
-> **Focus:** How to *correctly* convert between byte orders, why `*(uint32_t*)buf` is a trap (alignment + strict aliasing), and the right way to read multi-byte values from a buffer.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **Endianness & Byte Order** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-> Focus: **Knowing what endianness is isn't enough — you have to convert correctly, and the obvious way is a landmine.**
-
-At the junior level you learned *what* endianness is: the order of bytes in a multi-byte scalar, big-endian vs little-endian, and the rule "pin an explicit byte order at every boundary." Good. Now the hard part: **doing it without introducing two of the most common low-level bugs in systems code.**
-
-The tempting way to read a 4-byte value out of a network buffer is:
-
-```c
-uint32_t v = *(uint32_t *)(buf + offset);   // looks clean. is a bug.
-```
-
-This single line can be wrong in **three independent ways**:
-
-1. **Endianness** — `buf` is big-endian (network order) but the cast interprets it in native (little-endian) order. Wrong number.
-2. **Alignment** — `buf + offset` may not be 4-byte aligned. On some CPUs that's a fault; on others it's just slow; the C standard says it's undefined behavior.
-3. **Strict aliasing** — reading bytes through a `uint32_t*` that didn't originate as a `uint32_t` violates the C/C++ aliasing rules; the optimizer is allowed to miscompile it.
-
-This page teaches the **correct idiom** (`memcpy` + an explicit swap, or shift-and-OR), why each of the three traps exists, how byte-swapping actually works (including the CPU's `bswap` instruction and `__builtin_bswap`), and how floats, UUIDs, and bitfields each add their own endianness wrinkle.
-
-> 🎓 **Why this matters at the middle level:** This is where you stop copying snippets and start *understanding* serialization. Every binary protocol parser, every file-format reader, every RPC codec you'll write or review hinges on getting these idioms right. The cast-the-pointer bug ships constantly — being the person who catches it in review is a real skill.
-
----
-
-## Prerequisites
-
-- **Required:** Junior tier — big/little-endian, network byte order, the "silent wrong number" failure mode.
-- **Required:** Bitwise operators: shift (`<<`, `>>`), AND (`&`), OR (`|`). You'll read and write these fluently.
-- **Required:** Pointers and `memcpy` in C, or the equivalent in your language.
-- **Helpful:** A rough idea of what "alignment" means (an address divisible by the type's size).
-- **Helpful:** Having heard the phrase "undefined behavior."
-
-You do **not** need (yet): SIMD swaps, cache-line interactions, or the formal C++ object model — those are `senior.md`/`professional.md`.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Byte swap (bswap)** | Reversing the byte order of a value: BE↔LE. A 4-byte swap maps `b0 b1 b2 b3` → `b3 b2 b1 b0`. |
-| **`bswap` instruction** | A native CPU instruction (x86 `BSWAP`, ARM `REV`) that reverses bytes of a register in one op. |
-| **`__builtin_bswap16/32/64`** | GCC/Clang intrinsics that compile to the hardware swap instruction. |
-| **`std::byteswap`** | C++23 standard byte-swap function (`<bit>`). |
-| **Alignment** | The requirement that a value of size `N` live at an address that's a multiple of its alignment (often `N`). |
-| **Unaligned access** | Reading/writing a multi-byte value at a non-aligned address. UB in C; slow or faulting on some hardware. |
-| **Type punning** | Reinterpreting the bytes of one type as another type (e.g. reading a `float`'s bits as a `uint32_t`). |
-| **Strict aliasing** | The C/C++ rule that an object may only be accessed through a compatible type (or `char*`). Violating it is UB. |
-| **`memcpy` idiom** | The portable, alias-safe way to load/store a scalar from/to a byte buffer: `memcpy(&v, buf, sizeof v)`. |
-| **`htonl`/`ntohl`** | POSIX/Winsock conversions between host and network (big-endian) order for 32-bit values. `s` variants = 16-bit. |
-| **BOM** | Byte Order Mark; `U+FEFF` at the start of a UTF-16/32 stream, encoding its endianness. |
-| **Middle-endian (PDP-11)** | A historical mixed order: a 32-bit value stored as two 16-bit words, words in one order, bytes within each in the other. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -178,36 +126,6 @@ A C struct bitfield like `struct { unsigned a:4; unsigned b:4; };` packs sub-byt
 
 ---
 
-## Real-World Analogies
-
-**Translating a sentence vs. reversing letters.** A byte swap is like reversing the letters of a word — mechanical. But `htonl` is like a translator who knows *both* languages: if you're already speaking the target language (big-endian host), they say nothing; otherwise they translate. You want the translator, not the blind letter-reverser, because the translator is correct on any host.
-
-**The unaligned parking spot.** Alignment is like a truck that needs a spot starting on an even meter marker. A car can park anywhere, but the truck (a `uint32_t`) parked at meter 3 either gets a ticket (slow) or can't fit at all (SIGBUS). `memcpy` is the valet who carefully loads the cargo regardless of where the truck is — it always works.
-
-**The optimizer's assumption.** Strict aliasing is like a warehouse manager who's been told "boxes labeled INT and boxes labeled BYTE are never the same box," and reorganizes the warehouse on that assumption. If you sneak a BYTE-box and relabel it INT, the manager's optimizations corrupt your inventory. `memcpy` plays by the rules, so the manager never gets confused.
-
----
-
-## Mental Models
-
-### Model 1: "Load bytes, then interpret — two separate steps"
-
-Reading a scalar from a buffer is always **(a)** get the raw bytes safely, then **(b)** interpret them in a known order. The unsafe cast tries to do both at once and gets both wrong. Keep them separate: `memcpy` for (a), `be32toh`/shifts for (b).
-
-### Model 2: "Single-byte access is the safe primitive"
-
-Every alignment, aliasing, and endianness trap evaporates when you touch memory one byte at a time. `b[0]`, `b[1]`, ... are always aligned, always alias-legal, always order-explicit. Shift-and-OR is built on this primitive — that's why it's bulletproof.
-
-### Model 3: "`htonl` = swap *if needed*; `bswap` = swap *always*"
-
-When you reach for a conversion, ask: do I want unconditional reversal (`bswap`) or "make it big-endian on any host" (`htonl`/`be32toh`)? At a boundary you almost always want the latter. Confusing the two is the bug that works on LE and breaks on BE.
-
-### Model 4: "Floats ride on integers"
-
-There is no float byte-swap. To move a float across a byte-order boundary, reinterpret its bits as an integer (via `memcpy`), swap the integer, done. Same for doubles with 64-bit integers.
-
----
-
 ## Code Examples
 
 ### The full, correct big-endian reader/writer (C)
@@ -325,40 +243,6 @@ The fix: read each field with `get_be32`/`get_be16` at explicit offsets. Never o
 
 ---
 
-## Pros & Cons
-
-### `memcpy` idiom
-
-| Pros | Cons |
-|------|------|
-| Alias-safe, alignment-safe, zero UB. | Slightly more verbose than a cast. |
-| Optimizes to a single load — no runtime cost. | Easy to forget the *separate* endianness conversion step. |
-
-### Shift-and-OR idiom
-
-| Pros | Cons |
-|------|------|
-| Host-endianness-independent; no swap, no `htonl`. | Verbose for 64-bit values. |
-| Impossible to get alignment/aliasing wrong (byte access). | Looks "low-level" to readers unfamiliar with it. |
-
-### Pointer cast (`*(T*)buf`)
-
-| Pros | Cons |
-|------|------|
-| Shortest to type. | Native-order (wrong for wire data), may fault on unaligned access, violates strict aliasing → UB. **Avoid.** |
-
----
-
-## Use Cases
-
-- **Binary protocol parsers** (DNS, TLS records, Protobuf wire, custom RPC) — read every field with a safe order-explicit accessor.
-- **File-format readers/writers** — PNG (big-endian), BMP (little-endian), TIFF (either, declared by a tag), ELF/PE headers.
-- **Serialization libraries** — the conversion happens once, in the codec, at the boundary.
-- **Networking** — `htonl`/`ntohl` around socket-address and header fields.
-- **Cross-language data exchange** — define a fixed byte order so Go, Rust, C, and Python agree.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Tiny accessor functions per width/order
@@ -413,42 +297,24 @@ You control the layout; the compiler's bitfield order can't surprise you.
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```text
-THREE TRAPS in  uint32_t v = *(uint32_t*)buf;
-  1. endianness  -> native order, wrong for wire data
-  2. alignment   -> UB / SIGBUS on unaligned address
-  3. aliasing    -> strict-aliasing UB, -O2 miscompile
+1. Find a real component where **Endianness & Byte Order** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
-SAFE LOAD (pick one):
-  memcpy(&v, buf, 4); v = be32toh(v);          // copy then convert
-  v = (b[0]<<24)|(b[1]<<16)|(b[2]<<8)|b[3];    // shift-and-OR (host-independent)
+## Verify your work
 
-CONVERT (order-aware, correct on any host):
-  htonl/ntohl  (host<->net=BE, 32-bit)   htons/ntohs (16-bit)
-  htobe32/be32toh (glibc <endian.h>)
-  Go:   binary.BigEndian / binary.LittleEndian
-  Rust: u32::to_be_bytes / from_be_bytes
-  C++23: std::byteswap (unconditional swap)
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
 
-SWAP vs CONVERT:  bswap = always reverse;  htonl = reverse only if host is LE
+## Review questions
 
-FLOATS:  memcpy float<->uint32, swap the uint32, never swap "as float"
-BITFIELDS: implementation-defined order — extract with shifts, never C bitfields
-BOM (UTF-16/32): FE FF = BE,  FF FE = LE.  UTF-8 = no endianness.
-```
-
----
-
-## Summary
-
-- Knowing big vs little-endian isn't enough; you must **convert correctly**, and the obvious `*(uint32_t*)buf` cast is wrong in three ways: **endianness, alignment, and strict aliasing**.
-- The fix is **`memcpy` then an order-aware convert**, or **shift-and-OR** — both alias-safe, alignment-safe, and free after optimization. Shift-and-OR is even host-endianness-independent.
-- Use **`htonl`/`be32toh`/`binary.BigEndian`/`to_be_bytes`** (swap *if needed*), not a bare `bswap` (swap *always*), so code is correct on any host.
-- **Floats ride on integers**: reinterpret bits via `memcpy`, swap the integer, never "swap a float."
-- **Bitfield order is separately implementation-defined** — never parse protocols with C bitfields; use explicit shifts.
-- **UTF-16/32 carry endianness (BOM); UTF-8 doesn't.**
-- **Never overlay a struct on a wire buffer.** Read each field with a small, reviewed, order-explicit accessor, bounds-checked.
-
-The next tier (`senior.md`) goes under the hood: `bswap`/`REV`/`MOVBE` instructions, SIMD bulk swapping with `PSHUFB`, compile-time endianness detection, bi-endian architectures, and designing serialization formats that are endianness-robust by construction.
+- Which boundary is most affected by Endianness & Byte Order?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

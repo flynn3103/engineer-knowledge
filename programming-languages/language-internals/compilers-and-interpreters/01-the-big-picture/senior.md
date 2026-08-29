@@ -1,20 +1,11 @@
-# The Big Picture (Compiler Architecture) — Senior Level
+# The Big Picture (Compiler Architecture) — Senior
 
-> **Topic:** The Big Picture (Compiler Architecture)
-> **Focus:** The front/middle/back split, the shared-IR thesis, and how the real toolchains are actually organized.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **The Big Picture (Compiler Architecture)** under failure, load, and change?
 
-## Introduction
-
-A compiler is not one program; it is a pipeline of transformations, each turning a
-representation of the program into a slightly lower one until you reach the target.
-The single most important architectural decision in that pipeline is *where you cut
-it* — because the cuts determine what can be reused across languages and targets,
-where optimization lives, and how hard it is to add a new front end or a new chip.
-The senior view of "the big picture" is this set of cuts and the reasoning behind
-them.
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## The Three-Stage Architecture
@@ -102,19 +93,6 @@ optimization above.
 
 ---
 
-## Mental Models
-
-- **"A series of lowerings."** Compilation is repeatedly rewriting the program into a
-  lower-level but equivalent form until it's machine code.
-- **"Narrow waist."** One stable IR in the middle lets M producers and N consumers
-  interoperate at M+N cost.
-- **"The driver is a conductor."** What you call "the compiler" usually just
-  sequences cpp/cc1/as/ld.
-- **"JIT is the same pipeline, relocated."** V8/JVM run front-end stages at build and
-  optimize at run time using profiles AOT can't have.
-
----
-
 ## Best Practices
 
 - **Respect the phase boundaries.** Don't let target details leak into the front end
@@ -145,13 +123,24 @@ optimization above.
 
 ---
 
-## Summary
+## Apply it
 
-The architecture of a compiler is a pipeline cut into a language-dependent front
-end, a portable middle end, and a target-dependent back end, communicating through
-one or more IRs. That split turns an M×N implementation problem into M+N and makes
-the IR the most valuable asset — LLVM's entire success rests on it. Real toolchains
-(LLVM, GCC, JVM, V8, rustc) all instantiate this shape, sometimes relocating stages
-to runtime for JITs, and the "compiler" you invoke is usually a driver conducting a
-toolchain. Keep the phase boundaries clean, choose IR levels by the work they enable,
-and treat diagnostics as a product feature.
+1. State the system invariant that **The Big Picture (Compiler Architecture)** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
+
+## Verify your work
+
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
+
+## Review questions
+
+- Which invariant must remain true when The Big Picture (Compiler Architecture) fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

@@ -1,36 +1,11 @@
-# Memory Layout — Professional Level
-> **Topic:** Memory Layout
-> **Focus:** Measured performance engineering — `pahole` for struct holes, `perf c2c` for false sharing, hardware cache-miss counters, and quantifying every layout change before and after.
+# Memory Layout — Professional
 
----
+<!-- level-focus -->
+At professional level, focus on this question:
 
-## Introduction
+> How should teams adopt and operate **Memory Layout** with measurable outcomes and limited coordination?
 
-Everything in the lower tiers was a *hypothesis*: "reorder these fields and the struct shrinks," "split hot from cold and the scan speeds up," "pad this counter and contention disappears." The professional tier is about **proving it with instruments** — and, just as often, discovering that the obvious layout change made no difference (or made things worse) on real hardware.
-
-Memory-layout performance is invisible in source code and counterintuitive in practice. The only honest way to do it is to measure: inspect actual struct layout with `pahole`, attribute slowdowns to specific cache events with hardware performance counters, and pinpoint false sharing with `perf c2c`. This tier is a toolbox and a methodology: change one thing, measure the named counter that should move, keep it only if it did.
-
----
-
-## Prerequisites
-
-- Senior-tier command of AoS/SoA, pointer chasing, headers, and DOD.
-- Comfort on Linux with `perf`, building with debug info (`-g`), and reading disassembly.
-- You can write a representative microbenchmark and know its pitfalls (warmup, dead-code elimination, page faults polluting the first run).
-- Conceptual grasp of the cache-coherence protocol (MESI/MESIF/MOESI): Modified/Exclusive/Shared/Invalid line states and the transitions that cost cycles.
-
----
-
-## Glossary
-
-- **`pahole`** (*poke-a-hole*, from the `dwarves` package) — reads DWARF debug info and prints a struct's exact byte layout, marking padding **holes** and the cache-line boundaries crossed.
-- **`perf c2c`** (*cache-to-cache*) — a `perf` mode that samples loads/stores via PEBS and reports **HITM** events (a load that Hits a Modified line in *another* core's cache), the fingerprint of false/true sharing, down to the offending cache line and offset.
-- **HITM** — *Hit Modified*: a memory access served from a remote core's cache line that was in Modified state. Cross-core HITM is the smoking gun of contention.
-- **PEBS** (Intel) / **IBS** (AMD) — Precise Event-Based Sampling: hardware that records the precise instruction and data address of a sampled event, enabling per-line/per-offset attribution.
-- **LLC** — Last-Level Cache (usually L3), shared across cores.
-- **MPKI** — Misses Per Kilo-Instructions: a normalized cache-miss rate (`misses / instructions * 1000`) for comparing across runs of different length.
-- **Cycles stalled on memory** — `cycle_activity.stalls_l3_miss` and kin: the share of cycles the core sat idle waiting on memory, the bottom-line cost of bad layout.
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -127,16 +102,6 @@ The professional discipline is hypothesis-driven:
 
 ---
 
-## Mental Models
-
-- **"`pahole` is ground truth; your mental model is a guess."** Always confirm layout from debug info before optimizing.
-- **"Misses you can't see in `stalls_l3_miss` are free."** Out-of-order execution and prefetching hide misses that aren't on the dependency-critical path. Optimizing those wastes effort. Only stalls that block retirement cost wall-clock.
-- **"`perf c2c` HITM = the bytes are fighting."** A high remote-HITM line is two cores ping-ponging; check whether it's false (separate fields → pad) or true (same datum → re-architect).
-- **"Latency-bound vs. bandwidth-bound is the first fork."** Pointer chasing is latency-bound (fix: flatten, prefetch, fewer hops). Bulk scans are bandwidth-bound (fix: SoA, compression, touch fewer bytes). Different problems, different tools.
-- **"Bench the system, trust the counter, ship on the wall-clock."** Three layers of truth; all must agree before you claim a win.
-
----
-
 ## Code Examples
 
 ### Confirming a false-sharing fix end-to-end (Go + perf)
@@ -202,28 +167,6 @@ $ perf stat -e instructions,cycles ./step   # IPC should rise post-vectorization
 
 ---
 
-## Pros & Cons
-
-| Tool | Strength | Limitation |
-|------|----------|------------|
-| **`pahole`** | Exact byte layout, holes, line crossings, auto-reorg suggestion | Needs DWARF (`-g`); static view — says nothing about runtime access patterns |
-| **`perf stat` counters** | Attributes cost to cache levels; MPKI normalizes | Counters are noisy; event availability varies by CPU; must know which event matters |
-| **`perf c2c`** | Pinpoints false/true sharing to line + offset + CPU | PEBS-only events; sampling can miss rare contention; can't distinguish false vs. true for you |
-| **VTune / `likwid` / `pcm`** | Rich memory/bandwidth/topology view, roofline | Heavier setup; vendor/arch-specific; sometimes needs root/MSR access |
-
-The cost of all this is **time and rigor**. Counters lie if misread; benchmarks lie if unrepresentative. The discipline pays off only when applied to genuinely hot code — profiling tells you where that is.
-
----
-
-## Use Cases
-
-- **Pre-merge struct audit:** run `pahole` on hot structs in CI; fail the build if padding exceeds a budget or a hot struct grows past a cache-line target.
-- **Diagnosing "doesn't scale past N cores":** `perf c2c` on the contended workload almost always reveals false sharing in a shared counter, lock array, or queue index.
-- **Validating a SoA migration:** prove LLC misses, DRAM bandwidth, and IPC all moved the right way, not just wall-clock.
-- **Latency-bound pointer-chasing investigation:** confirm `stalls_l3_miss` dominates, then prove a flattening/arena change reduced it.
-
----
-
 ## Coding Patterns
 
 - **`pahole` in CI:** scriptable layout regression test (`pahole -C HotStruct | grep -c hole`), gating struct bloat.
@@ -259,13 +202,24 @@ The cost of all this is **time and rigor**. Counters lie if misread; benchmarks 
 
 ---
 
-## Summary
+## Apply it
 
-- Professional layout work is **measurement-driven**: hypotheses from the lower tiers must be confirmed (or refuted) with instruments on real hardware.
-- **`pahole`** gives the byte-exact struct layout — holes, sizes, cache-line crossings, and an auto-reorganize suggestion. Run it first; it replaces guessing.
-- **Hardware counters** (`perf stat`: LLC-load-misses, MPKI, and especially **`cycle_activity.stalls_l3_miss`**) attribute slowdowns to specific cache levels and distinguish **latency-bound** (pointer chasing) from **bandwidth-bound** (bulk scans) problems — which require different fixes.
-- **`perf c2c`** pinpoints false (and true) sharing to the cache line, byte offset, and CPU via **remote HITM** events; the fix loop is c2c → `pahole` → pad/separate → re-record to confirm HITM collapsed.
-- The methodology is **change one thing, watch the named counter, ship on the wall-clock** — and only do this on code that profiling proved is hot.
-- Beware the traps: hidden misses (no wall-clock gain), NUMA masquerading as layout, 128-byte adjacency prefetch, true-vs-false sharing confusion, and benchmark artifacts.
+1. Define the user or business outcome that **Memory Layout** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
-This completes the four learning tiers. See **interview.md** for question practice and **tasks.md** for hands-on exercises that put `pahole`, `perf c2c`, and the AoS/SoA transform into your hands.
+## Verify your work
+
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
+
+## Review questions
+
+- Which measurable outcome justifies investing in Memory Layout?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

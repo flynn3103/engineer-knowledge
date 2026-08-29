@@ -1,8 +1,11 @@
 # When to Introduce a New Language — Junior
 
-> **What?** The decision to add a *second* (or third, or fourth) programming language to a codebase that already has one. This is the mirror image of selection: [`01-language-selection-criteria`](../01-language-selection-criteria/) asks "which language for a greenfield problem?"; this topic asks "should we add a new language *at all*, given we already have one that works?"
-> **How?** Start with a strong bias *against* adding. A new language has to clear a much higher bar than "it's better" — it has to be better *enough to justify a second of everything*. Default to what you already use unless there's a concrete, specific reason the current stack genuinely can't do the job.
+<!-- level-focus -->
+At junior level, focus on this question:
 
+> How can I apply **When to Introduce a New Language** in one small example and prove the result?
+
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## 1. The default answer is "no"
@@ -91,9 +94,9 @@ Those are *can't*-shaped reasons. "Would be nicer," "is more modern," "I'd enjoy
 
 ## 7. Common newcomer mistakes
 
-**Mistake 1: confusing "the best tool for the job" with "a new tool for the job."** "Right tool for the right job" is true *and* dangerous — it gets quoted to justify five languages in a four-person team. The hidden cost of *having* the tool often dwarfs the benefit of it being slightly more right. (More on this in [`04-interop-and-polyglot-architectures`](../04-interop-and-polyglot-architectures/).)
+**Mistake 1: confusing "the best tool for the job" with "a new tool for the job."** "Right tool for the right job" is true *and* dangerous — it gets quoted to justify five languages in a four-person team. The hidden cost of *having* the tool often dwarfs the benefit of it being slightly more right. (More on this in [`04-interop-and-polyglot-architectures`](../04-interop-and-polyglot-architectures/README.md).)
 
-**Mistake 2: counting only the writing, not the owning.** "It'll be faster to write in X" ignores that you'll *own* it in X for years — debug it, hire for it, patch it. The writing is a few weeks; the owning is forever. (See [`07-total-cost-of-ownership-and-team-skills`](../07-total-cost-of-ownership-and-team-skills/).)
+**Mistake 2: counting only the writing, not the owning.** "It'll be faster to write in X" ignores that you'll *own* it in X for years — debug it, hire for it, patch it. The writing is a few weeks; the owning is forever. (See [`07-total-cost-of-ownership-and-team-skills`](../07-total-cost-of-ownership-and-team-skills/README.md).)
 
 **Mistake 3: treating one service as isolated.** "It's just one little service in Go" — but now your team is a two-language team, with two CIs and two on-call skill sets, forever, because of one service. There's no such thing as adding *just a little* language.
 
@@ -114,16 +117,24 @@ Those are *can't*-shaped reasons. "Would be nicer," "is more modern," "I'd enjoy
 
 ---
 
-## 9. What's next
+## Apply it
 
-| Topic | File |
-|---|---|
-| The N+1 language tax made concrete, and the legitimate triggers that justify a new language | `middle.md` |
-| The full cost/benefit framework, slippery slopes, and exit criteria | `senior.md` |
-| Governance: supported-language lists, RFCs, and saying no | `professional.md` |
-| Practice scenarios — new-language vs new-library, RFC templates | `tasks.md` |
-| Interview questions on language restraint | `interview.md` |
+1. Choose one small, known input for **When to Introduce a New Language**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
----
+## Verify your work
 
-**Memorize this:** a language being better is not the same as it being worth adding. The default answer is "use what we have," and a new language must clear a much higher bar — it has to be better *enough to justify a second toolchain, CI, hiring pool, and on-call burden, forever.* Before you add a language, ask whether you actually just need a different library.
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
+
+## Review questions
+
+- What problem does When to Introduce a New Language solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

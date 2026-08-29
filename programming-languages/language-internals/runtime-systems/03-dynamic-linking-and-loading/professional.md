@@ -1,56 +1,11 @@
-# Dynamic Linking & Loading — Professional Level
+# Dynamic Linking & Loading — Professional
 
-> **Topic:** Dynamic Linking & Loading
-> **Focus:** The engineering consequences at scale — ABI compatibility strategy, startup cost across a fleet, Windows DLL search/hijacking/delay-load, and JVM class loading with its leak class. Where dynamic linking becomes an operational and security concern.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Dynamic Linking & Loading** with measurable outcomes and limited coordination?
 
-## Introduction
-
-> Focus: **How does dynamic linking shape real systems — binary distribution, startup latency, security posture, and the JVM's classloader model — and what decisions does a senior+ engineer own here?**
-
-By this level the mechanism (PLT/GOT) and the policy (resolution, interposition, versioning) are tools you wield. The professional concern is the *system*: a fleet of services, a desktop app shipped to millions of machines, a managed runtime with a thousand classes. The questions change shape:
-
-- **ABI compatibility:** how does your shared library evolve for years without breaking the binaries that depend on it? What is a soname bump, and when must you do one?
-- **Startup cost at scale:** why does a binary that depends on 60 shared libraries start measurably slower than a static one, why did `prelink` exist, and why do AOT/static binaries win serverless cold starts?
-- **Windows DLL reality:** the import address table (IAT), the DLL search order, **DLL hijacking/planting** (a real, exploited security class), and delay-loading.
-- **JVM class loading:** loading → linking (verify/prepare/resolve) → initialization, the parent-delegation classloader hierarchy, custom classloaders, `ClassNotFoundException` vs `NoClassDefFoundError`, and **classloader leaks** — a production-grade memory bug.
-
-> 🎓 **Why this matters at the professional level:** These are the decisions that show up in postmortems and architecture reviews, not code reviews. "Why did the security patch not take effect?" (static linking). "Why does cold start cost us 400ms?" (loader work). "Why does redeploying our app on the app server slowly OOM it?" (classloader leak). "Why does this third-party installer let an attacker run code?" (DLL planting). Owning dynamic linking at this level means owning real production risk.
-
-This page covers ABI/soname strategy and dependency/DLL hell; startup-cost engineering (prelink history, why static/AOT helps cold start); the Windows loader (IAT, search order, hijacking, delay-load); and JVM class loading end to end including classloader leaks.
-
----
-
-## Prerequisites
-
-- **Required:** Senior level — symbol resolution, interposition, versioning, the diamond problem, `dlopen`.
-- **Required:** Operational familiarity with shipping software: building, packaging, deploying, observing startup.
-- **Required:** For the JVM section, working knowledge of Java/JVM bytecode at a high level.
-- **Helpful:** Having debugged a real "missing/incompatible library" or "redeploy leaks memory" incident.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **ABI (Application Binary Interface)** | The binary contract between compiled components: calling conventions, struct layout, symbol names/versions, vtable layout. Distinct from API (source-level). |
-| **soname** | The versioned library name (`libssl.so.3`) used for compatibility matching. A bump signals ABI break. |
-| **soname bump** | Changing the soname (`.so.3` → `.so.4`) to declare "old binaries must not link this; the ABI changed." |
-| **Dependency hell / DLL hell** | The failure mode where incompatible versions of shared libraries cannot be satisfied for all consumers at once. |
-| **Prelink** | A (now largely retired) Linux technique that pre-computed relocations to speed startup; broken by ASLR's goals. |
-| **IAT (Import Address Table)** | Windows' equivalent of the GOT: a table of resolved function pointers the loader fills for each imported DLL function. |
-| **DLL search order** | The ordered locations the Windows loader searches for a DLL — historically including the current directory, the root of "DLL hijacking." |
-| **DLL hijacking / planting** | Placing a malicious DLL where the loader will find it before the legitimate one, hijacking a process. |
-| **Delay-load** | Windows feature deferring a DLL's load until the first call into it, to speed startup or tolerate optional dependencies. |
-| **Classloader** | A JVM object responsible for finding and loading `.class` bytes and defining `Class` objects. |
-| **Parent delegation** | The JVM rule that a classloader asks its parent to load a class before trying itself. |
-| **`ClassNotFoundException`** | Thrown when *explicit* loading (`Class.forName`, `loadClass`) can't find a class. A checked exception. |
-| **`NoClassDefFoundError`** | Thrown when the JVM needs a class during *linking/execution* that was present at compile time but is now missing/unloadable. An `Error`. |
-| **Classloader leak** | A retired/redeployed application's classloader (and thus all its classes and statics) cannot be GC'd because something outside it still references it. |
-| **AOT (Ahead-of-Time) compilation** | Compiling to native code before run time (GraalVM native-image, Go), eliminating most load/link/JIT-warmup cost. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -124,30 +79,6 @@ Classic culprits, all "something with a longer life than your app holds a refere
 - Singletons registered in JVM-wide registries (MBeans, shutdown hooks, security providers).
 
 The fix is lifecycle discipline: on undeploy, deregister drivers, cancel timers, clear `ThreadLocal`s, shut down executors, and unregister from any JVM-wide singleton. Tools: a heap dump + "find the GC root path to the leaked classloader" in a profiler. This is the JVM's version of "`dlclose` didn't actually unload" from the senior level — the runtime kept a reference, so the unload didn't happen.
-
----
-
-## Real-World Analogies
-
-**The shared utility line (ABI / soname).** A water main (`libssl.so.3`) serves a whole street. You can add *new* taps without disturbing anyone (ABI-compatible, same soname). But if you change the *pipe diameter/thread* (ABI break), you must lay a *new main* (`.so.4`) alongside the old — homes plumbed for the old thread keep using it; new homes use the new one. Forcing everyone onto a re-threaded main overnight is dependency hell.
-
-**The airport with too many connections (startup cost).** A direct flight (static binary) gets you there fast. A trip with 80 connections (80 shared libraries), each with check-in, security, and boarding (open/map/relocate/init), burns hours before you reach the destination (`main`). Prelink was a frequent-flyer fast-track that got cancelled for security reasons (ASLR).
-
-**The building directory that trusts the lobby flyer (DLL hijacking).** Windows' old search order is like a receptionist who, asked for "the accountant," first checks a flyer taped up in the *lobby anyone can reach* before checking the official directory. An attacker tapes up their own flyer ("accountant: room 13, my office") and now your mail goes to them. Fully-qualified paths = ignore the lobby, use the official directory only.
-
-**The org that won't let a contractor leave (classloader leak).** You dissolved a project team (undeployed the app), but a company-wide committee (a container thread's `ThreadLocal`) still lists a team member as a contact. Because that company-wide list references the person, you can't actually off-board *anyone* on the team — the whole team's desks, files, and badges stay allocated. Off-boarding requires removing every external reference first.
-
----
-
-## Mental Models
-
-**Model 1: soname = ABI generation number.** Same soname ⇒ promise of binary compatibility (additions only). Different soname ⇒ explicit "incompatible, install side-by-side." Every dependency-hell incident is a soname-discipline failure somewhere.
-
-**Model 2: Startup cost = work-per-library × libraries.** Want faster cold start? Reduce libraries (static/AOT) or reduce per-library work (fewer symbols, lazy binding). Want memory sharing across many processes? Keep dynamic. It's a genuine trade, not a default.
-
-**Model 3: The JVM is a verified, per-class dynamic linker.** Loading/linking/initialization is `dlopen`/relocation/constructors with type-verification added and laziness per *class*. Classloader identity is the namespace; a classloader leak is "the runtime kept a reference, so unload never happened."
-
-**Model 4: Search order is attack surface.** Anywhere the loader looks for a dependency by *name* in a *writable-by-attacker* location (Windows CWD, a permissive RPATH, `LD_LIBRARY_PATH` for a privileged process) is a code-execution vector. Fully-qualified paths and trusted directories are the defense.
 
 ---
 
@@ -227,28 +158,6 @@ HMODULE h2 = LoadLibraryExA("C:\\Program Files\\MyApp\\plugin.dll",
 
 ---
 
-## Pros & Cons
-
-| Decision | Pros | Cons |
-|----------|------|------|
-| **Dynamic linking (fleet)** | Shared RAM across processes; patch one `.so`, fix all; smaller images per binary. | Slower cold start; deployment/version fragility; dependency hell risk; search-order attack surface. |
-| **Static linking / AOT** | Fast cold start; self-contained deploy; reproducible; no missing-lib failures. | Bigger binaries; security patch = rebuild *everything*; no cross-process code sharing. |
-| **soname discipline** | Old and new binaries coexist; no dependency hell. | Requires careful ABI governance; mistakes are silent. |
-| **Delay-load (Windows)** | Faster startup; tolerate optional DLLs. | Failures surface late, mid-feature, harder to diagnose. |
-| **JVM classloaders** | App isolation; hot redeploy; plugins; multiple library versions side-by-side. | Classloader leaks; `ClassCastException: Foo to Foo`; complex hierarchy debugging. |
-
----
-
-## Use Cases
-
-- **Serverless / CLI cold-start optimization:** choose static/AOT to delete loader (and JIT-warmup) cost on every cold invocation.
-- **Long-lived multi-tenant hosts (app servers):** dynamic linking + classloader isolation to run many apps/versions in one process and hot-redeploy them.
-- **Security patching at fleet scale:** dynamic `libssl` so a CVE fix is one package update, not a rebuild of every service — the dominant argument *against* static-linking everything.
-- **Desktop app distribution:** managing the DLL/`.so`/`.dylib` dependency set and search order so the app starts on customer machines and resists DLL planting.
-- **Diagnosing redeploy OOMs / `ClassCastException: Foo to Foo` / `version not found`:** all are dynamic-linking-at-scale failures with crisp root causes once you know the model.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Choose the linking model per workload, with numbers
@@ -299,48 +208,24 @@ For anything an app registers in a JVM-wide singleton (drivers, MBeans, shutdown
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```text
-ABI / soname
-  API = source contract; ABI = binary contract (layout, calling conv, symbol versions)
-  soname = ABI generation: libssl.so.3 . Compatible change -> keep soname + version
-  new symbols. Incompatible -> bump soname (.so.3 -> .so.4). abidiff catches silent breaks.
-  dependency hell / DLL hell = soname/version discipline failure.
+1. Define the user or business outcome that **Dynamic Linking & Loading** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
-STARTUP COST
-  cost ~= per-library work (open/mmap/relocate/init) x number of libraries
-  prelink: pre-computed relocs; DEAD (fights ASLR). Don't resurrect.
-  -z now: slower start, predictable latency. lazy: spreads cost.
-  static / AOT win COLD START (serverless, CLI). dynamic wins cross-process RAM sharing + patching.
-  measure: LD_DEBUG=statistics ./app
+## Verify your work
 
-WINDOWS
-  IAT = the GOT (loader fills imported-fn pointers)
-  DLL search order historically includes CWD/app dir -> DLL HIJACKING/PLANTING (RCE class)
-  defenses: full paths, SetDefaultDllDirectories, LOAD_LIBRARY_SEARCH_*, signing
-  delay-load: defer DLL until first call -> faster start, late failures
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
 
-JVM CLASS LOADING
-  loading -> linking(verify, prepare, resolve) -> initialization(static {} on first use)
-  hierarchy: Bootstrap -> Platform -> Application -> custom ; PARENT DELEGATION
-  class identity = (name, defining classloader) -> "ClassCastException: Foo to Foo"
-  ClassNotFoundException = explicit Class.forName/loadClass miss (checked Exception)
-  NoClassDefFoundError   = needed at link/run, missing OR static-init failed (Error)
-  CLASSLOADER LEAK: outside ref (ThreadLocal on pooled thread, JDBC driver, timer,
-    static cache, MBean) pins the app classloader -> retains all classes+statics -> OOM on redeploy
-    fix: deregister/clear/shutdown EVERYTHING on undeploy; heap-dump GC-root path
-```
+## Review questions
 
----
-
-## Summary
-
-- **ABI vs API:** the ABI is the *binary* contract (layout, calling convention, symbol versions); it breaks silently with no compiler warning. The **soname** encodes the ABI generation — keep it for compatible additions, **bump it** for incompatible changes so old and new binaries coexist. Failures here are **dependency hell / DLL hell**.
-- **Startup cost scales with the number of shared libraries** (open/map/relocate/init/lookup per library). `prelink` once mitigated this but is dead because it fights ASLR. **Static linking and AOT win cold starts** (serverless, CLI); **dynamic linking wins cross-process memory sharing and fleet-wide security patching.** Measure with `LD_DEBUG=statistics`.
-- **Windows:** the IAT is the GOT; the historical **DLL search order** (including CWD/app dir) is the root of **DLL hijacking/planting**, a real RCE class — defend with full paths, restricted search directories, and signing. **Delay-loading** speeds startup but defers failures.
-- **JVM class loading** is a verified, per-class dynamic linker: loading → linking (**verify/prepare/resolve**) → **initialization** (static blocks on first use), with a **parent-delegation** classloader hierarchy and **class identity = (name, classloader)**.
-- **`ClassNotFoundException`** = explicit lookup miss (checked); **`NoClassDefFoundError`** = needed at link/run but missing *or* its static initializer failed (and the original cause gets masked).
-- **Classloader leaks** are the JVM's "unload didn't happen": an external reference (`ThreadLocal` on a pooled thread, JDBC driver, timer, static cache, MBean) pins a redeployed app's classloader, retaining all its classes and statics — OOM on repeated redeploy. The fix is deregistering everything on undeploy.
-
-This concludes the tiered material. See `interview.md` for graded questions and `tasks.md` for hands-on exercises that make all of this muscle memory.
+- Which measurable outcome justifies investing in Dynamic Linking & Loading?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

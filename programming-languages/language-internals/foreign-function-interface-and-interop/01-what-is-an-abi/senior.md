@@ -1,50 +1,11 @@
-# What Is an ABI — Senior Level
+# What Is an ABI — Senior
 
-> **Topic:** What Is an ABI
-> **Focus:** Platform ABIs in depth (System V AMD64, Windows x64, AArch64 AAPCS), the C++ ABI problem (why C++ libraries don't interoperate across compilers), and ABI versioning as a production discipline.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **What Is an ABI** under failure, load, and change?
 
-## Introduction
-
-> Focus: **Why is the C ABI a stable lingua franca while the C++ ABI is a minefield, and how do real platform ABIs differ in ways that bite production systems?**
-
-At the senior level, "what is an ABI" stops being a definition and becomes a set of *concrete platform contracts you have to reason about under pressure*: a customer's plugin built with MSVC won't load into your MinGW host; a shared library upgrade segfaults a service that was working an hour ago; a struct passed from Rust to a C library reads garbage on ARM but works on x86. Every one of these is an ABI question, and the senior engineer is the person who can name the exact clause being violated.
-
-This level does three things. First, it contrasts the major **platform ABIs** — System V AMD64 (Linux/macOS/BSD), Windows x64, and AArch64 AAPCS64 — so you understand *why* the same C source produces non-interoperable binaries across them, and which clauses differ (argument registers, shadow space vs red zone, struct passing, the LP64/LLP64 split). Second, it dissects the **C++ ABI problem**: why two C++ compilers can compile the same header and produce libraries that won't talk to each other, broken down into its three independent causes — name mangling, vtable layout, and exception handling. Third, it treats **ABI versioning** as an operational discipline: glibc symbol versioning, the libstdc++ dual-ABI `std::string` saga, and how to evolve a shared library without breaking the binaries that already depend on it.
-
-The unifying theme: the C ABI is small, frozen, and platform-standardized, which is exactly why everyone routes interop through it. C++ adds vtables, exceptions, templates, and standard-library types, none of which the C ABI describes — so C++ needs its *own* ABI, and the lack of a single agreed-upon one is the root of nearly all C++ interop pain.
-
----
-
-## Prerequisites
-
-- **Required:** Middle-level fluency: you can read a calling convention off disassembly, inspect struct padding, and demangle symbols.
-- **Required:** You understand shared libraries, dynamic linking, and the difference between link-time and runtime symbol resolution.
-- **Required:** Working knowledge of C++ — virtual functions, exceptions, the standard library — enough to reason about how they compile.
-- **Helpful:** You have shipped or consumed a binary library across compilers or platforms.
-- **Helpful:** Familiarity with `ldd`, `readelf -V`, `objdump`, and `nm` workflows.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **System V AMD64 ABI** | The calling/object ABI used by Linux, macOS, and BSD on x86-64. Six integer arg registers, red zone, no shadow space. |
-| **Windows x64 ABI** | Microsoft's x86-64 ABI. Four register arguments, 32-byte shadow space, no red zone, different callee-saved set. |
-| **AAPCS64** | The ARM 64-bit Procedure Call Standard (AArch64). Eight integer arg registers (`x0`–`x7`), eight SIMD (`v0`–`v7`). |
-| **Itanium C++ ABI** | The de-facto cross-Unix C++ ABI (name despite Itanium's death). Used by GCC and Clang on Linux/macOS. Defines mangling, vtables, exceptions, RTTI. |
-| **MSVC C++ ABI** | Microsoft's incompatible C++ ABI on Windows: different mangling, different vtable layout, different exception model (SEH-based). |
-| **vtable** | The virtual function table — an array of function pointers a polymorphic object points to. Its layout is part of the C++ ABI. |
-| **Name mangling** | Encoding a C++ function's name and signature into a unique symbol. Itanium and MSVC schemes differ entirely. |
-| **Symbol versioning** | An ELF mechanism (glibc) letting one library export multiple versions of the same symbol (e.g. `memcpy@GLIBC_2.2.5` vs `@GLIBC_2.14`). |
-| **soname** | The "shared object name" recorded in an ELF library (`libfoo.so.1`); the linker/loader matches major versions through it. |
-| **Dual ABI** | libstdc++'s coexistence of the old and new `std::string`/`std::list` ABIs, selected by `_GLIBCXX_USE_CXX11_ABI`. |
-| **ODR (One Definition Rule)** | C++'s rule that an entity has exactly one definition program-wide. ABI violations often manifest as ODR violations across libraries. |
-| **LP64 / LLP64** | Data models: LP64 (`long`=8, Unix) vs LLP64 (`long`=4, Windows) on 64-bit. |
-| **Red zone / shadow space** | System V's 128-byte scratch below `rsp` vs Windows's 32-byte caller-reserved area above the return address. Mutually incompatible. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -139,36 +100,6 @@ The lesson: even within "AArch64," there are dialects. The ABI is the platform's
 
 ---
 
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **C ABI as lingua franca** | Diplomatic protocol conducted in a simple shared language; everyone agrees to use it precisely *because* it's minimal and unambiguous. |
-| **C++ ABI problem** | Two legal systems using the same words ("contract," "tort") with different definitions, procedures, and courts — documents don't transfer. |
-| **vtable mismatch** | Two elevators with the same buttons wired to different floors. Press "3," arrive at "7." |
-| **Symbol versioning** | A phone system that keeps the old extension working while adding a new one for the same person; old callers reach the old desk. |
-| **Dual ABI (`std::string`)** | A building mid-renovation running both the old wiring and new wiring in parallel; an appliance must be plugged into the matching system. |
-| **soname major bump** | A power-plug standard change that forces a new socket shape (major version) so old appliances physically can't plug into the incompatible new supply. |
-| **Windows shadow space vs red zone** | Two restaurants with opposite tipping customs; follow the wrong one and the bill is wrong for everyone after you. |
-
----
-
-## Mental Models
-
-### The "Three Independent Locks" Model (C++ ABI)
-
-C++ interop requires opening three independent locks — mangling, vtable layout, and exception model — and the key for one does not fit the others. Itanium and MSVC supply *different keys for all three*. This model explains why "just rename the symbol" never fixes C++ interop: even with the right symbol, the vtable and exception locks remain shut. The only universal master key is `extern "C"`, which *removes the locks* by removing the features that need them.
-
-### The "Frozen Core, Versioned Skin" Model (ABI evolution)
-
-A well-run shared library has a **frozen core** (the ABI surface that callers depend on) and a **versioned skin** (symbol versioning, sonames, opaque handles) that lets it evolve underneath. Picture the library as a building whose foundation and external connections never move, while the interior is renovated freely. Symbol versioning, `extern "C"` boundaries, and opaque structs are the tools that keep the connections frozen while the inside changes.
-
-### The "Platform, Not Processor" Model
-
-Whenever you reason about an ABI, attach it to the *operating system + toolchain*, never to the CPU alone. "x86-64" is not an ABI; "System V AMD64 on Linux" and "Windows x64" are. The same chip runs two incompatible ABIs. This model stops the common senior-level error of assuming binaries are portable because the hardware matches.
-
----
-
 ## Code Examples
 
 ### Watch a C++ symbol differ from its C counterpart
@@ -237,35 +168,6 @@ abidiff libfoo.so.1.0   libfoo.so.1.1
 ```
 
 `abidiff` (libabigail) mechanically answers "did I break the ABI?" — far more reliable than eyeballing a diff.
-
----
-
-## Pros & Cons
-
-| Aspect | Pros | Cons |
-|--------|------|------|
-| **C ABI at the boundary** | Universal, stable, cross-compiler, cross-language. The only contract everything honors. | Lowest common denominator: no exceptions, no generics, no rich types; everything marshalled to C primitives and opaque pointers. |
-| **C++ rich ABI (Itanium)** | Within one toolchain, full C++ — vtables, exceptions, templates, STL — flows freely across libraries. | No cross-compiler guarantee; GCC↔MSVC don't interoperate; STL layout changes break binaries. |
-| **Symbol versioning** | Evolve a library while keeping decade-old binaries working in the same `.so`. | Complex to author (version scripts); easy to mis-version and silently break or needlessly churn. |
-| **Dual ABI** | Allowed a mandatory `std::string` change without an industry-wide flag day. | Years of confusing link errors; two layouts to reason about; a compile-flag dependency. |
-| **Stable platform ABIs** | Ecosystem of pre-built binaries, plugins, drivers that just work. | Freezes design; per-platform divergence (SysV vs Win64 vs AAPCS) means no binary portability. |
-
----
-
-## Use Cases
-
-- **Shipping a binary SDK** to customers on multiple compilers — you expose a C ABI and an opaque handle, never C++ types, so MSVC and GCC users both link.
-- **Designing a plugin ABI** for a host application — you freeze a C-ABI vtable-of-function-pointers struct and version it explicitly.
-- **Diagnosing a cross-compiler link failure** — `nm | c++filt` plus knowledge of the dual-ABI macro pinpoints the mangling mismatch.
-- **Evolving a long-lived shared library** without breaking installed binaries — symbol versioning, opaque structs, soname discipline, `abidiff` in CI.
-- **Porting to ARM (Graviton, Apple Silicon)** — AAPCS64 differs from System V; HFA rules and Apple's variadic deviations must be accounted for.
-- **Embedding a C++ engine in a managed runtime** (JNI, .NET, Node) — the boundary is always C, precisely to dodge the C++ ABI problem.
-
-### When NOT to depend on a rich ABI
-
-- Across compilers or compiler-version boundaries you don't control — assume only the C ABI holds.
-- Across language boundaries — only C.
-- Across a long support window — the smaller the ABI surface, the longer you can keep it stable.
 
 ---
 
@@ -357,51 +259,24 @@ The host refuses to load a plugin whose `abi_version` it doesn't support, turnin
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│           PLATFORM ABIs (same CPU ≠ same ABI)                     │
-├──────────────────────────────────────────────────────────────────┤
-│             SysV AMD64        Windows x64       AArch64 AAPCS64   │
-│ int args    rdi rsi rdx       rcx rdx r8 r9     x0-x7             │
-│             rcx r8 r9 (6)     (4)               (8)               │
-│ ret reg     rax / xmm0        rax / xmm0        x0 / v0           │
-│ scratch     128B red zone     32B shadow space  (none)           │
-│ long size   8 (LP64)          4 (LLP64)         8 (LP64)          │
-├──────────────────────────────────────────────────────────────────┤
-│ x86-32 legacy: cdecl(caller cleans) stdcall(callee cleans,Win32)  │
-│                fastcall(ecx,edx + stack)                          │
-├──────────────────────────────────────────────────────────────────┤
-│           THE C++ ABI PROBLEM = 3 INDEPENDENT MISMATCHES          │
-│   1. name mangling   _Z3fooi (Itanium)  vs  ?foo@@YAHH@Z (MSVC)   │
-│   2. vtable layout   slot order, RTTI/typeinfo placement          │
-│   3. exception model DWARF/Itanium EH   vs  SEH                   │
-│   + STL type layout (libstdc++ vs libc++ vs MSVC STL)            │
-│   ESCAPE: extern "C" removes the features → stable C ABI          │
-├──────────────────────────────────────────────────────────────────┤
-│ ABI EVOLUTION TOOLS                                              │
-│   symbol versioning  memcpy@GLIBC_2.2.5 vs @@GLIBC_2.14           │
-│   dual ABI           _GLIBCXX_USE_CXX11_ABI (std::__cxx11::string)│
-│   soname             major bump = ABI break (libfoo.so.1 → .so.2) │
-│   abidiff            mechanically detect ABI changes in CI        │
-├──────────────────────────────────────────────────────────────────┤
-│ SENIOR RULES                                                     │
-│   * C ABI for any boundary you don't control                     │
-│   * never pass STL / throw exceptions across a boundary          │
-│   * opaque handles for anything you might evolve                 │
-│   * soname major bump on every ABI break, abidiff in CI          │
-└──────────────────────────────────────────────────────────────────┘
-```
+1. State the system invariant that **What Is an ABI** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
----
+## Verify your work
 
-## Summary
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
 
-- The same C source compiled for **System V AMD64**, **Windows x64**, and **AArch64 AAPCS64** produces non-interoperable binaries because the platform ABIs differ in argument registers (6 vs 4 vs 8), scratch areas (red zone vs shadow space), and `long` size (LP64 vs LLP64). The ABI belongs to the **platform, not the CPU**.
-- The **x86-32 legacy** conventions — cdecl (caller cleans), stdcall (callee cleans, Win32), fastcall — show that a calling convention can be per-function, declared in headers; x86-64 collapsed this to one per OS.
-- The **C++ ABI problem** is three independent incompatibilities: **name mangling**, **vtable layout**, and **exception handling** — plus divergent STL type layouts. Itanium (GCC/Clang) and MSVC agree on none, so C++ libraries don't interoperate across compilers.
-- **`extern "C"`** is the universal escape: it removes mangling and, by restricting you to C types with no exceptions or vtables across the line, sidesteps the whole C++ ABI problem. This is why every cross-compiler and cross-language interface is a C interface.
-- **ABI versioning** is a production discipline: glibc **symbol versioning** lets one library export multiple versioned symbols; **sonames** encode major-version compatibility; **`abidiff`** mechanically detects ABI changes.
-- The **libstdc++ dual ABI** (`_GLIBCXX_USE_CXX11_ABI`, `std::__cxx11::string`) is the canonical real-world break: a mandatory C++11 `std::string` layout change handled by coexisting old and new ABIs — and the source of the most common C++ link error in the wild.
-- Senior habits: expose a **C ABI** at any boundary you don't control, **never** pass STL types or throw exceptions across a boundary, use **opaque handles** for evolvable state, **bump the soname** on every ABI break, and put `abidiff` in CI.
+## Review questions
+
+- Which invariant must remain true when What Is an ABI fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

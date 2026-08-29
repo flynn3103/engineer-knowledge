@@ -1,62 +1,11 @@
-# Stack Management & Unwinding — Professional Level
+# Stack Management & Unwinding — Professional
 
-> **Topic:** Stack Management & Unwinding
-> **Focus:** Stacks that move and grow — guard-page overflow detection, Go's copying goroutine stacks and stack maps, green-thread/coroutine stacks, GC root scanning, async logical stacks, and getting reliable profiles across a fleet.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Stack Management & Unwinding** with measurable outcomes and limited coordination?
 
-## Introduction
-
-> Focus: **What changes when a stack can grow, move, or belong to a million lightweight threads — and how do runtimes detect overflow, relocate live pointers, scan roots, and rebuild a logical stack after async hands the natural one away?**
-
-Up to now the stack has been a fixed, OS-allocated region per thread, and unwinding meant walking it for backtraces, profiling, or exceptions. At the professional level the stack stops being a simple fixed block. A modern runtime may run *millions* of concurrent tasks — goroutines, green threads, coroutines, async futures — and giving each a full OS thread stack (often 8 MB of reserved address space) does not scale. So runtimes invent **small, growable stacks**. Go's goroutines start at a few kilobytes and *grow on demand*; the way Go grows them — **copying the whole stack to a larger block and relocating every pointer into it** — is one of the most instructive pieces of runtime engineering there is. It requires **stack maps**: precise metadata saying which slots at a given safepoint hold pointers, so the runtime can rewrite them after the move. That same precise-pointer metadata is what a **garbage collector** uses to scan stack roots.
-
-Three other professional realities round this out. **Stack overflow** isn't a clean error at this layer — it's a **guard-page fault**: the kernel places an inaccessible page just past the stack, and touching it raises `SIGSEGV`, which the runtime must catch and translate into a stack-overflow report. **Async/await loses the natural call stack**: when a coroutine suspends, its caller chain unwinds back to the event loop, so a crash inside an awaited continuation has a backtrace that ends at the executor, not at the logical caller — and runtimes spend real effort reconstructing a *logical* async stack. And finally, **profiling a fleet** of FPO binaries is a recurring operational headache that's driving the whole industry back to `-fno-omit-frame-pointer`.
-
-In one sentence: **at scale the stack becomes a managed, relocatable, precisely-described resource — and managing it well means knowing how growth, copying, pointer relocation, guard pages, root scanning, and async continuation chains actually work.**
-
-> 🎓 **Why this matters for a professional:** These are the problems behind real incidents: a service that OOMs because a million goroutines each grew their stack; a `perf` profile that's useless because the binary omitted frame pointers; a "stack overflow" segfault that's actually unbounded recursion on user input; an async crash whose backtrace tells you nothing about the request that triggered it. Owning the runtime layer means owning these.
-
-This page covers: guard pages and `SIGSEGV`-based overflow detection, thread stack-size limits, segmented vs contiguous copying stacks (and the "hot split" problem that made Go switch), stack maps and pointer relocation, GC root scanning, green-thread/coroutine stacks, async logical-stack reconstruction, tail-call frame reuse, and fleet-scale profilability.
-
----
-
-## Prerequisites
-
-- **Required:** The senior file — CFI/`.eh_frame`, two-phase unwinding, stack maps as a CFI cousin, FP vs DWARF vs LBR walking.
-- **Required:** The middle file — frame layout, FPO, calling conventions.
-- **Required:** Working knowledge of at least one runtime with lightweight tasks (Go goroutines, async/await, fibers).
-- **Helpful:** Familiarity with virtual memory (pages, `mmap`, page faults, `SIGSEGV`).
-- **Helpful:** A mental model of a tracing garbage collector and what "roots" are.
-
-You do **not** need:
-
-- Deep GC algorithm internals (covered in the garbage-collection topic; only the stack-root-scanning interface matters here).
-- Scheduler implementation details beyond "tasks suspend and resume."
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Guard page** | An inaccessible page placed just past the stack's end. Touching it faults, signaling overflow. |
-| **Stack overflow (real)** | Growing the stack into the guard page → `SIGSEGV`/`#PF`; the runtime translates it to a stack-overflow error. |
-| **Thread stack size** | The per-thread reserved/committed stack region size (e.g. `pthread` default ~8 MB on Linux; tunable via `ulimit -s`, `pthread_attr_setstacksize`). |
-| **Growable stack** | A task stack that expands on demand instead of being a fixed block. |
-| **Segmented stack** | Growth by allocating a *new, discontiguous* chunk and linking it. Go's old approach; abandoned. |
-| **Contiguous / copying stack** | Growth by allocating a *bigger* block, copying the old stack in, and relocating pointers. Go's current approach. |
-| **Hot split** | Pathology of segmented stacks: a call near a segment boundary repeatedly allocates/frees a segment in a hot loop, thrashing. |
-| **Stack map** | Per-safepoint metadata listing which stack slots / registers hold live pointers at that PC. |
-| **Safepoint** | A program point where the runtime metadata (stack maps) is valid and the GC/scheduler may safely act. |
-| **Pointer relocation** | Rewriting every pointer that targets the stack after the stack moves to a new address. |
-| **GC root** | A starting pointer for tracing: globals, registers, and **live stack slots**. |
-| **Green thread / fiber / coroutine** | A user-scheduled lightweight task with its own (often small) stack, multiplexed onto OS threads. |
-| **Async logical stack** | The reconstructed chain of awaiting callers in an async program, which the *physical* stack no longer reflects. |
-| **Stackful vs stackless coroutine** | Stackful: each coroutine has a real switchable stack. Stackless: state machine; no separate stack (e.g. Rust/C# async). |
-| **`split-stack` (`-fsplit-stack`)** | GCC/LLVM feature for segmented growable stacks at the native level. |
-| **Tail-call elimination (TCE)** | Replacing the current frame with the callee's instead of stacking a new one; enables unbounded tail recursion. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -114,36 +63,6 @@ A **tail call** — a call in the return position — can reuse the current fram
 ### 9. Fleet-Scale Profilability: Why Frame Pointers Came Back
 
 Operationally, the dominant pain is the senior-level `[unknown]` flame graph multiplied across thousands of machines. DWARF-based sampling is expensive (it copies and interprets the stack at every sample) and fragile in signal handlers; LBR is shallow and hardware-specific. Frame-pointer walking is cheap, deep, and signal-safe — at a ~1–2% steady-state cost. For continuous, always-on, fleet-wide profiling (the modern norm), that trade flipped: **major distributions and large operators re-enabled `-fno-omit-frame-pointer` by default** (Fedora and others, early 2020s) because *being able to profile every machine all the time* is worth more than 1%. This is the practical climax of the whole topic: a decade-old optimization was reverted because *observability* became the dominant concern.
-
----
-
-## Real-World Analogies
-
-- **Copying stacks are "moving to a bigger apartment."** When you outgrow the studio, you don't bolt on a shed in another part of town (segmented — and now your stuff is scattered and you trip over the seam). You rent a bigger place and *move everything*, updating your address with everyone who has it (pointer relocation). More work up front, no awkward seams.
-
-- **The hot split is a "revolving door at a doorway you keep crossing."** If your desk sits exactly on the threshold and you step in and out every second, you trigger the door (segment alloc/free) constantly. Move the whole room (copy to a contiguous block) and there's no threshold to straddle.
-
-- **Stack maps are a "manifest of which boxes contain fragile items."** When the movers (GC / stack-copier) arrive, the manifest tells them precisely which slots are pointers (fragile, must be handled and re-labeled) versus plain integers (just data). Without the manifest they'd have to treat every box as maybe-fragile (conservative GC) and could never safely relabel anything (can't move objects).
-
-- **Async logical stacks are a "package tracking number."** The physical truck (executor) only knows its current leg. To see the whole journey from origin (request handler) to here, you follow the tracking number (continuation chain), not the truck's odometer.
-
----
-
-## Mental Models
-
-- **"At scale, a stack is a managed object, not a fixed region."** It can grow, move, and be precisely described — like a heap object, but LIFO.
-
-- **"Copying beats segmenting because it has no seam to thrash."** Geometric growth + no boundary = predictable performance; that predictability was worth the copy cost.
-
-- **"You can only move a stack if you know exactly what's a pointer."** Stack maps + escape analysis make relocation possible. No precise pointer info → no moving (and no compacting GC).
-
-- **"Root scanning and stack copying are the same walk with different verbs."** One reads pointers (scan); the other rewrites them (relocate). Both need the stack map.
-
-- **"Stack overflow is a page fault wearing a costume."** The runtime catches `SIGSEGV` on the guard page and renames it.
-
-- **"Async trades the physical stack for a heap-linked logical one."** Suspension severs the call chain; observability must be designed in, not inferred from a backtrace.
-
-- **"Frame pointers came back because always-on profiling won the argument."** A 1% tax for fleet-wide observability.
 
 ---
 
@@ -264,44 +183,6 @@ perf record -g ./svc && perf report --stdio | head
 
 ---
 
-## Pros & Cons
-
-**Copying (contiguous) growable stacks:**
-
-| Pro | Con |
-|-----|-----|
-| No hot-split cliff; predictable performance. | Growth copies the whole stack (latency spike at growth points). |
-| Tiny initial stacks → millions of tasks feasible. | Requires precise stack maps + escape analysis + relocatable pointers. |
-| Amortized O(1) growth (geometric doubling). | Forbids un-tracked interior pointers into the stack. |
-
-**Stackless async (state machines):**
-
-| Pro | Con |
-|-----|-----|
-| No per-task stack; extreme memory efficiency. | Loses the natural stack → logical-stack reconstruction needed. |
-| Suspension is cheap (just save state). | Can only suspend at explicit `await` points. |
-| Composes well; no stack-overflow from task depth. | Large futures can bloat; "self-referential future" complexity. |
-
-**Frame pointers fleet-wide (`-fno-omit-frame-pointer`):**
-
-| Pro | Con |
-|-----|-----|
-| Cheap, deep, signal-safe profiling everywhere, always. | ~1–2% steady-state CPU/code-size cost. |
-| Reliable crash backtraces without DWARF. | One fewer general-purpose register. |
-
----
-
-## Use Cases
-
-- **Massive concurrency runtimes** (Go, Erlang/BEAM, Java virtual threads) — small growable/relocatable stacks make millions of tasks possible.
-- **Moving/compacting garbage collectors** — precise stack maps for root scanning and object relocation.
-- **Robust servers** — guard pages + `sigaltstack` to detect and survive (or cleanly report) stack overflow on untrusted input.
-- **Async services** — logical-stack reconstruction and explicit trace context for debuggability.
-- **Continuous/always-on profiling** — frame-pointer or eBPF-based fleet profiling (Parca, Pyroscope, Polar Signals, async-profiler).
-- **Functional/recursive workloads** — tail-call elimination to keep deep recursion in bounded stack space.
-
----
-
 ## Coding Patterns
 
 **Pattern: Bound recursion on untrusted input.** Unbounded recursion on user data (deeply nested JSON/XML, attacker-controlled depth) is a stack-overflow DoS. Convert to iteration with a heap stack, or enforce an explicit depth limit. This is true even in Go (1 GB goroutine limit is still a crash).
@@ -352,64 +233,24 @@ Decide once, fleet-wide; don't discover at 3 a.m. that you can't profile the hot
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```text
-STACK OVERFLOW = guard-page fault
-  - guard page (no-access) past stack end; touching it -> SIGSEGV
-  - big frame can JUMP the guard -> use stack probes (-fstack-clash-protection)
-  - to even REPORT overflow: sigaltstack + SA_ONSTACK
+1. Define the user or business outcome that **Stack Management & Unwinding** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
-GROWABLE STACKS
-  segmented (Go<=1.2, -fsplit-stack): new linked chunk on growth
-      -> HOT SPLIT: call at a boundary in a loop thrashes alloc/free
-  copying  (Go>=1.3): alloc 2x contiguous block, COPY, RELOCATE pointers
-      -> no seam, amortized O(1); needs precise stack maps + escape analysis
+## Verify your work
 
-STACK MAPS
-  per-safepoint: which slots/regs are pointers
-  used to: (a) relocate pointers on stack copy
-           (b) scan GC roots precisely (enables MOVING/compacting GC)
-  conservative GC skips maps -> can't move objects, may retain garbage
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
 
-GREEN THREADS / ASYNC
-  stackful (goroutines, fibers): real switchable stack; suspend anywhere
-  stackless (Rust/C#/JS async): state machine; locals-across-await on heap
-  async LOSES physical stack -> rebuild LOGICAL stack from continuation chain
-  -> design observability: propagate trace/span context across await
+## Review questions
 
-TAIL-CALL ELIMINATION
-  reuses current frame -> bounded stack for tail recursion
-  -> eliminated frame absent from backtrace (correct, but surprising)
-
-FLEET PROFILING
-  -fno-omit-frame-pointer + -fasynchronous-unwind-tables = cheap, deep,
-     signal-safe call graphs everywhere (~1-2% cost; industry re-enabled it)
-
-GOLDEN RULES
-  - bound recursion on untrusted input (DoS)
-  - big buffers -> heap, not stack
-  - sigaltstack whenever you catch SIGSEGV
-  - don't trust async physical backtraces
-  - in copying-stack runtimes, untracked stack pointers die on growth
-```
-
----
-
-## Summary
-
-At scale the stack stops being a fixed OS region and becomes a *managed* resource. **Stack overflow** is detected as a **guard-page fault** (`SIGSEGV`) — which a large frame can dangerously skip without **stack probes**, and which you can only *report* using an **alternate signal stack**. Per-thread stack reservations (~8 MB) make OS thread stacks unscalable for massive concurrency, so runtimes use **small growable stacks**. Go's history is the lesson: **segmented** growth was elegant but suffered the **hot-split** cliff, so Go switched to **contiguous copying** stacks — doubling and copying the whole stack on growth and **relocating every pointer** into it, which is only possible because Go has **precise stack maps** (and escape analysis to keep the pointer set statically known). Those same stack maps let a **garbage collector** scan stack **roots** precisely and, uniquely, *move* objects.
-
-Lightweight concurrency splits into **stackful** tasks (real switchable stacks, suspend anywhere) and **stackless** async (state machines whose cross-`await` locals live on the heap). Stackless async **loses the natural call stack**, so runtimes reconstruct a **logical async stack** from continuation metadata — meaning observability must be designed in, not inferred from a physical backtrace. **Tail-call elimination** reuses frames (bounded tail recursion, but absent from traces). And operationally, the dominant story is that **frame pointers came back fleet-wide**: a ~1% tax bought cheap, deep, signal-safe, always-on profiling, reversing a decade-old optimization once observability became the priority. With the full picture — frames, conventions, unwind tables, exception unwinding, and now growable/relocatable stacks — you can reason about every stack-related incident a runtime can throw at you.
-
----
-
-## Further Reading
-
-- The Go runtime design docs and source (`runtime/stack.go`, `runtime.morestack`, `copystack`) — copying stacks, the 1.3 transition rationale, and stack maps.
-- The Go blog / proposal history on segmented vs contiguous stacks (the hot-split write-up).
-- GCC `-fsplit-stack` documentation; `-fstack-clash-protection`; the Stack Clash advisory (Qualys, 2017).
-- Linux `sigaltstack(2)` and `sigaction(2)` man pages; how runtimes use them for overflow handling.
-- The garbage-collection topic in this roadmap for precise vs conservative root scanning.
-- Continuous-profiling docs: Linux `perf` frame-pointer/DWARF/LBR modes, async-profiler, Parca/Pyroscope; the Fedora/distro discussions on re-enabling frame pointers.
-- Runtime async-context docs: Rust `tracing`/task-dumps, .NET async stack traces, Node `async_hooks`, Python `asyncio` task stacks.
+- Which measurable outcome justifies investing in Stack Management & Unwinding?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

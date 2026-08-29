@@ -1,65 +1,11 @@
-# Deoptimization & Speculation — Middle Level
+# Deoptimization & Speculation — Middle
 
-> **Topic:** Deoptimization & Speculation
-> **Focus:** The mechanics — deopt points, the metadata that maps optimized machine state back to bytecode-level state, eager vs lazy deopt, and the specific speculative optimizations (monomorphic inlining, type specialization, branch pruning) that depend on this machinery.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **Deoptimization & Speculation** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-> Focus: **How does the runtime physically rewind from optimized native code back to interpreter state, and what optimizations rely on being able to do that?**
-
-At the junior level the picture was: *bet → guard → (fast | deopt)*. That's correct, but it hides the hardest engineering problem in the whole topic, which is the *deopt* part. When a guard fails, the runtime is in the middle of executing **native machine code** — values are scattered across CPU registers and optimized stack slots, in an order and a layout chosen by a register allocator that bears no resemblance to the original bytecode. To deoptimize, the runtime must, *at that exact instruction*, reconstruct the state the program would have been in if the **interpreter** had been running the function all along: the right values in the right virtual local-variable slots, the right operand stack, the right bytecode index to resume from.
-
-Doing this requires the optimizing compiler to have recorded, for every point where a deopt can happen, a precise **map** from "where each value physically lives in the optimized frame" back to "which abstract bytecode-level slot it represents." HotSpot calls these **scope descriptors** / debug info; V8 calls them **deopt data** / **translations**. This page is about that map and the machinery around it: where deopt points are placed, how the frame gets reconstructed, the difference between **eager** deopt (right now, at a guard) and **lazy** deopt (mark the code dead, deopt next time we're about to run it), and how class loading can *invalidate already-running optimized code* by breaking a class-hierarchy assumption.
-
-Then we connect the machinery back to the optimizations it enables: **monomorphic inlining** (inline a call because we bet the target is always the same), **type specialization** (compile for the observed type, guard the rest), and **branch pruning** (don't even compile a branch that's never been taken — guard the entry instead). All three are only *safe* because deopt exists as the escape hatch.
-
-> 🎓 **Why this matters for a mid-level engineer:** Once you understand that the JIT records a reconstruction map at every deopt point, a lot of mysterious behavior becomes legible — why optimized code carries "metadata overhead," why some optimizations are cheap and others expensive, why a class load on an unrelated thread can suddenly slow down code that was running fine. You stop treating the JIT as a black box and start predicting its behavior.
-
-This page covers: deopt points and where they live, the scope-descriptor / translation metadata, the frame-reconstruction algorithm, eager vs lazy deopt, CHA-driven invalidation on class loading, and the three foundational speculative optimizations that all rest on this.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** Everything in `junior.md` — bet/guard/deopt, tiers, "semantics are always preserved."
-- **Required:** A working model of a **call stack**: frames, locals, operand stack, return addresses.
-- **Required:** Rough familiarity with **bytecode** as an intermediate representation (JVM bytecode, V8 bytecode/Ignition, or .NET IL).
-- **Helpful but not required:** Some idea of what a **register allocator** does (assigns values to CPU registers / stack slots).
-- **Helpful but not required:** What **inlining** is and why it helps.
-
-You do **not** need to know:
-
-- The detailed escape-analysis / scalar-replacement reification story (that's `senior.md`).
-- Production diagnosis of deopt storms at scale and cross-engine comparison depth (that's `professional.md`).
-- Compiler IR internals (SSA, sea-of-nodes) beyond the names.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Deopt point** | A location in optimized code where deoptimization can occur (a guard, a type check, a CHA-dependent call, an uncommon branch). |
-| **Scope descriptor** | (HotSpot) Metadata at a deopt point describing, for each enclosing (possibly inlined) method scope, where every local/stack value physically lives. |
-| **Debug info / OopMap** | (HotSpot) The compiler-recorded mapping from physical locations to abstract values, plus which slots hold object references (oops) the GC must know about. |
-| **Translation / deopt data** | (V8) The equivalent metadata: a list of instructions describing how to rebuild each interpreter frame's register file and stack from the optimized frame. |
-| **Frame reconstruction** | The act of building one or more interpreter/baseline frames from a single optimized frame at deopt time. |
-| **Virtual state** | The abstract, bytecode-level view of the program: which locals/stack slots hold which logical values, independent of physical layout. |
-| **Eager deopt** | Deoptimizing *immediately* at the failing guard, on the current thread, in the current frame. |
-| **Lazy deopt** | Marking optimized code as invalid ("not entrant") so that frames already on the stack deopt *when control returns to them*, rather than instantly. |
-| **Not entrant** | (HotSpot) State of compiled code that may no longer be entered by *new* calls; existing activations still finish or deopt lazily. |
-| **CHA (Class Hierarchy Analysis)** | The runtime analyzing the loaded class hierarchy to conclude e.g. "this method has no overrides," enabling speculative devirtualization/inlining. |
-| **Devirtualization** | Turning a virtual/dynamic call into a direct (or inlined) call by speculating on the target. |
-| **Monomorphic inlining** | Inlining a call site that has only ever resolved to one target, guarded so a different target triggers deopt. |
-| **Type specialization** | Compiling an operation for the concrete type(s) observed at runtime, guarding that the type still matches. |
-| **Branch pruning** | Not compiling a branch that profiling shows is never taken; entering it triggers a deopt instead. |
-| **Speculation log / feedback** | (V8 `FeedbackVector`, HotSpot profiling counters) Runtime-gathered type/branch data that drives what to speculate on. |
-| **OSR (On-Stack Replacement)** | Swapping a running (often long-looping) interpreter frame for an optimized one *mid-execution*; the inverse direction of deopt. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -138,36 +84,6 @@ The whole deopt apparatus exists to make these *safe*:
 - **Branch pruning (uncommon branches).** Profiling shows a branch (e.g. an error path, a rare slow case) is never taken. The compiler **omits compiling it** and puts an **uncommon trap** at its entry. If that branch is ever taken, the trap deopts and the interpreter handles it. You pay zero code-size/optimization cost for cold paths.
 
 Every one of these is a *bet recorded as a deopt point with reconstruction metadata.*
-
----
-
-## Real-World Analogies
-
-**The stunt-double swap (frame reconstruction).** A film shoots a fast, dangerous chase with a stunt double standing in for the lead actor — that's the optimized code, fast and specialized. The moment a close-up dialogue shot is needed (a guard fails), the production must **swap the double out for the real actor and put them in exactly the right position, mid-scene**: same spot, same pose, same expression. The "continuity notes" that tell the crew precisely how to place the real actor are the **scope descriptors**. Get them wrong and the scene jumps; get them right and the audience never notices the swap.
-
-**The simultaneous translator (virtual ↔ physical mapping).** The optimized frame "speaks" in registers and spilled stack slots; the interpreter "speaks" in numbered locals and an operand stack. The deopt metadata is a phrasebook that translates every value from one language to the other at the exact moment of handover.
-
-**Recalled product, used by customers right now (lazy deopt).** A manufacturer discovers a part is defective (a loaded class breaks an assumption). They can't teleport into every customer's home and swap it mid-use. So they issue a recall: *no new units ship with the part, and when you next bring yours in, we'll replace it.* That's "not entrant + deopt on return."
-
----
-
-## Mental Models
-
-### Model 1: Optimized code carries its own "undo log"
-
-Think of every deopt point as carrying a tiny **undo log** that says how to put the program back into a universally-understood state. The optimizing compiler is allowed to do wild things *only because* it promises to keep this undo log accurate. The log is the price of admission for aggressive optimization.
-
-### Model 2: One physical frame can explode into many virtual frames
-
-Because of inlining, the mental model "one stack frame = one method" is *only true in the interpreter*. In optimized code, one native frame may represent a whole *chain* of inlined methods. Deopt is the moment that compressed representation **decompresses** back into the per-method frames the interpreter expects.
-
-### Model 3: Speculation = "compile the common case, *describe* the rare case"
-
-The compiler doesn't compile every possibility. It compiles the common case as fast straight-line code, and for every rare case it just leaves a **description of how to escape to safety**. Branch pruning is the purest example: the rare branch isn't compiled at all — only its escape route (the uncommon trap + metadata) is.
-
-### Model 4: Invalidation is event-driven
-
-Some deopts are *guard-driven* (eager: a value was the wrong type). Others are *event-driven* (lazy: the world changed — a class loaded, an assumption registered as a dependency got broken). The first reacts to *data*; the second reacts to *program structure changing underneath you*.
 
 ---
 
@@ -263,33 +179,6 @@ function outer(o) { return inner(o) + 1; }
 ```
 
 You can't "see" the two frames in a one-line trace, but `--trace-deopt`'s output references the inlining position, and a stack trace captured at the deopt resume point will show both `inner` and `outer` — proof the single physical frame was decompressed into two virtual ones.
-
----
-
-## Pros & Cons
-
-### Pros
-
-- **Inlining across dynamic call boundaries.** Monomorphic inlining + deopt is what lets dynamic dispatch become a direct, inlinable call — the biggest single optimization lever.
-- **Zero cost for cold paths.** Branch pruning means error handlers and rare cases don't bloat or slow the optimized code; you only pay if you actually hit them.
-- **Adapts to the running program.** Speculation is driven by *actual* profiling feedback, so the compiled code fits this run's behavior.
-- **Correct under a changing world.** Lazy deopt + CHA dependencies let the JVM aggressively devirtualize *and* stay correct when classes load later.
-
-### Cons
-
-- **Metadata is not free.** Every deopt point carries scope descriptors / translation data. This costs memory and constrains how aggressively some transforms can be applied (the compiler must always be able to reconstruct state).
-- **Deopt cost scales with inline depth.** A deep inline that bails reconstructs many frames — more expensive than a shallow one.
-- **Lazy deopt has latency.** A broken assumption isn't fixed instantly; frames already on the stack run their (now-suspect-but-still-correct) compiled code until they return.
-- **Reasoning requires tooling.** None of this is visible from the source; you must read engine traces to understand what got speculated and why it bailed.
-
----
-
-## Use Cases
-
-- **Diagnosing why a hot, simple-looking function is slow** — read the deopt reason (`wrong map`, `not a Smi`, `not entrant`) to find the broken assumption.
-- **Understanding inlining decisions** — knowing that monomorphic call sites inline tells you why keeping a site monomorphic is so valuable.
-- **Explaining "spooky action at a distance"** — when loading a plugin or class slows down unrelated code, CHA invalidation is usually the cause.
-- **Reasoning about warm-up** — early deopts during warm-up are the engine discovering your types/shapes/branches; steady-state code should stop deopting.
 
 ---
 
@@ -389,41 +278,24 @@ If a method marked *not entrant* is sitting in a very long loop, it keeps runnin
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```text
-DEOPT POINT       Any guard / CHA-dependent call / uncommon branch where a
-                  bailout can happen. Carries reconstruction metadata.
+1. Find a real component where **Deoptimization & Speculation** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
-THE METADATA      HotSpot: scope descriptors + OopMap (per inlined scope).
-                  V8:      translation array in deopt data.
-                  Maps physical (register/stack/const) -> virtual (local/stack slot).
+## Verify your work
 
-RECONSTRUCTION    1 optimized frame -> N interpreter frames (N = inline depth).
-                  Copy each live value to its virtual slot, set bci, resume.
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
 
-EAGER vs LAZY     EAGER: guard fails -> deopt this frame now.
-                  LAZY : code invalidated -> mark "not entrant" -> frames deopt
-                         on return; new calls recompile.
+## Review questions
 
-CHA INVALIDATION  Compile bets "no override of m()"; later a class overriding m()
-                  loads -> dependency broken -> lazy-deopt the dependent code.
-
-OPTIMIZATIONS     monomorphic inlining  (bet: one call target)
-THAT RELY ON IT   type specialization   (bet: this type)
-                  branch pruning        (bet: this branch never taken)
-
-DEOPT REASONS     V8: "not a Smi", "wrong map", "unstable map",
-                      "insufficient type feedback"
-                  HotSpot: "made not entrant", "uncommon trap", "class_check"
-
-STILL TRUE        Semantics preserved, always. Deopt = slower, never wrong.
-```
-
----
-
-## Summary
-
-Deoptimization is harder than it sounds because, when a guard fails, the runtime is mid-execution in **native code** whose layout — registers, spilled slots, inlined scopes — looks nothing like the clean bytecode model the interpreter understands. To bridge that gap, the optimizing compiler records, at every **deopt point**, precise metadata (**scope descriptors** in HotSpot, **translation data** in V8) mapping each physical location back to its abstract bytecode-level slot. At deopt time the runtime uses that map to **reconstruct** one or more interpreter frames — one per inlined scope — fill them with the right values, set the resume bytecode index, and continue. That is the entire trick.
-
-Deopts come in two flavors: **eager** (a guard fails now, deopt this frame immediately) and **lazy** (the runtime invalidates code because the world changed — most famously when a newly **loaded class breaks a CHA assumption** — marking it *not entrant* so frames deopt on return). This machinery is not academic: it's the enabling foundation for the JIT's most valuable optimizations — **monomorphic inlining**, **type specialization**, and **branch pruning** — each of which compiles only the common case and leaves behind a described escape route for the rest. The next level, `senior.md`, takes the hardest case of all: when escape analysis *deleted* an object entirely and a deopt suddenly requires that object to **exist again** — and the runtime must materialize it from scattered scalar values mid-flight.
+- Which boundary is most affected by Deoptimization & Speculation?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

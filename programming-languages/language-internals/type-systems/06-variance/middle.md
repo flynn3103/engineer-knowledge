@@ -1,57 +1,11 @@
-# Variance — Middle Level
+# Variance — Middle
 
-> **Topic:** Variance
-> **Focus:** Function subtyping (the single most-tested variance fact), per-position variance, and why overriding lets you widen parameters and narrow returns.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **Variance** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-> Focus: **Functions are the most important place variance shows up. A function is a subtype of another when it accepts *more* and returns *less*.** This page makes that precise and shows you why it governs method overriding everywhere.
-
-At the junior level you learned the four variances and the producer/consumer test. Now we apply that test to the one type constructor that appears in every program: the **function type** `(A) -> B`.
-
-A function has two type slots, and they have *opposite* variances:
-
-- It is **contravariant in its parameter type** `A` — because the function *consumes* `A`.
-- It is **covariant in its return type** `B` — because the function *produces* `B`.
-
-Put together: a function `f` is a subtype of a function `g` when **`f` accepts everything `g` accepts (and maybe more) and returns something at least as specific as what `g` returns (and maybe more specific).** The slogan: **"accept more, return less."** A more lenient input and a more precise output makes a *better* (sub-) function.
-
-This isn't an academic curiosity. It is the rule that governs **method overriding** in every object-oriented language: when you override a method, you may *widen* (generalize) the parameter types and *narrow* (specialize) the return type, and the result is still a valid override. Java relaxed its rules in 5.0 to allow **covariant return types** for exactly this reason. Understanding function variance means understanding why `clone()` overrides can return a more specific type but overrides can't demand a more specific argument.
-
-> 🎓 **Why this matters for a middle engineer:** You write higher-order functions, callbacks, and overrides daily. The compiler's acceptance or rejection of "can I pass this function here?" or "is this a valid override?" is *entirely* governed by function variance. Once you internalize "contravariant params, covariant returns," a whole class of confusing type errors becomes obvious.
-
-This page also introduces **per-position variance** — the idea that a single generic can be covariant in one parameter and contravariant in another (`Function<A, B>` is the canonical example) — and how to read off a type's variance by where each parameter appears.
-
----
-
-## Prerequisites
-
-- **Required:** The four variances and the producer/consumer test from `junior.md`.
-- **Required:** The array-covariance bug and why mutable containers are invariant.
-- **Required:** Comfort with higher-order functions: passing a function as an argument, function types like `Function<A, B>`, `(A) -> B`, `Func<A, B>`.
-- **Required:** What method overriding is and that an override must be type-compatible with the method it overrides.
-- **Helpful:** Java wildcards (`? extends` / `? super`) — used in examples.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Function type** | The type of a function: `(A) -> B`, written `Function<A, B>` in Java, `Func<A, B>` in C#, `(a: A) => B` in TS. |
-| **Parameter (input) position** | Where a type appears as something the construct *consumes*. Contravariant. |
-| **Return (output) position** | Where a type appears as something the construct *produces*. Covariant. |
-| **Covariant return type** | Overriding a method with a more specific return type. Legal in Java 5+, C#, C++, Kotlin. |
-| **Parameter widening** | An override accepting a *more general* parameter type than the supertype's method. Sound, but most OO languages don't allow it via overriding (they treat it as overloading). |
-| **Per-position variance** | A generic that is covariant in one type parameter and contravariant in another. |
-| **Function subtyping rule** | `(A1 -> B1) <: (A2 -> B2)` iff `A2 <: A1` (params contravariant) and `B1 <: B2` (returns covariant). |
-| **"Accept more, return less"** | The slogan form of the function subtyping rule. |
-| **Use-site variance** | Variance specified where the type is *used* (Java wildcards `? extends`/`? super`). |
-| **Declaration-site variance** | Variance specified once where the type is *declared* (C#/Kotlin `out`/`in`, Scala `+`/`-`). |
-| **Nested position flip** | Variance composes: a contravariant slot *inside* another contravariant slot becomes covariant. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -113,35 +67,6 @@ interface Func<in A, out B> { B Invoke(A arg); }
 Variance is computed by multiplying signs as you nest. Treat covariant as `+` and contravariant as `-`. A position's overall variance is the product of the variances of every constructor wrapping it.
 
 Consider `(Cat -> Int) -> String`, a function that *takes a function*. The inner `Cat` sits in the parameter position of the inner function (`-`), which itself sits in the parameter position of the outer function (`-`). `(-) × (-) = (+)` — so `Cat` is in a **covariant** position overall. A higher-order function's *callback's parameter* ends up covariant. This "minus times minus is plus" rule is how you reason about deeply nested signatures, and it trips up almost everyone the first time.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Contravariant parameter** | A job posting that says "must accept any animal." An applicant who can handle *any animal* over-qualifies for a "must handle cats" role. The broader skill is the better fit — a subtype. |
-| **Covariant return** | A vending machine upgrade that used to dispense "a drink" and now dispenses "a cold drink." It still satisfies anyone who wanted "a drink," and it does *more*. The more specific output is a strict improvement. |
-| **"Accept more, return less"** | A contractor who accepts more kinds of jobs and delivers more precisely finished work is strictly better to hire. |
-| **Override widening params** | A new manager who can manage *any* department can stand in for one who only managed engineering. |
-| **Override narrowing return** | A factory that promised "a vehicle" now ships "a car." Everyone expecting a vehicle is satisfied. |
-| **Minus times minus** | An enemy of my enemy is my friend. Reverse a reversal and you're back to the original direction. |
-
----
-
-## Mental Models
-
-### The Two-Arrow Model
-
-Draw `A1 -> B1` above `A2 -> B2`. For the top to be a subtype of the bottom: the **parameter arrow points up** (`A2 <: A1`) and the **return arrow points down** (`B1 <: B2`). The arrows point *toward each other*, like a function "squeezing" inward — accept a wider input, produce a narrower output.
-
-### The "Caller's Contract" Model
-
-A function type is a contract with its callers. The caller promises to supply something of the parameter type and expects something of the return type. A substitute function is valid iff it **honors every promise the caller relied on**: it must accept whatever the caller might pass (so its parameter type is at least as wide → contravariant) and it must deliver whatever the caller expects (so its return type is at least as specific → covariant).
-
-### The Sign-Multiplication Model
-
-Tag covariant `+`, contravariant `-`, invariant `0`. To find a nested type parameter's variance, multiply the variance of each enclosing position. `+×+ = +`, `−×− = +`, `+×− = −`, `0×anything = 0`. This single rule subsumes every special case: function-in-function, list-of-functions, function-returning-list, etc.
 
 ---
 
@@ -262,27 +187,6 @@ class Demo {
 
 ---
 
-## Pros & Cons
-
-| Aspect | Pros | Cons |
-|--------|------|------|
-| **Function contravariant params** | Lets a general handler/comparator/callback substitute for a specific one; reduces duplication. | The reversed direction confuses learners; bugs hide where languages get it wrong (TS method params). |
-| **Function covariant returns** | Overrides can return precise types; no needless upcasting or casts at call sites. | Subtle when combined with generics and bridge methods (JVM synthesizes bridges). |
-| **Per-position variance** | Precisely captures real APIs (`Function`, `Comparator`); maximal flexibility with safety. | Reading multi-parameter variance annotations is hard; mistakes are easy. |
-| **"Accept more, return less"** | A one-line rule that governs overriding everywhere. | Easy to state, easy to misapply under nesting. |
-
----
-
-## Use Cases
-
-- **Designing higher-order APIs.** A `map(f: A -> B)` should accept any `f` that accepts at least `A` and returns at most `B`. Function variance tells you the right signature.
-- **Overriding and the template-method pattern.** Subclasses override hooks; covariant returns let them return their own concrete types.
-- **Callback and listener interfaces.** A `Listener<in T>` (contravariant) lets one broad listener serve many specific event streams.
-- **Comparators and orderings.** `Comparator<? super T>` (Java) or `Comparator<in T>` (Kotlin) is contravariance: a comparator of a supertype works for the subtype.
-- **Functional combinators.** `compose`, `andThen`, `flatMap` signatures all rely on function variance to type-check cleanly.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Contravariant callback parameter (Java)
@@ -343,57 +247,24 @@ When a signature nests functions (`(A -> B) -> C`), don't guess. Multiply signs 
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. Write the full function subtyping rule with `<:` for `(A1 -> B1) <: (A2 -> B2)`. Which slot is contravariant, which covariant?
-2. Explain, using the caller's-contract argument, why a function with a *wider* parameter type is the subtype (not the supertype).
-3. Java allows `Cat reproduce()` to override `Animal reproduce()`. What is this feature called, and why is it sound?
-4. Why does Java treat `void handle(Cat)` in a subclass as an *overload* of `void handle(Animal)` rather than an override? What unsoundness would treating it as an override allow?
-5. Compute the variance of the type parameter `T` in `(T -> Int) -> Int`. Show your sign multiplication.
-6. In `Comparator<? super T>`, what does the `? super` buy you? Give a concrete case where dropping it causes a compile error.
-7. TypeScript checks standalone function parameters contravariantly under `strictFunctionTypes`. Write a two-function example where this catches an unsound assignment.
+1. Find a real component where **Variance** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
----
+## Verify your work
 
-## Cheat Sheet
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
 
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│                    FUNCTION VARIANCE                              │
-├──────────────────────────────────────────────────────────────────┤
-│   (A1 -> B1) <: (A2 -> B2)                                        │
-│        iff  A2 <: A1   (PARAM:  contravariant — flip)            │
-│        and  B1 <: B2   (RETURN: covariant     — same)           │
-│                                                                   │
-│   SLOGAN:  "accept more, return less"                            │
-├──────────────────────────────────────────────────────────────────┤
-│ OVERRIDE RULES (= function variance)                             │
-│   return:  may NARROW   (covariant return)        ✓ widely OK    │
-│   param:   may WIDEN    (contravariant param)     ✓ if supported │
-│   return:  may NOT widen | param: may NOT narrow  ✗ unsound      │
-│   "promise more, demand less"                                    │
-├──────────────────────────────────────────────────────────────────┤
-│ PER-POSITION VARIANCE                                            │
-│   appears only in OUTPUT  -> covariant   (out / +)               │
-│   appears only in INPUT   -> contravariant (in / -)              │
-│   appears in BOTH         -> invariant   (0)                     │
-│   Function<in A, out B> | Function1[-T1, +R]                     │
-├──────────────────────────────────────────────────────────────────┤
-│ NESTING: multiply signs                                         │
-│   + × + = +     - × - = +     + × - = -     0 × _ = 0            │
-│   (A -> B) -> C : A is (-)×(-) = (+) covariant                   │
-└──────────────────────────────────────────────────────────────────┘
-```
+## Review questions
 
----
-
-## Summary
-
-- A **function type** has two slots with opposite variances: it is **contravariant in its parameter** (consumer) and **covariant in its return** (producer). Formally, `(A1 -> B1) <: (A2 -> B2)` iff `A2 <: A1` and `B1 <: B2`.
-- The slogan is **"accept more, return less"**: a function is a *better* substitute when it takes a wider input and produces a narrower output. This is the single most-tested variance fact.
-- **Method overriding is function subtyping.** An override may **narrow its return** (covariant return types, legal in Java 5+, C#, Kotlin, C++) and, where the language supports it, **widen its parameter** (contravariant). It may never widen the return or narrow the parameter — both break LSP.
-- Most OO languages treat a differently-typed override parameter as **overloading**, not overriding, which is why parameter contravariance is rarely seen outside Scala/Eiffel.
-- **Variance is computed per type parameter** by where it appears: output-only → covariant (`out`/`+`), input-only → contravariant (`in`/`-`), both → invariant. `Function<in A, out B>` and Scala's `Function1[-T1, +R]` encode this directly.
-- **Variance composes by sign multiplication.** A type parameter nested inside two contravariant positions becomes covariant (`−×− = +`). Always multiply signs for nested signatures like `(A -> B) -> C` rather than guessing.
-- Practical payoffs: contravariant bounds (`? super T`, `in T`) make consuming APIs accept more callers; covariant bounds (`? extends T`, `out T`) make producing APIs usable in more places. Turn on TypeScript's `strictFunctionTypes` to get sound contravariant parameter checking.
-- Next, `senior.md` covers declaration-site vs use-site variance in depth and the soundness machinery; `professional.md` covers the real-world holes (array covariance, TS bivariant methods) and how to engineer around them.
+- Which boundary is most affected by Variance?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

@@ -1,8 +1,11 @@
 # Interop & Polyglot Architectures — Middle
 
-> **What?** The concrete *mechanisms* by which languages interoperate — network boundaries (REST, gRPC, message queues), in-process FFI (cgo, ctypes, JNI), and the shared schemas (protobuf, Avro, JSON Schema) that turn an informal handshake into an enforceable contract — together with the tradeoffs that decide which one you reach for.
-> **How?** By recognizing that interop is a spectrum from *loose and slow* (a message on a queue) to *tight and fast* (a function call across a language boundary in the same process), and that you move along that spectrum by trading coupling, safety, and operational simplicity for latency and throughput. The contract — the schema — is what keeps either end of that spectrum from rotting.
+<!-- level-focus -->
+At middle level, focus on this question:
 
+> Where does **Interop & Polyglot Architectures** belong in a maintainable component, and which trade-off selects the design?
+
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## 1. The interop spectrum
@@ -160,7 +163,7 @@ message PredictResponse {
 }
 ```
 
-Without a schema, every cross-language boundary is a verbal agreement that decays. With one, the boundary is enforced at build time and can evolve without coordinated big-bang deploys. **The schema is what makes polyglot survivable, not the choice of REST vs gRPC.** (Schema and tooling maturity is also covered in [`03-ecosystem-and-tooling-maturity`](../03-ecosystem-and-tooling-maturity/).)
+Without a schema, every cross-language boundary is a verbal agreement that decays. With one, the boundary is enforced at build time and can evolve without coordinated big-bang deploys. **The schema is what makes polyglot survivable, not the choice of REST vs gRPC.** (Schema and tooling maturity is also covered in [`03-ecosystem-and-tooling-maturity`](../03-ecosystem-and-tooling-maturity/README.md).)
 
 ---
 
@@ -233,15 +236,24 @@ Your Go API needs fraud scores from a Python ML model. Which interop mechanism?
 
 ---
 
-## 10. What's next
+## Apply it
 
-| Topic | File |
-|---|---|
-| The deep costs: cross-language debugging & observability, the FFI/network tradeoff in depth, runtime-level polyglot (JVM, .NET, GraalVM, WASM), polyglot vs sprawl | [`senior.md`](senior.md) |
-| Org-level: governance, platform teams, supported-language lists, hiring & on-call cost, WASM's future | [`professional.md`](professional.md) |
-| Interview Q&A on interop mechanisms and polyglot strategy | [`interview.md`](interview.md) |
-| Design exercises: choose boundaries, design a contract, cost a new language | [`tasks.md`](tasks.md) |
+1. Find a real component where **Interop & Polyglot Architectures** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
----
+## Verify your work
 
-**Memorize this:** interop is a spectrum, and you trade coupling/safety for latency as you move toward FFI. Default to a network boundary for isolation; reach for FFI only on hot, stable native code, knowing you forfeit both languages' safety at the seam. And whatever the mechanism, put a *schema* on the boundary — the contract, not the protocol, is what keeps polyglot from rotting.
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
+
+## Review questions
+
+- Which boundary is most affected by Interop & Polyglot Architectures?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

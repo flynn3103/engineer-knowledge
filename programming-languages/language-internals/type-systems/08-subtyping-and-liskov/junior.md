@@ -1,70 +1,11 @@
-# Subtyping & Liskov Substitution — Junior Level
+# Subtyping & Liskov Substitution — Junior
 
-> **Topic:** Subtyping & Liskov Substitution
-> **Focus:** What "an S can be used where a T is expected" really means, and the one rule (Liskov's) that decides when that substitution is safe instead of a hidden bug.
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **Subtyping & Liskov Substitution** in one small example and prove the result?
 
-## Introduction
-
-> Focus: **What does it mean for one type to be a "subtype" of another?** And **why does the Square/Rectangle problem prove that "is-a" is not enough?**
-
-**Subtyping** is the relation that makes polymorphism work. We say **S is a subtype of T** (written `S <: T`) when **a value of type S can be used anywhere a value of type T is expected** — and the program still type-checks and still behaves correctly. If `Dog` is a subtype of `Animal`, then any function that takes an `Animal` will accept a `Dog`, because every `Dog` *is* an `Animal`.
-
-That word **"correctly"** is doing enormous work, and it is the whole point of this topic. The compiler can check the easy half: it can verify that a `Dog` has all the methods an `Animal` has, with compatible signatures. What the compiler *cannot* check is whether the `Dog` actually *behaves* the way callers of `Animal` expect. That second, behavioral half is governed by the **Liskov Substitution Principle (LSP)** — the "L" in SOLID — which says, informally:
-
-> **If you replace any object of the base type with an object of a subtype, the program should keep working without surprises.**
-
-When that holds, subtyping is *sound* and you can reason about your base type with confidence. When it fails — when some subtype quietly breaks an assumption the base type made — you get the bugs this topic is famous for: the `Square` that corrupts a `Rectangle`'s geometry, the `Penguin` whose `fly()` throws an exception, the "read-only" list that crashes when you call `add()`. Every one of those is code that compiled fine and ran wrong.
-
-In one sentence: **subtyping is the promise that an S is a usable T; LSP is the discipline that makes the promise true.**
-
-> 🎓 **Why this matters for a junior:** The first time inheritance bites you, it will not be a compiler error. It will be polymorphic code that worked for every subtype except one, and that one will be in production. Learning to feel *when "is-a" is a lie* is one of the highest-leverage object-oriented skills you can build early.
-
-This page covers: what the subtype relation actually means, the subsumption rule that lets an S "be" a T, nominal vs structural subtyping at a beginner level, why preconditions/postconditions/invariants are the real contract, and the canonical Square/Rectangle failure shown in code. The next level (`middle.md`) formalizes the four LSP rules and function-type subtyping; `senior.md` covers variance and the type-theory; `professional.md` covers real-world API and library design under LSP.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** Basic object-oriented programming — classes, fields, methods, and what it means for one class to `extend` or `implement` another.
-- **Required:** How to call a method on an object and pass an object to a function.
-- **Required:** What an interface (or abstract class) is, at least loosely.
-- **Helpful but not required:** Exposure to at least one statically-typed language (Java, C#, TypeScript, Go) so the type errors mean something.
-- **Helpful but not required:** A passing acquaintance with the word "polymorphism."
-
-You do **not** need to know:
-
-- Variance (covariance/contravariance) as a formal concept — that is `senior.md`.
-- Design-by-contract formalisms or Eiffel — touched lightly here, deep in `middle.md`.
-- The type-theory subsumption proof rules — that is `senior.md`.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Type** | A label that says what operations a value supports and how it may be used. |
-| **Subtype** | A type S such that an S value is usable wherever a T value is expected. Written `S <: T`. |
-| **Supertype** | The other end: T is a supertype of S. The more general type. |
-| **Subtyping** | The `<:` *relation* itself — the rules that decide which types are subtypes of which. |
-| **Substitutability** | The property at the heart of LSP: you can swap in the subtype without breaking the caller. |
-| **Polymorphism** | One piece of code working over many types. Subtyping is one way to get it (subtype polymorphism). |
-| **Subsumption** | The rule that *lets* you treat an S value as having type T. "An S is also a T." |
-| **Liskov Substitution Principle (LSP)** | The rule that subtypes must be behaviorally substitutable for their base type, not just type-compatible. |
-| **Nominal subtyping** | Subtype *because you declared it* — `class Dog extends Animal`. The name/declaration is what counts. |
-| **Structural subtyping** | Subtype *because the shape matches* — if it has the right methods/fields, it qualifies, no declaration needed. |
-| **Precondition** | What a method requires of its caller before it will work (e.g. "amount must be > 0"). |
-| **Postcondition** | What a method guarantees to its caller after it finishes (e.g. "balance is reduced by amount"). |
-| **Invariant** | A truth about an object that must always hold between method calls (e.g. "balance is never negative"). |
-| **Contract** | The full promise of a method/class: its preconditions, postconditions, and invariants together. |
-| **Inheritance** | A *code-reuse* mechanism: a subclass borrows the implementation of its parent. Related to but **not the same as** subtyping. |
-| **Interface** | A pure contract — method signatures with no implementation — that types can declare they satisfy. |
-| **`is-a` relationship** | The naive intuition ("a Square is-a Rectangle") that LSP exists to correct. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -137,32 +78,6 @@ This trips up almost everyone early. **Inheritance** (`extends`) is a tool for *
 - You can *abuse* inheritance to get code reuse where the subtype is *not* substitutable — and that is precisely the LSP violation. `class Square extends Rectangle` reuses the rectangle's code, but a `Square` is *not* a substitutable `Rectangle`, as we'll see.
 
 The classic advice "**prefer composition over inheritance**" exists largely because inheritance tempts you into LSP violations. If you only need the code, compose. Only subtype when the subtype is genuinely substitutable.
-
----
-
-## Real-World Analogies
-
-**The job substitute.** A "Senior Engineer" is a subtype of "Engineer." Anywhere the team needs an Engineer, a Senior can stand in — they can do everything an Engineer can, plus more. That's sound subtyping. Now imagine a "Manager" who has the title "Engineer" but refuses to write code. If you send the Manager to do an Engineer's task, the task fails. The Manager *claimed* the type but can't *substitute* — an LSP violation in human form.
-
-**The rectangular vs square frame.** A picture frame shop sells rectangular frames where you set width and height independently. A "square frame" that *forces* height to equal width whenever you set the width is a different product. If a customer hands their frame-resizing robot a square frame expecting to set width to 10 and height to 5, the robot ends up with a 10×10 frame and a confused customer. The square *looked like* a rectangle but didn't *behave* like one — the canonical Square/Rectangle problem.
-
-**The contract with the plumber.** You hire a plumber under a contract: "you may require the water to be off first (precondition), and you guarantee the leak is fixed (postcondition)." If a substitute plumber shows up and says "I require the water off *and* the gas off *and* a permit" (strengthened precondition), they've broken the contract — you weren't told to do all that. If they say "I'll *probably* fix the leak" (weakened postcondition), they've also broken it. A good substitute asks for no more and delivers no less.
-
-**The vending machine button.** Every button on a vending machine promises: press me, get a snack. A button labeled like the rest but wired to "press me, get an error light" violates the promise. Callers (customers) trusted the type "button" and got surprised. LSP says every button must keep the button-promise.
-
----
-
-## Mental Models
-
-**Model 1 — "Replace and pray, or replace and trust."** LSP is the difference. With sound subtyping you *replace and trust*: swap any subtype in, walk away, the program is fine. With a violation you *replace and pray*: it works for the subtypes you tested and breaks on the one you didn't. The goal is to make every subtype trustworthy by construction.
-
-**Model 2 — "The base type is a contract written for strangers."** When you define `Animal`, you're writing a promise that *code you'll never see* will rely on. Every subtype inherits the obligation to honor that promise. You don't get to know who's calling — so you can't cut corners "just for this subclass."
-
-**Model 3 — "Demand less, deliver more."** A safe subtype is *more lenient on input* and *more generous on output* than its base. Demand no more than the base (don't strengthen preconditions). Deliver no less than the base (don't weaken postconditions). If you remember one phrase, remember "**require less, promise more**" — that's the shape of a valid override.
-
-**Model 4 — "The compiler signs the form; you keep the promise."** The type checker verifies the *signature* — right method names, compatible parameter and return types. It physically cannot verify the *behavior*. LSP is the part of the contract that has no compiler. That gap is where the bugs live, and discipline is the only thing that closes it.
-
-**Model 5 — "is-a is a hypothesis, not a proof."** "A Square is-a Rectangle" feels obviously true in English. LSP forces you to *test* the hypothesis: can a Square actually substitute for a Rectangle in code that resizes width and height independently? No. So for *this* contract, the is-a hypothesis is false. is-a depends on the contract, not on the dictionary.
 
 ---
 
@@ -286,34 +201,6 @@ describe(Point{1, 2})   // (1, 2)
 
 ---
 
-## Pros & Cons
-
-**Pros of subtyping (done with LSP discipline):**
-
-- **Polymorphism for free.** Write one function against the supertype; it works for every present and future subtype.
-- **Open for extension.** New subtypes slot in without touching the code that uses the base type (the Open/Closed Principle leans on this).
-- **Clear contracts.** Thinking in pre/postconditions forces you to state what your base type actually promises.
-- **Testability.** You can substitute a fake/mock subtype in tests precisely *because* substitutability holds.
-
-**Cons / costs:**
-
-- **The compiler only checks half.** Signature compatibility is verified; behavioral compatibility is on you. The most dangerous bugs hide in that gap.
-- **Inheritance tempts violations.** `extends` makes it trivially easy to reuse code where the subtype isn't substitutable.
-- **"is-a" intuition lies.** Real-world taxonomies (Square *is a* Rectangle, Penguin *is a* Bird) don't map cleanly to substitutable types.
-- **Refactoring cost.** Discovering a violation late often means redesigning a hierarchy that lots of code already depends on.
-
----
-
-## Use Cases
-
-- **Plugin / strategy interfaces.** Define a `PaymentProcessor` interface; every concrete processor (`StripeProcessor`, `PayPalProcessor`) is a subtype. Calling code never changes when you add a new one — *as long as* each obeys the contract.
-- **Collections and iterators.** `List`, `Set`, `Map` hierarchies rely on subtypes behaving like the interface promises. (And, as we saw, occasionally break it.)
-- **Test doubles.** A mock `EmailSender` substitutes for the real one. This works *only* because the mock honors the contract callers depend on.
-- **Domain hierarchies.** `Shape` with `Circle`, `Rectangle`, `Triangle` subtypes — provided each really computes its own area and respects the `Shape` contract.
-- **Framework extension points.** Servlet `Filter`, ASP.NET `Middleware`, Android `Activity` — you subtype a framework base class and the framework substitutes your instance for the base type.
-
----
-
 ## Coding Patterns
 
 **Pattern 1 — Program to the supertype, not the subtype.** Accept and store the most general type that supports what you need. `void render(Shape s)`, not `void render(Circle c)`. This is the discipline that makes subtyping pay off.
@@ -375,14 +262,24 @@ final class Rectangle {
 
 ---
 
-## Summary
+## Apply it
 
-- **S is a subtype of T** when an S value can be used *correctly* anywhere a T is expected. The **subsumption rule** lets an S value also count as a T.
-- Subtyping comes in two flavors: **nominal** (subtype because declared — Java/C#/C++/Scala) and **structural** (subtype because the shape fits — Go/TypeScript).
-- The compiler verifies the *signature*; the **Liskov Substitution Principle** governs the *behavior* — and it's the part with no compiler.
-- A safe override must **not strengthen preconditions** (demand more), **not weaken postconditions** (deliver less), and **preserve invariants**. Memorize "**require less, promise more**."
-- The canonical violation is **Square extends Rectangle**: `setWidth` breaks the rectangle's invariant that width and height are independent, so polymorphic code silently computes the wrong area.
-- Other famous breaks: a **Penguin.fly()** that throws, and Java's **`unmodifiableList`** whose `add()` throws — a violation shipped on purpose because the hierarchy lacked a read-only supertype.
-- **Inheritance is not subtyping.** `extends` gives code reuse; subtyping demands substitutability. **Prefer composition over inheritance**, split hierarchies when behavior diverges, and treat "is-a" as a hypothesis to test, not a fact to assume.
+1. Choose one small, known input for **Subtyping & Liskov Substitution**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
-Move on to `middle.md` to make the four LSP rules precise, see function-type subtyping (contravariant parameters, covariant returns), and meet Design-by-Contract.
+## Verify your work
+
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
+
+## Review questions
+
+- What problem does Subtyping & Liskov Substitution solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

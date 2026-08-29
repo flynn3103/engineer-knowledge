@@ -1,38 +1,12 @@
-# Reference Counting — Middle Level
+# Reference Counting — Middle
 
-> **Topic:** Reference Counting
-> **Focus:** The mechanics and cost of counting — inline vs side-table, atomic vs non-atomic, weak references, and the cycle collector.
+<!-- level-focus -->
+At middle level, focus on this question:
 
+> Where does **Reference Counting** belong in a maintainable component, and which trade-off selects the design?
+
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
-
-## Introduction
-
-At the junior level the rule was "increment on share, decrement on drop, free at zero." That rule is correct but it hides almost every interesting engineering decision. This page opens the box:
-
-- **Where** does the count physically live, and why does that matter for performance?
-- **What does each count update actually cost** — and why is a thread-safe count an order of magnitude more expensive than a single-threaded one?
-- **How do real systems break cycles** so the headline weakness doesn't sink the whole scheme?
-
-If you understand these three things, you understand why `Rc` exists *and* `Arc` exists in Rust, why CPython has both a refcount *and* a separate garbage collector, and why "just add a thread" can quietly destroy the performance of a reference-counted program.
-
-## Prerequisites
-
-- The junior-tier model: increment, decrement, free at zero, and the cycle problem.
-- Basic awareness of **CPU caches** — that memory access is fast when data is in cache and slow when it isn't, and that caches work in fixed-size lines.
-- Basic awareness of **threads** — multiple execution streams that can touch the same memory at the same time.
-- What a **destructor / finalizer** is — code that runs when an object is about to be freed.
-
-## Glossary
-
-- **Inline count** — the refcount stored inside the object's own memory block.
-- **Side-table count** — the refcount stored in a separate map keyed by object address.
-- **Strong reference** — a reference that *counts*; it keeps the object alive.
-- **Weak reference** — a reference that does *not* count; it points at an object without keeping it alive, and becomes `nil`/`None` when the object is freed.
-- **Atomic operation** — a read-modify-write that completes indivisibly even under concurrent access, implemented with special CPU instructions and memory barriers.
-- **Memory barrier (fence)** — an instruction restricting how the CPU/compiler may reorder memory operations; required for correct atomic counting.
-- **Cache-line contention / false sharing** — slowdown when multiple cores fight over the same cache line, e.g. the same refcount.
-- **Cycle collector** — an auxiliary garbage collector that finds and frees reference cycles the counter cannot.
-- **Finalizer / destructor** — user code run at deallocation (`__del__`, `Drop`, `deinit`, `~T()`).
 
 ## Core Concepts
 
@@ -64,13 +38,6 @@ Weak references are a *manual* fix — they require the programmer to identify t
 CPython is the canonical example. Its primary mechanism is reference counting; on top of that sits a **generational cyclic garbage collector** that periodically inspects container objects (those that can hold references — lists, dicts, instances) looking for groups whose references all point *within the group*. It uses a clever trick: temporarily subtract internal references from each object's count; anything still above zero is reachable from outside; anything that hits zero is reachable *only* through the cycle and can be collected.
 
 So CPython is a **hybrid**: refcounting does ~99% of the work promptly, and the cycle collector mops up the cyclic garbage that refcounting structurally cannot.
-
-## Mental Models
-
-- **"The count is hot memory."** Because the count changes on essentially every reference operation, it is among the most frequently written memory in the program. Anything that makes writing it expensive — atomics, cache contention — taxes the whole program.
-- **"Weak = look but don't hold."** A weak reference is a question ("are you still there?"), not a claim ("you belong to me").
-- **"Refcounting and tracing GC are not rivals; they're roles."** Refcounting handles the common, acyclic, prompt case; a tracing collector handles cycles. CPython runs both, by design.
-- **"Each thread that shares an object turns a cheap counter into an expensive one."** The moment a counted object can be touched concurrently, every increment must become atomic.
 
 ## Code Examples
 
@@ -158,27 +125,6 @@ A rough mental figure: a non-atomic increment can be effectively free; a contend
 - Rust forces you to choose `Rc` (no thread-sharing, cheap) or `Arc` (thread-sharing, atomic) at the type level — you pay for atomicity only when you ask for it.
 - CPython historically used a **non-atomic** count and protected it with the GIL, which lets only one thread run Python at a time. That makes counting cheap but means Python cannot run threads in parallel — and it's a major reason free-threaded ("no-GIL") Python is hard: removing the GIL means making millions of refcount updates atomic or otherwise thread-safe, which is slow.
 
-## Pros & Cons
-
-**Pros**
-
-- Prompt, deterministic deallocation; finalizers run right at last use.
-- Memory pressure smoothed out over time instead of in pause spikes.
-- Weak references give a precise, programmer-controlled tool for breaking cycles.
-
-**Cons**
-
-- A per-reference cost that scales with how often you assign references.
-- Atomic counting under threading is dramatically more expensive than non-atomic.
-- Cycles need either manual weak references or an entire auxiliary collector.
-- Header space (inline) or lookup overhead (side table) on every object.
-
-## Use Cases
-
-- **Single-threaded, latency-sensitive code** where pauses are unacceptable and cycles are rare or easily made weak: `Rc`, single-threaded Python, UI object graphs.
-- **Shared ownership across threads**: `Arc`, `shared_ptr` — accept the atomic cost for the convenience of "anyone can hold it, last holder frees it."
-- **Resource handles** where the destructor must run promptly (closing files, flushing buffers).
-
 ## Coding Patterns
 
 - **Strong down, weak up.** Owners hold children strongly; back-references (child→parent, observer→subject) are weak. This is the universal cycle-avoidance pattern.
@@ -200,10 +146,26 @@ A rough mental figure: a non-atomic increment can be effectively free; a contend
 - **Atomic count, non-atomic data.** The count being thread-safe does *not* make the *contents* thread-safe. `Arc<T>` shares ownership safely but you still need a lock (`Mutex`) or atomics to mutate `T` concurrently.
 - **GIL false comfort.** Python's per-object refcount is safe only because the GIL serializes bytecode. Code that assumes "Python refcounting is thread-safe" breaks under free-threaded builds.
 
-## Summary
+---
 
-- The count can live **inline** (fast, costs header space — CPython, default Swift) or in a **side table** (indirection, saves space — Swift weak/overflow case).
-- **Weak references** point without counting; making one side of a relationship weak is the standard manual cure for cycles.
-- A **cycle collector** (CPython's generational cyclic GC) is the automatic cure, complementing refcounting rather than replacing it.
-- **Cost is dominated by atomicity.** Non-atomic counts (`Rc`, GIL-protected CPython) are nearly free; **atomic** counts (`Arc`, `shared_ptr`, Swift, Obj-C) are far costlier due to special instructions, memory barriers, and cache-line contention.
-- These costs explain real design choices: Rust's `Rc`/`Arc` split, the GIL, and the difficulty of free-threaded Python.
+## Apply it
+
+1. Find a real component where **Reference Counting** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
+
+## Verify your work
+
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
+
+## Review questions
+
+- Which boundary is most affected by Reference Counting?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

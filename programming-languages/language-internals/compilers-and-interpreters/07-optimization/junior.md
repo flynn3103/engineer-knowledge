@@ -1,64 +1,11 @@
-# Optimization — Junior Level
+# Optimization — Junior
 
-> **Topic:** Optimization
-> **Focus:** What does a compiler *do* when you pass `-O2`? It rewrites your code into faster, smaller code that behaves the same. This page is about *what same means* and the handful of classic rewrites you should be able to recognize.
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **Optimization** in one small example and prove the result?
 
-## Introduction
-
-> Focus: **What is a compiler optimization, and what does it promise you?**
-
-When you compile a C, Rust, or Go program with `-O2` (or build a release JAR, or let a JIT warm up), the machine code that runs is **not** a literal translation of what you wrote. The compiler has *rewritten* it. It folded `2 + 3` into `5` before your program ever ran. It noticed you computed `a * b` twice and computed it once. It deleted a branch it proved could never be taken. It turned `x * 2` into a shift. It pulled a calculation out of a loop that didn't depend on the loop. All of this is called **optimization**: transforming the program so it runs **faster** or is **smaller**, while keeping its behavior the same.
-
-That last clause is the whole game. The compiler is allowed to change *anything* it wants — reorder, delete, duplicate, replace one instruction sequence with a totally different one — **as long as you can't tell the difference by observing the program's behavior.** This is called the **"as-if" rule**: the optimized program must behave *as if* it had executed your original source exactly as written. What counts as "observable" is precise (output you print, files you write, volatile hardware accesses) and what counts as *not* observable is surprisingly broad (the exact order of internal arithmetic, whether a temporary variable ever existed, how many instructions ran).
-
-In one sentence: **an optimizer is a program that rewrites your program into a faster one that you can't catch in the act.**
-
-> 🎓 **Why this matters for a junior:** Two things. First, the optimizer is the reason "obviously slow" code is sometimes fast and "obviously fast" code is sometimes slow — the compiler may have already fixed (or ruined) your micro-optimization. Stop hand-optimizing things `-O2` already does. Second, when you write code with *undefined behavior* (signed overflow, reading uninitialized memory, dereferencing a pointer that might be null), the optimizer is *allowed to assume it never happens* and can delete your safety checks. Optimization is where "harmless" bugs turn into deleted code. Knowing the basics keeps you out of both traps.
-
-This page covers: the as-if rule and what "observable" means, the classic local rewrites you'll see in disassembly (constant folding, strength reduction, dead code elimination, common subexpression elimination), the most important enabling optimization (inlining), the basics of loop optimization, and the `-O0`/`-O1`/`-O2`/`-O3` levels. Deeper machinery — dataflow analysis, SSA, the phase-ordering problem, LTO and PGO, the undefined-behavior controversy — lives in the higher tiers.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** How to compile and run a program in at least one compiled language (C, C++, Rust, or Go).
-- **Required:** What a variable, a function, a loop, and an `if` branch are.
-- **Required:** A rough sense that source code becomes machine instructions the CPU executes.
-- **Helpful but not required:** Having looked at assembly once (e.g. on godbolt.org). You do not need to *read* assembly fluently — recognizing patterns is enough.
-- **Helpful but not required:** The idea that some operations (multiply, divide) are slower than others (add, shift).
-
-You do **not** need to know:
-
-- What an *intermediate representation* (IR) or *SSA form* is — that's `middle.md`.
-- Dataflow analysis, lattices, or fixpoints — that's `middle.md`.
-- How `-flto` or profile-guided optimization works — that's `senior.md` and `professional.md`.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Optimization** | Transforming a program so it runs faster or is smaller while preserving its observable behavior. |
-| **As-if rule** | The compiler may transform the program however it likes, as long as it behaves *as if* the original source ran unchanged. The legal license for all optimization. |
-| **Observable behavior** | The things the standard says a correct program must produce: I/O, accesses to `volatile` objects, program termination/output. The optimizer must preserve these exactly. |
-| **Optimization level** | A flag (`-O0`, `-O1`, `-O2`, `-O3`, `-Os`, `-Oz`) that selects how aggressively the compiler optimizes. |
-| **Pass** | One transformation the compiler runs over the program (e.g. "the constant-folding pass"). Compilers run dozens in sequence. |
-| **Constant folding** | Computing constant expressions at compile time: `2 + 3` becomes `5`. |
-| **Constant propagation** | Replacing a variable with its known constant value throughout the code. |
-| **Strength reduction** | Replacing an expensive operation with a cheaper one: `x * 2` → `x << 1`. |
-| **Dead code elimination (DCE)** | Removing code whose result is never used or that can never run. |
-| **Common subexpression elimination (CSE)** | Computing a repeated expression once and reusing the result. |
-| **Inlining** | Replacing a function *call* with a copy of the function's *body*. The most important enabling optimization. |
-| **Loop-invariant code motion (LICM)** | Moving a computation that doesn't change across loop iterations *out* of the loop. |
-| **Loop unrolling** | Duplicating a loop body so each iteration does more work and the loop runs fewer times. |
-| **Peephole optimization** | Local cleanup of a few adjacent instructions at a time. |
-| **Undefined behavior (UB)** | A program construct the language standard places no requirements on. The optimizer is allowed to assume UB never occurs. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -174,32 +121,6 @@ The key junior takeaway: **`-O0` for debugging, `-O2` for shipping.** `-O3` is n
 
 ---
 
-## Real-World Analogies
-
-**The editor who tightens your prose.** You hand in an essay that says "in the event that it is raining, then in that case bring an umbrella." A good editor returns "if it rains, bring an umbrella." Same *meaning* — the reader can't tell information was lost — but fewer words. The optimizer is that editor: it preserves what the program *means to an observer* while cutting everything redundant.
-
-**Pre-computing a recipe.** A recipe says "add 60 × 60 × 24 grams of flour." Before you start cooking you compute that once: 86,400 grams. You don't re-multiply at every step. That's constant folding.
-
-**Prepping ingredients before you start.** If every pancake needs the same melted butter, you melt all the butter *once* before the griddle, not per pancake. That's loop-invariant code motion.
-
-**Doubling by sliding, not multiplying.** Ask a child "what's 7 × 2?" and they might add 7 + 7. Ask "what's 7 doubled?" and the answer is instant. Strength reduction is the compiler choosing the cheap mental shortcut (a bit shift) over the expensive general operation (a multiply).
-
-**Copy-pasting a short helper instead of phoning a friend.** If you need a one-line calculation done, you do it in your head rather than calling someone, waiting for them to pick up, telling them the numbers, and waiting for the answer. Inlining is the compiler pasting a small function's work inline instead of paying for the "phone call."
-
----
-
-## Mental Models
-
-**Model 1: The optimizer is a faithful liar.** It will tell the CPU a completely different story than you wrote — different instructions, different order, missing pieces — but the *ending* (the observable output) is word-for-word identical. Trust it about the ending; never assume anything about the middle.
-
-**Model 2: Observable behavior is the contract; everything else is negotiable.** Picture a glass box around your program with only a few holes: I/O, volatile accesses, termination. The compiler can rearrange every gear inside the box as long as what comes out of the holes is unchanged. Your job as a junior is to know which holes exist (so you don't accidentally rely on the gears).
-
-**Model 3: Optimizations cascade.** Constant propagation feeds constant folding, which makes a branch dead, which lets DCE delete a whole block, which makes a function tiny enough to inline, which exposes *more* constants. One enabled optimization is a domino. This is why inlining matters so much — it knocks over the first domino across a function boundary.
-
-**Model 4: `-O0` shows your code; `-O2` shows the compiler's idea of your code.** When you debug at `-O2` and a variable reads "optimized out," that's not a bug — the variable genuinely doesn't exist in the optimized program. Debug at `-O0`, ship at `-O2`.
-
----
-
 ## Code Examples
 
 ### Constant folding and propagation (C, via godbolt)
@@ -289,33 +210,6 @@ At `-O2`, `c * d` is computed once before the loop and the loop body just adds t
 
 ---
 
-## Pros & Cons
-
-**Pros**
-
-- **Free speed.** Flipping `-O0` to `-O2` often makes programs several times faster with zero source changes.
-- **Cleaner source.** You can write the *clear* version (`x * 5`, a helper function, a readable loop) and let the compiler produce the *fast* version (shifts, inlined bodies, hoisted loads). Readability and performance stop fighting.
-- **Portability.** The compiler picks the cheap instruction sequence *for the target CPU*. The same `x * 8` becomes the right thing on x86, ARM, and RISC-V.
-
-**Cons**
-
-- **Harder debugging.** At `-O2`, variables vanish, line numbers jump around, and breakpoints land in surprising places. You usually debug at `-O0`.
-- **It can expose latent bugs.** If your code has undefined behavior, the optimizer may "exploit" it and produce code that crashes or misbehaves — code that *seemed* fine at `-O0`. (This is the UB controversy; it's a major topic in the higher tiers.)
-- **`-O3` is not free.** More inlining and unrolling means a bigger binary, which can overflow the instruction cache and run *slower*. Aggressive optimization must be measured.
-- **Slower compiles.** Higher levels and LTO take longer to build.
-
----
-
-## Use Cases
-
-- **Shipping a release build.** Compile with `-O2` (the default release level for most projects).
-- **Debugging a crash.** Rebuild with `-O0 -g` so the debugger shows your variables and lines faithfully.
-- **A hot inner loop is slow.** Before hand-optimizing, check what the compiler already did at `-O2`/`-O3` on godbolt — often it's already done your trick, and your job is to feed it cleaner code (e.g. remove an alias the compiler couldn't see past).
-- **A small embedded target.** Use `-Os`/`-Oz` to fit the binary in limited flash, accepting slightly slower code.
-- **A surprising performance difference between two builds.** Check the optimization level first — a `-O0` accidental build is a very common cause of "why is this 10× slower?"
-
----
-
 ## Coding Patterns
 
 - **Write for clarity; trust the compiler for speed.** Don't replace `x * 2` with `x << 1` in source "for speed" — the compiler already does it, and the shift is harder to read and can be *wrong* for signed division. Write the obvious thing.
@@ -348,12 +242,24 @@ At `-O2`, `c * d` is computed once before the loop and the loop body just adds t
 
 ---
 
-## Summary
+## Apply it
 
-A compiler optimization rewrites your program into a faster or smaller one while preserving its **observable behavior** — that's the **as-if rule**, the license under which everything else operates. What's observable (I/O, `volatile`, termination) is preserved exactly; everything else (instruction order, temporaries, even whether a function call happened) is fair game.
+1. Choose one small, known input for **Optimization**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
-The classic local rewrites — **constant folding/propagation**, **copy propagation**, **algebraic simplification**, **strength reduction**, **common subexpression elimination**, and **dead code elimination** — are the ones you'll first recognize in assembly. **Inlining** is the most important because it's an *enabling* optimization: pasting a function body in lets every other pass see across the boundary, and optimizations cascade. **Loop-invariant code motion** and **unrolling** are the loop-level rewrites to know first.
+## Verify your work
 
-Practically: ship with `-O2`, debug with `-O0 -g`, never assume `-O3` is faster (measure it), and remember that the optimizer is allowed to *assume your code has no undefined behavior* — which is why "works at `-O0`, breaks at `-O2`" almost always means a real bug in your code, not the compiler's. Write clear source; let the optimizer make it fast.
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
 
-The next tier (`middle.md`) opens the hood: the intermediate representation, **dataflow analysis** (the framework that proves these transformations are safe), SSA form, and why the *order* you run passes in changes the result.
+## Review questions
+
+- What problem does Optimization solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

@@ -1,16 +1,11 @@
-# Object Pinning & Movable Heaps — Professional Level
+# Object Pinning & Movable Heaps — Professional
 
-> **Topic:** Object Pinning & Movable Heaps
-> **Focus:** Production FFI integration, the fragmentation and pause-time hazards of pinning at scale, and the war stories that teach you where pins go wrong.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Object Pinning & Movable Heaps** with measurable outcomes and limited coordination?
 
-## Introduction
-
-At the senior tier, pinning is a clean contract: tell the collector "don't move this," hand the address across the boundary, release. In production, the contract leaks. A pin that was supposed to last microseconds spans an `await` that blocks on a slow network. A high-throughput service pins thousands of receive buffers simultaneously and watches its compacting heap turn into Swiss cheese. A cgo caller passes a Go struct that *looks* pointer-free but isn't after someone adds a field. This tier is about those failure modes — what they look like in a profiler, why they happen, and the integration patterns that keep them from happening.
-
-The unifying theme: **pinning's cost is not paid at the pin site; it's paid by the next collection.** That temporal disconnect is what makes pinning bugs subtle. The code that pins runs fast and looks correct. The garbage collector, minutes later and on another thread, pays the bill in fragmentation and pause time.
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -129,33 +124,11 @@ The strategic JVM stance: **do not pin the managed heap for anything that lives 
 
 ---
 
-## War Stories
-
-- **The async pin that spanned a slow client.** A .NET gateway pinned receive buffers with `GCHandle.Pinned` across `ReceiveAsync`. Under normal load, fine. Then a wave of slow mobile clients held connections open; thousands of pins persisted for seconds each, scattered across gen0/gen2. Gen2 fragmentation ballooned, large-object allocations began failing, and gen2 GCs ran constantly. Fix: move buffers to the POH (one immovable allocation per connection, pooled) and adopt `Memory<T>`-based async APIs. Fragmentation and gen2 frequency dropped to baseline.
-
-- **The JNI critical region that blocked the world.** A native image codec used `GetPrimitiveArrayCritical` to get the pixel array, then — inside the critical region — called back into Java to log progress and occasionally did a file read. With GC disabled during the region, any other thread that needed to allocate while the codec did its slow I/O stalled. Tail latency spiked to seconds under load. Fix: copy the pixels out with `GetByteArrayElements` (or use a `DirectByteBuffer`), do all the slow work outside any critical region.
-
-- **The cgo struct that grew a pointer.** A Go service passed a config struct to a C library; originally all scalar fields, perfectly legal. A later commit added a `*Logger` field for convenience. Tests passed (the pointer happened to be nil or the GC didn't move during tests). In production under GC pressure, `cgocheck` panicked: `cgo argument has Go pointer to Go pointer`. Fix: pin the inner pointer with `runtime.Pinner`, and add a code-review rule that any struct crossing cgo is reviewed for embedded pointers. The deeper lesson: cgo legality is a property of the *whole reachable graph*, and it can be broken by a field added far from the call site.
-
-- **The leaked GCHandle.** A library allocated a `GCHandle.Pinned` for an interop callback context and freed it in a `Dispose` that an exception path skipped. Each leaked handle pinned ~64 KB forever. Over weeks the process accumulated thousands of immovable, never-collected objects; the heap couldn't compact around them and working set crept until OOM. Fix: `SafeHandle`-style ownership so `Free` is guaranteed, plus a periodic `GCHandle` census in diagnostics.
-
----
-
 ## Diagnosing Pinning Problems
 
 - **.NET:** ETW/EventPipe GC events expose pinned-object counts and fragmentation per generation. `dotnet-trace` with the GC provider, or `dotnet-gcdump` + a heap viewer, shows pinned objects and the holes around them. A rising `% Time in GC` together with gen2 fragmentation and frequent gen2 collections is the signature. `GCHandle` counts climbing without bound point to leaked pins.
 - **JVM:** Async-profiler or JFR will show threads parked in JNI; correlating allocation stalls with critical-region duration exposes the "GC disabled while a thread is in a critical region" pattern. `-Xlog:gc*` reveals fragmentation-driven GC frequency. Direct-buffer leaks show up as growing off-heap/native memory with stable Java-heap usage (watch `BufferPoolMXBean`).
 - **Go:** `cgocheck` panics name the violation directly. For pin pressure, there's no first-class metric, so instrument your own `Pinner` usage; a `Pinner` that is never `Unpin`'d (missing `defer`) is a pin leak that keeps objects immovable and alive. The Go heap profile plus rising RSS without a matching live-object count can indicate pinned-but-unreachable accumulation.
-
----
-
-## Pros & Cons
-
-- **Pro — zero-copy interop.** For high-throughput I/O and DMA, pinning (or off-heap) avoids per-operation copies that would otherwise dominate CPU and cache footprint.
-- **Pro — correctness across the boundary.** It is the only safe way to hand a managed buffer's address to code the GC can't see.
-- **Con — deferred, non-local cost.** The price is paid by later collections as fragmentation and pause time, far from the pin site, making it hard to attribute.
-- **Con — easy to overextend.** Async boundaries, blocking syscalls, and retained C pointers all silently lengthen pin lifetimes. Long or numerous pins are corrosive.
-- **Con — leak-prone.** A pin is a strong root plus an immovability flag; leaking it is a double bug (memory leak + permanent heap obstruction).
 
 ---
 
@@ -183,6 +156,24 @@ The strategic JVM stance: **do not pin the managed heap for anything that lives 
 
 ---
 
-## Summary
+## Apply it
 
-In production, pinning's cost is temporal and non-local: the pin site runs fast and correct, while the next garbage collection pays in fragmentation and pause time. The canonical legitimate pin is a DMA or async-I/O buffer whose address is held by hardware or the kernel for a span of real time you don't directly control — which is exactly why pins so easily become long and numerous. Fragmentation arises because pinned objects are rocks a compacting collector must flow around, splitting reclaimed space and forcing constrained, more expensive layout; the JVM's critical regions go further and can stall every thread by disabling GC. The durable production patterns are the same across runtimes: keep pins as short as the OS operation, move sustained sharing off the movable heap (POH, `DirectByteBuffer`, native memory) and pool it, guarantee unpin on every path, review the entire pointer graph at FFI boundaries, and prefer stable handles to raw addresses for long-lived identity. The war stories all rhyme — an async pin that spanned a slow peer, a critical region that blocked the world, a struct that quietly grew a pointer, a handle that leaked — and they all reduce to the same discipline: pin briefly, locally, and with guaranteed release, or don't pin at all.
+1. Define the user or business outcome that **Object Pinning & Movable Heaps** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
+
+## Verify your work
+
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
+
+## Review questions
+
+- Which measurable outcome justifies investing in Object Pinning & Movable Heaps?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

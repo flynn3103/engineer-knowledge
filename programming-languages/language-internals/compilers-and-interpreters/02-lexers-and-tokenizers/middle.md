@@ -1,19 +1,11 @@
-# Lexers & Tokenizers — Middle Level
+# Lexers & Tokenizers — Middle
 
-> **Topic:** Lexers & Tokenizers
-> **Focus:** The automaton behind a lexer, the maximal-munch rule, and the practical machinery of a real tokenizer.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **Lexers & Tokenizers** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-A lexer turns a flat stream of characters into a stream of tokens — the atoms the
-parser works with. Each token carries a **type** (e.g. `IDENT`, `NUMBER`, `PLUS`), the
-**lexeme** (the exact text), and a **source span** (start/end position) that every
-later phase needs for diagnostics. Understanding the lexer at the middle tier means
-understanding the small theory that makes it correct (regular languages and finite
-automata) and the handful of rules and data structures that make it fast and usable.
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Tokens as a Regular Language
@@ -148,12 +140,24 @@ middle-tier essentials.
 
 ---
 
-## Summary
+## Apply it
 
-A lexer is a finite automaton — built explicitly by a generator or implicitly in a
-hand-written `switch` loop — that turns characters into tokens with types, lexemes,
-and spans. The maximal-munch rule (longest match wins) governs tokenization and
-explains `<=`, `>>`, and `i+++j`. Keywords are lexed as identifiers then retagged via a
-table, and identifiers are interned for speed. Production compilers hand-write lexers
-for speed, diagnostics, and the context-sensitivity that the clean regular-language
-model doesn't quite cover.
+1. Find a real component where **Lexers & Tokenizers** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
+
+## Verify your work
+
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
+
+## Review questions
+
+- Which boundary is most affected by Lexers & Tokenizers?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

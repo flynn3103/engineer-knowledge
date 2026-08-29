@@ -1,53 +1,11 @@
-# Intermediate Representations — Senior Level
+# Intermediate Representations — Senior
 
-> **Topic:** Intermediate Representations
-> **Focus:** The IRs you actually read and debug in production compilers — LLVM IR, GCC's GENERIC→GIMPLE→RTL stack, JVM bytecode, rustc's MIR, Cranelift, and the sea-of-nodes IRs in V8 and HotSpot — plus the engineering of multi-level lowering, IR verification, and what makes an IR *good*.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Intermediate Representations** under failure, load, and change?
 
-## Introduction
-
-> Focus: **Stop inventing teaching IRs and start reading real ones.** What does LLVM IR actually look like, why is it typed and in SSA, how does GCC justify three IRs (GENERIC, GIMPLE, RTL) instead of one, what does rustc's MIR exist *for* beyond optimization, and why did V8 and HotSpot's top tier choose a graph IR (sea of nodes) over a CFG-of-blocks?
-
-The middle level gave you the structural vocabulary — CFG, SSA, φ, dominance, register vs stack vs functional. The senior level is where that vocabulary meets the IRs shipped in compilers you depend on every day. The difference matters because every real IR is a *bundle of engineering decisions*, and you only understand the decisions by seeing what each compiler optimized for. LLVM IR optimized for being a reusable, target-independent, typed-SSA optimization substrate shared across a dozen front ends — the narrow waist made concrete. GCC predates LLVM and arrived at a *stack* of IRs (a high-level tree IR, a mid-level SSA IR, a low-level machine-ish IR) because different optimizations want different altitudes. The JVM optimized its IR for *distribution and verification* — bytecode is small, stack-based, and provably type-safe before it runs — and then the JIT throws that away and rebuilds an SSA graph to actually go fast. rustc invented MIR not primarily to optimize but because **borrow checking** needed a simplified, control-flow-explicit form to run dataflow on. And the highest-performance JITs reached for **sea of nodes**, a graph IR that merges data and control dependencies so the scheduler is free to move computation as late as legality allows.
-
-Reading these IRs is a concrete, daily skill. `clang -S -emit-llvm` dumps LLVM IR; `gcc -fdump-tree-all -fdump-rtl-all` dumps every GIMPLE and RTL stage; `javap -c` disassembles bytecode; `rustc --emit=mir` (or `-Z dump-mir`) prints MIR; `cargo asm`/Cranelift's CLIF dumps show Cranelift IR. When you're chasing "why did the optimizer not vectorize this loop?" or "why is this bounds check still here?", the answer lives in the IR, not the source and not the assembly. This page makes you fluent: it walks the same small function through several real IRs, explains the lowering pipeline (progressive lowering through levels), shows how SSA construction via dominance frontiers (Cytron) plays out in a real pass manager, and explains MLIR's "dialects" — the modern answer to "why pick one IR level when you can have many, interoperating in one framework." It also covers the unglamorous but load-bearing engineering: IR verifiers, the properties that make an IR good (target-independent, analyzable, typed, SSA, verifiable), and the failure modes when those properties slip.
-
----
-
-## Prerequisites
-
-- SSA, φ-functions, dominance, dominator trees, dominance frontiers, out-of-SSA (the middle level of this topic).
-- The CFG: basic blocks, edges, critical edges, back edges, loops as cycles.
-- Register-based vs stack-based vs functional (CPS/ANF) IR families.
-- Comfort reading C, a little assembly, and at least skimming Rust/Java.
-- The compiler pipeline shape: front end → IR → optimizer (pass manager) → back end (instruction selection, register allocation, scheduling).
-
-You do **not** need to have written a production compiler; you do need to be willing to run the dump flags above and read what comes out.
-
----
-
-## Glossary
-
-| Term | Meaning |
-|------|---------|
-| **LLVM IR** | LLVM's typed, SSA, register-based IR. Exists as in-memory C++ objects, textual `.ll`, and `.bc` bitcode — three encodings of the same thing. |
-| **Module / Function / BasicBlock / Instruction** | LLVM IR's containment hierarchy. A `Value` is anything that can be used; instructions and arguments are values. |
-| **GENERIC** | GCC's language-independent tree IR, the front ends' common output. High-level, close to the AST. |
-| **GIMPLE** | GCC's three-address, mid-level IR; "gimplification" lowers GENERIC to it. Has a non-SSA and an SSA form. |
-| **RTL** | Register Transfer Language: GCC's low-level, machine-near IR (Lisp-like s-expressions) where register allocation and scheduling happen. |
-| **Bytecode** | A stack-based IR shipped as the distribution format (JVM `.class`, .NET CIL, Wasm). Verified before execution. |
-| **MIR (rustc)** | Mid-level IR in rustc: a CFG of basic blocks over a simplified Rust, used for borrow checking, drop elaboration, const eval, and some optimization. |
-| **CLIF / Cranelift IR** | Cranelift's SSA IR, designed for fast, predictable compilation (Wasm, debug builds) rather than peak optimization. |
-| **Sea of nodes** | A graph IR (Click) merging data-flow and control-flow into one graph of nodes; used by HotSpot C2 and V8 TurboFan. Enables global code motion. |
-| **MLIR** | Multi-Level IR: a framework where many **dialects** (IR sublanguages at different abstraction levels) coexist and lower into each other. |
-| **Dialect (MLIR)** | A namespaced set of operations/types/attributes — e.g., `affine`, `linalg`, `llvm` — representing one abstraction level or domain. |
-| **Lowering pipeline** | The ordered sequence of IRs/passes from high-level to machine code; "progressive lowering" descends one level at a time. |
-| **Verifier** | A pass that checks IR invariants (well-typed, dominance respected, terminators present, φ arity correct) and rejects malformed IR. |
-| **Intrinsic** | A pseudo-function the compiler understands specially (e.g., `llvm.memcpy`, `llvm.sadd.with.overflow`) and lowers per target. |
-| **Pass manager** | The driver that schedules analysis and transform passes over the IR, tracking which analyses are invalidated. |
-| **Poison / undef** | LLVM's models for "this value is the result of UB / is unconstrained"; they let the optimizer reason about undefined behavior soundly. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -145,26 +103,6 @@ Cranelift is an SSA, register-based IR/back end designed for **compile-time spee
 ### MLIR — many IRs, one framework
 
 **MLIR** (Multi-Level IR) generalizes "use several IRs" into a framework where many **dialects** coexist in one module and lower into each other. A dialect is a namespaced set of ops/types (`affine`, `scf`, `linalg`, `gpu`, `llvm`, `tensor`). A machine-learning compiler might start in a high-level `tosa`/`linalg` dialect, lower through `affine` (loop nests) and `scf` (structured control flow) to the `llvm` dialect, then hand off to LLVM IR — each lowering a small, verifiable step. MLIR's bet is that the right number of IR levels is "as many as your domain needs, expressed uniformly," and it now underpins TensorFlow/IREE, Flang, and parts of the LLVM ecosystem. It is progressive lowering taken to its logical conclusion.
-
----
-
-## Mental Models
-
-### The "altitude" model of IR levels
-
-Think of IRs as altitudes over the same terrain (your program). High altitude (GENERIC, HIR, high MLIR dialects) sees language structure but not machine cost. Low altitude (RTL, LLVM after lowering, `llvm` dialect) sees registers and addressing but has forgotten the source's intent. Optimizations are tools that work best at a specific altitude; the compiler descends, applying each at the right height. "Which IR should this optimization run on?" is really "at what altitude is the needed information still present and the cost model already meaningful?"
-
-### The "ship one IR, optimize on another" model
-
-Distribution formats (bytecode, Wasm, bitcode) and optimization IRs (SSA register graphs) have opposite goals: compactness/verifiability vs analyzability. Don't expect one IR to be great at both. The universal JIT pattern — decode the ship-format, lift to a register-SSA IR, optimize, emit machine code — falls directly out of this tension. When you see a stack-based format, assume something rebuilds a register IR before any serious optimization.
-
-### The "verifier is your conscience" model
-
-An IR without a verifier is a loaded gun. Each transform is an opportunity to violate an invariant (dangling use, missing terminator, wrong φ arity, type mismatch). The verifier is the conscience that catches the violation *at the scene*. Senior engineers run the verifier after every pass during development and treat a verifier failure as a higher-priority bug than a wrong-output test, because it pinpoints the exact pass at fault.
-
-### The "graph vs blocks" model (sea of nodes)
-
-A CFG-of-blocks pins every instruction to a block in program order; a sea-of-nodes graph leaves instructions *floating* on their dependencies until scheduling places them. Floating buys optimization freedom (move a computation anywhere its inputs are available and its effects are legal) but costs comprehensibility (there's no "line N" to point at). The trade-off — power vs maintainability — is exactly why some teams chose it and others (Turboshaft) are walking it back.
 
 ---
 
@@ -319,31 +257,6 @@ CLIF encodes the merge value as a **block parameter** `v4` rather than a φ-inst
 
 ---
 
-## Pros & Cons
-
-| IR / approach | Pros | Cons |
-|---------------|------|------|
-| **LLVM IR (typed SSA)** | Reusable narrow waist; rich optimizer; verifiable; three encodings | Heavyweight; slow to compile vs Cranelift; not great for sub-second JIT |
-| **GCC 3-IR stack** | Each altitude optimized; mature; many languages | Three IRs to learn/maintain; RTL is arcane |
-| **Bytecode (stack)** | Compact, verifiable, portable for shipping | Must be lifted to a register IR before real optimization |
-| **rustc MIR** | Enables borrow check, const eval, drop elaboration; analysis-first | Yet another IR before LLVM; MIR opts still maturing |
-| **Cranelift (CLIF)** | Fast, predictable compile times; clean block-param SSA | Lower peak runtime perf than LLVM |
-| **Sea of nodes** | Maximal optimization freedom, global code motion | Hard to debug/maintain; teams have migrated away (Turboshaft) |
-| **MLIR dialects** | Many altitudes, uniform infra, reusable lowerings | Conceptual and infrastructural overhead; ecosystem still solidifying |
-
----
-
-## Use Cases
-
-- **Picking a back end for a new language**: target LLVM IR for peak performance and reach; Cranelift for fast/predictable compiles; your own MLIR dialect lowering to `llvm` for a domain-specific compiler.
-- **Diagnosing missed optimizations**: dump LLVM IR / GIMPLE with `-Rpass*` / `-fdump-tree-*` and read why a pass bailed.
-- **Building static analysis or instrumentation**: lower to LLVM IR or MIR and run your analysis over SSA/CFG (sanitizers, coverage, taint).
-- **JIT engineering**: lift bytecode/Wasm to an SSA IR, optimize, emit; manage deopt and OSR against IR-level state.
-- **Domain compilers (ML, DSP, hardware)**: stack MLIR dialects and write progressive lowerings rather than one monolithic IR.
-- **Verification and fuzzing the compiler**: use the IR verifier plus IR-level fuzzers (e.g., differential testing across `-O` levels) to find miscompiles.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Drive the IR dumps before theorizing
@@ -440,65 +353,24 @@ When the front end needs a rich operation (overflow-checked add, memcpy, a vecto
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. Run `clang -O1 -S -emit-llvm` on a function with an `if/else` writing the same variable on both arms. Identify the φ and its `[value, predecessor]` pairs.
-2. Dump GIMPLE-SSA (`-fdump-tree-ssa`) for the same function and map GCC's `PHI` to LLVM's `phi`.
-3. `javap -c` the same logic compiled for the JVM. Trace the operand stack through the `if`; explain why there are no named temporaries.
-4. `rustc --emit=mir` the function. Identify the basic blocks, the `switchInt` terminator, and why this form (not the AST) is what the borrow checker uses.
-5. Explain, with an example, why LLVM's mid-level IR must stay target-independent and what breaks if it encodes a fixed pointer size.
-6. Convert a small φ-using SSA snippet into Cranelift's block-parameter style and back; handle a critical edge in the translation.
-7. Describe the JIT pipeline that turns Wasm (stack IR) into optimized machine code, naming every IR transition.
-8. Argue both sides of sea-of-nodes vs CFG-of-blocks for a top-tier JIT, citing the optimization-freedom vs maintainability trade-off (and V8's Turboshaft move).
+1. State the system invariant that **Intermediate Representations** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
----
+## Verify your work
 
-## Cheat Sheet
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
 
-```
-+------------------------------------------------------------------+
-|             INTERMEDIATE REPRESENTATIONS — SENIOR               |
-+------------------------------------------------------------------+
-| GOOD-IR PROPERTIES                                               |
-|   target-independent | analyzable | SSA | typed | verifiable    |
-|   explicit CFG | stable documented contract                     |
-|                                                                  |
-| REAL IRs                                                         |
-|   LLVM IR   : typed SSA register; .ll / .bc / in-memory         |
-|              clang -S -emit-llvm ;  phi at merges               |
-|   GCC       : GENERIC(tree) -> GIMPLE(3-addr, SSA) -> RTL(low)   |
-|              -fdump-tree-all / -fdump-rtl-all ;  PHI = phi       |
-|   JVM       : stack bytecode; verified; javap -c; JIT lifts SSA  |
-|   rustc MIR : CFG, places, terminators; borrow-check/const-eval |
-|              rustc --emit=mir / -Z dump-mir                      |
-|   Cranelift : SSA + BLOCK PARAMETERS (not phi); fast compile     |
-|   sea-of-nodes: graph IR (C2, TurboFan); floating nodes; GCM    |
-|   MLIR      : dialects (affine/scf/linalg/llvm); multi-level    |
-|                                                                  |
-| SSA CONSTRUCTION (Cytron)                                        |
-|   dominators -> dom tree + dominance frontiers                  |
-|   place phi at iterated DF of each def (phi is itself a def)     |
-|   rename by dom-tree walk; out-of-SSA = copies + split crit edge |
-|                                                                  |
-| ENGINEERING                                                      |
-|   VERIFY after every pass (loud here, not 3 passes later)        |
-|   progressive lowering: one altitude at a time                  |
-|   intrinsics = escape hatch; keep core IR small                 |
-|   invalidate dom/loop/alias analyses on CFG change              |
-|   ship-format (stack/bitcode) != optimize-format (SSA register) |
-+------------------------------------------------------------------+
-```
+## Review questions
 
----
-
-## Summary
-
-- Production compilers use **progressive lowering** through a stack of IRs at descending altitude; one IR rarely serves every optimization.
-- A **good IR** is target-independent (at mid level), analyzable, SSA, typed, verifiable, with explicit control flow and a stable contract — LLVM IR is the canonical example.
-- **LLVM IR**: typed, SSA, register-based, three isomorphic encodings, the M+N narrow waist made real (`clang -S -emit-llvm`).
-- **GCC** stacks **GENERIC → GIMPLE(SSA) → RTL** — language-neutral tree, target-neutral SSA, machine-near RTL — embodying progressive lowering before LLVM existed.
-- **JVM bytecode** is stack-based, verified, and a *distribution* format; JITs lift it to a register-SSA IR (HotSpot C2 = sea of nodes) to optimize. .NET CIL and Wasm follow the same ship-stack/optimize-SSA pattern.
-- **rustc MIR** exists primarily for **analysis** (borrow checking, const eval, drop elaboration), proving an IR's purpose isn't always optimization.
-- **Cranelift (CLIF)** optimizes for *fast, predictable compilation* and encodes SSA with **block parameters** instead of φ; **sea of nodes** (C2, TurboFan) merges data/control into a floating graph for maximal optimization freedom at the cost of debuggability (cf. V8's Turboshaft retreat).
-- **MLIR** generalizes multi-level IR into a framework of interoperating **dialects**, lowering down to the `llvm` dialect — progressive lowering as a first-class, reusable infrastructure.
-- The unglamorous load-bearers — **IR verifiers**, intrinsics as escape hatches, and disciplined analysis invalidation — are what keep a multi-pass, multi-team compiler correct.
+- Which invariant must remain true when Intermediate Representations fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

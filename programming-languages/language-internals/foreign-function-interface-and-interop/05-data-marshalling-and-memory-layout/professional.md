@@ -1,18 +1,11 @@
-# Data Marshalling & Memory Layout — Professional Level
+# Data Marshalling & Memory Layout — Professional
 
-> **Topic:** Data Marshalling & Memory Layout
-> **Focus:** What actually breaks marshalling in production — string impedance across four encodings, the allocator boundary that crashes on the wrong `free`, GC moving an unpinned buffer, the LP64/LLP64 `long` trap — and how to design a marshalling layer that contains all of it.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Data Marshalling & Memory Layout** with measurable outcomes and limited coordination?
 
-## Introduction
-
-> Focus: **The production failure modes of marshalling — string encoding/ownership impedance, allocator mismatch, GC relocation, integer-width drift — and the architecture of a marshalling layer that makes those failures impossible rather than merely unlikely.**
-
-At the senior level you learned the contracts as the machine sees them. At the professional level the concern is the *system*: the binding ships, runs on platforms you didn't test, under load you didn't simulate, and is maintained by people who didn't write it. The failures here are not "I forgot how alignment works"; they are "this binding has been in production for eight months and crashes once a week on a customer's Windows box and we can't reproduce it." Marshalling bugs are *latent* — they pass tests, ship, and detonate later, often far from the cause.
-
-The professional skill is twofold. First, **knowing the production failure catalog cold**: which `char*` you must not free, which encoding the platform expects, what happens when the GC moves a buffer you forgot to pin, and why a `long` that worked on Linux silently corrupts data on Windows. Second, **designing the boundary so the catalog can't bite you**: a single conversion site per direction, ownership encoded in types, allocators that never cross, handles that free exactly once. A good marshalling layer is one where the dangerous operations are unrepresentable in the calling code — the unsafe pointer never escapes, the wrong `free` can't be called, the unpinned buffer can't be passed.
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## String Impedance in Production
@@ -186,22 +179,24 @@ A marshalling layer built this way turns "the team must remember the rules" into
 
 ---
 
-## War Stories
+## Apply it
 
-**The `strerror` that freed itself.** A logging wrapper called `strerror(errno)`, copied the message, and — to "avoid a leak" — called `free()` on the returned pointer. It ran fine for weeks. Then a burst of errors under load called it rapidly, and the program crashed in `malloc` two stack frames away. `strerror` returns a pointer to *library-static* memory; freeing it corrupted the heap. The crash's stack trace pointed at an unrelated allocation, sending the team down a multi-day wrong path. Fix: never free a library-owned `char*`; copy it out, period.
+1. Define the user or business outcome that **Data Marshalling & Memory Layout** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
-**The Windows-only field corruption.** A cross-platform binding defined a config struct with a `long` field, mapped to the runtime's 64-bit `long`. It passed every Linux test. On a customer's 64-bit Windows machine, the struct was misread from the `long` field onward — because Windows is LLP64 and `long` is 32 bits there. Every subsequent field was shifted by 4 bytes. The "intermittent garbage config on Windows" ticket sat open for a month. Fix: `int32_t`/`int64_t` everywhere, plus an `offsetof` self-test that would have caught it at startup.
+## Verify your work
 
-**The buffer the GC moved.** A .NET service handed a managed `byte[]` to a native compression library that did the work on a worker thread and signaled completion later. Locally and in staging it was flawless. In production, under GC pressure, it corrupted ~1 in 50,000 buffers — the GC relocated the array while the native thread was mid-write. There was no `fixed` (the call returned immediately, so the dev assumed the buffer was "done"). Fix: a pinned `GCHandle` held for the *whole* async operation plus `GC.KeepAlive`, freed in the completion callback.
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
 
-**The double-allocator crash on shutdown.** A Rust binding returned strings to a C host via `CString::into_raw`. The C host, following its house style, freed everything with `free()`. Every individual call worked; the heap slowly corrupted, and the process crashed on shutdown when the allocator's cleanup walked a poisoned freelist. Fix: the C host called the Rust-exported `free_string()` (which reconstructed the `CString` and let Rust's allocator drop it) instead of libc `free`.
+## Review questions
 
-**The 4-byte `bool`.** A P/Invoke struct had a `bool` field matching a C `_Bool`. The field was sometimes `true` when the C side wrote `false`. Default .NET marshals `bool` as 4-byte `BOOL`; the C `_Bool` was 1 byte, so .NET read 3 garbage bytes after it. The garbage was usually zero (reading `false` correctly) but occasionally nonzero. Fix: `[MarshalAs(UnmanagedType.I1)]`.
-
----
-
-## Summary
-
-Production marshalling fails in a small, well-known catalog. **Strings** carry three independent decisions — termination, encoding, ownership — across four incompatible representations (C NUL `char*`, Windows UTF-16 wide, Rust/Go UTF-8 counted, Java/.NET UTF-16, Python bytes/str); the most expensive single rule is *the `char*` you must not free*, and freeing a Rust string with C `free` (or any allocator crossing) corrupts the heap silently. **The allocator boundary** is the law beneath every ownership convention: the allocator that created a block is the only one that may free it, and crossing it corrupts metadata that detonates later, far from the cause. **Pinning** keeps a managed buffer still across a native call in moving collectors; forgetting it is the canonical "passes tests, crashes under load" bug, and `GC.KeepAlive` separately prevents *collection* of objects C retains. **Widths** hide the LP64/LLP64 `long` trap (64-bit on Unix, 32-bit on 64-bit Windows), the variable `bool` size (4-byte default in .NET), and `size_t`/`intptr_t` pointer-width mapping. **Out-parameters** ride error codes — never read the out-value before checking the status. The professional answer to all of it is architectural: a marshalling layer with one conversion site per direction, ownership encoded in types, allocators that never cross, tiny audited unsafe surfaces, and an ABI self-test — a boundary where the dangerous operations are unrepresentable.
-
----
+- Which measurable outcome justifies investing in Data Marshalling & Memory Layout?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

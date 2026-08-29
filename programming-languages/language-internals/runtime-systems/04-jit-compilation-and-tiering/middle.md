@@ -1,63 +1,11 @@
-# JIT Compilation & Tiering — Middle Level
+# JIT Compilation & Tiering — Middle
 
-> **Topic:** JIT Compilation & Tiering
-> **Focus:** The real tier pipelines — HotSpot's interpreter→C1→C2 and V8's Ignition→Sparkplug→Maglev→TurboFan — the counters and thresholds that move code between them, on-stack replacement, and the difference between method JITs and tracing JITs.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **JIT Compilation & Tiering** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-> Focus: **How does a method actually travel up the tiers, and what data does it collect along the way?** And **why do production engines use three or four tiers instead of just "interpret or compile"?**
-
-At junior level the picture was a two-rung ladder: interpret, then compile. The reality in shipping engines is a **multi-stage pipeline**, and the stages exist to resolve a genuine conflict. A compiler that produces excellent machine code is slow to run; a compiler that runs fast produces mediocre code. You cannot have one compiler that is both fast to invoke and produces optimal output — those are opposing goals. So engines use *several* compilers, each tuned for a different point on the speed-of-compilation versus quality-of-output curve, and they move each method to the tier that matches how hot it has become.
-
-There is a second, subtler reason for the middle tiers: **profiling**. The top optimizing compiler does its best work when it has accurate data about the program — which types flow through each call site, which branches are taken, how often loops spin. That data has to be *collected somewhere*. The interpreter and the lower compiled tiers do double duty: they execute the code *and* they instrument it, recording the profile that the top tier will later consume. A method does not jump straight from cold to fully-optimized; it spends time in a profiling tier, generating the evidence that justifies (and guides) the expensive final compile.
-
-This page makes the abstract "tiers" concrete by walking through the two engines you are most likely to encounter — the JVM's HotSpot and the browser's V8 — naming their actual tiers, their counters, and their thresholds. It then covers on-stack replacement properly and introduces the other major JIT architecture, the **tracing JIT** (LuaJIT, PyPy), which compiles *hot loops as linear traces* rather than *hot methods*.
-
-> 🎓 **Why this matters at middle level:** Once you understand the specific tiers, performance behavior stops being mysterious. "Why is my function fast in the loop but slow when called fresh?" "Why did it speed up *twice*?" "Why does V8 sometimes get faster, then slower, then faster again?" Each of these maps directly to a tier transition. You move from "the JIT is magic" to "I can predict roughly which tier my code is in and why."
-
----
-
-## Prerequisites
-
-- **Required:** The junior-level model: interpreter, hot code, counters, the fast-rough/slow-good trade-off, basic OSR, and warmup.
-- **Required:** Comfort reading `-XX:+PrintCompilation` output and Node's `--trace-opt` output at a surface level.
-- **Required:** Knowing what bytecode is and that the JVM and V8 both compile from a bytecode/IR, not from source.
-- **Helpful:** Familiarity with the idea of an *inline cache* at a call site (we connect to it here) — even if only the name.
-- **Helpful:** A rough sense of what a control-flow loop "back edge" is.
-
-You do **not** yet need:
-
-- The internals of each optimization pass (inlining, escape analysis, range-check elimination) — that is `senior.md`.
-- Code-cache sizing, eviction policy, and production warmup engineering — that is `professional.md`.
-- The mechanics of how deoptimization rebuilds interpreter frames — its own topic; we only point at the handoff.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **C1 (client compiler)** | HotSpot's fast baseline compiler. Compiles quickly, applies light optimizations, and (at some tiers) inserts profiling instrumentation. |
-| **C2 (server compiler)** | HotSpot's heavyweight optimizing compiler. Slow to run, produces the fastest code, consumes the profile gathered earlier. |
-| **Tier 0–4 (HotSpot)** | Tier 0 = interpreter; tiers 1–3 = C1 variants (3 also profiles); tier 4 = C2. A method's lifecycle is a path through these numbers. |
-| **Ignition** | V8's bytecode interpreter. Also where early type-feedback profiling begins. |
-| **Sparkplug** | V8's fast baseline JIT. A near-one-to-one bytecode→machine-code compiler; almost no optimization, near-instant to produce. |
-| **Maglev** | V8's mid-tier optimizing JIT (newer). Faster to compile than TurboFan, produces good (not maximal) code; fills the gap between baseline and top tier. |
-| **TurboFan** | V8's top optimizing JIT. Speculative, profile-driven, slow to compile, fastest output. |
-| **Invocation counter** | Per-method tally of how many times the method was entered. Drives method-level tier-up. |
-| **Back-edge counter** | Per-loop tally of how many times control jumped back to the loop header. Drives OSR and catches hot loops in rarely-called methods. |
-| **Type feedback** | Recorded observations of which concrete types appeared at a call site or operation. The raw material for speculative optimization. Lives in inline caches. |
-| **Inline cache (IC)** | A small per-call-site cache recording the type(s) seen there and the resolved target. Monomorphic (1 type), polymorphic (a few), or megamorphic (too many → gives up). |
-| **OSR (On-Stack Replacement)** | Switching an *already-running* loop from a lower tier to a compiled version mid-execution, transferring live state. |
-| **Method JIT** | Compiles whole methods as the unit of compilation (HotSpot, V8, RyuJIT). |
-| **Tracing JIT** | Compiles hot *loop traces* — a single recorded straight-line path through possibly many methods — as the unit (LuaJIT, PyPy). |
-| **Trace / guard / side-exit** | A tracing JIT records a linear path (trace) and inserts guards; if a guard fails at runtime, control takes a side-exit back to the interpreter or another trace. |
-| **Background compilation** | Running the optimizing compiler on a separate thread so the program keeps executing (interpreted or in a lower tier) while it compiles. |
-| **Compilation queue** | The list of methods waiting to be compiled; compiler threads pull from it by priority/heat. |
-| **OSR threshold** | The back-edge count at which a still-running loop is replaced with compiled code. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -141,28 +89,6 @@ Everything above compiles **whole methods**. There is a different architecture: 
 4. On subsequent iterations, the compiled trace runs. If reality diverges from a guard (a branch goes the other way, a type differs), control takes a **side-exit** back to the interpreter or to another trace.
 
 The appeal: a trace is already inlined and free of unrelated branches, so the optimizer sees a clean, straight piece of code. The cost: traces are linear, so code with many unpredictable branches produces a tangle of traces and side-exits, which can perform poorly. Method JITs and tracing JITs are two answers to the same question — *what is the right granularity to compile?* — with different sweet spots.
-
----
-
-## Real-World Analogies
-
-**The translation office (method JIT).** A document arrives. A junior translator does a quick rough pass (Sparkplug / C1) so something readable exists immediately. The office tracks which documents get requested most. The most-requested ones go to a senior translator who produces a polished version (TurboFan / C2), using notes the junior left about tricky terms (the profile). Rarely-requested documents never reach the senior translator — not worth it.
-
-**The relay racer learning the track (tracing JIT).** A runner does one lap following every sign and marker (interpreter recording the trace). Having run it once, they memorize the exact line through every corner and run it flat-out without reading signs (compiled trace). But if the course changes — a barrier appears where they expected open track (guard failure) — they have to stop, look around, and rejoin the marked route (side-exit). Brilliant when the course is stable, awkward when it keeps changing.
-
-**The escalating support queue.** A support ticket starts with the bot (interpreter). Common tickets get a canned macro reply (baseline JIT) instantly. The genuinely frequent, high-value tickets get escalated to a specialist who writes a thorough solution (optimizing JIT) informed by the history of similar tickets (the profile). The system spends expert time only where volume justifies it.
-
----
-
-## Mental Models
-
-**Model 1 — The tier number is a confidence level.** Each tier transition reflects the runtime becoming more *confident* that a method deserves investment. Tier 0: "no opinion yet." Tier 3 (C1+profiling): "this is warm; run it decently and gather evidence." Tier 4 (C2): "this is genuinely hot and I have evidence; spend everything." Profiling is literally how confidence is built.
-
-**Model 2 — Profile-then-exploit.** The pipeline has two phases for any hot method: a *profiling phase* (run it while instrumented, in the interpreter and the profiling tier) and an *exploitation phase* (compile it with that profile in the top tier). The middle tiers exist to make the profiling phase fast enough that you do not suffer in the interpreter while collecting data.
-
-**Model 3 — The inline cache is the JIT's memory.** Every call site has a little notebook (its IC) of "who showed up here and what type were they." Monomorphic = one name in the notebook = the optimizer can hard-wire it. Megamorphic = too many names = the optimizer throws up its hands. When you reason about JIT performance, ask "what does this site's notebook look like?"
-
-**Model 4 — Method vs trace is a granularity dial.** Turn the dial toward "method" and you compile self-contained chunks with clear boundaries (good for branchy code, easier to reason about). Turn it toward "trace" and you compile straight-line hot paths that cross method boundaries freely (great for tight numeric loops, fragile under branchy/dynamic control flow). Neither is universally better.
 
 ---
 
@@ -276,31 +202,6 @@ luajit -jdump sum.lua     # dumps the recorded traces and their machine code
 
 ---
 
-## Pros & Cons
-
-**Multi-tier method JIT (HotSpot, V8)**
-
-- *Pros:* smooth ramp from fast-start to high-peak; profiling tier makes the top tier's decisions accurate; method boundaries make reasoning and deopt tractable; handles branchy code well.
-- *Cons:* more compiler implementations to build and maintain; tier transitions cause unpredictable timing; profiling instrumentation has runtime cost; megamorphic sites blunt the whole pipeline.
-
-**Tracing JIT (LuaJIT, PyPy)**
-
-- *Pros:* traces are pre-inlined and branch-free, so the optimizer sees ideal straight-line code; spectacular on tight numeric loops; relatively small implementation for the peak performance achieved.
-- *Cons:* branchy or highly dynamic code explodes into many traces and side-exits; trace selection can pick a bad path; harder to reason about which trace is running; pathological cases ("trace blow-up") degrade badly.
-
-> 🎓 The recurring trade-off across all of these is **granularity and timing of the bet.** More tiers = finer control over when to spend compilation effort. Tracing = bet on a whole hot path being stable. Each design is choosing *what to assume* and *when to commit*.
-
----
-
-## Use Cases
-
-- **HotSpot / C2:** long-lived JVM servers (Kafka, Cassandra, Spring services) where peak throughput over hours dominates.
-- **V8 full pipeline:** browser web apps and Node services kept warm; the baseline tiers (Sparkplug/Maglev) specifically improve *interactive* and *short-burst* latency by getting off the interpreter sooner.
-- **Tracing JITs:** numeric and scripting workloads with tight loops — LuaJIT in games and networking (OpenResty), PyPy for compute-bound Python where loops dominate.
-- **Tier control in practice:** `-XX:TieredStopAtLevel=1` is sometimes used for short-lived JVM tools/CLIs to skip the expensive C2 compiles they would never benefit from — trading peak throughput for faster startup.
-
----
-
 ## Coding Patterns
 
 **Pattern 1 — Keep hot call sites monomorphic.** Pass one concrete type through a hot site. In JS, construct objects with a *consistent shape* (same properties, same order, set in the constructor) so the IC stays monomorphic. In Java, avoid hot virtual calls with many receiver types where a single type would do.
@@ -341,23 +242,24 @@ luajit -jdump sum.lua     # dumps the recorded traces and their machine code
 
 ---
 
-## Summary
+## Apply it
 
-- Production engines use **multi-tier pipelines** to resolve the conflict between *fast-to-compile* and *good-output*: cheap tiers for startup, expensive tiers for hot code.
-- **HotSpot:** interpreter (tier 0) → C1 with profiling (tier 3) → C2 (tier 4). The common path is 0→3→4; tier 3's job is to **profile** while running fast.
-- **V8:** Ignition (interpreter) → Sparkplug (baseline) → Maglev (mid optimizer) → TurboFan (top optimizer), with **type feedback** accumulating in **inline caches** along the way.
-- **Counters** (invocation + back-edge) and **thresholds** drive tier-up; the back-edge counter and **OSR** rescue hot loops in rarely-called methods by replacing them mid-execution.
-- **Inline caches** record type feedback; monomorphic sites optimize beautifully, **megamorphic sites defeat inlining** and are the prime silent performance killer.
-- Compilation runs on **background threads**, so speedups arrive asynchronously after thresholds trip.
-- **Tracing JITs** (LuaJIT, PyPy) compile hot *loop traces* with guards and side-exits instead of whole methods — superb on tight loops, fragile on branchy/dynamic code.
-- The tiering story hands off to **deoptimization** when a speculative assumption is violated — a normal, expected mechanism covered in its own topic.
+1. Find a real component where **JIT Compilation & Tiering** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
----
+## Verify your work
 
-## Further Reading
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
 
-- HotSpot tiered-compilation documentation and the source-level descriptions of C1 and C2; Oracle's `-XX` flag reference for the threshold options.
-- V8 team blog: "Ignition + TurboFan," "Sparkplug — a non-optimizing JavaScript compiler," and the Maglev announcement.
-- SpiderMonkey documentation on the Baseline Interpreter, Baseline JIT, and Warp/IonMonkey for a third engine's take.
-- Mike Pall's LuaFAQ and the LuaJIT `-jdump` documentation for the tracing-JIT model; the PyPy papers on meta-tracing.
-- The senior tier of this topic, which opens up the *optimizations* (inlining, speculative devirtualization, escape analysis, range-check elimination, loop transforms) that the top tiers actually apply.
+## Review questions
+
+- Which boundary is most affected by JIT Compilation & Tiering?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

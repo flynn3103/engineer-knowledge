@@ -1,57 +1,11 @@
-# Side Channels & Spectre — Middle Level
+# Side Channels & Spectre — Middle
 
-> **Topic:** Side Channels & Spectre
-> **Focus:** How speculative and out-of-order execution actually work, the named cache-attack techniques (Flush+Reload, Prime+Probe, Evict+Time), and how Spectre v1 chains them into a leak — with the mitigations, mechanism by mechanism.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **Side Channels & Spectre** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-> Focus: **Why does a CPU run instructions it might have to throw away?** And **how does the throwing-away leave a fingerprint an attacker can read?**
-
-At the junior level you learned the *shape* of a side channel: a secret leaks through timing or memory-access patterns rather than through your program's output, and the first cure is constant-time comparison. This level opens the box. To understand Spectre — not as a scary headline but as a mechanism you could explain on a whiteboard — you need three things: (1) how a modern CPU executes instructions *out of order* and *speculatively*, (2) how an attacker reads the cache to learn which lines a victim touched, and (3) how those two combine so that *speculative* work, which is supposed to be invisible, becomes visible.
-
-The thread tying everything together is a single distinction: **architectural state** (registers and memory — the program's official, visible reality) versus **microarchitectural state** (caches, branch predictors, internal buffers — the hidden machinery that exists only to make things fast). The CPU is meticulous about rolling back *architectural* state when a speculation turns out wrong. It is not meticulous — historically, not at all — about rolling back *microarchitectural* state. Spectre and its relatives live entirely in that gap: they coax the CPU into doing secret-dependent work speculatively, let the CPU "undo" it architecturally, and then read the secret out of the microarchitectural residue.
-
-This page is mostly about **Spectre v1 (bounds-check bypass)** because it is the cleanest illustration of the whole class. We will also build the cache-attack toolkit (Flush+Reload, Prime+Probe, Evict+Time) you need to understand *any* of these attacks. The full taxonomy — Spectre v2, v4, Meltdown, MDS/RIDL, L1TF, retbleed — is `senior.md`. The deep mitigation engineering and the cost analysis is `professional.md`.
-
-> 🎓 **Why this matters for a middle engineer:** You will not write CPU microcode, but you *will* make decisions that depend on understanding this: whether to enable a compiler's Spectre mitigation, why a security-sensitive service should not co-locate untrusted code, why your cloud bill went up after a microcode update, and how to recognize the rare application-level Spectre-v1 gadget (a bounds check followed by a secret-dependent memory access) in code that touches attacker-controlled indices.
-
----
-
-## Prerequisites
-
-- **Required:** The junior page — side channels, timing attacks, early-exit leaks, constant-time comparison, the architectural-vs-microarchitectural distinction.
-- **Required:** What a CPU cache and a cache line are (typically 64 bytes), and that a cache hit is much faster than a miss.
-- **Required:** Basic idea of a branch (`if`) compiling to a compare and a conditional jump.
-- **Helpful:** What a pipeline is — instructions move through fetch/decode/execute stages like a factory line.
-- **Helpful:** Virtual memory basics: user space vs. kernel space, page permissions.
-
-You do **not** yet need: the full transient-execution taxonomy (`senior.md`), or the detailed microcode/compiler mitigation internals (`professional.md`).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Out-of-order (OoO) execution** | The CPU executes instructions as their inputs become ready, not strictly in program order, then *retires* them in order. Hides memory latency. |
-| **Speculative execution** | Executing instructions *past* a branch (or other unresolved condition) by guessing the outcome, before the condition is known. |
-| **Branch predictor** | Hardware that guesses which way a branch will go, based on history, so speculation has something to run. |
-| **Retire / commit** | The moment an instruction's results become *architecturally* visible. Mis-speculated instructions are squashed before retirement. |
-| **Squash / rollback** | Discarding speculatively-executed instructions when the guess was wrong. Restores *architectural* state only. |
-| **Transient execution** | Instructions that execute speculatively but never retire (their architectural effects are squashed). They still leave microarchitectural traces. |
-| **Transient instruction window** | The window of transient instructions a CPU can have in flight — the "budget" an attacker has to do secret-dependent work before the rollback. |
-| **Cache line** | The unit of caching, typically 64 bytes. The cache tracks presence at line granularity. |
-| **Flush+Reload** | A cache attack: flush a shared line, let the victim run, then time reloading it. Fast reload ⇒ victim touched it. |
-| **Prime+Probe** | A cache attack needing no shared memory: fill (prime) a cache set, let the victim run, then time re-reading your data (probe) to see which lines the victim evicted. |
-| **Evict+Time** | Evict a line, time the victim's whole operation; slower ⇒ the victim needed that line. |
-| **Covert channel** | A communication path not intended for communication; here, the cache encodes the secret for the attacker to read. |
-| **`clflush`** | An x86 instruction that flushes a specific line out of all caches — the enabler of Flush+Reload. |
-| **`lfence`** | An x86 load-fence that also acts as a *speculation barrier*: instructions after it do not execute speculatively until prior ones retire. |
-| **Gadget** | A code snippet that, when speculatively executed, performs the secret-dependent leak (e.g., bounds-check followed by an attacker-influenced read). |
-| **Bounds-check bypass (Spectre v1)** | Speculating past an array bounds check so an out-of-bounds read happens transiently, then leaking the value via cache. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -143,30 +97,6 @@ The lesson for a middle engineer: **process and hardware isolation are not burea
 
 ---
 
-## Real-World Analogies
-
-**The eager research assistant (speculation).** You ask an assistant to pull a file *only if* the request is authorized. To save time, they start walking to the cabinet and pulling files *while you check authorization*. If you say "denied," they put everything back — but the drawer they opened stays slightly ajar. A spy watching the cabinet learns which drawer was opened, even though "officially" nothing was retrieved. The ajar drawer is the warm cache line.
-
-**Flush+Reload as a still-warm coffee cup.** You leave the break room, return, and touch each cup. The warm one was used while you were gone. `clflush` empties all the cups (resets temperature); timing the reload "touches" them to find which one the victim warmed.
-
-**Prime+Probe as parking spots.** You park your cars in every spot of a lot (prime). You leave. When you return, one of your cars is gone — someone needed that spot (the victim evicted your line). You don't see the other driver, but you learn *which spots they needed*.
-
-**Training the predictor as conditioning a guard dog.** Feed the dog from the left gate a hundred times and it learns to run left whenever the bell rings. Then ring the bell and slip in the right gate — the dog has already committed to the wrong direction. The bell is the branch; the dog is the predictor; the attacker exploits the trained habit.
-
----
-
-## Mental Models
-
-**Model 1: The transient window is an unsupervised scratchpad.** For a few dozen-to-hundred cycles, the CPU does work that will be erased — *except* for the cache smudges. Anything the attacker can make the CPU *do* in that window, and encode into the cache, escapes.
-
-**Model 2: Two-phase attack — encode then read.** Every Spectre-class attack has an **encode** phase (transiently touch memory based on a secret, planting it in cache state) and a **read** phase (a cache attack like Flush+Reload that decodes the cache state back into the secret). Recognizing these two phases lets you classify *any* of these attacks.
-
-**Model 3: The check is real; the timing is the hole.** In v1 the bounds check is *correct*. The exploit is that the CPU acts on the unchecked path *before the check finishes*. Mitigations either make the CPU wait for the check (`lfence`) or make the bad value harmless even if used (masking).
-
-**Model 4: Isolation is the meta-defense.** You can patch individual gadgets, but the durable defense is *not letting the attacker share hardware with the secret*. Site isolation, per-tenant cores, and "don't co-locate untrusted code" attack the precondition, not the gadget.
-
----
-
 ## Code Examples
 
 ### A Spectre-v1 gadget (for *recognition*, not exploitation)
@@ -241,31 +171,6 @@ func newCipher(key []byte) {
 
 ---
 
-## Pros & Cons
-
-| Aspect | Upside | Downside |
-|--------|--------|----------|
-| **Speculative/OoO execution** | Major performance win; modern CPUs depend on it. | The root enabler of every transient-execution attack. |
-| **`lfence` speculation barrier** | Reliably stops Spectre-v1 speculation at the gadget. | Serializes the pipeline; costly if overused; must be placed correctly. |
-| **Index masking** | Cheap (no stall); makes OOB index harmless even transiently. | Easiest when sizes are powers of two; requires identifying every gadget. |
-| **Flush+Reload (attacker's tool)** | (For the attacker) precise and quiet. | Needs shared memory; mitigated by removing shared pages / high-res timers. |
-| **Prime+Probe (attacker's tool)** | (For the attacker) needs no shared memory; works cross-VM. | Noisier; mitigated by cache partitioning and core isolation. |
-| **Site isolation / per-tenant cores** | Removes the attacker's foothold entirely. | More processes/cores ⇒ more memory and scheduling overhead. |
-
----
-
-## Use Cases
-
-You apply this knowledge when:
-
-- **You write or review JITs, interpreters, parsers, or kernels** that take attacker-controlled indices and then perform a dependent memory access — the natural home of a Spectre-v1 gadget.
-- **You configure build pipelines:** deciding whether to enable compiler Spectre mitigations (`/Qspectre`, retpolines) for code that processes untrusted input on shared hardware.
-- **You design multi-tenant systems:** deciding co-location policies, whether to pin untrusted workloads to dedicated cores, and how to reason about cross-tenant cache leakage.
-- **You build browsers or browser-like sandboxes:** site isolation and timer hardening are direct consequences of this material.
-- **You handle crypto:** ensuring secrets never steer table indices or branches, and using AES-NI / constant-time libraries.
-
----
-
 ## Coding Patterns
 
 **Pattern: barrier-or-mask at the bounds check.** In a confirmed gadget (attacker index → dependent secret-laden access), insert `array_index_nospec()`/masking, or an `lfence`, between the check and the access.
@@ -301,47 +206,24 @@ You apply this knowledge when:
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. Distinguish out-of-order execution from speculative execution. Why does each one exist?
-2. Explain, in one sentence each, what the **encode** and **read** phases of a Spectre attack do.
-3. Walk through the six steps of Spectre v1. At which step does the secret enter the cache, and at which step does the attacker read it out?
-4. Why can't Spectre v1 be fixed by "bounds-checking more carefully"?
-5. Compare Flush+Reload and Prime+Probe: what does each require, and why is Prime+Probe used cross-VM?
-6. Why is index masking usually cheaper than an `lfence` for v1 mitigation?
-7. Why did Spectre force *site isolation* in browsers and *timer reduction* / `SharedArrayBuffer` restrictions?
-8. What microarchitectural state does the CPU fail to roll back after a squash, and why does that matter?
+1. Find a real component where **Side Channels & Spectre** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
----
+## Verify your work
 
-## Cheat Sheet
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
 
-| Concept | One-liner |
-|---------|-----------|
-| OoO execution | Run ready instructions early, retire in order. |
-| Speculation | Run past a branch on a predicted outcome; squash if wrong. |
-| Squash | Rolls back **architectural** state; **not** the cache. |
-| Flush+Reload | Shared mem; flush, wait, time reload → fast = victim touched it. |
-| Prime+Probe | No shared mem; fill set, wait, time probe → slow = victim evicted it. |
-| Spectre v1 | Train predictor → speculate past bounds check → transient OOB read → leak via cache. |
-| `lfence` | Speculation barrier between check and access (correct but slow). |
-| Index masking | Clamp the index in data so OOB is impossible even transiently (cheap). |
-| Browser fix | Site isolation + reduced timers + restricted `SharedArrayBuffer`. |
+## Review questions
 
----
-
-## Summary
-
-Modern CPUs run instructions **out of order** and **speculatively** to hide the huge latency of memory and keep the pipeline full past branches. When a speculation is wrong, the CPU **squashes** the bad work and restores the **architectural** state — registers and memory look untouched. But it does **not** restore the **microarchitectural** state: any cache lines the transient instructions warmed *stay warmed*. That incomplete rollback is the entire Spectre family's foothold.
-
-The attacker reads those warmed lines with the **cache-attack toolkit**: **Flush+Reload** (precise, needs shared memory), **Prime+Probe** (general, needs no shared memory, works cross-VM), and **Evict+Time** (coarse). **Spectre v1** chains them: train the branch predictor to take a bounds check, then pass an out-of-bounds index so the CPU *speculatively* reads a secret and uses it to index a probe array — encoding the secret into which cache line gets warm — then read it back with Flush+Reload. Crucially, **there is no memory-safety bug**: the bounds check is correct; the CPU simply acts past it before it resolves. Defenses target the gadget (**`lfence` speculation barrier**, or cheaper **index masking** via `array_index_nospec`) or the precondition (**process/site isolation**, **reduced timers**, **`SharedArrayBuffer` restrictions**). Because Spectre needs the attacker to share hardware with the secret, the most durable defense is isolation — which is exactly why browsers adopted site isolation and clouds rethought co-location. The other transient-execution variants build on this same encode-then-read skeleton, and they are next in `senior.md`.
-
----
-
-## Further Reading
-
-- The original Spectre paper (Kocher et al., 2018) — the bounds-check-bypass walkthrough this page mirrors.
-- "Flush+Reload" (Yarom & Falkner) and the Prime+Probe literature — the cache-attack primitives.
-- The Linux kernel's `array_index_nospec()` documentation and the Spectre-v1 mitigation discussion.
-- Chromium's "Site Isolation" design docs — the browser response to Spectre.
-- Continue in `senior.md` for the full transient-execution taxonomy: Spectre v2/v4, Meltdown, MDS/RIDL, L1TF/Foreshadow, retbleed.
+- Which boundary is most affected by Side Channels & Spectre?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

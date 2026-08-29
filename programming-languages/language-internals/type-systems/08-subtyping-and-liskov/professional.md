@@ -1,58 +1,11 @@
-# Subtyping & Liskov Substitution — Professional Level
+# Subtyping & Liskov Substitution — Professional
 
-> **Topic:** Subtyping & Liskov Substitution
-> **Focus:** LSP as a force in real systems — diagnosing production bugs that trace to a substitutability break, the engineering refactors (Square/Rectangle, read-only collections, Bird/Penguin), and the API/library design judgment that decides whether a subtype helps or quietly poisons every caller.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Subtyping & Liskov Substitution** with measurable outcomes and limited coordination?
 
-## Introduction
-
-> Focus: **What does an LSP violation actually cost in a running system?** And **how do experienced engineers refactor a broken hierarchy without detonating every caller that already depends on it?**
-
-The theory levels established *what* sound subtyping is and *why* variance encodes it. This level is about the day the theory bills you. LSP violations rarely announce themselves; they ship green, pass the type checker, survive code review, and then surface as a class of bug that is uniquely nasty: **polymorphic code that works for every subtype but one.** The failing path is the rare subtype, often added later by a different team, exercised only under a specific input — so it slips past tests, slips past staging, and pages someone at 3 a.m. when the one bad subtype finally flows through the one piece of code that trusted the base contract.
-
-The professional skill is twofold. First, **diagnosis**: recognizing that a bug is *an LSP violation*, not "a weird edge case in the `Square` class." The tell is always the same shape — generic code, written against a base type, that assumed a contract a subtype silently broke. Second, **remediation under constraint**: you almost never get to delete the hierarchy and start over. You have callers, serialized data, public APIs, and SLAs. The refactors that matter are the ones that restore substitutability *incrementally* — make the type immutable, split the hierarchy, introduce a narrower interface, or remove the subtype relationship entirely while keeping the code reuse via composition.
-
-This level also confronts the uncomfortable reality that **major standard libraries ship LSP violations on purpose** — `Collections.unmodifiableList` is the canonical example — and that being a senior engineer means knowing *when a pragmatic violation is acceptable*, how to fence it, and how to avoid letting it metastasize into your own APIs.
-
-> 🎓 **Why this matters at the professional level:** Your subtyping decisions are load-bearing for years and for people you'll never meet. A covariant interface you publish, a base class you let a team extend, an `is-a` you accepted without checking the contract — each becomes a constraint or a landmine across the whole codebase. The professional doesn't just avoid LSP violations; they design hierarchies where violations are *hard to introduce*, and they can refactor an existing one without breaking the world.
-
-This page covers: the anatomy of an LSP production incident, the three canonical refactors with migration strategy, when a deliberate violation is defensible, API/library design under substitutability, and the organizational practices (review checklists, contract tests) that keep LSP enforced when the compiler won't.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** Everything in `senior.md` — variance, subsumption, declaration vs use-site variance, the array unsoundness, nominal vs structural.
-- **Required:** Real experience maintaining a class hierarchy or a public/internal API with multiple consumers.
-- **Required:** Familiarity with how breaking changes propagate (semantic versioning, deprecation, serialized compatibility).
-- **Helpful but not required:** Exposure to contract testing or property-based testing.
-- **Helpful but not required:** Having debugged at least one "works for everything except this one subclass" bug.
-
-You do **not** need to know:
-
-- New type theory beyond `senior.md` — this level is application, not new formalism.
-- Specific framework internals — examples are illustrative, not exhaustive.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Substitutability break** | A runtime defect caused by a subtype that violates its base type's behavioral contract. |
-| **Polymorphic blast radius** | The set of all call sites written against a base type that a single bad subtype can poison. |
-| **Contract test** | A shared test suite that every subtype of a base type must pass, asserting the behavioral contract the compiler can't. |
-| **Refused bequest** | A code smell (Fowler): a subclass inherits methods/data it doesn't want and overrides them to throw or no-op — a classic LSP break. |
-| **Tell-Don't-Ask** | Designing so callers command objects rather than query-then-decide, reducing the contract surface that can be violated. |
-| **Sealed hierarchy** | A closed set of subtypes (Java `sealed`, Kotlin `sealed`, Rust enums) that the author controls and can verify exhaustively. |
-| **Composition over inheritance** | Reusing behavior by holding an object as a field rather than extending it — avoids unwanted substitutability obligations. |
-| **Capability interface** | A small interface exposing one ability (`Flyable`, `Readable`) so types implement only contracts they can honor. |
-| **Pragmatic violation** | A knowingly-shipped LSP break (e.g. `unmodifiableList`) judged acceptable given constraints, and fenced accordingly. |
-| **Defensive base type** | A base class/interface designed so subtypes *can't easily* break it (immutable, minimal, no exposed setters). |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -128,32 +81,6 @@ The best LSP strategy is to make violations *hard to introduce*. Defensive base 
 - **Are sealed when the subtype set is closed** (Java/Kotlin `sealed`, Rust enums). A closed hierarchy you control can be *audited* for substitutability exhaustively, and exhaustive `switch`/`match` catches a missed case at compile time.
 - **Expose capabilities, not classifications.** Prefer `Comparable`, `Iterable`, `Closeable` (what you can *do*) over deep taxonomic base classes (what you *are*). Capability interfaces are inherently easier to satisfy honestly.
 - **Avoid protected mutable state.** Exposing `protected` fields invites subclasses to break invariants the base can no longer guard.
-
----
-
-## Real-World Analogies
-
-**The franchise contract.** A restaurant franchise (base type) promises every location: same menu, same hours, same quality. A franchisee (subtype) who quietly drops a menu item or closes early has violated the brand contract — and the customer (generic code) who drove across town trusting the brand gets burned. The franchise survives by making the contract explicit and auditing locations (contract tests), not by hoping each owner guesses right.
-
-**The drop-in replacement part.** An auto part stamped "fits all 2018 sedans" must *actually* fit all of them. A part that fits all except one trim level is the LSP bug: the mechanic (generic code) installs it trusting the label, and it fails on the one car it doesn't fit — in the field, not in the shop. Recalls are the production incident.
-
-**The fire exit propped open.** `unmodifiableList` is a fire exit marked "Exit" that's actually welded shut. It satisfies the *sign* (the `List` type) but not the *function* (you can't actually go through it). It's tolerable only because everyone's been told and there's another way out — but it's a violation, and in a real emergency (a caller that genuinely needs `add`) someone gets hurt.
-
-**Hiring for a role vs hiring a person who can do tasks.** Deep inheritance is hiring "a Manager" and assuming all the abilities that implies. Capability interfaces are hiring "someone who can do code review, can mentor, can plan a sprint" — explicit, honest, composable. The second never strands you with a Manager who, it turns out, can't actually do the one thing you needed.
-
----
-
-## Mental Models
-
-**Model 1 — "Every base type is a contract with strangers, and you're liable for it."** When you let a subtype exist, you're promising every present and future caller of the base type that the subtype is a safe stand-in. Treat that promise as a production liability, because it is.
-
-**Model 2 — "The blast radius is everyone who programmed to the base."** Before adding or accepting a subtype, ask: who calls the base type, and would *any* of them be surprised by this subtype? That set is your blast radius. A wide blast radius plus a silent violation is an incident waiting for a trigger.
-
-**Model 3 — "Loud-and-probeable beats silent-and-wrong."** If you must ship a violation, the worst version is the one that produces a *wrong answer* with no signal (Square's area). A thrown exception is bad; a *checkable* capability (`canX()`) is tolerable; silent corruption is the failure mode that ends in a postmortem.
-
-**Model 4 — "Refactor toward honesty, incrementally."** You rarely get to rewrite a hierarchy. The moves are surgical: make immutable, split into capabilities, introduce a read-only supertype, replace inheritance with composition. Each restores a slice of substitutability without a big-bang break.
-
-**Model 5 — "Make the violation impossible, not forbidden."** A rule in a style guide ("don't break LSP") is weak. A type design where the broken operation *doesn't exist on the type the caller holds* (capability interface, read-only interface, sealed hierarchy) makes the violation impossible to write. Prefer structural enforcement over discipline.
 
 ---
 
@@ -277,34 +204,6 @@ A subtype that strengthens a precondition or weakens a postcondition fails the *
 
 ---
 
-## Pros & Cons
-
-**Pros of LSP-driven design at scale:**
-
-- **Fewer 3-a.m. incidents.** Hierarchies designed for substitutability don't grow the "works for all but one subtype" defect.
-- **Smaller blast radius for change.** Honest base contracts mean adding a subtype doesn't risk every existing caller.
-- **The type system carries the contract.** Capability interfaces and read-only splits make whole classes of violation impossible to even write.
-- **Cleaner extension story.** New subtypes slot in safely (Open/Closed), and reviewers have a crisp checklist instead of vibes.
-
-**Cons / costs:**
-
-- **More types up front.** Capability interfaces and read/write splits multiply type count; over-applied, they fragment the API.
-- **Refactoring legacy hierarchies is expensive and risky.** Callers, serialized data, and public APIs constrain the moves to incremental ones.
-- **Pragmatic violations still happen.** You'll inherit and sometimes ship them; the cost is the discipline of fencing and documenting.
-- **The behavioral half resists automation.** Variance is compiler-checked; behavioral substitutability needs contract tests you have to write and maintain.
-
----
-
-## Use Cases
-
-- **Plugin and extension ecosystems.** A published base interface that third parties implement *must* have a tight, documented contract and ideally a contract-test kit, or every plugin is a potential LSP break in your host.
-- **Public/library API evolution.** Choosing capability interfaces and read-only supertypes early prevents the JDK-style violation you can never remove from a stable API.
-- **Large class hierarchies under many teams.** Sealed hierarchies and contract tests keep substitutability honest when no single person sees all the subtypes.
-- **Migrating off a leaky base class.** Replacing inheritance with composition (Exit C) lets you keep behavior while shedding a substitutability obligation you can't honor.
-- **Incident response.** Recognizing the "generic code + one bad subtype" signature turns a mystifying intermittent bug into a named, fixable class of defect.
-
----
-
 ## Coding Patterns
 
 **Pattern 1 — Contract-test every base type with multiple implementations.** Make the behavioral contract executable; run it against all subtypes in CI. This is the closest thing to a compiler for the behavioral half of LSP.
@@ -352,14 +251,24 @@ final class Square {                 // NOT `extends Rectangle`
 
 ---
 
-## Summary
+## Apply it
 
-- An **LSP violation** has a constant anatomy: a base type with an (often unwritten) contract, **generic code that trusts it**, and a **separately-introduced subtype that breaks it**. The incident fires when the bad subtype flows through the trusting code — a defect that evades tests in proportion to how rare the bad subtype is on the hot path.
-- The **Square/Rectangle** break has three legitimate exits: **make it immutable**, **make them siblings under `Shape`**, or **use composition for reuse** without the subtype relation. No override fixes it while both are mutable.
-- **`Collections.unmodifiableList`** is a *deliberately shipped* violation; the principled alternative is a **read-only supertype** with no mutators (Guava `ImmutableList`, Kotlin `List`/`MutableList`, C# `IReadOnlyList`).
-- **Bird/Penguin** is a **refused bequest**; the fix is **capability interfaces** (`Flyable`, `Swimmable`) so the type system forbids calling an ability a type can't honor — ISP and LSP reinforcing each other.
-- A **pragmatic violation is defensible** only when it's **loud, probeable, confined, and documented**; silent-and-free-flowing (Square's wrong area) is the failure mode that ends in a postmortem.
-- **Defensive base types** are minimal, immutable, sealed where possible, capability-oriented, and free of exposed mutable state — they make violations *impossible to write* rather than merely forbidden.
-- The compiler enforces the **type-level** half (variance, signatures); enforce the **behavioral** half with **contract tests** run against every subtype in CI, and a code-review reflex for the violation shapes.
+1. Define the user or business outcome that **Subtyping & Liskov Substitution** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
-You've now seen LSP from slogan to type theory to production. The throughline never changes: **subtyping promises an S is a usable T, and LSP is the discipline — backed by immutability, capability interfaces, and contract tests — that keeps the promise true at scale.**
+## Verify your work
+
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
+
+## Review questions
+
+- Which measurable outcome justifies investing in Subtyping & Liskov Substitution?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

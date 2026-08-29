@@ -1,57 +1,11 @@
-# Sum, Product & Unit Types — Senior Level
+# Sum, Product & Unit Types — Senior
 
-> **Topic:** Sum, Product & Unit Types
-> **Focus:** ADTs as a design discipline — the expression problem, recursive/initial-algebra types, "make illegal states unrepresentable" at scale, and how sum types replace null and exceptions across a whole codebase.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Sum, Product & Unit Types** under failure, load, and change?
 
-## Introduction
-
-> Focus: **ADTs are not a syntax feature — they are an architecture.** At the senior level the question stops being "how do I write an enum" and becomes "what does choosing sums-and-products commit my whole codebase to, and when is that the wrong commitment?"
-
-By now the mechanics are second nature: products are AND, sums are OR, the algebra predicts cardinality and layout, exhaustiveness turns missed cases into compile errors. This level is about the *consequences* of leaning on that machinery as a design philosophy.
-
-Three big ideas anchor this page:
-
-1. **The expression problem.** A closed sum makes adding *operations* trivial and exhaustiveness-checked, but adding *variants* edits every operation. Object-oriented polymorphism makes the opposite trade. This is a fundamental, named tension — not a Rust-vs-Java flame war — and a senior chooses the side that matches how the system will actually evolve.
-
-2. **Recursive ADTs as initial algebras.** Lists, trees, ASTs, and the JSON value type are *self-referential* sums. Understanding them as "least fixed points" / *initial algebras* explains folds (catamorphisms), why structural recursion always terminates, and how to derive a `fold`/`reduce` for any ADT mechanically.
-
-3. **"Make illegal states unrepresentable" at architectural scale.** The junior version is "use a sum instead of a struct with flags." The senior version is a methodology: parse, don't validate; push invariants into types via smart constructors and newtypes; encode protocol/state-machine legality so the *type checker* enforces it; and replace null and exceptions with `Option`/`Result` as a codebase-wide error-handling stance, with all the ergonomics (`?`, monadic combinators, error taxonomies) that entails.
-
-> 🎓 **Why this matters at the senior level:** The cost of a data-modeling decision is paid by every engineer who touches that data for years. Choosing the right combine-operation (and knowing when sums are the *wrong* tool because the system is variant-heavy and operation-stable) is exactly the kind of leverage decision seniors are paid for. So is knowing that "make illegal states unrepresentable" can be overdone into unreadable type-Tetris.
-
----
-
-## Prerequisites
-
-- **Required:** Junior and middle pages — the algebra, layout, niche optimization, and exhaustiveness.
-- **Required:** Real experience writing non-trivial sum types and recursive ADTs (an interpreter, a parser, a protocol model).
-- **Required:** Comfort with generics/parametric polymorphism and at least passing familiarity with traits/typeclasses/interfaces.
-- **Helpful:** Exposure to a visitor pattern or class hierarchy in an OO language (you'll see why it's the dual of a sum).
-- **Helpful:** Any contact with error-handling-as-values (`Result`, `Either`, Go's error returns).
-
-You do **not** need category theory beyond the informal "initial algebra = the fold falls out" intuition. The dependently-typed and GADT material is `professional.md`.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Expression problem** | The difficulty of adding both new variants *and* new operations to a datatype without modifying existing code or losing type safety. |
-| **Open vs closed sum** | Closed: variant set fixed at definition (enables exhaustiveness). Open/extensible: variants addable later (loses it). |
-| **Visitor pattern** | An OO encoding of a closed sum: a fixed set of node classes plus a `visit` method per operation. The dual of a sum + match. |
-| **Initial algebra** | The "smallest" type closed under a set of constructors; recursive ADTs are initial algebras of their constructor functor. |
-| **Catamorphism / fold** | The unique structure-collapsing function from an initial algebra; `fold`/`reduce` over a list or tree. |
-| **Functor (data)** | A type constructor `F` with a `map`; `List`, `Option`, `Tree` are functors. The "shape" a recursive type is built from. |
-| **Smart constructor** | A validating constructor returning `Option`/`Result`, used to make a type's *only* inhabitants the legal ones. |
-| **Parse, don't validate** | Push validation to the boundary, returning a *more precise type* whose existence proves the data is valid. |
-| **Phantom type** | A type parameter with no runtime data, used to tag state/units at compile time (`Meters`, `Validated`). |
-| **Typestate** | Encoding an object's state-machine state in its type so illegal transitions don't compile. |
-| **Railway-oriented programming** | Chaining `Result`-returning steps so failures short-circuit; the "two-track" pipeline metaphor. |
-| **Effect-as-data** | Representing what *would* be an effect/exception as a returned sum value (`Result`, error ADT). |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -151,37 +105,6 @@ Seniority includes knowing the anti-cases:
 - **Wide, sparse data** (hundreds of optional fields, like a config or a protobuf message) → a product with optionals is often clearer than an explosion of variants; the algebra would be enormous but the *modeling* is genuinely "lots of independent optionals."
 - **Performance-critical hot paths** where a fat sum forces large allocations or branch-heavy matching → sometimes a struct-of-arrays or a hand-tuned layout beats the idiomatic sum.
 - **Over-encoded invariants** where pushing *everything* into types yields unreadable, un-evolvable type-level gymnastics. "Make illegal states unrepresentable" has a point of diminishing returns; some invariants are better as a runtime check with a good error.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Expression problem (sum side)** | A recipe book: adding a new *technique* (operation) means one new section; adding a new *ingredient* (variant) means revising every recipe. |
-| **Expression problem (OO side)** | A staff of specialists: hiring a new specialist (variant) is easy; teaching *every* specialist a new procedure (operation) touches everyone. |
-| **Visitor pattern** | A clipboard passed to each station; each station fills in its own line — a hand-rolled "handle every case." |
-| **Initial algebra / fold** | A demolition crew that collapses any building floor-by-floor with the same rule, no matter the shape. |
-| **Parse, don't validate** | Airport security: once you're past the checkpoint you carry a boarding pass that *proves* you were screened; nobody re-screens you at the gate. |
-| **Typestate** | A door that physically can't be locked while open — the mechanism forbids the illegal state. |
-| **null as hidden sum** | An unlabeled package that *might* be empty; you only find out when you open it and it explodes. |
-| **Railway-oriented** | A train that, on any fault, is shunted onto the breakdown track and coasts to the end station, skipping the remaining stops. |
-
----
-
-## Mental Models
-
-### The "Volatility Axis" Model
-
-Before choosing sum vs interface, ask: *over the next two years, which grows — the set of cases or the set of operations?* Draw the variant×operation grid and predict which dimension is volatile. Put the volatile dimension on the axis your tool makes cheap. Sums make *operations* cheap; interfaces make *variants* cheap. Pick to match the future, not the present.
-
-### The "Proof-Carrying Value" Model
-
-Stop thinking of types as *labels* and start thinking of them as *proofs*. A `Validated<Email>` value is a proof that validation happened. A `Connection<Open>` is a proof the connection is open. "Parse, don't validate" is just: *manufacture the proof at the boundary, then let the type system carry it for free everywhere downstream.* Defensive checks deep in the code mean someone failed to carry a proof.
-
-### The "Errors Are Just Data" Model
-
-An exception is data smuggled through a side channel; a `Result` is the same data carried in the open. Once you see errors as ordinary sum values, the whole apparatus — taxonomies, `map_err`, conversion, exhaustive handling, pipelines — is just normal data manipulation. The mystique of "error handling" dissolves into "I have a sum, I match on it."
 
 ---
 
@@ -346,30 +269,6 @@ static double area(Shape s) {
 
 ---
 
-## Pros & Cons
-
-| Aspect | Pros | Cons |
-|--------|------|------|
-| **Evolvability (operations)** | New operations are trivial, isolated, exhaustiveness-checked. | New *variants* are shotgun surgery across every operation (compiler-guided, but real work). |
-| **Correctness** | Illegal states deleted; parse-don't-validate removes "forgot to check" bugs; typestate forbids illegal transitions. | Over-encoding invariants yields unreadable type-Tetris and brittle, hard-to-evolve APIs. |
-| **Error handling** | Errors explicit, typed, local, exhaustively handled; no invisible non-local control flow. | Boilerplate without `?`/`try` sugar; wrong tool for genuinely exceptional (bug/OOM) conditions. |
-| **Interpreters/ASTs** | Folds fall out of the structure; recursion is mechanical and provably terminating. | Deeply recursive folds can stack-overflow without an explicit stack/trampoline. |
-| **Extensibility** | Closed sums enable exhaustiveness. | Closed sums block third-party variants; the expression problem's "both axes open" needs heavier machinery. |
-| **Performance** | Compact layouts, niche optimization, no vtable for matches. | Fat variants bloat values; very hot paths may want non-idiomatic layouts. |
-
----
-
-## Use Cases
-
-- **Compilers, interpreters, query engines:** stable node set, ever-growing passes/operations → the canonical sum-type win; folds and exhaustive matches are the whole architecture.
-- **Protocol and state-machine modeling:** encode states as a sum (or typestate), so illegal transitions and missing-field states can't be constructed.
-- **Domain modeling:** "an order is Draft | Placed | Shipped | Cancelled," each carrying exactly its state's data — the textbook "illegal states unrepresentable" application.
-- **Codebase-wide error strategy:** `Result`/`Either` with an error taxonomy sum and `?`-style propagation, reserving panics/exceptions for bugs.
-- **Boundary parsing:** every external input (HTTP body, config, CLI arg) parsed into precise internal types at the edge, so the core handles only valid data.
-- **Knowing when to *avoid* sums:** plugin systems and third-party-extensible kinds → interfaces; wide sparse records → products with optionals.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Match the volatile axis
@@ -424,87 +323,24 @@ When calling a method in the wrong state is dangerous (a closed socket, an uncom
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. Draw the variant×operation grid for a JSON value type and a set of operations (pretty-print, validate-schema, count-nodes, redact-secrets). Which axis is volatile? Does that favor sums or interfaces? Now do the same for a UI-widget plugin system.
-2. Show how a visitor pattern over a sealed set of classes is isomorphic to a sum + match. What plays the role of exhaustiveness in the visitor?
-3. For `Tree a = Leaf a | Node (Tree a) (Tree a)`, write the catamorphism's type signature and derive `sumTree`, `depth`, and `toList` as algebras over it.
-4. Take a `User` struct with `email: String`, `isEmailVerified: bool`, `verificationToken: String?`. List two illegal states it allows. Redesign with a sum (and/or parse-don't-validate) so they're unrepresentable.
-5. Explain precisely why `null` is "a sum type the compiler can't see," and what `Option<T>` adds beyond `T + null` conceptually. Why does `Option` compose where `null` doesn't?
-6. When is `Result` the *wrong* choice and an exception/panic the right one? Give two concrete conditions.
-7. Implement a `Connection<Open>`/`Connection<Closed>` typestate API for `connect`, `send`, `close`. Show a client call sequence that won't compile and explain which type fact blocks it.
-8. You mark a public library enum `#[non_exhaustive]`. What do you gain, what do *downstream users* lose, and how should they write their matches?
+1. State the system invariant that **Sum, Product & Unit Types** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
----
+## Verify your work
 
-## Cheat Sheet
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
 
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│                ADTs AS ARCHITECTURE (senior view)               │
-├──────────────────────────────────────────────────────────────────┤
-│ EXPRESSION PROBLEM — pick by the volatile axis                   │
-│   sum + match (FP) : new OPERATION cheap, new VARIANT shotgun     │
-│   interface + impl : new VARIANT cheap, new OPERATION shotgun     │
-│   ask: do CASES grow, or do OPERATIONS grow?                     │
-├──────────────────────────────────────────────────────────────────┤
-│ RECURSIVE ADT = initial algebra ⇒ fold (catamorphism) is free    │
-│   write ONE fold; each operation is an algebra fed to it         │
-│   structural recursion over finite values always terminates      │
-├──────────────────────────────────────────────────────────────────┤
-│ MAKE ILLEGAL STATES UNREPRESENTABLE — the toolkit                │
-│   • flags+nullables  →  sum (each variant carries its data)      │
-│   • smart constructor →  inhabitants = exactly the legal values  │
-│   • newtype          →  distinct identity / units, 0-cost        │
-│   • parse, don't validate → boundary returns a PROOF-type        │
-│   • typestate/phantom → illegal transitions don't compile        │
-├──────────────────────────────────────────────────────────────────┤
-│ null  = invisible, unchecked  T + null   → billion-dollar bug    │
-│ Option = visible, checked      1 + T      (and it COMPOSES)       │
-│ throw  = invisible error channel          → non-local control    │
-│ Result = error-in-return-type  T + E      (railway: ? short-circ) │
-│   Result for EXPECTED failure; panic/exception for BUGS          │
-├──────────────────────────────────────────────────────────────────┤
-│ Know when to STOP: open extensibility → interfaces; wide sparse  │
-│ data → product-of-optionals; over-encoded invariants → readable  │
-│ runtime check beats unreadable type-Tetris.                      │
-└──────────────────────────────────────────────────────────────────┘
-```
+## Review questions
 
----
-
-## Summary
-
-- ADTs are an **architecture**, not a syntax. The senior decision is *what leaning on sums commits the codebase to.*
-- The **expression problem** is the core tension: sums make new **operations** cheap and exhaustiveness-checked but new **variants** expensive; interfaces invert it. Choose by which axis — cases or operations — is volatile, and document why.
-- The **visitor pattern** is a closed sum reconstructed in OO; native `sealed`/`enum`/`data` make it obsolete for closed hierarchies.
-- **Recursive ADTs are initial algebras**, so the **fold (catamorphism)** falls out of the constructors; write one fold and express every operation as an algebra. Structural recursion over finite values always terminates.
-- **"Make illegal states unrepresentable"** is a methodology: sums over flags, smart constructors, newtypes, **parse-don't-validate** (return a proof-carrying precise type at the boundary), and **typestate** (states in types). Each move deletes a class of runtime bugs and defensive checks.
-- **`null` is an invisible, unchecked sum** (`T + null`) — the billion-dollar mistake; `Option<T>` makes the same `1 + T` explicit, checked, and **composable**.
-- **Exceptions are an invisible error channel**; `Result`/`Either` (`T + E`) puts errors in the return type, makes them part of the contract, and composes as a **railway** (`?` short-circuits). Use `Result` for expected failures, panic/exception for bugs.
-- Seniority is also **knowing the anti-cases**: open/plugin extensibility wants interfaces; wide sparse data wants product-of-optionals; over-encoding invariants into types has diminishing returns.
-
----
-
-## What You Can Build
-
-- **A small interpreter** for an arithmetic/boolean expression language using a recursive ADT, a single fold, and several algebras (eval, pretty-print, constant-fold, free-variable count). Add a new operation with zero edits to existing ones; add a new node and watch the compiler list every fold to update.
-- **A boundary-parsing layer** for an HTTP service: raw request → `Result<DomainCommand, ParseError>`, with newtypes for IDs and units, so handlers receive only valid, precisely-typed data.
-- **A typestate file/connection API** (`File<Open>`/`File<Closed>`, `Txn<Active>`/`Txn<Committed>`) where misuse is a compile error. Write a demo of a sequence that won't compile.
-- **A "before/after illegal-states" case study** on a real domain object (order, subscription, user-verification), counting the illegal states eliminated and the defensive `if`s deleted.
-- **An error-taxonomy library**: a layered error sum with `From` conversions and a `?`-friendly pipeline, plus an exhaustive top-level handler. Compare ergonomics with the equivalent exception-based code.
-- **A side-by-side expression-problem demo**: the same datatype as (a) a sum with matches and (b) a trait/interface with impls, then add one variant and one operation to each and measure how many files each change touches.
-
----
-
-## Further Reading
-
-- "The Expression Problem" — Philip Wadler's original framing (and Reynolds's earlier discussion). The canonical statement of the tension.
-- "Data Types à la Carte" — Wouter Swierstra. Solving the expression problem with composable functors in Haskell.
-- "Parse, Don't Validate" — Alexis King. The definitive essay on returning precise types at boundaries.
-- *Domain Modeling Made Functional* — Scott Wlaschin. "Make illegal states unrepresentable" and railway-oriented programming, worked end to end.
-- "Null References: The Billion Dollar Mistake" — Tony Hoare's QCon talk.
-- *Category Theory for Programmers* — Bartosz Milewski. Initial algebras, catamorphisms, and why folds are "the" recursion scheme (informal, programmer-oriented).
-- "Recursion Schemes" series — explanations of catamorphisms/anamorphisms over recursive ADTs.
-- JEP 360/409 (sealed classes) and JEP 440/441 (record/pattern matching in switch) — how mainstream Java acquired native closed sums and exhaustiveness.
-- *Programming with Types* — Vlad Riscutia — typestate, phantom types, and type-driven design with mainstream-language examples.
+- Which invariant must remain true when Sum, Product & Unit Types fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

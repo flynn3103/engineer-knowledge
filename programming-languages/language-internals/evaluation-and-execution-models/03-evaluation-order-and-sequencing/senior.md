@@ -1,55 +1,11 @@
-# Evaluation Order & Sequencing — Senior Level
+# Evaluation Order & Sequencing — Senior
 
-> **Topic:** Evaluation Order & Sequencing
-> **Focus:** Initialization order (static-init-order fiasco, member-init order), the bridge from single-thread sequencing to the concurrency memory model, and how the optimizer's freedom intersects with all of it.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Evaluation Order & Sequencing** under failure, load, and change?
 
-## Introduction
-
-> Focus: **Sequencing is not just an in-expression concern. It governs how objects come into existence (initialization order) and it is the single-thread half of the relation that becomes the multi-thread memory model.**
-
-By now the in-expression rules — sequence points, sequenced-before, the `i = i++` trap — are second nature. The senior level zooms out to two larger questions where the same sequencing concept reappears with much higher stakes:
-
-1. **Initialization order.** When a program starts, *in what order do global and static objects get constructed*? When a class instance is built, *in what order do its members initialize*? These are sequencing questions, and getting them wrong produces the **static initialization order fiasco** and the member-init-order bug — failures that are non-local, intermittent, and brutal to debug.
-
-2. **The leap to concurrency.** The single-thread relation "A is sequenced-before B" is *the base case* of the multi-thread relation "A happens-before B." Program order within a thread is exactly the sequenced-before chain; cross-thread visibility is the additional structure the memory model adds on top. Understanding sequencing is therefore the on-ramp to understanding why threads see writes out of order, what the compiler is allowed to reorder, and what `volatile`/atomics actually buy you.
-
-> 🎓 **Why this matters at the senior level:** The bugs that survive to production and cost the most are rarely a stray `i++`. They are an init-order fiasco that only triggers when the linker happens to order translation units a certain way, or a "thread-unsafe but looks fine" publication that a reviewer waved through because they reasoned in *program order* while the CPU and compiler reasoned in a weaker order. Senior engineers are the ones expected to catch these, and that requires seeing sequencing as a unifying concept across construction, expressions, and threads.
-
-This page covers: C++ static-init-order across translation units (and the "construct on first use" cure), member-init order = declaration order, the program-order ↔ sequenced-before equivalence, how sequenced-before feeds into happens-before, the as-if rule's permission for reordering, what `volatile` does and does *not* promise about ordering, and language contrasts (Java/Go/Rust memory models). The optimizer-centric, performance-and-tooling view lives in `professional.md`.
-
----
-
-## Prerequisites
-
-- **Required:** The middle-level formalism — sequence points, sequenced-before / unsequenced / indeterminately-sequenced.
-- **Required:** C++ class basics (constructors, members, static members) and translation-unit / linker model.
-- **Required:** Basic threading vocabulary — race, data race, visibility.
-- **Helpful:** Prior exposure to a memory model (Java's JMM, C++11, or Go's) at the level of "happens-before."
-- **Helpful:** Having debugged at least one init-order or publication bug.
-
-You do **not** need: the full optimizer/as-if performance treatment (`professional.md`) or interview drilling (`interview.md`).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Static initialization order fiasco** | UB/bug when one static object's constructor uses another static defined in a different translation unit, and the cross-TU init order is unspecified. |
-| **Translation unit (TU)** | A single `.cpp` file after preprocessing. The unit of separate compilation; cross-TU static init order is not specified. |
-| **Dynamic initialization** | Initialization of a static/global that requires running code (a constructor or non-constant expression) at startup. |
-| **Construct-on-first-use** | Idiom that defers a static's construction to its first access, sidestepping cross-TU ordering. |
-| **Member-init order** | The order in which a class's data members are constructed: **declaration order**, regardless of initializer-list order. |
-| **Program order** | The order of operations as written in the source for a single thread; equals the sequenced-before chain within a thread. |
-| **Sequenced-before** | Single-thread intra-thread ordering (from `middle.md`). The base of happens-before. |
-| **Happens-before** | The cross-thread partial order; if A happens-before B, B sees A's effects. Built from sequenced-before + synchronization edges. |
-| **As-if rule** | The compiler may transform a program any way it likes as long as observable behavior is preserved. Permits reordering. |
-| **Observable behavior** | I/O, `volatile` accesses, and (since C++11) atomic/synchronization effects — what the as-if rule must preserve. |
-| **`volatile`** | (C/C++) Suppresses optimization of accesses to the abstract machine; orders `volatile` accesses among themselves; gives *no* inter-thread synchronization. |
-| **Synchronizes-with** | A memory-model edge (e.g. release store paired with acquire load) that links two threads' sequenced-before chains into happens-before. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -160,42 +116,6 @@ So for cross-thread ordering in C/C++, use `std::atomic` (or mutexes), **not** `
 
 ---
 
-## Real-World Analogies
-
-**The relay team and the baton (happens-before).** Within one runner's leg, steps happen in order — that's sequenced-before. But runner B's view of runner A's progress is *only* synchronized at the baton handoff. The handoff is the synchronizes-with edge; without it, B has no guaranteed knowledge of where A got to. `volatile` is like a runner who runs visibly but *never hands off the baton* — you can watch them, but nothing they did is officially transferred to the next runner.
-
-**Building a house's rooms in blueprint order, not work-order order.** Member-init order is like a contractor who *always* builds rooms in the blueprint's listed order, no matter what sequence you wrote on the work order. If your work order says "wire room B using room A's panel" but the blueprint lists B before A, the wiring references a room that doesn't exist yet.
-
-**Two factories with no agreed startup sequence.** Two translation units are two factories that both must be running before the company operates, but no one scheduled which boots first. If factory A's startup needs a part only factory B produces, and B isn't up yet, A's startup fails — intermittently, depending on who flips the switch first. Construct-on-first-use replaces "boot everything at dawn" with "boot a factory the first time someone needs its parts."
-
----
-
-## Mental Models
-
-### Model 1: The ordering stack
-
-```
-[expression sequencing]  sequenced-before        — within a full expression
-        ⊆
-[statement/program order] sequenced-before chain  — within one thread
-        ⊆ (+ synchronization edges)
-[concurrency]             happens-before           — across threads
-```
-
-Each layer *contains* the one below as its single-thread special case. The same word — sequencing — runs through all three.
-
-### Model 2: "What forces this order?"
-
-For any pair of operations, ask what edge orders them:
-- Same thread, separated by a sequence point / sequenced-before → ordered by **program order**.
-- Different threads → ordered **only** if a synchronization edge (lock, atomic, join, channel) creates happens-before. Otherwise *unordered* → potential data race.
-
-### Model 3: Initialization as a dependency graph
-
-Treat static/member initialization as a DAG of "X must exist before Y." Eager global init walks the graph in an *unspecified* topological-ish order (within-TU only). Construct-on-first-use makes the *access pattern* drive the order, guaranteeing dependencies resolve correctly. If you can't express the dependency, you have a latent fiasco.
-
----
-
 ## Code Examples
 
 ### Example 1 — The fiasco and its cure
@@ -275,27 +195,6 @@ volatile boolean ready = false;   // a volatile write publishes prior writes (JM
 
 ---
 
-## Pros & Cons
-
-| Concern | Pros | Cons |
-|---------|------|------|
-| **Eager global init** | Simple to write; everything ready at `main`. | Cross-TU order unspecified → fiasco; hard, intermittent bugs. |
-| **Construct-on-first-use** | Order driven by dependency; thread-safe since C++11. | Slight first-call cost; lifetime extends to program end (intentional leak at shutdown). |
-| **As-if reordering freedom** | Big performance wins; compiler can schedule freely. | Single-thread reasoning is unsafe across threads. |
-| **`volatile` for threads** | (none for threading) | Looks like a fix, isn't one — gives no inter-thread ordering. |
-
----
-
-## Use Cases
-
-- **Library singletons / registries:** construct-on-first-use to avoid init-order coupling between TUs.
-- **Embedded / driver code:** `volatile` for memory-mapped hardware registers — its one legitimate ordering role.
-- **Lock-free publication:** release/acquire atomics to turn per-thread sequenced-before into cross-thread happens-before.
-- **Code review of "is this thread-safe?":** trace happens-before edges; reject "it's sequential in the source" as a justification.
-- **Diagnosing intermittent startup crashes:** suspect static-init-order fiasco when failure depends on link/build order.
-
----
-
 ## Coding Patterns
 
 **Pattern: Construct-on-first-use (Meyers singleton).**
@@ -354,32 +253,24 @@ if (flag.load(std::memory_order_acquire)) use(payload);   // consume
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```
-INIT ORDER
-  Within a TU:  static dynamic-init runs top-to-bottom (declaration order).
-  Across TUs:   UNSPECIFIED  -> static init order fiasco.  Fix: construct-on-first-use.
-  Members:      DECLARATION order, not initializer-list order.  (-Wreorder)
+1. State the system invariant that **Evaluation Order & Sequencing** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
-SEQUENCING -> CONCURRENCY
-  sequenced-before  = single-thread program order  (the base case)
-  happens-before    = sequenced-before  +  synchronizes-with (cross-thread)
-  data race         = conflicting access, neither happens-before the other -> UB
+## Verify your work
 
-AS-IF RULE: compiler may reorder anything that preserves observable behavior
-            (I/O, volatile, atomics). Single-thread reorders are invisible;
-            across threads they become visible and are still legal w/o sync.
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
 
-volatile (C/C++):  orders volatile-vs-volatile, no caching of the value,
-                   NO atomicity, NO inter-thread ordering, NO fence.
-                   Use for HW registers / signal flags ONLY.
-For threads:       std::atomic (release/acquire) or a mutex.
-Java volatile:     DIFFERENT — has acquire/release; is a real sync primitive.
-```
+## Review questions
 
----
-
-## Summary
-
-At the senior level, sequencing stops being an in-expression curiosity and reveals itself as a concept that governs object construction and underpins concurrency. **Initialization order** is a sequencing problem: within a translation unit statics initialize in declaration order, but *across* translation units the order is unspecified — the **static initialization order fiasco**, cured by the construct-on-first-use idiom. Inside a class, **members initialize in declaration order, not initializer-list order**, a quiet trap when one member's initializer reads a later-declared member. The deeper unification is that **single-thread `sequenced-before` is exactly program order, and it is the base case of the cross-thread `happens-before` relation**; without an added synchronization edge (release/acquire, lock, channel, join), one thread's program order tells another thread *nothing*, which is precisely why "it's sequential in the source" is never a valid concurrency-correctness argument. The **as-if rule** grants the compiler liberty to reorder anything that preserves observable behavior, harmless within a thread but observable — and still legal — across threads. Finally, **`volatile` in C/C++ orders volatile accesses among themselves and prevents value caching but provides no atomicity and no inter-thread ordering** — it is for hardware registers and signal flags, not threading; for that you use `std::atomic` or a mutex (and note that Java's identically-named `volatile` is an entirely different, acquire/release primitive). The professional level turns to the optimizer's mechanics and the performance and tooling consequences of all this freedom.
+- Which invariant must remain true when Evaluation Order & Sequencing fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

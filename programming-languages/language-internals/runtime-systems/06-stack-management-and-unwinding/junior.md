@@ -1,66 +1,11 @@
-# Stack Management & Unwinding — Junior Level
+# Stack Management & Unwinding — Junior
 
-> **Topic:** Stack Management & Unwinding
-> **Focus:** What a call stack actually is, what one stack frame contains, and how a program "returns" — the mechanics behind every function call you have ever written.
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **Stack Management & Unwinding** in one small example and prove the result?
 
-## Introduction
-
-> Focus: **What is the call stack, and what happens — byte by byte — when one function calls another and then returns?**
-
-Every time you write `foo()`, the CPU does some bookkeeping you never see. It needs to remember *where to come back to* when `foo` finishes. It needs somewhere to put `foo`'s local variables. And when `foo` returns, all of that has to be cleaned up so the program continues exactly where it left off. The data structure that makes this work is the **call stack**, and the chunk of it that belongs to one function call is a **stack frame** (sometimes called an *activation record*).
-
-The stack is one of the two big regions of memory your program uses. The other is the **heap**. The heap is where long-lived, dynamically-sized things live (the objects you `new` or `malloc`). The stack is where the *short-lived, call-scoped* things live: the return address, the function's local variables, and saved CPU registers. The key property of the stack is in its name — it grows and shrinks like a stack of plates. The most recently called function is always "on top," and it must finish (be popped) before the one below it resumes.
-
-In one sentence: **the call stack is the program's memory of "how did I get here, and where do I go back to."**
-
-> 🎓 **Why this matters for a junior:** The two error messages that will haunt your early career are `StackOverflowError` / `stack overflow` (infinite recursion) and the stack trace printed when something crashes. Both are this topic. A stack trace *is* a snapshot of the call stack, read from top to bottom. Once you understand what a frame is, a backtrace stops being noise and becomes a precise map of exactly how your program reached the line that blew up.
-
-This page covers: what a stack frame contains (return address, saved frame pointer, locals), how `call` and `return` work at the machine level, what the **stack pointer** and **frame pointer** are, what a stack trace really shows you, and what "stack overflow" means. The next level (`middle.md`) covers calling conventions, the red zone, and frame-pointer omission; `senior.md` covers unwind tables (DWARF CFI) and exception unwinding; `professional.md` covers growable stacks (Go), guard pages, and profiling.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** How to write and call a function in at least one language.
-- **Required:** What a *local variable* is and that it disappears when the function returns.
-- **Required:** A rough idea that a program lives in *memory* made of numbered addresses.
-- **Helpful but not required:** What a *pointer* is (a value that holds an address).
-- **Helpful but not required:** Having seen a stack trace from a crash or exception.
-
-You do **not** need to know:
-
-- Assembly language (we will show a little, with full explanation).
-- Calling conventions, the red zone, or shadow space (that's `middle.md`).
-- DWARF unwind tables or exception unwinding (that's `senior.md`).
-- Anything about garbage collection or growable goroutine stacks (that's `professional.md`).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Call stack** | The region of memory that grows with each function call and shrinks with each return. One per thread. |
-| **Stack frame** | The slice of the call stack belonging to *one* active function call. Also called an **activation record**. |
-| **Activation record** | A formal synonym for stack frame: the record of one live "activation" of a function. |
-| **Stack pointer (SP)** | A CPU register that always points at the *top* of the stack — the current frame's edge. On x86-64 it is `rsp`. |
-| **Frame pointer (FP) / base pointer** | A CPU register that points at a *fixed* spot in the current frame, used as a stable anchor for finding locals and walking the stack. On x86-64 it is `rbp`. |
-| **Return address** | The address of the instruction to resume at after the called function returns. Pushed onto the stack by the `call` instruction. |
-| **Local variable** | A variable scoped to one function call. Usually stored in the function's stack frame (or in a register). |
-| **Caller** | The function that does the calling. |
-| **Callee** | The function being called. |
-| **Push / Pop** | Adding a value on top of the stack / removing the top value. |
-| **Stack growth direction** | On almost all mainstream CPUs the stack grows toward *lower* addresses: pushing *decreases* the stack pointer. |
-| **Stack trace / backtrace** | A human-readable list of the active frames, from the innermost (where you are now) outward to `main`. |
-| **Stack overflow** | The error you get when the stack grows past its allotted size — usually from runaway recursion. |
-| **`call` instruction** | The CPU instruction that pushes the return address and jumps to a function. |
-| **`ret` instruction** | The CPU instruction that pops the return address and jumps back to it. |
-| **Prologue / Epilogue** | The few instructions at a function's start/end that set up and tear down its frame. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -131,32 +76,6 @@ Between them, the called function runs its **prologue** (set up its frame), its 
 ### 5. A Stack Trace Is Just the Frame Chain, Printed
 
 When your program crashes or you call something like Java's `Thread.dumpStack()` or Python's `traceback.print_stack()`, the runtime walks the live frames from the top down and prints, for each one, *which function it is* and *what source line it was at*. That's all a stack trace is: **the call stack, made readable.** The top line is where you are now; each line below is the caller that got you there.
-
----
-
-## Real-World Analogies
-
-- **A stack of nested phone calls.** You're on a call (`main`). Someone calls you about a question, so you put the first person on hold (`a`). While on that call, a third question comes up, so you put the second on hold too (`b`). You must finish the newest call before returning to the one you put on hold most recently. You can't pick up the *first* person while the third is still talking. That hold order *is* the call stack.
-
-- **A pile of sticky notes.** Each function call slaps a sticky note on top of the pile saying "I was doing X, come back to line 42 when done" — that note is the return address. When the function finishes, it peels its note off. The pile only ever grows or shrinks at the top.
-
-- **A trail of breadcrumbs.** The chain of saved frame pointers and return addresses is a breadcrumb trail leading from where you are now all the way back to `main`. A debugger follows the breadcrumbs to tell you how you got here. If someone omits the breadcrumbs to save space (frame-pointer omission), the debugger needs a *map* instead — that map is the unwind table you'll meet in `senior.md`.
-
-- **Plates at a buffet.** You can only take from or add to the *top* of the plate stack. The plate at the bottom (`main`) is the last one you'll ever touch.
-
----
-
-## Mental Models
-
-- **"The stack is the program's short-term memory of how it got here."** The heap remembers *things*; the stack remembers *the path*.
-
-- **"One frame = one promise to return."** Every frame on the stack is a function that hasn't finished yet and is owed a return.
-
-- **"Top of stack = innermost call = where the action is."** When reading a crash, start at the top. That's the actual point of failure; everything below is context for *how* you got there.
-
-- **"SP is the live edge; FP is the anchor."** SP moves constantly during a function; FP stays put so locals have stable addresses.
-
-- **"Returning is just resetting two registers."** The epilogue restores the saved frame pointer and lets `ret` reset the program counter. The old frame isn't erased — it's just *abandoned* by moving SP back up, ready to be overwritten by the next call.
 
 ---
 
@@ -257,37 +176,6 @@ This is the whole life of a frame in six lines. The first two instructions (the 
 
 ---
 
-## Pros & Cons
-
-**Why the stack is great:**
-
-| Strength | Why it matters |
-|----------|----------------|
-| **Extremely fast allocation** | Allocating a frame is just *subtracting from the stack pointer*. One instruction. No heap allocator, no bookkeeping. |
-| **Automatic cleanup** | When a function returns, its whole frame is freed by *resetting one register*. No `free()`, no garbage collector needed. |
-| **Great cache locality** | The top of the stack is touched constantly and stays hot in the CPU cache. |
-| **Natural call tracking** | The structure *is* the record of how you got here — that's what gives you stack traces for free. |
-
-**The trade-offs:**
-
-| Weakness | Why it bites |
-|----------|--------------|
-| **Fixed (limited) size** | A thread's stack is typically capped (often ~1 MB / 8 MB). Blow past it and you overflow. |
-| **No outliving the call** | Anything in a frame dies on return — you can't hand out pointers to it. |
-| **LIFO only** | You can only free the top. Long-lived or out-of-order lifetimes must go on the heap. |
-| **Recursion is bounded** | Deep or unbounded recursion overflows. The heap doesn't have this limit. |
-
----
-
-## Use Cases
-
-- **Function locals and arguments.** The overwhelmingly common case: small, call-scoped data lives in the frame and is free to allocate and free.
-- **Recursion and tree/graph walks.** Each level of depth is one frame; the stack naturally tracks where you are.
-- **Reading crashes and debugging.** Every exception, panic, or fault gives you a stack trace — knowing how to read it is the single highest-value debugging skill.
-- **Understanding "why is this nil/null here?"** Following the frames in a debugger shows you exactly which caller passed the bad value.
-
----
-
 ## Coding Patterns
 
 **Pattern: Return values, not pointers to locals.** If a function needs to produce data that outlives it, return the *value* (which gets copied into the caller's frame) or allocate on the heap and return that pointer — never return the address of a local.
@@ -331,51 +219,24 @@ int* good_heap(void) { int *x = malloc(sizeof(int)); *x = 5; return x; }
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```text
-CALL STACK
-  - One per thread. Grows DOWN (toward lower addresses) on x86-64/ARM.
-  - LIFO: only the top frame is live; it must return before the one below resumes.
+1. Choose one small, known input for **Stack Management & Unwinding**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
-ONE FRAME CONTAINS
-  - return address    (where to go back to; pushed by `call`)
-  - saved frame ptr   (the caller's FP; forms a linked list)
-  - local variables   (and spilled registers / temporaries)
+## Verify your work
 
-KEY REGISTERS (x86-64)
-  - rsp = stack pointer = top of stack (the live edge)
-  - rbp = frame pointer = stable anchor for this frame
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
 
-CALL / RETURN
-  - `call foo`  -> push return address, jump to foo
-  - prologue    -> push rbp; mov rbp, rsp; sub rsp, N
-  - epilogue    -> mov rsp, rbp; pop rbp
-  - `ret`       -> pop return address, jump back
+## Review questions
 
-STACK TRACE = the live frame chain, printed.
-  - top line   = innermost = where you are / crashed
-  - bottom     = outermost = main
-
-GOLDEN RULES
-  - locals die on return -> never return a pointer to one
-  - big buffers + deep recursion -> use the heap, not the stack
-  - read backtraces bottom-up or top-down? find the ERROR line first
-```
-
----
-
-## Summary
-
-The **call stack** is the program's record of which functions are currently running and how to get back to each caller. Each active call owns one **stack frame** containing a **return address**, a **saved frame pointer**, and the function's **local variables**. The `call` instruction pushes the return address and jumps; the function's prologue builds its frame; its epilogue tears it down; `ret` pops the return address and resumes the caller. Two registers track everything: the **stack pointer** (`rsp`) marks the top, and the **frame pointer** (`rbp`) anchors the current frame and chains frames into a walkable list.
-
-The most practical payoff is reading **stack traces**: a trace is just the live frame chain printed out, with the innermost (crash) frame at one end and `main` at the other. The most important rules are that locals **die when the function returns** (never hand out pointers to them) and that the stack has a **fixed size** (deep recursion or giant locals overflow it). With those mental models in place, you're ready for `middle.md`, where calling conventions, the red zone, shadow space, and frame-pointer omission explain *exactly* how frames are laid out and why stack walking sometimes needs help.
-
----
-
-## Further Reading
-
-- Your platform's debugger manual on `backtrace` / `bt` (GDB, LLDB) — practice on real programs.
-- Documentation for `traceback` (Python), `Thread.getStackTrace` (Java), `runtime/debug.Stack` (Go).
-- "How a function call works" introductions in any computer-architecture course (x86-64 `call`/`ret`).
-- The next files in this topic: `middle.md` (calling conventions, red zone, FP omission), `senior.md` (unwind tables, exception unwinding), `professional.md` (growable stacks, guard pages, profiling).
+- What problem does Stack Management & Unwinding solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

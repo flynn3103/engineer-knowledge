@@ -1,8 +1,11 @@
 # Migrating Between Languages — Junior
 
-> **What?** Migration is moving an existing, *working* system from one language to another — rewriting the code in Python as Go, in Perl as Java, in CoffeeScript as TypeScript. It is not building something new; it is rebuilding something that already runs in production and that people already depend on.
-> **How?** Treat it as one of the highest-risk things you can do to a codebase, because the upside is small ("same features, different language") and the downside is enormous ("we broke the thing that worked"). The cardinal rule: **the old system works, the rewrite might not.**
+<!-- level-focus -->
+At junior level, focus on this question:
 
+> How can I apply **Migrating Between Languages** in one small example and prove the result?
+
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## 1. Why migration is different from normal work
@@ -86,24 +89,32 @@ Juniors break this rule for understandable reasons:
 ## 6. Before you ever say "let's rewrite it," ask
 
 - [ ] **Does the old system actually work?** If yes, the bar to replace it is high. You're betting against a proven thing.
-- [ ] **Is the pain the *language*, or just messy code?** Messy code can be refactored *in place* — far cheaper than a rewrite. (See [`05-when-to-introduce-a-new-language`](../05-when-to-introduce-a-new-language/).)
-- [ ] **Can we wrap it instead of replacing it?** Sometimes you put a clean interface in front of the old system and leave it alone. (See [`04-interop-and-polyglot-architectures`](../04-interop-and-polyglot-architectures/).)
+- [ ] **Is the pain the *language*, or just messy code?** Messy code can be refactored *in place* — far cheaper than a rewrite. (See [`05-when-to-introduce-a-new-language`](../05-when-to-introduce-a-new-language/README.md).)
+- [ ] **Can we wrap it instead of replacing it?** Sometimes you put a clean interface in front of the old system and leave it alone. (See [`04-interop-and-polyglot-architectures`](../04-interop-and-polyglot-architectures/README.md).)
 - [ ] **If we migrate, can we do it one piece at a time?** If the only plan is "big bang," that's a red flag, not a plan.
 - [ ] **What do we lose if the rewrite stalls halfway?** Many rewrites die at 70%. What's your position then?
 - [ ] **Are we migrating for the users/business, or because we're bored of the old language?** Be honest. "I want to write Rust" is not a business case.
 
 ---
 
-## 7. What's next
+## Apply it
 
-| Topic | File |
-|---|---|
-| The strangler fig pattern and how incremental migration actually works | `middle.md` |
-| When *not* to migrate, and de-risking the migrations you must do | `senior.md` |
-| Justifying and running migrations across a whole org | `professional.md` |
-| Interview questions on migration strategy | `interview.md` |
-| Design exercises: strangler plans, kill cases, cutover sequencing | `tasks.md` |
+1. Choose one small, known input for **Migrating Between Languages**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
----
+## Verify your work
 
-**Memorize this:** migration is rebuilding software that already works, so it's mostly downside risk — the old code holds years of invisible bug fixes you'll be forced to relearn. The old system works; the rewrite might not. When you must move, move *incrementally*, one piece at a time — never in one big bang. And read Joel Spolsky's "Things You Should Never Do" before you propose your first rewrite.
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
+
+## Review questions
+
+- What problem does Migrating Between Languages solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

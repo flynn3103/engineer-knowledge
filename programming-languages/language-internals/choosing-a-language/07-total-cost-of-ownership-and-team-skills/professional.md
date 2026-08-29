@@ -1,8 +1,11 @@
 # Total Cost of Ownership & Team Skills — Professional
 
-> **What?** Language TCO as *organizational economics* — the costs and forces that only appear at the scale of a whole engineering org. Conway's law and how language choice shapes (and is shaped by) team structure; standardizing for hiring leverage and internal mobility; the upskilling budget; vendor and support costs; the perennial "exciting language helps recruiting" vs "common language is cheaper to staff" tension; building the actual TCO business case for leadership; and the long-tail cost of every *extra* language you allow.
-> **How?** You are the engineering leader (staff/principal/director) who owns the standard, not one service. You decide what's in the blessed set, you fund the training budget, you make the case to the CFO, and you carry the consequences of language sprawl across dozens of teams and years. Your unit of cost is the *org*, and your time horizon is the *company*.
+<!-- level-focus -->
+At professional level, focus on this question:
 
+> How should teams adopt and operate **Total Cost of Ownership & Team Skills** with measurable outcomes and limited coordination?
+
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## 1. Conway's law cuts both ways through language choice
@@ -51,7 +54,7 @@ Each language you allow into the org carries a **fixed, perpetual overhead** tha
 - An on-call population that understands it.
 - Documentation, style guides, and onboarding material.
 
-This overhead is roughly the *same* whether the language runs 2 services or 200. So a language used by *one* team is paying full freight for a fraction of the benefit — it's the worst ratio in the portfolio. The professional rule: **the cost of an extra language is dominated by its fixed overhead, not its line count**, which is why "we only have a little bit of Elixir" is not the reassurance it sounds like. A little bit of a language is the *most expensive* kind, per line. (This is the economic engine behind [`05-when-to-introduce-a-new-language`](../05-when-to-introduce-a-new-language/)'s "N+1 language tax.")
+This overhead is roughly the *same* whether the language runs 2 services or 200. So a language used by *one* team is paying full freight for a fraction of the benefit — it's the worst ratio in the portfolio. The professional rule: **the cost of an extra language is dominated by its fixed overhead, not its line count**, which is why "we only have a little bit of Elixir" is not the reassurance it sounds like. A little bit of a language is the *most expensive* kind, per line. (This is the economic engine behind [`05-when-to-introduce-a-new-language`](../05-when-to-introduce-a-new-language/README.md)'s "N+1 language tax.")
 
 ---
 
@@ -77,7 +80,7 @@ Beyond people, the org pays for the language's commercial ecosystem:
 - **Tooling licenses** — per-seat IDEs, profilers, static-analysis suites.
 - **Long-term support and security patching** — who patches the runtime when a CVE lands? For a backed language, the vendor; for a hobby language, *you*, on your own time.
 
-A language with a strong *commercial backer* costs license money but de-risks support. A language with *no* commercial backer is "free" until a critical CVE drops and you discover the patching is your problem. Both are TCO; price them. (This connects to lock-in and longevity risk — see [`08-language-longevity-and-lock-in-risk`](../08-language-longevity-and-lock-in-risk/).)
+A language with a strong *commercial backer* costs license money but de-risks support. A language with *no* commercial backer is "free" until a critical CVE drops and you discover the patching is your problem. Both are TCO; price them. (This connects to lock-in and longevity risk — see [`08-language-longevity-and-lock-in-risk`](../08-language-longevity-and-lock-in-risk/README.md).)
 
 ---
 
@@ -122,7 +125,7 @@ A business case that lands has five parts:
                        Revisit if hiring market or scale changes materially."
 ```
 
-Lead with the *recurring* saving and the *risk reduced* — those are what leadership funds. Express fungibility in headcount terms ("we can staff any priority from the existing org instead of hiring") because that's the language of someone who controls a budget. And be honest about the upfront cost: a business case that hides the migration pain loses all credibility the moment reality arrives. (The decision-record discipline from [`01-language-selection-criteria`](../01-language-selection-criteria/) applies at this altitude too — write it down, with a revisit trigger.)
+Lead with the *recurring* saving and the *risk reduced* — those are what leadership funds. Express fungibility in headcount terms ("we can staff any priority from the existing org instead of hiring") because that's the language of someone who controls a budget. And be honest about the upfront cost: a business case that hides the migration pain loses all credibility the moment reality arrives. (The decision-record discipline from [`01-language-selection-criteria`](../01-language-selection-criteria/README.md) applies at this altitude too — write it down, with a revisit trigger.)
 
 ---
 
@@ -154,15 +157,24 @@ Lead with the *recurring* saving and the *risk reduced* — those are what leade
 
 ---
 
-## 10. What's next
+## Apply it
 
-| Topic | File |
-|---|---|
-| Interview questions, including the staff-level standardization defense | `interview.md` |
-| Build the people-cost case and critique a sprawl decision | `tasks.md` |
-| Restraint: when *not* to add the N+1 language | [`05-when-to-introduce-a-new-language`](../05-when-to-introduce-a-new-language/) |
-| The mechanics of actually consolidating languages | [`06-migrating-between-languages`](../06-migrating-between-languages/) |
+1. Define the user or business outcome that **Total Cost of Ownership & Team Skills** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
----
+## Verify your work
 
-**Memorize this:** at org scale, TCO is dominated by people fungibility, hiring leverage, and the fixed overhead of every extra language. Standardization converts specialists into a redeployable pool; sprawl cements Conway-law silos. Fund the training, price each language by its fixed cost not its line count, contain "exciting" languages to high-leverage niches, and make the case to leadership in money, risk, and time.
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
+
+## Review questions
+
+- Which measurable outcome justifies investing in Total Cost of Ownership & Team Skills?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

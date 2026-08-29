@@ -1,43 +1,11 @@
-# Memory Safety — Professional Level
+# Memory Safety — Professional
 
-> **Topic:** Memory Safety
-> **Focus:** Tooling pipelines, hardware/OS defense-in-depth, organizational strategy, and migration of legacy C/C++ — turning memory safety from a language property into a program-wide engineering discipline.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Memory Safety** with measurable outcomes and limited coordination?
 
-## Introduction
-
-At organizational scale, memory safety is not a checkbox on a language choice — it's a multi-year strategy spanning tooling in CI, hardware mitigations in production, prioritized migration of a legacy C/C++ estate, and sandboxing what can't be rewritten yet. The professional question isn't "is this language safe?" but "given a 20-million-line C++ codebase, finite engineers, and active attackers, how do I drive memory-safety vulnerabilities toward zero — and prove I'm making progress?"
-
-This tier covers the full defense-in-depth stack: dynamic detection (sanitizers + fuzzing), hardware/OS mitigations (ASLR, DEP, CFI, PAC, MTE, CHERI), the economic and policy case (CISA/NSA, the ~70% statistic, Android/Chromium data), and concrete migration patterns.
-
----
-
-## Prerequisites
-
-- Senior-tier grasp of the safety guarantees, soundness, and the `unsafe` contract.
-- Working knowledge of CI/CD, compiler flags, and build systems.
-- Familiarity with the violation categories and how sanitizers detect them.
-- Basic exposure to the exploitation model (control-flow hijack, info leak) at a conceptual level — to understand what each mitigation stops.
-
----
-
-## Glossary
-
-| Term | Meaning |
-| --- | --- |
-| **ASLR** | Address Space Layout Randomization — randomizes memory layout so attackers can't predict addresses. |
-| **DEP / NX** | Data Execution Prevention / No-eXecute — marks data pages non-executable. |
-| **Stack canary** | A guard value placed before the return address; corruption is detected on return. |
-| **CFI** | Control-Flow Integrity — restricts indirect jumps/calls to legitimate targets. |
-| **Shadow stack** | A protected second copy of return addresses to detect stack corruption. |
-| **PAC** | Pointer Authentication (ARM) — cryptographic signatures embedded in pointers. |
-| **MTE** | Memory Tagging Extension (ARM) — hardware tags on memory + pointers, checked on access. |
-| **CHERI** | Capability hardware — pointers carry unforgeable bounds + permissions in hardware. |
-| **HWASan** | Hardware-assisted AddressSanitizer — tag-based, lower overhead than classic ASan. |
-| **Quarantine / redzone** | ASan's freed-memory hold pool / poisoned allocation padding. |
-| **Sandboxing** | Isolating untrusted/unsafe code so a memory bug can't compromise the host. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -109,30 +77,6 @@ The strategic insight: **prioritize the trust boundary.** Code that parses untru
 
 ---
 
-## Real-World Analogies
-
-- **Defense in depth = a castle, not a wall.** Moat (ASLR), drawbridge (DEP), murder holes (canaries), inner keep (CFI), and a final vault (sandbox). Any one can be breached; an attacker must beat all of them in sequence.
-
-- **MTE = color-coded keys and locks.** Each allocation and the pointers to it are painted the same color (tag). Access with a wrong-colored pointer triggers the alarm — catching both "wrong room" (spatial) and "expired key" (temporal) in hardware, at the moment of misuse.
-
-- **Sandboxing legacy decoders = handling hazardous material in a sealed glovebox.** You still process the dangerous input, but if it blows up, the blast is contained to the glovebox and never reaches the lab.
-
-- **"Safe by default for new code" = stopping the leak before bailing the boat.** You can't instantly bail twenty million liters, but if you stop *adding* water (new unsafe code), the existing water gets pumped/ages out and the level drops.
-
----
-
-## Mental Models
-
-**Model 1: Mitigations buy time and raise cost; they don't remove bugs.** ASLR/DEP/CFI make exploitation expensive and unreliable. They're a tax on attackers, not a cure. The cure is prevention (safe languages) and root-cause hardware (MTE/CHERI).
-
-**Model 2: Vulnerabilities live in new code.** The Android data's punchline: bug density decays with code age. So *where you write new code* matters more than *what you do with old code* for the long-run trend.
-
-**Model 3: Detection coverage = reachability × sanitization.** A sanitizer only catches what's executed; a fuzzer drives execution. Coverage of the *bug space* is the product — invest in both.
-
-**Model 4: Prioritize by the trust boundary.** Effort should be proportional to exposure to untrusted input. A parser facing the network is worth ten times the hardening of an internal batch tool.
-
----
-
 ## Code Examples
 
 ### Wiring sanitizers and mitigations into a build
@@ -191,34 +135,6 @@ Quarter   Total vulns   Memory-safety vulns   MS fraction
 
 ---
 
-## Pros & Cons
-
-**Sanitizers + fuzzing:**
-- ✅ Find real, exploitable bugs pre-ship with precise diagnostics; industry-proven (OSS-Fuzz).
-- ❌ Coverage-limited; test-time cost; need engineering to build/maintain harnesses and corpora.
-
-**Hardware/OS mitigations:**
-- ✅ Always-on protection for shipped unsafe code; low/zero source changes; raise attacker cost.
-- ❌ Individually bypassable; CFI/ASLR don't stop the bug, only some exploit techniques; performance/compat caveats.
-
-**MTE / CHERI (root-cause hardware):**
-- ✅ Attack the cause (invalid access) at low overhead; spatial *and* temporal; production-viable (MTE).
-- ❌ Hardware/OS/allocator dependencies; tag-collision probabilistic (MTE); CHERI needs new silicon + ABI changes.
-
-**Migration (rewrite/sandbox):**
-- ✅ Bends the vulnerability curve; "new code safe" is high-ROI; sandboxing contains what you can't fix.
-- ❌ FFI boundaries are new bug sources; rewrites are costly and risk-laden; requires sustained org commitment.
-
----
-
-## Use Cases
-
-- **Browser/OS vendor:** full stack — Rust for new code, sandboxed legacy decoders, CFI/PAC/MTE in production, OSS-Fuzz-style continuous fuzzing. (Chromium, Android, Windows all do versions of this.)
-- **Embedded/mobile with ARM v8.5+:** enable MTE in dogfood/production for hardware-grade detection of the surviving C/C++ bugs.
-- **A team with a C++ parser exposed to the internet:** fuzz under ASan in CI, sandbox the parser process, and schedule it as the first migration target.
-
----
-
 ## Coding Patterns
 
 - **Sanitizer matrix in CI:** separate jobs for ASan+UBSan, MSan, TSan (they don't all compose) on every PR for native code.
@@ -254,10 +170,24 @@ Quarter   Total vulns   Memory-safety vulns   MS fraction
 
 ---
 
-## Summary
+## Apply it
 
-- Memory safety at scale is **defense in depth**: prevention (safe languages) → dynamic detection (sanitizers + fuzzing) → exploit mitigations (ASLR, DEP, canaries, CFI, shadow stacks) → root-cause hardware (PAC, MTE, CHERI) → isolation (sandboxing).
-- **Sanitizers detect precisely but only on executed paths; fuzzing supplies the paths** — their product is your real coverage. HWASan/MTE bring detection to production-grade overhead.
-- **Each OS/HW mitigation stops a specific exploitation technique and is individually bypassable;** MTE and CHERI are different in attacking the *root cause* (invalid access) in hardware.
-- The **economic/policy case** (~70% of severe CVEs are memory-safety; CISA/NSA guidance; Android's vulnerability-fraction falling from ~76% to ~24%) shows the highest-ROI strategy is **"safe by default for new code,"** since bugs concentrate in new code.
-- **Migration** = new code safe + incremental interop rewrites + sandbox-what-you-can't-rewrite + harden-and-fuzz the rest, **prioritized by the trust boundary** — and **measured** via the memory-safety vulnerability fraction over time.
+1. Define the user or business outcome that **Memory Safety** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
+
+## Verify your work
+
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
+
+## Review questions
+
+- Which measurable outcome justifies investing in Memory Safety?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

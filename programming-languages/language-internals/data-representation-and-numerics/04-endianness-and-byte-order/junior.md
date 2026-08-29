@@ -1,78 +1,11 @@
-# Endianness & Byte Order — Junior Level
+# Endianness & Byte Order — Junior
 
-> **Topic:** Endianness & Byte Order
-> **Focus:** A number bigger than one byte has to be stored as several bytes. *In what order?* That order is called endianness, and getting it wrong silently corrupts data.
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **Endianness & Byte Order** in one small example and prove the result?
 
-## Introduction
-
-> Focus: **A 4-byte integer is four bytes. Which byte goes first?**
-
-A single byte (8 bits) can hold a value from 0 to 255. That is tiny. Almost every useful number — a 32-bit `int`, a 64-bit timestamp, a `float`, a pixel — is **bigger than one byte**, so the CPU stores it as a *sequence* of bytes sitting at consecutive memory addresses.
-
-Here is the entire problem in one picture. Take the 32-bit number `0x12345678` (that is `305419896` in decimal). It is made of four bytes:
-
-```text
-0x12   0x34   0x56   0x78
-```
-
-Now write those four bytes into memory at addresses 100, 101, 102, 103. **In what order?**
-
-```text
-Big-endian     (address →)  100:0x12  101:0x34  102:0x56  103:0x78
-Little-endian  (address →)  100:0x78  101:0x56  102:0x34  103:0x12
-```
-
-Both store the *same number*. They just disagree about which end goes at the lowest address.
-
-- **Big-endian** puts the **big end first** — the most significant byte (`0x12`) at the lowest address. This is "the way you write it on paper," left to right.
-- **Little-endian** puts the **little end first** — the least significant byte (`0x78`) at the lowest address. This looks "backwards" to a human but is what your laptop almost certainly does.
-
-That choice — which end goes first — is called **endianness** (or **byte order**). It is one of those topics that you can ignore for months because *everything on one machine agrees with itself*, and then it bites you hard the moment two machines, or a file, or a network packet enter the picture.
-
-> 🎓 **Why this matters for a junior:** The first time endianness will hurt you is when you read a value from a file or a network socket and get a garbage number like `2018915346` instead of the `305419896` you expected. The bytes were fine — they were just in the order the *other* side used. This page teaches you to recognize that bug on sight and to never write the code that causes it.
-
-This page covers: what big- and little-endian are, why your machine is probably little-endian but the network is big-endian, where the funny name comes from, how to detect which one you are on, and the golden rule — **always pick an explicit byte order when data crosses a boundary**.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** What a byte and a bit are. A byte is 8 bits and holds 0–255.
-- **Required:** Hexadecimal notation. `0xFF` = 255, `0x10` = 16. Each two hex digits is exactly one byte.
-- **Required:** That an `int` is usually 4 bytes and a `long`/`int64` is 8 bytes.
-- **Helpful:** A vague idea that memory is a big array of byte-sized cells, each with an address (a number).
-- **Helpful:** Having seen a number printed in hex (e.g. `printf("%x")`).
-
-You do **not** need to know:
-
-- Assembly, `bswap` instructions, or SIMD (that's `senior.md`/`professional.md`).
-- Strict aliasing or undefined behavior (that's `middle.md` onward).
-- Floating-point bit layout (touched lightly here, deep in higher tiers).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Byte** | 8 bits. The smallest unit memory addresses individually. Holds 0–255 (`0x00`–`0xFF`). |
-| **Endianness / Byte order** | The order in which the bytes of a multi-byte value are laid out in memory or on the wire. |
-| **Big-endian (BE)** | Most-significant byte at the **lowest** address. "Big end first." Reads like normal written numbers. |
-| **Little-endian (LE)** | Least-significant byte at the **lowest** address. "Little end first." What x86/ARM use. |
-| **Most significant byte (MSB)** | The byte that carries the largest place value. In `0x12345678`, that's `0x12`. |
-| **Least significant byte (LSB)** | The byte that carries the smallest place value. In `0x12345678`, that's `0x78`. |
-| **Network byte order** | A convention: network protocols use **big-endian**. Defined by the Internet standards (RFC 791 etc.). |
-| **Host byte order** | Whatever your CPU natively uses. On most machines today, little-endian. |
-| **Byte swap** | Reversing the order of the bytes of a value to convert between BE and LE. |
-| **`htonl` / `ntohl`** | C functions: "host to network long" / "network to host long." Swap (or not) to/from big-endian. |
-| **Scalar** | A single numeric value (int, float) — as opposed to a string or array. Endianness applies to scalars. |
-| **Wire format** | The exact byte layout data takes when serialized to a file or network. Must pin a byte order. |
-| **BOM (Byte Order Mark)** | A special marker at the start of a UTF-16/UTF-32 text file that announces its endianness. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -152,43 +85,6 @@ Decades ago the Internet pioneers had to pick *one* byte order for protocol head
 A subtle, important point. **UTF-8 text has no endianness.** Its bytes are emitted one at a time in a fixed sequence, so there is no "which byte first" question — the string `"AB"` is always `0x41 0x42` everywhere. This is one reason UTF-8 dominates the web.
 
 But **UTF-16 and UTF-32 do have endianness**, because their code units are 2 and 4 bytes wide. That is exactly why those encodings use a **BOM** (Byte Order Mark) at the start of a file: the bytes `FE FF` mean big-endian, `FF FE` mean little-endian. The BOM exists *only* to solve the endianness problem.
-
----
-
-## Real-World Analogies
-
-**The egg (the original).** *Gulliver's Travels:* crack the big end or the little end of a boiled egg? Both get you to the egg. The fight is about convention, not correctness — exactly endianness.
-
-**Writing a date.** Some countries write `25/06/2026` (day first), others `2026-06-25` (year first). The same date, two orderings. If you don't know which convention a file uses, `04/05` could be April 5th or May 4th. That ambiguity — same data, order matters — is endianness for calendars.
-
-**Reading a phone number split across sticky notes.** Imagine someone writes a 4-digit code on four sticky notes and hands them to you in a pile. If you don't know whether they stacked them "first digit on top" or "last digit on top," you can't reconstruct the number. The notes (bytes) are correct; the *order convention* is what you're missing.
-
-**Stacking plates.** Little-endian is like stacking plates so the smallest is at the bottom; big-endian puts the biggest at the bottom. Either way it's the same set of plates. You only get confused when someone hands you a stack made the other way.
-
----
-
-## Mental Models
-
-### Model 1: "Lowest address = which end?"
-
-The only question endianness answers: *at the lowest (first) memory address, do we find the big end or the little end of the number?*
-
-- Big-endian → **big** end first.
-- Little-endian → **little** end first.
-
-Memorize that single sentence and you can always work out the layout from scratch.
-
-### Model 2: "Bytes are dumb; the reader gives them meaning"
-
-A row of bytes in memory is just `0x78 0x56 0x34 0x12`. It carries *no flag* telling you its endianness. The number you get out depends entirely on how the **reader** chooses to interpret them. Whenever data crosses a boundary, you are choosing an interpretation — make that choice explicit.
-
-### Model 3: "The boundary is where you pay"
-
-Inside one program on one machine, endianness is free and invisible. You only ever pay attention at the **boundaries**: file ↔ memory, network ↔ memory. Mark those boundaries in your mind. That is where conversion code (byte swaps, `htonl`, `binary.BigEndian`) belongs — and *only* there.
-
-### Model 4: "Pick a side and write it down"
-
-The fix for endianness is never "figure out the machine's endianness and adapt." The fix is "**the format declares one fixed byte order, and everyone obeys it**." Big or little — doesn't matter, as long as it's pinned in the spec. Danny Cohen's whole point.
 
 ---
 
@@ -314,43 +210,6 @@ Notice the pattern across every language: **the API forces you to name the order
 
 ---
 
-## Pros & Cons
-
-### Little-endian
-
-| Pros | Cons |
-|------|------|
-| Lowest byte is always the "ones" byte — reading a wide value as narrower is trivial (`int64` → `int32` is just "use the first 4 bytes"). | Hex dumps read "backwards" to humans, making debugging confusing. |
-| Arithmetic carry propagates from the first byte naturally. | Doesn't match how protocols/files written by big-endian tools expect bytes. |
-| Dominant on x86 and ARM — most code runs on it. | |
-
-### Big-endian
-
-| Pros | Cons |
-|------|------|
-| Memory dumps read like written numbers — easy to eyeball. | A wide value's "ones" byte is at a different offset for each width. |
-| Matches network byte order, so protocol code reads naturally. | Increasingly rare in hardware; most CPUs are little-endian now. |
-
-The honest takeaway for a junior: **neither is "better."** They're conventions. What matters is agreeing.
-
----
-
-## Use Cases
-
-You'll consciously think about endianness in these situations:
-
-- **Network code.** Anything you put in a packet header field is big-endian. Use `htonl`/`ntohl` or your language's explicit big-endian writer.
-- **Reading binary files.** Image formats, archives, database files — each declares a byte order. You must read it accordingly. (BMP is little-endian; PNG is big-endian.)
-- **Custom serialization.** When you define your own binary save format, **pick a byte order and document it.** Most modern formats pick little-endian (matches common hardware) or big-endian (matches network convention) — just be explicit.
-- **Cross-platform data exchange.** Sending binary blobs between machines you don't control.
-
-You'll *ignore* endianness when:
-
-- Working with **text** (JSON, CSV, UTF-8) — no byte-order question.
-- Staying entirely **inside one process** in memory.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Convert at the boundary, only at the boundary
@@ -400,45 +259,24 @@ In Go use `encoding/binary`; in Python use `struct`; in Rust use `to_be_bytes`/`
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```text
-ENDIANNESS = the order of bytes in a multi-byte value.
+1. Choose one small, known input for **Endianness & Byte Order**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
-Number:  0x12345678   (MSB=0x12, LSB=0x78)
+## Verify your work
 
-Big-endian (BE):     12 34 56 78   <- MSB at lowest address ("big end first")
-Little-endian (LE):  78 56 34 12   <- LSB at lowest address ("little end first")
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
 
-WHO USES WHAT
-  x86, ARM (default)............ little-endian   (your laptop)
-  Network / Internet protocols.. big-endian      ("network byte order")
-  PNG.......................... big-endian
-  BMP.......................... little-endian
-  UTF-8........................ NO endianness (safe everywhere)
-  UTF-16 / UTF-32.............. has endianness  -> needs a BOM
+## Review questions
 
-C HELPERS:  htonl/htons (host->net=BE),  ntohl/ntohs (net->host)
-Go:         binary.BigEndian / binary.LittleEndian
-Python:     struct.pack('>I' big | '<I' little);  int.to_bytes(4,'big')
-Rust:       u32::to_be_bytes / from_be_bytes  (and _le_ variants)
-Java:       ByteBuffer.order(ByteOrder.BIG_ENDIAN)  (default is BIG)
-
-GOLDEN RULE: at every file/network boundary, pin ONE explicit byte order.
-SAFE READ:   value = (b[0]<<8) | b[1];   // shifts = endianness-proof
-```
-
----
-
-## Summary
-
-- A value wider than one byte is stored as several bytes; **endianness** is the order of those bytes.
-- **Big-endian** = most significant byte first (lowest address). **Little-endian** = least significant byte first. Same number, different layout.
-- Your machine (x86/ARM) is almost certainly **little-endian**; the **network is big-endian** ("network byte order").
-- The bytes themselves carry no endianness flag — the **reader** decides the interpretation, so writer and reader must agree.
-- Bugs are **silent wrong numbers**, not crashes. When a parsed integer looks absurd, suspect byte order.
-- The fix is never "detect and adapt" — it's "**pin one explicit byte order** at every boundary and obey it."
-- **UTF-8 text has no endianness** (use it!); UTF-16/32 do and need a BOM.
-- Use library helpers (`htonl`, `binary.BigEndian`, `struct`, `to_be_bytes`) — they name the order so you can't get it implicitly wrong.
-
-Endianness is small but unforgiving. Learn the one-sentence rule, mark your boundaries, and pick a side — that's 95% of it. The next tier (`middle.md`) shows *how* to swap bytes correctly, the strict-aliasing trap behind "casting a struct over a buffer," and how floats and UUIDs add their own twists.
+- What problem does Endianness & Byte Order solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

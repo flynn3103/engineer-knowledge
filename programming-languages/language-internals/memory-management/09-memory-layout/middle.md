@@ -1,35 +1,11 @@
-# Memory Layout — Middle Level
-> **Topic:** Memory Layout
-> **Focus:** The mechanisms — packing pragmas, cache lines as the real unit of cost, hot/cold field splitting, and your first encounter with false sharing.
+# Memory Layout — Middle
 
----
+<!-- level-focus -->
+At middle level, focus on this question:
 
-## Introduction
+> Where does **Memory Layout** belong in a maintainable component, and which trade-off selects the design?
 
-The junior tier established the rule: order fields largest-first to minimize padding. The middle tier explains the **mechanisms** behind that rule and introduces the lens through which all serious layout work is done: the **cache line**.
-
-Alignment and padding are not the goal — they are tools. The real goal is to control which bytes land in the same 64-byte cache line, because that is the granularity at which the CPU actually moves data. From this single fact flow three big middle-level ideas: **packing** (deliberately removing padding, with consequences), **hot/cold splitting** (keeping frequently-touched fields together), and **false sharing** (the disaster that strikes when two CPU cores fight over one cache line).
-
----
-
-## Prerequisites
-
-- You understand alignment, natural alignment, padding, and trailing padding (junior tier).
-- You know that `sizeof` is not the sum of fields, and that reordering shrinks structs.
-- You have a working idea of CPU caches: L1 (~32 KB, ~4 cycles), L2 (~256 KB–1 MB, ~12 cycles), L3 (shared, ~40 cycles), main memory (~200+ cycles).
-- You can run a microbenchmark in your language of choice and read a wall-clock difference.
-
----
-
-## Glossary
-
-- **Cache line** — the unit of transfer between cache and memory, almost universally **64 bytes** on x86-64 and modern ARM. Memory is divided into aligned 64-byte lines; touching any byte loads the whole line.
-- **Packing** — forcing the compiler to remove padding so fields sit byte-adjacent, even if that means some are misaligned. Done with `#pragma pack`, `__attribute__((packed))`, or `#[repr(packed)]`.
-- **Hot field** — a field accessed frequently (often, in a tight loop). **Cold field** — accessed rarely (error messages, debug info, audit timestamps).
-- **False sharing** — when two cores write to *different* variables that happen to share one cache line, forcing the line to bounce between cores' caches even though there's no real data dependency.
-- **Cache coherence** — the hardware protocol (MESI and relatives) that keeps each core's view of a cache line consistent. It is what makes false sharing expensive.
-- **Cache-line fill / writeback** — loading a line into cache / writing a dirty line back to memory or another core.
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -143,24 +119,6 @@ Now writes never collide. Each language has a blessed helper for this (covered i
 
 ---
 
-## Real-World Analogies
-
-**The shared whiteboard.** Two people each maintain their own tally on opposite corners of one whiteboard. The rule: only one person may hold the marker at a time, and whoever writes must first grab the whole board. Even though their tallies are unrelated, they constantly snatch the board from each other. Give each person their *own* whiteboard (separate cache lines) and they never wait. That snatching is false sharing; the separate boards are padding.
-
-**Express vs. checked luggage.** Hot fields are your carry-on — always with you, instantly available. Cold fields are checked luggage — you can retrieve them, but only by going to baggage claim (following a pointer). Don't carry your entire wardrobe through security on every trip.
-
-**Shipping containers.** The cache line is a 64-byte container. The crane (memory bus) moves one container at a time. Packing useful goods tightly into each container means fewer crane trips; leaving them half-empty (padding) or filling them with rarely-needed junk (cold fields) wastes every trip.
-
----
-
-## Mental Models
-
-- **"What lives in this line?"** For any hot access, ask which 64-byte line the field sits in and what *else* rides along. Useful neighbors = good. Cold junk = waste. Another thread's hot data = false sharing.
-- **"Padding to shrink vs. padding to separate."** Junior padding is the enemy (waste from misordering). False-sharing padding is the friend (deliberate separation). Same mechanism, opposite intent — know which problem you're solving.
-- **"Per-thread state wants its own line."** Any field written concurrently by different threads is a false-sharing suspect. Counters, sequence numbers, per-core stats, ring-buffer head/tail indices.
-
----
-
 ## Code Examples
 
 ### Go — measuring false sharing
@@ -241,26 +199,6 @@ struct Counters {
 
 ---
 
-## Pros & Cons
-
-| Technique | Pros | Cons |
-|-----------|------|------|
-| **Packing** | Exact byte layout; smaller; format/protocol fit | Misaligned access (slow or UB); pointer-to-field is UB; not portable |
-| **Hot/cold split** | Hot scans stay in-cache; fewer line fills | Extra indirection on the cold path; more allocations; more complexity |
-| **Cache-line padding (anti-false-sharing)** | Removes coherence ping-pong; can be a multi-× speedup under contention | Burns memory (~56 bytes/field); pointless for non-shared data |
-
-The meta-lesson: each technique trades **memory for speed** or **speed for compatibility**. None is universally good. Apply them where the data is hot or shared; leave cold, rare, single-threaded structs alone.
-
----
-
-## Use Cases
-
-- **Packing:** parsing/serializing network protocols, file formats, memory-mapped hardware, FFI structs that must match a C ABI exactly.
-- **Hot/cold split:** request/connection objects, ORM entities with rarely-used audit columns, game entities with debug metadata, any "fat" object scanned in bulk.
-- **Cache-line padding:** per-thread/per-core counters and stats, lock-free queue head/tail indices, sharded locks, the classic disruptor-style ring buffer.
-
----
-
 ## Coding Patterns
 
 **Per-language false-sharing helpers** (memorize these):
@@ -298,12 +236,24 @@ The meta-lesson: each technique trades **memory for speed** or **speed for compa
 
 ---
 
-## Summary
+## Apply it
 
-- The **cache line (64 bytes)** is the true unit of memory cost; layout is about controlling what shares a line.
-- **Packing** removes padding for exact byte layout (protocols, FFI) but risks misaligned access — slow on x86, UB on strict-alignment CPUs, and always UB to take a pointer to a packed field. Pack at boundaries, read by value.
-- **Hot/cold splitting** keeps frequently-used fields together in cache and banishes rarely-used fields behind a pointer, so bulk scans don't drag cold bytes through cache.
-- **False sharing** is when two cores write different fields on the same line, ping-ponging it via cache coherence; it silently destroys multi-core scalability. Fix by padding shared hot fields onto their own cache line (`@Contended`, `CachePadded`, manual padding).
-- Every technique trades memory or compatibility for speed — apply them surgically to hot or shared data, and always measure on real hardware.
+1. Find a real component where **Memory Layout** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
-Next, the **senior** tier zooms out to design-level decisions: AoS vs. SoA, pointer chasing vs. flat arrays, object-header overhead across managed runtimes, and data-oriented design.
+## Verify your work
+
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
+
+## Review questions
+
+- Which boundary is most affected by Memory Layout?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

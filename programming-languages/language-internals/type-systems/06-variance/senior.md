@@ -1,53 +1,11 @@
-# Variance — Senior Level
+# Variance — Senior
 
-> **Topic:** Variance
-> **Focus:** Declaration-site vs use-site variance, how a compiler *checks* variance soundly, and the precise reason mutable structures are forced to be invariant.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Variance** under failure, load, and change?
 
-## Introduction
-
-> Focus: **Where do you declare variance, and how does the compiler prove it's sound? The two design points — declaration-site and use-site — and the position-checking algorithm that backs them.**
-
-A language designer who wants generics-with-subtyping must answer two questions: **where** does the programmer express variance, and **how** does the compiler ensure no unsound program type-checks? There are two coherent answers to "where," each with real engineering trade-offs:
-
-- **Declaration-site variance** (Scala `+T`/`-T`, C# `out`/`in` on interfaces, Kotlin `out`/`in`): you annotate the type parameter *once, where the generic is defined*. The compiler then **verifies** that the parameter is only used in positions consistent with its declared variance, and from then on every *use* of the type automatically has that variance.
-- **Use-site variance** (Java wildcards `? extends T`/`? super T`, C# array covariance): the generic itself is invariant; each *use site* opts into covariant or contravariant treatment with a wildcard. The same `List<T>` can be used covariantly (`List<? extends T>`) here and contravariantly (`List<? super T>`) there.
-
-The "how" is one algorithm: **positional variance checking.** Every position in a type definition is classified as covariant, contravariant, or invariant (using sign multiplication from `middle.md`), and a type parameter declared `out` may only occur in covariant positions, `in` only in contravariant positions. This single check is what makes declaration-site variance sound, and understanding it tells you *exactly* why a mutable container — which exposes its parameter in both a read (covariant) and a write (contravariant) position — is forced to be invariant.
-
-> 🎓 **Why this matters for a senior:** You design the generic APIs other teams build on. Choosing declaration-site vs use-site variance shapes how flexible and how readable your library is. And when the compiler rejects your `class Box<out T> { fun set(x: T) }`, you need to know it's not a bug — it's the position check catching genuine unsoundness, and you need to know how to restructure (split read/write interfaces, use `@UnsafeVariance`, or accept invariance).
-
-This page covers both designs, the checking algorithm, the formal subtyping rule for a generic in terms of its variances, and the soundness theorem that variance preserves.
-
----
-
-## Prerequisites
-
-- **Required:** Function variance and "accept more, return less" from `middle.md`.
-- **Required:** Per-position variance and the sign-multiplication rule for nested positions.
-- **Required:** Java wildcards and PECS in practice.
-- **Helpful:** Familiarity with at least one declaration-site language (Scala, Kotlin, or C#).
-- **Helpful:** A mental model of how subtyping is checked structurally (the subtype judgment `S <: T`).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Declaration-site variance** | Variance annotated once at the generic's definition (`class List<out T>`); verified by the compiler, applied at every use. |
-| **Use-site variance** | Variance chosen at each use of an invariant generic, via wildcards (`List<? extends T>`). |
-| **Variance annotation** | `+T`/`-T` (Scala), `out T`/`in T` (C#, Kotlin), or nothing (invariant). |
-| **Positional check** | The compiler rule: an `out` parameter may appear only in covariant positions; `in` only in contravariant positions. |
-| **Covariant position** | A spot in a type where, by sign multiplication, the enclosing variance is `+`: return types, immutable fields, `out` slots of nested generics. |
-| **Contravariant position** | A spot with overall variance `−`: parameter types, `in` slots of nested generics. |
-| **Bounded wildcard** | `? extends T` (upper bound, covariant use) or `? super T` (lower bound, contravariant use) in Java. |
-| **Subtyping rule for generics** | `F<S> <: F<T>` holds depending on `F`'s declared variance and the relation between `S` and `T`. |
-| **`@UnsafeVariance`** | A Kotlin annotation (Scala has `@uncheckedVariance`) that suppresses the position check at a single spot, asserting the programmer has reasoned about soundness manually. |
-| **f-bounded / use-site capture** | Java's wildcard "capture" — the compiler introduces a fresh type variable for `?` so it can reason about an unknown-but-fixed element type. |
-| **Soundness** | The property that a well-typed program never performs an operation its static type forbids (no `ClassCastException`/`ArrayStoreException` from type-correct code). |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -119,35 +77,6 @@ When you see these `in`/`out`/`? super`/`? extends` decorations on the standard 
 ### 7. Soundness: what variance buys and what it doesn't
 
 The soundness guarantee is: a program that type-checks under the variance rules will never crash with a type error from a well-typed operation. Variance *preserves* the substitution guarantee of subtyping through type constructors. What it does **not** give you: it doesn't make *every* `F<S> <: F<T>` you might *want* legal — only the safe ones. And it says nothing about runtime semantics beyond type safety (no claims about nullability, side effects, etc.).
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Declaration-site variance** | A product is stamped "FOOD-SAFE" at the factory. Every shop that sells it inherits the certification — no per-shop paperwork. |
-| **Use-site variance** | No factory stamp; instead each shop fills out a permit ("read-only access" or "write-only drop-off") for its particular counter. Flexible, but every counter needs its own form. |
-| **Positional check** | A safety inspector who refuses to certify "outflow-only" plumbing if they find even one pipe wired for inflow. One bad position fails the whole certification. |
-| **Mutable box forced invariant** | A turnstile that both lets people in *and* out can't be labeled "exit only" or "entry only" — it's genuinely bidirectional, so it gets the strict generic label. |
-| **Wildcard capture** | A delivery slip that says "contents: some specific fruit, but we sealed the box before labeling." You can hand the box on (it's *some* fruit) but you can't add to it — you don't know which fruit it must be. |
-| **`@UnsafeVariance`** | A manual override sticker on a fire door: "inspector waived this; engineer signed off personally." Use sparingly. |
-
----
-
-## Mental Models
-
-### The "Position Polarity" Model
-
-Every spot a type parameter can appear has a polarity: `+` (output/covariant), `−` (input/contravariant), or `0` (both/invariant). Declaration-site variance is a *constraint solver*: `out T` demands all of `T`'s polarities are `+`, `in T` demands all are `−`. The compiler computes polarities by sign-multiplying through nesting and checks the constraint. Hold this picture and every variance error becomes "you used `out T` in a `−` position."
-
-### The "Who Owns the Choice" Model
-
-Declaration-site puts the variance choice in the **library author's** hands — decided once, for everyone. Use-site puts it in the **caller's** hands — decided per use. Neither is universally better: declaration-site optimizes for a type that has one natural role; use-site optimizes for a type used in many roles. Java's `List` is invariant because it has *both* roles, and wildcards let each caller pick.
-
-### The "Read = Out, Write = In" Model
-
-Strip every API to its data-flow direction. A method that returns `T` reads it out (covariant). A method that takes `T` writes it in (contravariant). A `var`/mutable field does both. The variance you may declare is the *intersection* of what every method permits — and the intersection of "out-only" and "in-only" is "invariant." This is why even one mutating method collapses the whole type to invariant.
 
 ---
 
@@ -262,27 +191,6 @@ C# is the cleanest illustration of the split: **interfaces** got sound declarati
 
 ---
 
-## Pros & Cons
-
-| Aspect | Pros | Cons |
-|--------|------|------|
-| **Declaration-site** | Variance written once; call sites stay clean; uniform behavior. | Author must design types to pass the position check; can't vary per use. |
-| **Use-site (wildcards)** | Same type used covariantly or contravariantly as needed; maximal per-call flexibility. | Verbose; wildcard capture produces baffling errors; repeated at every signature. |
-| **Positional check** | Mechanically guarantees soundness; turns intent into a proof. | Rejects programs that are *actually* safe but that the check can't see (need `@uncheckedVariance`). |
-| **Forced invariance of mutables** | Eliminates the array-bug class entirely for generics. | Forces wildcards/casts to pass `List<Cat>` where `List<Animal>` is wanted. |
-
----
-
-## Use Cases
-
-- **Designing a public collections / streams library.** Decide read-only vs read-write types and annotate covariance/contravariance so consumers get flexibility for free.
-- **Modeling event systems.** `Source<out E>` and `Sink<in E>` interfaces let one broad source/sink serve many specific event types.
-- **Comparator and ordering APIs.** Use `Comparator<? super T>` / `IComparer<in T>` so base-class comparators apply to subclasses.
-- **Bridging to legacy arrays.** When you must accept arrays, know they're covariant-and-unsafe; prefer `List`/`IReadOnlyList` at API boundaries.
-- **Generic algorithm signatures.** `copy(dest: List<? super T>, src: List<? extends T>)` and its declaration-site equivalents.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Split a read/write type into producer + consumer interfaces
@@ -341,59 +249,24 @@ When you must use `@uncheckedVariance`/`@UnsafeVariance`, write a comment provin
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. State the subtyping rule for `F<S>` vs `F<T>` for each of covariant, contravariant, and invariant `F`.
-2. Walk through the positional check for `class Box<out T> { fun get(): T; fun set(x: T) }`. Which method fails and what is the exact reason?
-3. Explain why use-site variance lets a *single* `List<T>` be used both covariantly and contravariantly, while declaration-site fixes the variance per type.
-4. Why can you not call `add(x)` (for non-null `x`) on a `List<? extends Animal>`? Answer in terms of wildcard capture, not "cats aren't animals."
-5. C# arrays are covariant but C# generic interfaces with `out` are also covariant — yet only one throws at runtime. What's the difference, and what's the runtime exception's name?
-6. When is `@uncheckedVariance`/`@UnsafeVariance` justified? What obligation does it transfer to the programmer?
-7. Sign-multiply to determine the legal declaration-site variance of `T` in `interface F<T> { fun h(g: (T) -> Unit) }`. (Hint: a callback consuming `T`, passed *into* a method.)
+1. State the system invariant that **Variance** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
----
+## Verify your work
 
-## Cheat Sheet
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
 
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│        DECLARATION-SITE vs USE-SITE VARIANCE                     │
-├──────────────────────────────────────────────────────────────────┤
-│ DECLARATION-SITE  annotate once at definition; compiler verifies │
-│   Scala  class C[+T] / [-T]                                       │
-│   Kotlin/C# interface C<out T> / <in T>                           │
-│   position check: out -> only covariant spots                    │
-│                   in  -> only contravariant spots                │
-│                                                                   │
-│ USE-SITE          invariant type; caller opts in per use         │
-│   Java   List<? extends T> (cov) | List<? super T> (contra)      │
-│   Kotlin Array<out T> / Array<in T>  (projections)               │
-│   C#     arrays (legacy, UNSOUND)                                │
-├──────────────────────────────────────────────────────────────────┤
-│ SUBTYPING RULE                                                   │
-│   cov:     S<:T  =>  F<S> <: F<T>                                │
-│   contra:  S<:T  =>  F<T> <: F<S>                                │
-│   inv:     F<S> <: F<T>  iff  S = T                              │
-├──────────────────────────────────────────────────────────────────┤
-│ POSITION POLARITY (sign-multiply through nesting)                │
-│   return type / immutable field / out-slot   -> +  (covariant)   │
-│   param type / in-slot                       -> -  (contra)      │
-│   mutable (var) field                        -> 0  (invariant)   │
-│   => any mutating method forces INVARIANT                        │
-├──────────────────────────────────────────────────────────────────┤
-│ ESCAPE HATCH (you now own the soundness proof)                   │
-│   Scala  @uncheckedVariance   Kotlin  @UnsafeVariance            │
-└──────────────────────────────────────────────────────────────────┘
-```
+## Review questions
 
----
-
-## Summary
-
-- A language expresses variance at one of two sites. **Declaration-site** (Scala `+`/`-`, Kotlin/C# `out`/`in`) annotates the type parameter once at definition; the compiler verifies it and applies it at every use. **Use-site** (Java wildcards, C# arrays) keeps the generic invariant and lets each caller opt into covariant/contravariant treatment.
-- The soundness machinery is the **positional check**: an `out` parameter may appear only in covariant positions, `in` only in contravariant positions, where each position's polarity is computed by sign-multiplying through nesting. This is the producer/consumer test turned into a proof.
-- That check **forces mutable containers to be invariant**: a getter puts `T` in a covariant position and a setter puts it in a contravariant position, so `T` is invariant overall — neither `out` nor `in` is allowed. This is the rigorous form of "covariance + mutation = unsound," and it's exactly the check Java arrays skip (paying with a runtime `ArrayStoreException`).
-- The **subtyping rule** for a generic follows directly from its variances, per parameter; `Function<in A, out B>` recovers the function rule, `Iterator<out T>`/`Comparator<? super T>` recover the standard-library shapes.
-- **Use-site variance** trades verbosity and wildcard-capture complexity for the flexibility of using one type in multiple roles; **declaration-site** trades that flexibility for clean, uniform call sites. Modern languages default to declaration-site and offer use-site projections as an escape hatch.
-- The **escape hatches** (`@uncheckedVariance`, `@UnsafeVariance`) suppress the position check at a single spot and transfer the soundness proof to the programmer — necessary occasionally (Scala collections), dangerous when misused.
-- The recurring design pattern is to **split a read/write type into a covariant producer interface and a contravariant consumer interface**, with an invariant union where both are needed. `professional.md` takes these rules into the field — array holes, TypeScript's bivariant methods, and the real engineering signatures that depend on getting variance right.
+- Which invariant must remain true when Variance fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

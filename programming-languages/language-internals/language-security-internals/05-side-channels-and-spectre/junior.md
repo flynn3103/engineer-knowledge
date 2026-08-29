@@ -1,64 +1,11 @@
-# Side Channels & Spectre — Junior Level
+# Side Channels & Spectre — Junior
 
-> **Topic:** Side Channels & Spectre
-> **Focus:** Your code can leak a secret without a single bug, a single overflow, or a single line of "unsafe" code — just by how *long* it runs or which *memory* it touches. Here is how, and the first habit that stops it.
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **Side Channels & Spectre** in one small example and prove the result?
 
-## Introduction
-
-> Focus: **What is a side channel?** And **why is a password check that "works perfectly" still a security hole?**
-
-Every program you have written so far has one job: take an input, compute an output, return the output. You judged it "correct" when the output was right. A **side channel** is the uncomfortable discovery that the output is not the only thing the outside world can observe. The program also takes *time*. It touches *memory*. It draws *power*. It emits *heat* and faint *electromagnetic noise*. None of those things are part of your function's return value — they are *side effects of the act of computing* — and yet an attacker who can measure any of them can sometimes reconstruct the secret your program was trying to protect.
-
-The key idea, and the one to hold onto for the rest of this topic: **a side-channel attack does not break your program. Your program runs exactly as designed, returns exactly the right answer, never reads out-of-bounds, never crashes.** There is no buffer overflow, no SQL injection, no missing bounds check. The leak happens in the *physics and timing* of the computation, not in its logic. This is what makes side channels so slippery: every test passes, every code review looks clean, and the secret walks out the door anyway.
-
-Here is the smallest possible example, one you have almost certainly written. You compare a submitted password (or an API token, or a message authentication code) against the correct one with something like `if (submitted == correct)`. In most languages that string comparison is a loop that compares one character at a time **and stops the instant it finds a mismatch**. That early stop is an optimization — and it is also a *timing leak*. A wrong password that differs at the first character returns a hair faster than one that matches the first ten characters. An attacker who can measure that hair, over millions of guesses, can recover your secret one character at a time, *without ever guessing the whole thing at once*.
-
-> 🎓 **Why this matters for a junior:** The single most common security bug juniors ship is not an injection or an overflow — it is a **non-constant-time comparison of a secret**, written with `==`, `memcmp`, or `String.equals`. It looks correct, it passes every test, and it is exploitable. Learning the one habit in this file — comparing secrets in *constant time* — prevents a whole category of real CVEs that ship in real products every year.
-
-This page covers: what a side channel is, the famous **timing attack** and why early-exit comparison leaks, a first look at **cache attacks** (how an attacker watches which memory you touched), a *very brief* mention of power/EM channels, and then the headline-grabbing modern class — **Spectre and Meltdown** — explained at a level you can actually understand, plus the one defensive habit (constant-time code) that you should start using today. The deeper machinery (how speculative execution works, the full taxonomy of transient-execution attacks, the hardware mitigations) lives in `middle.md`, `senior.md`, and `professional.md`.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** How to write a function that compares two strings or two byte arrays.
-- **Required:** What a `for` loop and an `if` statement compile to, roughly (a comparison, a conditional jump).
-- **Required:** The vague idea that reading memory and doing work *takes time*, and that different code paths can take *different* amounts of time.
-- **Helpful but not required:** Awareness that your CPU has a **cache** — a small, fast memory that holds recently-used data so it does not have to go to slow main RAM every time.
-- **Helpful but not required:** Knowing what a hash, a MAC (message authentication code), or an API token is — the secrets we most often protect.
-
-You do **not** need to know:
-
-- How the CPU pipeline or speculative execution works internally (that is `middle.md`).
-- The full list of transient-execution attacks — Spectre v1/v2/v4, Meltdown, MDS, L1TF, retbleed (that is `senior.md` and `professional.md`).
-- How to *implement* an attack. We will never build a working exploit here — only enough mechanism to understand the defense.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Side channel** | An unintended path that leaks information about a computation through a *physical or timing* property (time, cache state, power, EM, sound), not through its declared output. |
-| **Side-channel attack** | Recovering a secret by measuring a side channel rather than by breaking the program's logic. |
-| **Secret** | The data you are trying to protect: a password, a private key, a token, a MAC, a credit-card number. |
-| **Timing attack** | A side-channel attack that measures *how long* a computation takes to infer something about the secret. |
-| **Constant-time code** | Code whose execution time (and memory-access pattern) does **not** depend on the secret values it handles. The primary defense against timing leaks. |
-| **Early exit** | Returning from a loop as soon as the answer is known (e.g., a mismatch found). Fast, and a classic timing leak when the loop touches a secret. |
-| **Cache** | Small fast CPU memory holding recently-used data. A *cache hit* is fast; a *cache miss* (go to RAM) is much slower — and that difference is measurable. |
-| **Cache attack** | Observing which cache lines a victim touched (via timing) to infer the victim's secret-dependent memory accesses. |
-| **MAC (Message Authentication Code)** | A short tag that proves a message was not tampered with. Verifying a MAC means comparing two tags — a place you *must* use constant-time comparison. |
-| **Speculative execution** | A CPU optimization: the processor *guesses* the outcome of a branch and runs ahead before it knows the guess was right. If wrong, it throws the work away — *architecturally*. |
-| **Architectural state** | The "official" CPU state your program can see: registers, memory values. Speculation that turns out wrong is rolled back here. |
-| **Microarchitectural state** | The hidden performance machinery: caches, predictors, buffers. Speculation leaves *traces* here that are **not** rolled back. This is the leak. |
-| **Spectre** | A family of attacks that trick the CPU into speculatively touching memory it should not, then read the secret out of the cache trace it left behind. |
-| **Meltdown** | A related attack that transiently reads kernel memory from user space before the permission check "catches up." |
-| **Covert channel** | A channel deliberately used to move data between two parties who are not supposed to communicate — here, the cache is turned into one. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -141,30 +88,6 @@ Modern CPUs do not patiently wait to find out whether an `if` is true before con
 The catch: the rollback is *incomplete*. The CPU undoes the **architectural** state (registers, memory) — but it does **not** undo the **microarchitectural** state, specifically *the cache*. During the wrongly-speculated run, the CPU may have loaded some data into the cache based on a secret. That data load is rolled back logically, but the *cache line it pulled in stays warm*. Now the attacker uses a cache attack (Core Concept 4) to detect which line is warm — and reads out the secret that the speculation "should never have touched."
 
 That is the whole trick: **architectural state is rolled back; microarchitectural state is not; the gap between them is a covert channel.** **Spectre** tricks a program into speculating past a bounds check and leaking via the cache. **Meltdown** transiently reads privileged (kernel) memory before the "you're not allowed" fault is delivered. Both forced enormous, expensive changes across the entire industry — browsers, operating systems, and cloud platforms — which is why this topic matters far beyond academic curiosity.
-
----
-
-## Real-World Analogies
-
-**The locked diary and the bookmark.** Imagine a diary you cannot open (the secret is safe — no memory-safety bug). But every time the owner reads it, they leave the ribbon bookmark on the page they last read. You never open the diary, but by glancing at where the ribbon sits, you learn which page mattered to them. The diary's *contents* never leaked — its *access pattern* did. That ribbon is the cache line a cache attack reads.
-
-**The guess-the-password game show.** A host has a secret word. Each time you guess, the host says "wrong" — but a buzzer takes a fraction of a second longer to sound the more leading letters you got right. You never see the word, but the buzzer's delay tells you, letter by letter, when you're on the right track. That is a timing attack on early-exit comparison.
-
-**The detective and the warm engine.** A car has just been driven, then parked among twenty identical cars. You can't see who drove which. But you can touch each hood: the warm one was driven recently. Flush+Reload is exactly this — the attacker "feels" which cache lines are warm to learn which the victim just used.
-
-**Speculation as an over-eager intern.** You tell an intern, "If the customer is a VIP, pull their file." The intern, to save time, *runs to the cabinet and starts pulling the file before you finish the sentence*. If it turns out the customer isn't a VIP, the intern shoves the file back and pretends nothing happened — but the cabinet drawer is now slightly ajar, and anyone watching the cabinet knows which file was touched. The "official" record shows nothing was pulled; the *physical drawer* tells a different story. That ajar drawer is the warm cache line after a mis-speculated read.
-
----
-
-## Mental Models
-
-**Model 1: Two channels out of every function — the front door and the side door.** The front door is the return value; you guard it carefully. The side door is *time, cache, power*. Secrets leak through the side door precisely because nobody thinks to lock it. Constant-time programming is "lock the side door."
-
-**Model 2: Anything secret-dependent that is observable is a leak.** Make a checklist of observables — time, memory-access pattern — and ask of each: *does this change with the secret?* If yes, that's your bug. If no, you're constant-time on that channel.
-
-**Model 3: The optimization is the hole.** Early exit, caching, branch prediction, speculation — every one of these is a *speed optimization* that works by *doing different amounts of work depending on the data*. Side channels are the tax we pay for those optimizations. Defending often means *giving up the optimization* (do all the work every time) — which is why the defenses cost performance.
-
-**Model 4: Architectural vs. microarchitectural — the official record vs. the smudges.** The CPU keeps an official record (registers, memory) it carefully cleans up. It also leaves smudges (cache warmth, predictor state) it does *not* clean up. Spectre-class attacks read the smudges.
 
 ---
 
@@ -260,34 +183,6 @@ The defensive replacement is to use hardware crypto instructions (e.g., AES-NI) 
 
 ---
 
-## Pros & Cons
-
-This table frames the *trade-offs of defending* (and of the optimizations that create the holes), since "side channels" themselves are not something you adopt — they are something you defend against.
-
-| Aspect | Upside | Downside |
-|--------|--------|----------|
-| **Constant-time comparison** | Closes the timing leak completely; trivial to adopt (one library call). | Slightly slower than early-exit; you must remember to use it *everywhere* a secret is compared. |
-| **Constant-time crypto overall** | Robust against timing and cache attacks. | Often slower and harder to write than the "natural" data-dependent version; needs verification tools. |
-| **CPU speculation (the optimization)** | Massive real-world speedup — modern CPUs would crawl without it. | Created the entire Spectre/Meltdown class; mitigations cost performance. |
-| **OS/browser mitigations (KPTI, site isolation)** | Block Meltdown / Spectre in practice; shipped to billions of devices. | Measurable performance and memory cost; complexity. |
-| **Removing high-resolution timers** | Makes timing the cache harder for web attackers. | Hurts legitimate performance-measurement APIs. |
-
----
-
-## Use Cases
-
-You should be thinking about side channels whenever your code **handles a secret and an attacker can measure something about the computation**:
-
-- **Verifying tokens, API keys, MACs, signatures, or password hashes** — the #1 place a junior must use constant-time comparison.
-- **Comparing CSRF tokens or webhook signatures** — same hazard, same fix.
-- **Any cryptographic operation** — use vetted libraries; never hand-roll the comparison or the table lookups.
-- **Multi-tenant / cloud / browser environments** — where untrusted code runs on the *same hardware* as your secrets, making Spectre-class attacks relevant (mitigated at the OS/browser/cloud layer, but you should know why those mitigations exist).
-- **Embedded / smartcard / IoT firmware** — where power and EM channels matter and dedicated countermeasures are required.
-
-You generally do **not** need to hand-write microarchitectural defenses in ordinary application code — those live in compilers, OS kernels, browsers, and hardware. Your job at the application layer is mostly: **constant-time secret handling, and don't roll your own crypto.**
-
----
-
 ## Coding Patterns
 
 **Pattern: constant-time equality, always.** Any time the values being compared include a secret, route through a constant-time comparison function. Make it a code-review checklist item.
@@ -323,46 +218,24 @@ You generally do **not** need to hand-write microarchitectural defenses in ordin
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. In one sentence, what is a side channel, and how is it different from a normal bug like a buffer overflow?
-2. Explain precisely *why* `submitted == correct` leaks information when `correct` is a secret token.
-3. Write out (in pseudocode) a constant-time byte comparison and explain why each line avoids the leak.
-4. What is the difference between **architectural** and **microarchitectural** state, and which one does the CPU fail to roll back after a wrong speculation?
-5. Why does reading data that is "in the cache" being faster than reading from RAM turn the cache into a side channel?
-6. Why do browsers reduce timer resolution and restrict `SharedArrayBuffer`?
-7. Name three things an attacker might measure as a side channel besides wall-clock time.
-8. Why is it dangerous to use a *secret* byte as an *index* into a lookup table?
+1. Choose one small, known input for **Side Channels & Spectre**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
----
+## Verify your work
 
-## Cheat Sheet
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
 
-| Situation | Wrong (leaky) | Right (constant-time) |
-|-----------|---------------|------------------------|
-| Compare token/MAC (Python) | `a == b` | `hmac.compare_digest(a, b)` |
-| Compare bytes (Go) | `bytes.Equal(a, b)` for secrets | `subtle.ConstantTimeCompare(a, b) == 1` |
-| Compare bytes (Java) | `Arrays.equals(a, b)` | `MessageDigest.isEqual(a, b)` |
-| Compare bytes (C) | `memcmp(a, b, n) == 0` | `sodium_memcmp(a, b, n) == 0` |
-| Crypto table lookup | `table[secret_byte]` | use AES-NI / vetted constant-time impl |
-| Branch on a secret | `if (secret_bit) {...}` | branchless arithmetic / library |
+## Review questions
 
-**Two rules to remember forever:** (1) Never compare a secret with `==`/`memcmp`/`.equals`. (2) Don't roll your own crypto — call the vetted library, which already handles constant time.
-
----
-
-## Summary
-
-A **side channel** leaks a secret not through your program's logic but through *how it behaves physically*: how long it runs, which memory it touches, how much power it draws. Your program can be perfectly correct — no overflow, no crash — and still hand the secret to anyone who can measure the side channel. The classic example is **early-exit comparison**: `==` on a secret token stops at the first mismatch, so its timing reveals how many leading characters were right, letting an attacker recover the secret one character at a time. The fix is **constant-time comparison**: always scan every byte, never branch on the data, and lean on the vetted library function (`hmac.compare_digest`, `crypto/subtle`, `MessageDigest.isEqual`, `sodium_memcmp`).
-
-**Cache attacks** sharpen this: by timing their own memory reads, an attacker can tell *which cache lines a victim touched*, leaking any secret that steers memory access — which is why you must not index tables or branch on secret data. **Spectre and Meltdown** showed the CPU's own speed optimizations (speculative and out-of-order execution) form a side channel: the processor speculatively touches secret memory, rolls back the *architectural* state, but leaves the *microarchitectural* cache trace behind — and that gap is a covert channel. These attacks forced KPTI in every OS and site isolation in every browser. As a junior, your highest-leverage habits are simple and durable: **never compare secrets in non-constant time, don't roll your own crypto, treat timing as an output, and keep your platform patched.**
-
----
-
-## Further Reading
-
-- "Remote Timing Attacks Are Practical" (Brumley & Boneh) — the paper that made timing attacks undeniable.
-- The Spectre and Meltdown papers (2018) and the project pages that accompanied them.
-- Your language's standard-library docs for constant-time comparison: Python `hmac.compare_digest`, Go `crypto/subtle`, Java `MessageDigest.isEqual`, libsodium `sodium_memcmp`.
-- "A beginner's guide to constant-time cryptography" style write-ups from reputable crypto engineers.
-- Continue in `middle.md` for how speculative and out-of-order execution actually work, and the named cache-attack techniques (Flush+Reload, Prime+Probe).
+- What problem does Side Channels & Spectre solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

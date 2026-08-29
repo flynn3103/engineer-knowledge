@@ -1,20 +1,11 @@
 # Production Debugging — Senior
 
-> **Topic:** [Production Debugging](../README.md)
-> **Focus:** Diagnosing goroutine and memory leaks live in production, differential profiling, debugging without stopping the world, and building the diagnostic surface into a service before you need it.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Production Debugging** under failure, load, and change?
 
-## Introduction
-
-At scale, you rarely get to attach a debugger to a production incident — you diagnose from telemetry the service already exposes, or you don't diagnose it at all. Senior-level production debugging is as much about building the right diagnostic surfaces in *before* an incident as it is about using them well *during* one.
-
----
-
-## Prerequisites
-
-- Comfortable with distributed tracing, flame graph reading, and connection-pool diagnostics (middle level).
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -59,16 +50,6 @@ A service's memory grew steadily over roughly 6 hours before restarting (via an 
 
 ---
 
-## Pros & Cons
-
-| Technique | Pros | Cons |
-|---|---|---|
-| Differential heap profiling | Isolates actual growth, not just current size | Requires capturing and retaining profiles over the investigation window |
-| Off-CPU / wait-time analysis | Reveals latency invisible to a CPU profile | Requires tracing or specialized tooling (not just `pprof`'s default CPU profile) |
-| Pre-built debug endpoints | Instant answers during an incident, no new deploy needed | Requires upfront investment before any specific incident justifies it |
-
----
-
 ## Best Practices
 
 1. Take differential heap profiles (two snapshots over time), not just one, when investigating a leak.
@@ -103,48 +84,24 @@ A service's memory grew steadily over roughly 6 hours before restarting (via an 
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```bash
-go tool pprof -base=old.pprof new.pprof        # differential heap analysis
-curl .../debug/pprof/goroutine?debug=2 | \
-  awk '/^goroutine/' | sort | uniq -c | sort -rn  # dominant leak stack
-```
+1. State the system invariant that **Production Debugging** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
-```
-Throughput symptom → CPU profile
-Latency symptom, low CPU → off-CPU / wait-time / trace analysis
-```
+## Verify your work
 
----
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
 
-## Summary
+## Review questions
 
-- Differential heap profiling (comparing two snapshots over time) isolates actual leaks far better than a single snapshot.
-- Grouping a goroutine-profile dump by stack trace reveals the dominant leaking pattern directly.
-- A latency problem with low CPU usage needs off-CPU/wait-time analysis, not a CPU profile.
-- Build debug endpoints, toggleable verbose logging, and a documented production-safe toolkit in before an incident forces the question.
-
----
-
-## Further Reading
-
-- The Go Blog — *Profiling Go Programs*: <https://go.dev/blog/pprof>
-- Brendan Gregg — *Off-CPU Analysis*: <https://www.brendangregg.com/offcpuanalysis.html>
-
----
-
-## Related Topics
-
-- [Goroutines and Concurrency — Senior](../01-goroutines-and-concurrency/senior.md)
-- [Go Runtime — Senior](../02-go-runtime/senior.md)
-
----
-
-## Check your understanding
-
-1. Explain Production Debugging — Senior Level in your own words and name the problem it solves.
-2. How would you apply the ideas around Introduction, Prerequisites, Core Concepts in a realistic engineering change?
-3. What failure mode or misuse should you look for, and what evidence would reveal it?
-4. How would you validate a system-level decision about Production Debugging — Senior Level under uncertainty?
-5. What observable result would convince you that the approach improved the system?
+- Which invariant must remain true when Production Debugging fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

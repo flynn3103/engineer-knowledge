@@ -1,14 +1,11 @@
 # Error Handling — Professional
 
-> **Topic:** [Error Handling](../README.md)
-> **Focus:** Standardizing error taxonomies across an organization's services, error-handling conventions in code review, and postmortem practices for incidents rooted in poor error handling.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Error Handling** with measurable outcomes and limited coordination?
 
-## Introduction
-
-At professional level, error handling becomes an organizational convention, not just a per-service design. Dozens of services with inconsistent error kinds, inconsistent client/server fault classification, and inconsistent logging make cross-service incident response slower than it needs to be — the professional-level job is closing that gap.
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -78,16 +75,6 @@ Every service imports this instead of defining its own enum — a small, deliber
 
 ---
 
-## Pros & Cons
-
-| Approach | Pros | Cons |
-|---|---|---|
-| Shared error-kind vocabulary | Faster cross-service incident response, less translation cost | Requires org-wide adoption and governance of the shared package |
-| Lint-enforced error checking (`errcheck`, `wrapcheck`) | Prevents silent regressions | Initial rollout on an existing codebase can surface a large backlog of violations |
-| Postmortems tracing to the error-handling root cause | Produces structural fixes, not just symptom patches | Requires discipline to look past the immediate symptom |
-
----
-
 ## Best Practices
 
 1. Publish and mandate a shared error-kind vocabulary across services, rather than letting each team invent its own.
@@ -114,45 +101,24 @@ Every service imports this instead of defining its own enum — a small, deliber
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```
-Org-wide error checklist:
-  [ ] Shared error-kind vocabulary adopted
-  [ ] errcheck / wrapcheck enforced in CI
-  [ ] Code review checklist includes error classification + leak check
-  [ ] Postmortems trace to the error-handling root cause, not just the symptom
-```
+1. Define the user or business outcome that **Error Handling** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
----
+## Verify your work
 
-## Summary
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
 
-- A shared, org-wide error-kind vocabulary reduces cross-service incident-response friction.
-- Enforce error-checking and wrapping discipline with linters in CI, not just code review vigilance.
-- Postmortems for error-handling-rooted incidents should produce a structural fix, not a symptom patch.
-- Error-handling inconsistency is technical debt that specifically taxes incident response — track and pay it down deliberately.
+## Review questions
 
----
-
-## Further Reading
-
-- `errcheck`: <https://github.com/kisielk/errcheck>
-- `golangci-lint` (bundles errcheck, staticcheck, and more): <https://golangci-lint.run/>
-
----
-
-## Related Topics
-
-- [Interfaces — Professional](../03-interfaces/professional.md) — the same shared-vocabulary principle applies to interface governance.
-- [Production Debugging — Professional](../07-production-debugging/professional.md)
-
----
-
-## Check your understanding
-
-1. Explain Error Handling — Professional Level in your own words and name the problem it solves.
-2. How would you apply the ideas around Introduction, Core Concepts, Code Examples in a realistic engineering change?
-3. What failure mode or misuse should you look for, and what evidence would reveal it?
-4. How would you introduce and govern Error Handling — Professional Level across teams through reversible, measurable increments?
-5. What observable result would convince you that the approach improved the system?
+- Which measurable outcome justifies investing in Error Handling?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

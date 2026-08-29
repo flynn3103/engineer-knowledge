@@ -1,67 +1,11 @@
-# Interpreters — Middle Level
+# Interpreters — Middle
 
-> **Topic:** Interpreters
-> **Focus:** Why production languages don't walk trees. Compiling the AST to **bytecode** and running a fast fetch–decode–execute loop, with locals stored as an array instead of a hash map.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **Interpreters** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-> Focus: **Why is a tree-walking interpreter slow, and how does compiling to bytecode fix it?** And: **why do real interpreters store local variables in an array, not a dictionary?**
-
-The tree-walker from `junior.md` is correct and clear, but every time it evaluates a node it pays for two expensive things: a **type dispatch** ("what kind of node is this?") and **pointer-chasing** (following references to children that may be scattered across the heap, blowing the CPU cache). Run that over a loop a million times and you feel it.
-
-Production dynamic languages — **CPython, Ruby's YARV, Lua, the JVM** — solve this the same way. Instead of interpreting the tree directly, they first **compile the AST into bytecode**: a flat, linear array of small numeric instructions (opcodes) such as `LOAD_CONST`, `ADD`, `STORE_FAST`, `JUMP_IF_FALSE`. Then a single tight loop — the **interpreter loop**, also called the *dispatch loop* or *eval loop* — repeatedly fetches the next opcode, decodes it, and executes it. This is the **fetch–decode–execute** cycle, the same shape as a physical CPU, implemented in software.
-
-Bytecode is dramatically faster than tree-walking for several reasons at once: instructions are packed contiguously (cache-friendly), each is a small integer dispatched by one `switch` (no node-type guessing), constants and locals are pre-resolved to *indices* (no string hash lookups), and the structure is linear so the CPU's branch predictor and prefetcher can work. Typical speedups over a naive tree-walker are large — often an order of magnitude.
-
-This is the level where you stop building toys and start understanding how the languages you use every day actually run.
-
-> 🎓 **Why this matters for a mid-level engineer:** When you read CPython's `ceval.c`, profile a slow Python loop, disassemble a function with `dis`, or wonder why "locals are faster than globals," you are looking at exactly the machinery on this page. Understanding the compile-to-bytecode-then-loop architecture lets you reason about interpreter performance instead of treating it as a black box.
-
-This page covers: the **stack-based VM** model and its bytecode, compiling expressions and control flow to bytecode, the fetch–decode–execute loop, why **locals-as-array beats locals-as-hashmap**, the **constant pool**, jumps for control flow, and a complete working compiler + VM. The next level (`senior.md`) goes deep on **dispatch techniques** — computed goto, threaded code, superinstructions — and the path from interpreter to JIT.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** Comfort with the tree-walking interpreter from `junior.md` — AST, `eval`, environments.
-- **Required:** Understanding of a stack data structure (push/pop) and an array indexed by integer.
-- **Required:** Basic idea of a `switch`/`match` statement dispatching on an integer.
-- **Helpful but not required:** Having seen assembly language or any CPU instruction set — bytecode is a software version of the same idea.
-- **Helpful but not required:** Having run Python's `dis.dis(fn)` or read about the JVM. We will recreate that machinery.
-
-You do **not** need to know:
-
-- Computed goto, threaded code, or other dispatch optimizations (that is `senior.md`).
-- JIT compilation, garbage collection internals, or register-allocation (later levels and prose).
-- How to write a parser — we still assume the AST exists.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Bytecode** | A flat sequence of small numeric instructions (opcodes, plus operands) that an interpreter loop executes. |
-| **Opcode** | A single bytecode instruction's identity, e.g. `ADD`, `LOAD_CONST`, `JUMP`. Usually one byte (hence the name). |
-| **Operand** | Data attached to an opcode, e.g. the index of the constant to load. |
-| **Compiler (to bytecode)** | The stage that translates the AST into bytecode. Distinct from a native-code compiler. |
-| **Virtual Machine (VM)** | The component that executes bytecode: the loop plus the stack, locals, and state it operates on. |
-| **Interpreter loop / dispatch loop / eval loop** | The `while` loop that fetches, decodes, and executes each opcode. The heart of the VM. |
-| **Fetch–decode–execute** | The three-step cycle: read the next opcode, figure out what it is, perform it. |
-| **Instruction pointer (IP) / program counter (PC)** | The index of the next bytecode instruction to execute. |
-| **Operand stack** | A stack the VM pushes/pops values on while evaluating expressions (in a stack-based VM). |
-| **Stack-based VM** | A VM that holds intermediate values on an operand stack. CPython and the JVM are stack-based. |
-| **Register-based VM** | A VM that holds intermediate values in numbered virtual registers. Lua 5+ is register-based. |
-| **Constant pool** | A table of literal values (numbers, strings) referenced by index from bytecode. |
-| **Locals (slot) array** | An array holding a function's local variables, indexed by integer slot — not by name. |
-| **Slot** | The integer index of a local variable in the locals array, resolved at compile time. |
-| **Jump / branch** | A bytecode instruction that sets the IP to a target, implementing `if`/`while`/`goto`. |
-| **Disassembler** | A tool that prints bytecode in human-readable form (e.g. Python's `dis`). |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -196,39 +140,6 @@ dis.dis(f)
 
 ---
 
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Tree-walking vs bytecode** | Cooking by repeatedly re-reading a recursive recipe outline vs. first writing a flat numbered checklist, then following it fast. |
-| **Bytecode** | A flat to-do list of tiny, unambiguous steps, in order. |
-| **Operand stack** | A spike on a diner counter where you stack order tickets; you work off the top. |
-| **Fetch–decode–execute** | An assembly-line worker: grab the next part (fetch), read its label (decode), bolt it on (execute), repeat. |
-| **Instruction pointer** | Your finger tracking which line of the checklist you are on. |
-| **Constant pool** | A glossary at the back of the manual; the steps say "see term #3" instead of repeating the definition. |
-| **Locals as array (slots)** | Numbered lockers vs. a coat-check where you describe your coat in words every time. Numbered is instant. |
-| **Jump** | "Go to step 12" on the checklist, instead of doing the steps in between. |
-| **Register vs stack VM** | A workbench with labeled trays (registers) vs. a single stack of parts you must keep pushing and popping. |
-| **Disassembler** | Translating the numbered checklist back into plain English so a human can review it. |
-
----
-
-## Mental Models
-
-### The "Software CPU" Model
-
-A bytecode VM is a CPU written in software. It has an instruction pointer (like a real PC), instructions (opcodes), an arithmetic unit (the `ADD`/`MUL` cases), memory (the locals array and constant pool), and a fetch–decode–execute loop. Once you see the VM as "a CPU I built," every concept maps onto something you already know about hardware. The bytecode is its machine code.
-
-### The "Flatten the Tree" Model
-
-Bytecode is the AST, flattened into a line via post-order traversal, with the operand stack standing in for the tree structure. To compile any expression node, compile its children first (emitting their instructions), then emit the operator instruction — the same post-order discipline as the tree-walker, except now you *emit instructions* instead of *computing values*. The stack at runtime re-creates the nesting the tree used to express.
-
-### The "Resolve Once, Run Many" Model
-
-The big win of bytecode is *moving work from runtime to compile time*. String names become integer slots and pool indices. Tree structure becomes a flat array. Branch decisions become jump offsets. The compiler pays these costs **once**; the loop then runs cheap, pre-resolved instructions **many** times. Whenever you wonder "why is this faster?", the answer is usually "because that work was done ahead of time, not on every iteration."
-
----
-
 ## Code Examples
 
 We will build a complete **compiler + stack-based VM** for the same calculator-with-variables language from `junior.md`. The compiler turns an AST into bytecode; the VM runs it.
@@ -260,7 +171,6 @@ class Assign:
     def __init__(self, name, expr): self.name, self.expr = name, expr
 class Print:
     def __init__(self, expr): self.expr = expr
-
 
 # ---------- Compiler: AST -> bytecode ----------
 class Compiler:
@@ -311,7 +221,6 @@ class Compiler:
         self.emit(HALT)
         return self.code, self.constants, len(self.slots)
 
-
 # ---------- VM: run the bytecode ----------
 def run(code, constants, num_slots):
     stack = []
@@ -347,7 +256,6 @@ def run(code, constants, num_slots):
             return
         else:
             raise RuntimeError(f"bad opcode {op}")
-
 
 # ---------- Run: x = 2 + 3 * 4; print(x) ----------
 program = [
@@ -426,37 +334,6 @@ The register VM does it in **one** instruction instead of four, with no push/pop
 
 ---
 
-## Pros & Cons
-
-| Aspect | Pros | Cons |
-|--------|------|------|
-| **Runtime speed** | Often ~10× faster than a naive tree-walker: cache-friendly flat code, integer dispatch, pre-resolved names. | Still far slower than native code; the dispatch loop overhead remains (addressed by JIT later). |
-| **Build complexity** | Architecture is well understood; the loop is simple. | Two phases (compiler + VM) instead of one; more code than a tree-walker. |
-| **Variable access** | Locals as array slots = O(1), no hashing. CPython's `LOAD_FAST`. | Requires a compile-time pass to assign slots; closures/upvalues add complexity (see `senior.md`). |
-| **Portability** | Bytecode is platform-independent; ship `.pyc`/`.class` files. | Bytecode format becomes a compatibility surface you must version. |
-| **Tooling** | Disassembler, bytecode caching, profilers at opcode granularity. | More moving parts to debug; a compiler bug and a VM bug look similar. |
-| **Startup** | Cache compiled bytecode to skip recompilation (Python's `__pycache__`). | First-run compile cost; cold start pays for the compile phase. |
-| **Optimization** | Bytecode is a clean target for peephole optimization, superinstructions, and eventually a JIT. | Optimizing the bytecode is a whole sub-discipline. |
-
----
-
-## Use Cases
-
-A bytecode interpreter is the right tool when:
-
-- **You are building a production dynamic language** where runtime speed matters but you do not want the complexity/portability cost of native compilation. This is where CPython, Ruby, Lua, and the JVM live.
-- **You want portable, cacheable compiled artifacts** (`.pyc`, `.class`, Lua chunks) that load fast and run anywhere the VM runs.
-- **You have hot loops** that a tree-walker would choke on, but a full JIT is overkill or too complex.
-- **You want a clean platform for further optimization** (peephole passes, superinstructions, inline caches, and eventually a JIT) — bytecode is the standard substrate.
-
-It is the **wrong** tool (or not yet needed) when:
-
-- You are prototyping or teaching — start with a tree-walker (`junior.md`); bytecode is premature.
-- The language runs so briefly that the compile phase dominates and the speedup never pays off.
-- You need near-native performance on numeric kernels — you will ultimately want a JIT (`senior.md`/`professional.md`) or ahead-of-time compilation.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Two-pass shape — compile to bytecode, then loop
@@ -516,87 +393,24 @@ A disassembler is your eyes inside the VM. Write it early; it makes every "why i
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. Compile `(1 + 2) * (3 + 4)` to stack bytecode by hand. List the opcodes in order and show the operand stack after each one.
-2. Why is `LOAD_FAST 0` faster than the tree-walker's `env["x"]`? Name the two runtime costs that disappear.
-3. In CPython, locals use `LOAD_FAST` and globals use `LOAD_GLOBAL`. Based on this page, explain in one sentence why locals are faster.
-4. Hand-write the bytecode for `while x { x = x - 1 }` using `JUMP` and `JUMP_IF_FALSE`. Where are the two jump targets, and which one is patched after the body is compiled?
-5. Convert the stack-based bytecode for `a = b + c` into register-based form. How many instructions does each use? Why might the register version be faster?
-6. Add a `NEG` opcode to the example VM (unary minus). What does it pop and push, and where in the compiler do you emit it?
-7. Run the disassembler on `print(2 * 3 + 4)`. Predict the output before reading it, then verify by tracing the VM.
-8. The VM's stack ends a program non-empty. Name two compiler bugs that could cause this and how you would detect them.
+1. Find a real component where **Interpreters** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
----
+## Verify your work
 
-## Cheat Sheet
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
 
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│                    BYTECODE INTERPRETER                           │
-├──────────────────────────────────────────────────────────────────┤
-│ TWO PHASES:                                                       │
-│   compile:  AST  ->  bytecode + constant pool   (once)            │
-│   run:      bytecode  ->  result                (the VM loop)     │
-├──────────────────────────────────────────────────────────────────┤
-│ THE LOOP (fetch-decode-execute):                                  │
-│   while true:                                                     │
-│     op = code[ip]; ip++          # FETCH                          │
-│     switch op:                   # DECODE                         │
-│       CONST i       -> push(constants[i])      # EXECUTE          │
-│       ADD           -> b=pop; a=pop; push(a+b)                    │
-│       LOAD_LOCAL s  -> push(locals[s])                            │
-│       STORE_LOCAL s -> locals[s] = pop                            │
-│       JUMP t        -> ip = t                                     │
-│       JUMP_IF_FALSE t-> if !pop: ip = t                           │
-│       HALT          -> return                                     │
-├──────────────────────────────────────────────────────────────────┤
-│ KEY WINS over tree-walking:                                       │
-│   * flat array  = cache-friendly (no pointer chasing)            │
-│   * integer dispatch = one switch (no node-type guessing)        │
-│   * locals = ARRAY slot, not hashmap  (CPython LOAD_FAST)        │
-│   * constants pre-pooled, names pre-resolved (compile-time work) │
-├──────────────────────────────────────────────────────────────────┤
-│ STACK-BASED (CPython,JVM,YARV): operands on operand stack         │
-│ REGISTER-BASED (Lua 5+, Dalvik): operands in numbered registers   │
-│   -> register VM: fewer, fatter instructions (often faster)      │
-├──────────────────────────────────────────────────────────────────┤
-│ Control flow = JUMPs that move the IP (backpatch forward jumps)   │
-│ Next: faster DISPATCH (computed goto, threading) -> senior.md     │
-└──────────────────────────────────────────────────────────────────┘
-```
+## Review questions
 
----
-
-## Summary
-
-- Production interpreters do not walk trees at runtime — they **compile the AST to bytecode** once, then run a tight **fetch–decode–execute loop** over that flat instruction array. CPython, Ruby's YARV, Lua, and the JVM all work this way.
-- Bytecode is faster than tree-walking because it is **cache-friendly** (flat, contiguous), uses **integer dispatch** (one `switch`, no node-type guessing), and has **pre-resolved** constants and variable slots (work moved from runtime to compile time).
-- In a **stack-based VM**, intermediate values live on an **operand stack**; instructions push and pop. `2 + 3 * 4` flattens (post-order) to `CONST; CONST; CONST; MUL; ADD`.
-- **Locals are stored in an array, indexed by integer slot — not in a hash map.** This is why CPython's local-variable access (`LOAD_FAST`) is faster than global access (`LOAD_GLOBAL`): the name was resolved to a slot at compile time.
-- **Control flow** uses **jumps** that move the instruction pointer; forward jumps are **backpatched** once their target is known.
-- **Register-based VMs** (Lua 5+) use numbered registers instead of a stack, executing fewer, fatter instructions — a key reason for Lua's speed.
-- A **disassembler** (like Python's `dis`) turns the opaque byte array back into readable instructions and is the most valuable debugging tool you can build.
-- Build a tree-walker first (`junior.md`), then move to bytecode when speed demands it. The next step beyond bytecode is faster **dispatch** and the path to a **JIT** — covered in `senior.md`.
-
----
-
-## What You Can Build
-
-- **A bytecode compiler + VM for your junior-level language.** Reuse the AST; emit bytecode; run it. Compare runtime against the tree-walker on a hot loop.
-- **A disassembler** for your VM that prints labeled instructions with operands and jump targets — your in-house `dis`.
-- **A stack-machine calculator** that compiles infix expressions to RPN-style bytecode and executes them.
-- **A bytecode optimizer (peephole pass).** Fold constant arithmetic (`CONST 2; CONST 3; ADD` → `CONST 5`) and remove redundant loads. Measure the speedup.
-- **A side-by-side benchmark harness.** Run the same program through the tree-walker and the bytecode VM; chart the speedup as loop iteration count grows.
-- **A mini Python-bytecode reader.** Use `dis` and `marshal` to load a `.pyc` and walk its real opcodes — see the concepts on this page in the language you use daily.
-
----
-
-## Further Reading
-
-- *Crafting Interpreters* — Robert Nystrom. Part III ("A Bytecode Virtual Machine") builds exactly this architecture in C, with a stack-based VM. The single best resource for this level. https://craftinginterpreters.com/
-- *Writing A Compiler In Go* — Thorsten Ball. The sequel to his interpreter book; compiles the Monkey AST to bytecode and runs it on a stack VM.
-- *The Implementation of Lua 5.0* — Ierusalimschy, de Figueiredo, Celes. The classic paper on why Lua's register-based VM is fast. https://www.lua.org/doc/jucs05.pdf
-- CPython source: `Python/ceval.c` (the eval loop) and the `dis` module documentation. https://docs.python.org/3/library/dis.html
-- *The Java Virtual Machine Specification* — the canonical stack-based bytecode VM, formally specified.
-- *Virtual Machines* — Iain Craig. A book-length treatment of VM design, stack vs register, and dispatch.
+- Which boundary is most affected by Interpreters?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

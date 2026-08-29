@@ -1,33 +1,12 @@
-# Object Pinning & Movable Heaps — Middle Level
+# Object Pinning & Movable Heaps — Middle
 
-> **Topic:** Object Pinning & Movable Heaps
-> **Focus:** The concrete mechanisms — how .NET, the JVM, and Go actually pin, and what pinning costs the collector.
+<!-- level-focus -->
+At middle level, focus on this question:
 
+> Where does **Object Pinning & Movable Heaps** belong in a maintainable component, and which trade-off selects the design?
+
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
-
-## Introduction
-
-The junior tier established *why* pinning exists: a moving GC relocates live objects, the GC rewrites managed references, but raw addresses held outside the runtime would be left dangling. This tier gets concrete. You will see the actual APIs — .NET's `fixed`, `GCHandle`, and `Memory<T>.Pin()`; the JVM's JNI critical regions; Go's `runtime.Pinner` — and you will understand the **mechanics and the cost**: how a pinned object becomes an immovable island that fragments a compacting heap, and how each runtime tries to limit the damage.
-
-A key theme: pinning is not one thing. Different runtimes implement it differently, with different rules, and "pin" sometimes even means "copy instead of pin" under the hood (JNI). Knowing the mechanism is what separates a developer who *uses* an interop API from one who understands why it occasionally tanks GC performance.
-
-## Prerequisites
-
-- Junior tier: moving GC, managed vs. raw pointers, the basic pin/unpin idea.
-- Familiarity with **generational GC**: young objects in a nursery (gen0), survivors promoted to older generations.
-- Basic understanding of **heap fragmentation** (free space split into unusable small gaps).
-- Exposure to at least one FFI mechanism (P/Invoke, JNI, or cgo) is helpful.
-
-## Glossary
-
-- **Compaction** — sliding live objects together to eliminate gaps; the operation pinning interferes with.
-- **Bump allocation** — allocating by advancing a single pointer; enabled by a compact heap.
-- **Generational GC** — segregates objects by age; collects the young generation frequently and cheaply.
-- **GCHandle** — a .NET handle giving stable indirection to an object; `Pinned` variant fixes its address.
-- **Pinned Object Heap (POH)** — a .NET 5+ heap segment dedicated to pinned objects, kept apart from the compacting heap.
-- **JNI critical region** — a JVM bracket (`GetPrimitiveArrayCritical`/`Release...`) where the GC may be disabled and the array address exposed.
-- **`runtime.Pinner`** — Go 1.21's official type for pinning Go objects across a cgo call.
-- **Interior pointer** — a pointer into the *middle* of an object (or stack frame), not its head.
 
 ## Core Concepts
 
@@ -79,14 +58,6 @@ Go's heap is historically **non-moving for heap objects**, which made cgo simple
 ### Rust — a different "pinning" (sidebar)
 
 Rust's `Pin<P>` is **not** GC pinning. Rust has no moving GC. `Pin` is a **type-system guarantee** that a value will not be *moved in memory by safe code* after being pinned — needed for **self-referential types**, most importantly `async` futures that hold pointers into their own storage. It prevents the *compiler/library* from moving a value, not a *collector*. Same word, unrelated mechanism. Do not conflate the two: GC pinning protects addresses from a *relocating collector*; Rust `Pin` protects addresses from *ordinary moves* in a language that has no collector.
-
-## Mental Models
-
-**Model 1 — Lifetime ladder.** Pinning APIs form a ladder by lifetime: `fixed` (one block) < `MemoryHandle`/`GCHandle` (explicit span) < POH/off-heap (effectively permanent). Climb only as high as you must.
-
-**Model 2 — "Pin or copy" is the real choice.** Every interop boundary forces a decision: pin the managed buffer (cheap now, fragments later) or copy to native memory (cost up front, no GC interference). JNI even folds both into one API.
-
-**Model 3 — Pins are holes.** Visualize each pinned object as a peg the compactor cannot remove. Few short pegs: fine. Many long-lived pegs: a fragmented board.
 
 ## Code Examples
 
@@ -151,21 +122,6 @@ process(elems, length);          // may run with GC disabled
 - **Copy-out for hand-off.** If native code needs the data *after* the call, copy it into native memory and pin nothing.
 - **`isCopy` discipline (JNI).** Always check `isCopy`; never assume you got a real pin.
 
-## Pros & Cons
-
-**Pros**
-
-- Enables zero-copy interop for large buffers.
-- Each runtime offers a scoped, deterministic form (low risk when used tightly).
-- POH / `DirectByteBuffer` / off-heap give a fragmentation-free path for long-lived sharing.
-
-**Cons**
-
-- Fragments compacting heaps; degrades GC throughput and pause times.
-- Manual-lifetime APIs (`GCHandle`, JNI) leak pins if release is missed.
-- JNI's pin-or-copy ambiguity complicates reasoning.
-- Raw pointers from pins are inherently unsafe.
-
 ## Best Practices
 
 - **Default to the scoped API**; reach for manual-lifetime pins only when the address genuinely must outlive a block.
@@ -182,11 +138,26 @@ process(elems, length);          // may run with GC disabled
 - **Confusing Rust `Pin` with GC pinning.** They solve unrelated problems; mixing the concepts leads to nonsense designs.
 - **Pinning interior/stack pointers in Go.** Stack copying moves stack data; never hand a stack-interior address to C without understanding the lifetime — heap-allocate and pin instead.
 
-## Summary
+---
 
-- Compaction gives managed runtimes zero fragmentation and bump allocation; pinning inserts an immovable obstacle into that machinery.
-- **.NET** offers a lifetime ladder: `fixed` → `GCHandle`/`MemoryHandle` → Pinned Object Heap, the last for long-lived pins without fragmenting normal generations.
-- **JNI** exposes pinning through critical regions and `Get...ArrayElements`, but may *copy* instead of pin; `DirectByteBuffer` sidesteps pinning entirely.
-- **Go** historically had a non-moving heap, but moving *stacks* are the hazard; `runtime.Pinner` (1.21) is the official pinning API alongside the cgo pointer rules.
-- **Rust `Pin`** is a type-system move-prevention for self-referential/async types — a different concept that shares only the name.
-- The cost is always **fragmentation and GC degradation**, worst in the young generation — so pin few, briefly, and segregate long-lived pins.
+## Apply it
+
+1. Find a real component where **Object Pinning & Movable Heaps** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
+
+## Verify your work
+
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
+
+## Review questions
+
+- Which boundary is most affected by Object Pinning & Movable Heaps?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

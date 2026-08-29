@@ -1,56 +1,11 @@
-# Interpretation, Compilation, JIT, AOT — Senior Level
+# Interpretation, Compilation, JIT, AOT — Senior
 
-> **Topic:** Interpretation, Compilation, JIT, AOT
-> **Focus:** Speculative optimization and deoptimization, method-JIT vs meta-tracing JIT, AOT for managed languages and the closed-world assumption, PGO, and the startup-vs-peak engineering decision.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Interpretation, Compilation, JIT, AOT** under failure, load, and change?
 
-## Introduction
-
-> Focus: **The hard parts.** How does a JIT *un-compile* code when its bets go wrong? Why are there two architecturally different kinds of JIT — method-based and meta-tracing? What does it actually take to AOT-compile a language that was designed around a JIT, and what breaks? And how do you reason about the startup-vs-peak trade-off as an engineering decision rather than a slogan?
-
-By this level you can describe the JIT pipeline and tiering. The senior questions are the ones that decide real systems:
-
-- **Deoptimization** is the linchpin that *makes speculation safe.* A JIT bets that a variable is always an int; when a float finally shows up, the JIT must *abandon the compiled code and resume in the interpreter at exactly the right point*, with all live state correctly reconstructed. Get this wrong and you corrupt the program. Understanding deopt is understanding why aggressive speculation is even legal.
-- **Method JITs vs meta-tracing JITs** are two genuinely different philosophies. HotSpot, V8, RyuJIT compile *methods*. PyPy and LuaJIT trace *hot loops across method boundaries* and compile the resulting linear trace. The trade-offs (and failure modes — "trace explosion") are different.
-- **AOT for managed languages** (GraalVM native-image, .NET NativeAOT, CrossGen/ReadyToRun) is not "just compile it earlier." It forces a **closed-world assumption** that collides head-on with reflection, dynamic class loading, and runtime code generation. The senior question is *what you give up and how you cope.*
-- **PGO** is how AOT claws back *some* of the JIT's profile advantage — collect a profile in a training run, feed it to the AOT compiler. It's the bridge between the two worlds.
-
-This page treats these as design decisions with quantifiable trade-offs. The professional level goes deeper into the compiler internals (SSA, deopt metadata layout, code-cache management) and large-scale economics.
-
----
-
-## Prerequisites
-
-- **Required:** The middle-level model — dispatch, the JIT-as-runtime-compiler picture, tiered compilation, warmup, OSR.
-- **Required:** Comfort with the idea of inlining, virtual dispatch, and what "the stack" and "a stack frame" are.
-- **Required:** A working notion of "guard" — a runtime check protecting a speculative assumption.
-- **Helpful:** Exposure to one managed runtime's internals (HotSpot, V8, or CLR) at the level of "I've read a `PrintCompilation`/`--trace-opt` log."
-- **Helpful:** Awareness that reflection, serialization, and dynamic proxies are "open-world" features.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Speculative optimization** | Compiling code that's correct only under an assumption (a type, a branch, a class hierarchy state), guarded so it can be undone. |
-| **Guard** | A cheap runtime check that the speculative assumption still holds; on failure it triggers deoptimization. |
-| **Deoptimization (deopt)** | Discarding compiled code and resuming execution in the interpreter (or a lower tier) at the equivalent point, reconstructing all live state. |
-| **Uncommon trap** | HotSpot's term for the deopt point a guard jumps to when a speculation fails. |
-| **Deopt metadata** | Per-compiled-point bookkeeping mapping compiled-code state (registers/stack slots) back to interpreter state, so deopt can reconstruct the frame. |
-| **Method JIT** | A JIT whose unit of compilation is a method/function (HotSpot, V8, RyuJIT). |
-| **Meta-tracing JIT** | A JIT that records (traces) the actual instruction path through a hot loop — across method boundaries — and compiles that linear trace (PyPy, LuaJIT). |
-| **Trace** | A recorded linear sequence of operations actually executed on one path through a hot loop. |
-| **Trace explosion** | Pathology where a meta-tracing JIT records too many divergent traces for branchy code, blowing up code size and compile time. |
-| **PGO (Profile-Guided Optimization)** | AOT compilation informed by a profile collected from a representative training run. |
-| **Closed-world assumption** | The AOT premise that *all* reachable code is known at build time; nothing new is loaded or generated at runtime. |
-| **Reachability analysis** | Static analysis (points-to / call-graph) that determines which code is reachable, so unreachable code can be dropped. |
-| **native-image** | GraalVM's AOT compiler turning JVM bytecode into a standalone native executable under closed-world assumptions. |
-| **NativeAOT** | .NET's AOT compiler producing a self-contained native binary without the JIT. |
-| **ReadyToRun (R2R) / CrossGen** | .NET's *partial* AOT: precompile IL to native at build/publish time, but keep the JIT available for what's left (a hybrid). |
-| **Substitution / config (for AOT)** | Build-time declarations (reflection config, substitutions) that tell a closed-world AOT compiler about dynamic behavior it can't infer. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -137,43 +92,6 @@ throughput-over-time:
 ```
 
 This is why serverless *resurrected* AOT for managed languages: the economics of cold start inverted the decades-old "JIT is just better for servers" assumption. The senior skill is computing the area under the throughput curve for *your* lifetime distribution, not quoting a steady-state microbenchmark.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Speculation + guard** | A factory that retools to mass-produce one product, with a quick inspection at the start of each batch to confirm the order hasn't changed. |
-| **Deoptimization** | That factory getting a "wrong product" alert mid-run, instantly reverting to the slow general-purpose line, and rebuilding the half-finished item correctly. |
-| **Deopt metadata** | The detailed paperwork mapping the specialized line's half-built state back to the general line's process, so nothing is lost in the switch. |
-| **Method JIT** | Optimizing each department's workflow in isolation, then merging departments by physically combining their lines (inlining). |
-| **Meta-tracing JIT** | Following one customer's entire journey end-to-end across all departments, then building a dedicated express lane for *that exact path*. |
-| **Trace explosion** | Building a separate express lane for every slightly different customer journey until the warehouse is nothing but lanes. |
-| **Closed-world AOT** | Pre-packing a shipping container with *exactly* the items on the manifest and welding it shut — efficient, but you can't add anything en route. |
-| **Reflection breaking AOT** | An item that was needed but wasn't on the manifest, so it got left out of the welded container. |
-| **PGO** | Studying last quarter's orders to pre-arrange the warehouse, betting next quarter looks similar — with no way to rearrange mid-quarter if it doesn't. |
-| **R2R hybrid** | Pre-packing the common items but keeping a worker on board who can fetch and optimize the rest as needed. |
-
----
-
-## Mental Models
-
-### The "Bet, Guard, Recover" Triad
-
-Every adaptive optimization decomposes into three pieces: the **bet** (assume int / monomorphic / branch-not-taken), the **guard** (cheap check the bet still holds), and the **recovery** (deopt to a correct, slower execution). A JIT can be as aggressive as it likes *because the recovery exists.* AOT lacks the recovery, so it can only make bets that are *provably always true* — which is why it's conservative and why PGO (a static bet with no recovery) demands a representative profile.
-
-### The "Compilation Unit Shapes the Optimizer" Model
-
-What a JIT optimizes follows from what it treats as a *unit*. Method JITs see methods → they need inlining to cross boundaries and they reason about merged control flow. Tracing JITs see linear traces → inlining is automatic (follow the calls), the optimizer only ever faces straight-line code, but branchy programs fragment into many traces. Choose your unit and you've chosen your strengths and your failure mode.
-
-### The "Open vs Closed World" Dial
-
-Picture a dial from fully-open (everything resolvable at runtime: reflection, dynamic loading, JIT codegen — maximum flexibility, maximum startup cost) to fully-closed (everything fixed at build time: native-image — minimum flexibility, minimum startup/memory). Languages and deployment modes are *positions on this dial*: full JVM is open, R2R is mostly-open-with-precompiled-commons, native-image is closed. Engineering is choosing where on the dial your workload belongs.
-
-### The "Area Under the Throughput Curve" Model
-
-Don't compare JIT and AOT at a single point (steady-state) — integrate over the process lifetime. JIT is a curve rising to a high plateau; AOT is a flat line at a slightly-lower-but-immediate level. Multiply by *how often you start a fresh process.* The winner is whoever has more area under the curve for *your* lifetime-and-restart distribution. This reframes a religious debate as arithmetic.
 
 ---
 
@@ -273,30 +191,6 @@ gcc -O2 -fprofile-use hot.c -o hot_optimized
 
 ---
 
-## Pros & Cons
-
-| Aspect | Method JIT | Meta-tracing JIT | Closed-world AOT (managed) | AOT + PGO (native) |
-|--------|-----------|------------------|----------------------------|--------------------|
-| **Cross-method optimization** | Via inlining; bounded by inlining budget. | Automatic (trace follows calls). | Whole-program at build time. | Whole-program + profile-guided. |
-| **Adapts at runtime** | Yes (respecialize, OSR, deopt). | Yes (re-trace, side exits). | No. | No. |
-| **Branchy code** | Degrades gracefully. | Risks trace explosion. | Fine. | Fine; layout guided by profile. |
-| **Startup / memory** | Worst. | Worst. | Best. | Best (native). |
-| **Dynamism (reflection, dynamic loading)** | Full. | Full. | Restricted; needs config; some unsupported. | Full (it's native C/Rust/Go anyway). |
-| **Recovery from wrong bets** | Deopt. | Side exit. | None (build-time bets only). | None (training-time bets only). |
-| **Implementation complexity** | High. | High and subtle. | High (reachability + config tooling). | Medium + build pipeline. |
-
----
-
-## Use Cases
-
-- **Method JITs** for general-purpose, long-lived, control-flow-diverse workloads: app servers, browsers, databases. The mainstream default for good reason.
-- **Meta-tracing JITs** for loop-dominated, type-stable dynamic-language workloads: numeric Python under PyPy, hot Lua game/scripting loops under LuaJIT — where a single hot path repeats billions of times.
-- **Closed-world AOT (native-image / NativeAOT)** for CLIs, serverless, scale-to-zero microservices, and anything where startup latency and memory are the product: fast boot, small RSS, no warmup, predictable.
-- **R2R / CrossGen** for services that want to shave first-request latency without surrendering the JIT or dynamic features — a common production sweet spot for .NET web apps.
-- **AOT + PGO** for native binaries (and AOT'd managed binaries) with stable, representative production behavior where you want maximum static-layout quality without a JIT.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Keep speculation profitable — stabilize hot call sites
@@ -346,61 +240,24 @@ If you use PGO, version the profile, capture it from representative production-l
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│        SPECULATION, JIT FLAVORS, AOT-FOR-MANAGED, PGO            │
-├──────────────────────────────────────────────────────────────────┤
-│ Adaptive optimization = BET + GUARD + RECOVER(deopt).             │
-│   Deopt: guard fails → rebuild interpreter frame from deopt       │
-│   metadata → resume interpreting → maybe recompile less boldly.   │
-│   This is what MAKES aggressive speculation correct.              │
-├──────────────────────────────────────────────────────────────────┤
-│ Two JIT philosophies:                                             │
-│   METHOD JIT (HotSpot, V8, RyuJIT): unit = method; inline to      │
-│     cross boundaries; graceful on branchy code.                   │
-│   META-TRACING (PyPy, LuaJIT): unit = linear trace of a hot loop  │
-│     across calls; inlining free; risks TRACE EXPLOSION on branches│
-├──────────────────────────────────────────────────────────────────┤
-│ AOT for managed langs (GraalVM native-image, .NET NativeAOT):     │
-│   + fast startup, low memory, NO warmup (CLI / serverless win)    │
-│   − CLOSED-WORLD: reachability prunes unseen code                 │
-│   − reflection / dynamic loading / runtime codegen break unless   │
-│     declared at build time (config, source generators)            │
-│   − no runtime adaptive specialization                            │
-│   R2R / CrossGen (.NET): PARTIAL AOT, keeps the JIT — hybrid.     │
-├──────────────────────────────────────────────────────────────────┤
-│ PGO = AOT borrows a profile (offline training run):               │
-│   captures common-case layout, BUT static + no deopt recovery,    │
-│   so the profile must be representative & fresh.                  │
-├──────────────────────────────────────────────────────────────────┤
-│ Decide JIT vs AOT vs R2R by AREA UNDER THE THROUGHPUT CURVE       │
-│ over your lifetime × restart-frequency — not a steady-state point.│
-│   short-lived / scale-to-zero → AOT   long-lived → JIT/R2R        │
-└──────────────────────────────────────────────────────────────────┘
-```
+1. State the system invariant that **Interpretation, Compilation, JIT, AOT** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
----
+## Verify your work
 
-## Summary
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
 
-- **Deoptimization is the keystone:** a guard failing triggers reconstruction of an interpreter frame from deopt metadata and a fall back to interpreting. It converts "probably true" into "true until disproven, instantly recoverable," which is precisely what *legalizes* a JIT's aggressive, profile-driven speculation. AOT and PGO lack this recovery, so their bets must be build/training-time and conservative.
-- **Method JITs vs meta-tracing JITs** are different bets on the compilation unit. Methods (HotSpot, V8, RyuJIT) cross boundaries via inlining and handle branchy code gracefully; traces (PyPy, LuaJIT) follow one hot path across calls — superb for loop-dominated, type-stable code, but vulnerable to **trace explosion** on branchy programs.
-- **AOT for managed languages** (native-image, NativeAOT) buys **fast startup, low memory, no warmup** — at the price of the **closed-world assumption**, which prunes code not provably reachable and thus **breaks reflection, dynamic loading, and runtime codegen** unless declared at build time, and forfeits **runtime adaptive specialization**.
-- **ReadyToRun/CrossGen** is the hybrid: precompile common paths but keep the JIT and full dynamism — a deliberate point between full JIT and full AOT.
-- **PGO** lets AOT approximate the JIT's profile advantage via an offline training run — capturing common-case layout but statically, with no recovery, so the profile must stay representative.
-- The startup-vs-peak choice is **engineering arithmetic**: integrate throughput over the process's lifetime and restart frequency. Short-lived/scale-to-zero → AOT; long-lived → a warmed JIT (or R2R to cut first-request latency). **Serverless cold-start economics are exactly why AOT resurged for managed languages.**
+## Review questions
 
----
-
-## Further Reading
-
-- *Deoptimization* — the HotSpot "uncommon trap" design notes and Urs Hölzle & David Ungar's "Optimizing Dynamically-Dispatched Calls with Run-Time Type Feedback," the foundational work on type feedback and deopt (from the Self project).
-- *Tracing the Meta-Level: PyPy's Tracing JIT Compiler* — Bolz, Cuni, Fijałkowski, Rigo. The canonical meta-tracing paper.
-- *LuaJIT* documentation and Mike Pall's writings on trace compilation — the fastest practical tracing JIT.
-- *GraalVM Native Image* — reachability analysis, reflection configuration, build-time initialization. https://www.graalvm.org/latest/reference-manual/native-image/
-- *.NET Native AOT deployment* and *ReadyToRun* docs — Microsoft Learn. The full JIT / R2R / NativeAOT spectrum with trade-offs.
-- *Profile-Guided Optimization* — GCC and Clang documentation; the Go and .NET PGO guides for the managed-language angle.
-- *Initialize Once, Start Fast: Application Initialization at Build Time* — Wimmer et al., the native-image (Substrate VM) paper.
-- *Crafting Interpreters* — for the interpreter foundations these JITs sit on top of. https://craftinginterpreters.com/
+- Which invariant must remain true when Interpretation, Compilation, JIT, AOT fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

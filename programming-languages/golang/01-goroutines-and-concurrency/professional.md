@@ -1,14 +1,11 @@
 # Goroutines and Concurrency — Professional
 
-> **Topic:** [Goroutines and Concurrency](../README.md)
-> **Focus:** Setting concurrency conventions across a team/org, reviewing concurrent code, incident response for concurrency bugs, and the organizational cost of "everyone invents their own pattern."
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Goroutines and Concurrency** with measurable outcomes and limited coordination?
 
-## Introduction
-
-At this level, the challenge isn't writing correct concurrent code yourself — it's ensuring a team of engineers with varying experience levels writes concurrent code that's correct, consistent, and debuggable *without you reviewing every line*. That means conventions, shared libraries, review checklists, and a plan for the 2 a.m. page when a goroutine leak finally tips a service over.
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -72,15 +69,6 @@ Every service imports this instead of writing its own semaphore. One place to fi
 
 ---
 
-## Pros & Cons
-
-| Approach | Pros | Cons |
-|---|---|---|
-| Mandating a shared internal concurrency package | Consistency, fewer novel bugs, centralized fixes | Requires buy-in and maintenance; can feel restrictive for genuinely novel cases |
-| Checklist-driven review | Catches invisible-in-diff bugs | Only as good as the checklist; needs periodic revision as new bug classes appear |
-
----
-
 ## Best Practices
 
 1. Maintain one internal package for bounded concurrency, retries, and cancellation — treat divergence as a review flag.
@@ -120,45 +108,24 @@ Owner + due date for structural fix:
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```
-Incident response for "goroutines/memory climbing":
-  1. Pull goroutine profile: /debug/pprof/goroutine?debug=2
-  2. Group by stack trace — find the dominant leaking stack
-  3. Identify missing exit condition (timeout / closed channel / canceled ctx)
-  4. Patch + add goleak-covered regression test
-  5. File structural follow-up (shared helper / lint rule)
-```
+1. Define the user or business outcome that **Goroutines and Concurrency** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
----
+## Verify your work
 
-## Summary
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
 
-- The professional-level job is making correct concurrency the *default*, not the exception, across a team.
-- Standardize on a small set of shared, well-tested concurrency primitives instead of letting every engineer reinvent them.
-- Concurrency bugs need their own review checklist because they're invisible in a plain diff read.
-- Every concurrency postmortem should produce a structural fix — a shared helper, lint rule, or checklist update — not just a patched call site.
+## Review questions
 
----
-
-## Further Reading
-
-- *The Go Memory Model*: <https://go.dev/ref/mem>
-- Google SRE Book — *Managing Incidents*: <https://sre.google/sre-book/managing-incidents/>
-
----
-
-## Related Topics
-
-- [Production Debugging — Professional](../07-production-debugging/professional.md) — organizational incident response for live services.
-
----
-
-## Check your understanding
-
-1. Explain Goroutines and Concurrency — Professional Level in your own words and name the problem it solves.
-2. How would you apply the ideas around Introduction, Core Concepts, Code Examples in a realistic engineering change?
-3. What failure mode or misuse should you look for, and what evidence would reveal it?
-4. How would you introduce and govern Goroutines and Concurrency — Professional Level across teams through reversible, measurable increments?
-5. What observable result would convince you that the approach improved the system?
+- Which measurable outcome justifies investing in Goroutines and Concurrency?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

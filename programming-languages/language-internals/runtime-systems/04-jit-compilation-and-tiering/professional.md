@@ -1,54 +1,11 @@
-# JIT Compilation & Tiering — Professional Level
+# JIT Compilation & Tiering — Professional
 
-> **Topic:** JIT Compilation & Tiering
-> **Focus:** Running a JIT in production — code-cache sizing and exhaustion incidents, warmup economics for short-lived and serverless processes (and why this drove AOT), the operational cost of megamorphic sites, tuning levers (`TieredStopAtLevel`, compile thresholds, `--no-opt`), and the engineering decision of JIT vs AOT.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **JIT Compilation & Tiering** with measurable outcomes and limited coordination?
 
-## Introduction
-
-> 🎓 At senior level you learned *which optimizations* the JIT applies and *why* they beat AOT. At professional level the question changes from "how fast can the JIT make this code?" to "**how do I operate a JIT-based fleet so that it is fast when it matters, doesn't fall over, and costs what I budgeted?**" This is where the abstraction leaks into pager alerts, capacity plans, and architecture decisions.
-
-The JIT's bargain — spend resources during execution to learn from the program — has an operational invoice attached. The compiled machine code has to *live somewhere*: a finite **code cache**. The compiler threads consume CPU that competes with your request handlers. The **warmup** period, harmless on a server that runs for weeks, becomes the dominant cost for a function that runs for 300 milliseconds and exits — and that single fact reshaped an industry, pushing the JVM and .NET worlds toward ahead-of-time options (GraalVM Native Image, CRaC, .NET Native AOT, ReadyToRun) for exactly the workloads where the JIT never gets to collect on its loan. A professional has to know *when the JIT is the right tool at all*, and when it is actively the wrong one.
-
-This page is about the things that page you at 3am: a code cache that filled up and silently dropped the JVM back to the interpreter, halving throughput fleet-wide; a deploy strategy that restarted every instance at once and put the whole service into cold-start at peak; a serverless cost overrun because every cold start re-paid warmup; a latency SLO blown by a megamorphic site that never let the hot path compile. It is also about the levers you reach for — and, just as importantly, the levers you should *not* reach for without a measurement, because the defaults are tuned by specialists and most tuning makes things worse.
-
----
-
-## Prerequisites
-
-- **Required:** The senior-level optimization model (inlining, devirtualization, EA, BCE, speculation + guards + deopt) and the middle-level tier pipelines.
-- **Required:** Operational fluency — you have run a service in production, read its GC and CPU metrics, and survived a deploy.
-- **Required:** Understanding of the warmup/steady-state distinction and why short-lived processes suffer.
-- **Helpful:** Exposure to JFR/async-profiler, V8 `--prof`, or equivalent production profiling.
-- **Helpful:** Familiarity with serverless cold-start economics and rolling-deploy mechanics.
-
-You do **not** need (covered elsewhere):
-
-- The frame-by-frame mechanics of deoptimization — its own topic; here it appears only as an operational signal (deopt storms).
-- GC internals — a separate runtime-systems topic, though it interacts with EA and the code cache.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Code cache** | The fixed-size memory region holding all JIT-generated machine code (and stubs, adapters). HotSpot: `ReservedCodeCacheSize`. |
-| **Code-cache exhaustion** | The cache fills; the JIT cannot install new code and may stop compiling — often dropping affected methods back to the interpreter. A throughput cliff. |
-| **Segmented code cache** | HotSpot's split of the cache into non-method, profiled (C1), and non-profiled (C2) segments, so one class of code can't starve another. |
-| **Sweeper / eviction** | The mechanism that reclaims space from cold or superseded compiled methods so the cache can host new ones. |
-| **Warmup** | The interval before hot code reaches its top tier; throughput and tail latency are degraded during it. |
-| **Cold start** | A fresh process (or serverless invocation) that must warm up from scratch — interpreter speed, no profile, empty code cache. |
-| **AOT (Native Image / R2R / Native AOT)** | Compiling to native code before deployment, trading peak throughput and dynamism for instant startup and no warmup. |
-| **CRaC / checkpoint-restore** | Snapshotting a warmed-up JVM process and restoring it, skipping warmup on restart. |
-| **TieredStopAtLevel** | HotSpot flag capping the highest tier used (1 = C1 only; 4 = full). Used to trade peak throughput for faster, cheaper startup. |
-| **CompileThreshold / TierNInvocationThreshold** | Tunable counts that govern when methods compile / tier up. |
-| **`--no-opt` / `--jitless`** | V8/Node flags to disable optimizing compilation (or all JIT), for debugging, security sandboxing, or predictability. |
-| **Deopt storm** | A burst of repeated deoptimization+recompilation on hot methods, burning CPU and tanking throughput. An operational incident. |
-| **Profile-guided AOT** | Recording a profile from a real run and feeding it to an AOT compiler (e.g., V8 code cache, .NET PGO, Graal PGO) to get *some* JIT-like benefit without runtime compilation. |
-| **Warmup harness / pre-touch** | Sending synthetic representative traffic to a fresh instance before it serves real users, to force compilation. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -103,28 +60,6 @@ The meta-rule: **a tuning flag is a hypothesis. Test it against your real worklo
 ### 6. Deopt storms as incidents
 
 A single deoptimization is healthy. A **deopt storm** — a hot method that optimizes, deopts, re-optimizes, deopts, repeatedly — burns CPU on recompilation and runs the hot path at slow-tier speed in between. Causes: genuinely unstable types/branches on a hot path, profile pollution from non-representative warmup, or a guard tied to a value that flips frequently. Symptoms: high compiler CPU, sawtooth throughput, `--trace-deopt` (V8) or JFR deopt events firing repeatedly on the same method. The fix is upstream — stabilize the data or accept the general path — not a flag. (Mechanics live in the deoptimization topic; here it is an operational signal you must recognize.)
-
----
-
-## Real-World Analogies
-
-**The warehouse with fixed shelf space (code cache).** The JIT keeps producing finished goods (compiled methods) and must shelve them. The warehouse has fixed shelves. When they fill, no new goods can be stocked — production halts and you ship from the slow workshop floor (the interpreter) instead. Smart warehouses clear stale stock (the sweeper) and segregate shelves by product type (segmented cache) so one line can't crowd out another. But the building has walls; outgrow them and you must expand it deliberately (raise the size), with inventory tracking (monitoring), not by hoping.
-
-**The food truck vs the restaurant (warmup economics → AOT).** A restaurant open all week amortizes the morning prep over hundreds of covers — prep (warmup) is negligible. A food truck open for one 20-minute rush cannot afford an hour of prep; by the time the kitchen is "warm," service is over. So food trucks pre-prep at a commissary the night before (AOT / Native Image) and arrive ready to serve instantly, accepting a slightly less flexible menu (closed world, reduced dynamism). Same dish, different economics, different right answer.
-
-**The toll plaza that only has staff during compilation (compiler threads on few cores).** If the same small crew that processes cars also has to repaint the lanes (compile), then during repainting the queue backs up — exactly when traffic is heaviest right after opening. On a big plaza with spare staff, repainting is invisible. On a two-booth plaza, it visibly stalls traffic.
-
----
-
-## Mental Models
-
-**Model 1 — Lifetime decides the compilation model.** Plot process lifetime on an axis. Far right (weeks): JIT wins decisively; warmup is noise. Far left (milliseconds): AOT wins; the JIT never collects. The middle is where checkpoint-restore (CRaC) and `TieredStopAtLevel` tuning live. *Before optimizing a JIT, ask where on this axis the process sits — the answer may be "use AOT instead."*
-
-**Model 2 — The code cache is a budget, not infinity.** Treat compiled code like any other finite resource (heap, file descriptors, connections): measure its working set, size it from data, alert before saturation, and understand the failure mode (fallback to interpreter, a throughput cliff). Teams that don't monitor it get surprised by it.
-
-**Model 3 — Warmup is a deployment property, not just a benchmark artifact.** Every restart, scale-out, and rolling deploy injects cold instances into the fleet. Your deploy strategy *is* a warmup strategy: stagger restarts, pre-warm new instances with representative traffic before adding them to the load balancer, and never cold-restart the whole fleet at peak.
-
-**Model 4 — Defaults are a strong prior; tuning is evidence against it.** The tiered defaults encode enormous expertise. A tuning flag must overturn that prior with measured evidence from your workload. Most "tuning" you see in blog posts is cargo-culting; demand the before/after numbers, on the right hardware shape.
 
 ---
 
@@ -212,16 +147,6 @@ Mature teams encode "this hot call must inline" as an automated check (parse JFR
 
 ---
 
-## Use Cases
-
-- **Long-lived throughput services (JIT, defaults):** Kafka brokers, databases, Spring Boot APIs under steady load. Tune only code-cache size if monitoring demands it.
-- **Serverless / FaaS (AOT or CRaC):** functions with frequent cold starts; Native Image or SnapStart/CRaC to eliminate per-invocation warmup tax.
-- **CLI tools and short batch jobs (AOT or `TieredStopAtLevel=1`):** processes that exit before C2 would ever pay off.
-- **Latency-SLO-bound services (JIT + pre-warm + deploy discipline):** keep instances warm, stagger restarts, pre-touch before LB attach.
-- **Security-hardened/sandboxed runtimes (`--jitless`):** where generated executable memory is unacceptable, trading throughput for the absence of W^X-violating pages.
-
----
-
 ## Coding Patterns
 
 **Pattern 1 — Pre-warm before serving traffic.** On startup, drive the hot paths with representative synthetic requests, *then* signal readiness to the load balancer. This converts user-visible cold-start latency into invisible startup time.
@@ -267,24 +192,24 @@ Mature teams encode "this hot call must inline" as an automated check (parse JFR
 
 ---
 
-## Summary
+## Apply it
 
-- The JIT's "spend resources at runtime to learn" bargain has an **operational invoice**: code-cache memory, compiler-thread CPU, and warmup time.
-- The **code cache is finite**; exhaustion drops methods back to the interpreter — a throughput cliff with no application-level explanation. Monitor occupancy, size from data, and know the segmented-cache/sweeper mitigations.
-- **Warmup economics** are decisive for short-lived and serverless processes that die before collecting the JIT's reward — the force that drove **AOT** (GraalVM Native Image, .NET Native AOT/R2R) and **checkpoint-restore (CRaC)** back into managed ecosystems.
-- **Megamorphic sites** are an operational cost: silently more CPU per request, more instances, more money, often introduced by an innocuous change. Guard critical inlining in CI.
-- **Compiler threads compete** with the application, punishing core-constrained containers during warmup.
-- **Tuning levers** (`TieredStopAtLevel`, thresholds, `CICompilerCount`, `ReservedCodeCacheSize`, V8 `--no-opt`/`--jitless`) exist, but the **defaults are a strong prior**: tune only with measured evidence on the real workload and container shape.
-- **Deopt storms** are incidents to recognize (repeated optimize/deopt churn); fix the data, not the flag.
-- The governing decision is **process lifetime and dynamism vs compilation model**: long-lived/dynamic → JIT; short-lived/closed-world → AOT; restart-heavy but warmup-expensive → checkpoint-restore.
+1. Define the user or business outcome that **JIT Compilation & Tiering** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
----
+## Verify your work
 
-## Further Reading
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
 
-- HotSpot code-cache documentation: `ReservedCodeCacheSize`, segmented code cache, the sweeper, and `jcmd Compiler.codecache`.
-- GraalVM Native Image, OpenJDK Project CRaC, and the Spring/Quarkus/Micronaut AOT guides for the JIT-vs-AOT operational trade-offs in practice.
-- .NET documentation on ReadyToRun, Native AOT, and dynamic PGO for the equivalent story on the CLR.
-- V8 flags reference (`--no-opt`, `--jitless`, `--max-opt`) and the V8 code-caching design docs.
-- async-profiler, JFR, and JMC guides for observing compilation, inlining, deopt, and code-cache behavior in production.
-- The interview and tasks files for this topic, which test and exercise the operational reasoning above.
+## Review questions
+
+- Which measurable outcome justifies investing in JIT Compilation & Tiering?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

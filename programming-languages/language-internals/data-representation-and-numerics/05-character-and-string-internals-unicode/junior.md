@@ -1,68 +1,11 @@
-# Character & String Internals (Unicode) — Junior Level
+# Character & String Internals (Unicode) — Junior
 
-> **Topic:** Character & String Internals (Unicode)
-> **Focus:** A string is not a sequence of letters. It is a sequence of bytes that *pretends* to be letters. Learn the four layers between "the bytes on disk" and "the smiley face you see."
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **Character & String Internals (Unicode)** in one small example and prove the result?
 
-## Introduction
-
-> Focus: **What is a string actually made of, and why does `"😀".length` sometimes say `2`?**
-
-You have used strings since your very first `Hello, world`. You think you know what a string is: a sequence of characters, where each character is a letter, digit, space, or punctuation mark. That mental model is wrong, and it is wrong in a way that will eventually corrupt someone's name, break a search box, or crash an app.
-
-Here is the truth. A string, at the machine level, is **a sequence of bytes**. A byte is a number from 0 to 255. By itself a byte means nothing — `0x41` is just the number 65. To turn bytes into text you need an **encoding**: an agreed-upon rule that says "byte 65 means the letter `A`." For decades there were dozens of incompatible encodings, and sending text from one computer to another was a gamble. Then the world (mostly) agreed on **Unicode**, a single gigantic catalogue that assigns a number — a **code point** — to every character humanity uses, from `A` to `あ` to `😀` to ancient Egyptian hieroglyphs. And it agreed on **UTF-8**, a way to pack those code points into bytes.
-
-The single most important idea on this page is that there are **four different layers**, and confusing them is the root of almost every text bug:
-
-1. **Bytes** — raw 8-bit numbers. What is on disk, in a file, on the network.
-2. **Code units** — the chunks an encoding works in (1 byte for UTF-8, 2 bytes for UTF-16).
-3. **Code points** — the Unicode number for one character (`U+0041` for `A`, `U+1F600` for 😀).
-4. **Grapheme clusters** — what a *human* calls "one character" on screen (the family emoji 👨‍👩‍👧‍👦 is *one* of these but several code points).
-
-> 🎓 **Why this matters for a junior:** The moment your app handles a name with an accent, a Japanese username, or an emoji, the gap between these four layers becomes real. `len(string)` gives you a different answer at each layer. If you pick the wrong one, you truncate a name in the middle of a letter, you reverse a string and turn 😀 into garbage, or you tell a user their password is "too long" when it is six emoji. Getting this right in your first year separates engineers who ship correct software from those who ship "works on my machine (with ASCII)."
-
-This page covers the four layers, what ASCII and Unicode are, why UTF-8 won, and how to *not* break text in five languages. The next level (`middle.md`) goes deep on UTF-8/UTF-16 byte mechanics and surrogate pairs; `senior.md` covers normalization, case folding, and collation; `professional.md` covers string storage internals and security attacks.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** What a byte is (an 8-bit number, 0–255) and that everything in a computer is ultimately bytes.
-- **Required:** How to write and run a simple program in at least one language (Java, Python, Go, JavaScript, or Rust).
-- **Required:** Basic familiarity with `length`/`len` on a string and indexing like `s[0]`.
-- **Helpful but not required:** Having seen hexadecimal (`0x41` = 65).
-- **Helpful but not required:** Having once seen a "weird character" like `Ã©` appear where `é` should be — that is mojibake, and you will learn why.
-
-You do **not** need to know:
-
-- The exact bit layout of UTF-8 (that is `middle.md`).
-- Normalization forms NFC/NFD or case folding (that is `senior.md`).
-- How strings are stored in memory by the JVM or Python (that is `professional.md`).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Byte** | An 8-bit number, 0–255. The raw unit of storage. Text on disk is bytes. |
-| **Character** | An informal, ambiguous word. Sometimes means a code point, sometimes a grapheme. Avoid it when you want to be precise. |
-| **Encoding** | A rule mapping between abstract characters and bytes. UTF-8, UTF-16, ASCII, Windows-1252 are encodings. |
-| **ASCII** | The original 7-bit encoding: 128 characters (`A`–`Z`, `a`–`z`, `0`–`9`, punctuation, control codes). Bytes 0–127. |
-| **Unicode** | A universal catalogue assigning a unique number (code point) to every character. *Not* an encoding by itself. |
-| **Code point** | The Unicode number for one abstract character. Written `U+` then hex: `U+0041` is `A`, `U+1F600` is 😀. Range: `U+0000` to `U+10FFFF`. |
-| **Code unit** | The fixed-size chunk an encoding processes. 8 bits in UTF-8, 16 bits in UTF-16. One code point may take several code units. |
-| **UTF-8** | The dominant encoding. Variable width: 1 to 4 bytes per code point. ASCII bytes are unchanged. |
-| **UTF-16** | An encoding using 16-bit code units. Used internally by Java, JavaScript, C#, Windows. |
-| **Grapheme cluster** | What a human perceives as a single character on screen. May be many code points (e.g. é written as `e` + combining accent). |
-| **Glyph** | The actual visual shape a font draws for a grapheme. The font's job, not the encoding's. |
-| **Mojibake** | Garbled text from decoding bytes with the wrong encoding. `café` becoming `cafÃ©`. |
-| **Rune** | Go's name for a code point (a 32-bit value). |
-| **Surrogate pair** | Two UTF-16 code units used together to encode one code point above `U+FFFF` (like an emoji). |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -130,30 +73,6 @@ UTF-8 won the web (over 98% of pages) because:
 - **It is compact for English/Western text.**
 
 The practical advice for a junior: **use UTF-8 everywhere** — files, APIs, databases, source code — unless something forces you otherwise.
-
----
-
-## Real-World Analogies
-
-**The shipping container.** Bytes are like the contents of a shipping container: just stuff. The encoding is the customs manifest that says what the stuff *means*. Hand the wrong manifest to the wrong port and they unpack your electronics thinking they are bananas. That is mojibake.
-
-**The phone-number directory.** Unicode is a giant phone book that gives every person (character) a unique number (code point). It does *not* tell you how to dial — that is the encoding. UTF-8 and UTF-16 are two different dialing plans for the same phone book.
-
-**LEGO bricks.** A grapheme cluster is like a LEGO spaceship a child calls "one ship." It is built from many bricks (code points). If you grab it by one brick and pull, it falls apart. That is what happens when you reverse 👨‍👩‍👧‍👦 brick-by-brick: you get a pile of disconnected pieces, not a mirrored ship.
-
-**Accent stickers.** The accented `é` can be made two ways: a pre-printed `é` stamp (one code point, `U+00E9`), or a plain `e` with an accent sticker placed on top (two code points, `e` + `U+0301`). They look identical on screen but are different byte sequences — which is why "search for café" can fail to find a café spelled the other way. (Fixing this is *normalization*, covered in `senior.md`.)
-
----
-
-## Mental Models
-
-**Model 1: A string is bytes wearing a costume.** Never forget the bytes are underneath. When something goes wrong with text, drop down a layer and look at the actual bytes. Tools: `hexdump`, `s.encode('utf-8')` in Python, `[]byte(s)` in Go.
-
-**Model 2: The ladder of layers.** Bytes → code units → code points → graphemes → glyphs. Each rung is *more* human and *less* machine. When a library gives you a "length" or lets you index, the first question is always: **which rung am I on?** Most languages put you on the code-unit rung whether you like it or not.
-
-**Model 3: ASCII is a happy lie.** As long as your data is pure ASCII, all four layers collapse into one: 1 byte = 1 code unit = 1 code point = 1 grapheme. Every bug on this page is invisible. This is why text bugs "work on my machine" — the developer tested with English. The lie breaks the instant a real user types `Müller`, `田中`, or `🎉`.
-
-**Model 4: Length is a question, not a fact.** "How long is this string?" has at least four valid answers. "How long" for a database column limit (bytes), for a UI character count (graphemes), for a JSON serializer (code units), and for an algorithm (code points) are all different. Pick deliberately.
 
 ---
 
@@ -250,42 +169,6 @@ def truncate_bytes(s, max_bytes):
 
 ---
 
-## Pros & Cons
-
-**UTF-8**
-
-| Pros | Cons |
-|------|------|
-| ASCII-compatible; old text just works | Cannot index to the Nth character in O(1) — must scan |
-| Compact for English/Western text | CJK text is 3 bytes/char (vs 2 in UTF-16) |
-| No byte-order ambiguity | Variable width complicates naive substring code |
-| Self-synchronizing; robust to corruption | Byte length ≠ character length, surprising beginners |
-| The web standard; universally supported | |
-
-**UTF-16** (Java/JS/Windows)
-
-| Pros | Cons |
-|------|------|
-| Most BMP characters are exactly 2 bytes | Has surrogate pairs — *still* variable width, despite the myth |
-| `char` maps to one code unit cleanly | Byte-order problem (needs a BOM or known endianness) |
-| Compact for CJK | Not ASCII-compatible; full of `\x00` bytes |
-| | `length` lies for any emoji/astral character |
-
-**The core trade-off:** there is no encoding where "one unit = one human character" for *all* text. Variable-width is unavoidable because human "characters" are not fixed-size. Any model that pretends otherwise (like "a `char` is a character") is a simplification that breaks on emoji.
-
----
-
-## Use Cases
-
-- **Web forms and APIs:** always UTF-8 in, UTF-8 out. Set `Content-Type: application/json; charset=utf-8`.
-- **File I/O:** open files with an explicit encoding (`open(path, encoding="utf-8")` in Python; never rely on the platform default, which differs on Windows).
-- **Database columns:** use `utf8mb4` in MySQL (plain `utf8` there is a 3-byte trap that rejects emoji), `UTF8` in PostgreSQL.
-- **Username / display-name validation:** count *graphemes* for a "max 20 characters" rule, not code units, or a user with emoji hits the limit early.
-- **Search boxes:** normalize before comparing (see `senior.md`) so `café` finds both spellings of `é`.
-- **Log files and debugging:** be ready to `hexdump` when text looks wrong — the bytes never lie.
-
----
-
 ## Coding Patterns
 
 **Pattern 1: Decode at the boundary, work in code points, encode at the boundary.** Your program's *inside* should hold decoded text (Python `str`, Go `[]rune` when needed, Java `String`). Bytes appear only at the edges: reading files, network, databases. Decode immediately on the way in, encode at the last moment on the way out. Never let raw bytes leak into business logic.
@@ -335,13 +218,24 @@ sock.send(result.encode("utf-8"))  # encode at the boundary
 
 ---
 
-## Summary
+## Apply it
 
-- A string is **bytes plus an encoding**. There is no plain text.
-- There are **four layers**: bytes → code units → code points → grapheme clusters. Confusing them causes nearly every text bug.
-- **ASCII** is 128 characters; **Unicode** assigns a code point to every character; **UTF-8** packs code points into 1–4 bytes and is the modern default.
-- **Length is ambiguous**: the same string reports `3`, `4`, `6`, or `7` depending on the layer your language counts. Choose deliberately.
-- **Emoji and astral characters** (above `U+FFFF`) are where naive code breaks: doubled lengths, corrupted reverses, broken truncation.
-- **Best practice:** UTF-8 everywhere, declare encodings explicitly, iterate by the right unit, test with non-ASCII data.
+1. Choose one small, known input for **Character & String Internals (Unicode)**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
-The next level, `middle.md`, opens up the bytes themselves: exactly how UTF-8 encodes 1–4 bytes, what surrogate pairs are in UTF-16, the reserved `0xD800–0xDFFF` range, and the BOM.
+## Verify your work
+
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
+
+## Review questions
+
+- What problem does Character & String Internals (Unicode) solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

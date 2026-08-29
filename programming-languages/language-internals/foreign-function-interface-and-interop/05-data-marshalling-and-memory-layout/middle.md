@@ -1,56 +1,11 @@
-# Data Marshalling & Memory Layout — Middle Level
+# Data Marshalling & Memory Layout — Middle
 
-> **Topic:** Data Marshalling & Memory Layout
-> **Focus:** The four hard problems behind every binding — encodings, struct layout, pinning, and ownership — and how each runtime gives you a tool for each. Where the bugs actually live.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **Data Marshalling & Memory Layout** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-> Focus: **How do the four hard problems of marshalling — encoding, layout, pinning, ownership — actually behave, and what is the precise tool for each in Python, Java, Go, Rust, and C#?**
-
-At the junior level you learned *that* strings, structs, arrays, and ownership are the hard parts. At this level you learn *how* each one works in enough detail to write correct bindings on your own and to debug them when they fail. The recurring theme: marshalling is a set of **contracts**, and a binding is correct exactly when both sides honor the same contract — same encoding, same byte offsets, same lifetime, same allocator.
-
-The reason this is hard is that your language's safety net stops at the FFI boundary. The borrow checker, the GC, bounds checking, type checking — none of them see across the `extern "C"`. So the discipline you'd normally get for free has to be re-established by hand, per call. The good news is that the failure modes are finite and well-understood; once you can name them, you can prevent them.
-
-> 🎓 **Why this matters at the middle level:** This is the level where you stop copying binding code from Stack Overflow and start writing it. You'll be asked to wrap a C library nobody has wrapped, or to fix a binding that crashes "randomly." Random crashes in FFI are almost never random — they're a lifetime bug, an allocator mismatch, or an unpinned buffer. Knowing the four contracts turns "it crashes sometimes" into "the GC moved the buffer on line 12."
-
-This page covers: **string encodings** (UTF-8 vs UTF-16, who allocates the returned string, `CString`/`CStr`), **struct layout** (alignment, padding, why default layout is dangerous), **arrays and buffers** (pointer+length, copy vs zero-copy, pinning per runtime), and **ownership and lifetime** (allocator matching, the three conventions, keeping objects alive across calls). `senior.md` goes deeper into ABI-exact layout, GC internals, and zero-copy at scale.
-
----
-
-## Prerequisites
-
-- **Required:** Everything in `junior.md`: the three mismatches, the iron allocator rule, and basic per-language binding syntax.
-- **Required:** Comfort calling a C function from at least two of: Python, Go, Rust, Java, C#.
-- **Required:** Understanding of pointers, stack vs heap, and that a struct is a contiguous block of bytes.
-- **Helpful:** A working idea of what a garbage collector does — that it reclaims unreferenced memory and may compact/move live objects.
-- **Helpful:** Basic familiarity with UTF-8 (variable-width, ASCII-compatible) vs UTF-16 (mostly 2 bytes per code unit).
-
-You do **not** yet need: the full ABI (System V vs Windows x64), cache-line and false-sharing concerns, or designing a public binding API. Those are `senior.md` and `professional.md`.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Alignment** | A type's required address granularity. A 4-byte `int` is typically 4-byte aligned: its address must be a multiple of 4. |
-| **Padding** | Unused bytes the compiler inserts between fields so each field meets its alignment requirement. |
-| **`#[repr(C)]`** | Rust attribute forcing C-compatible field order, alignment, and padding. |
-| **`LayoutKind.Sequential`** | .NET struct layout that keeps fields in declared order with platform padding (the usual choice for C interop). |
-| **`CString` / `CStr`** | Rust types: `CString` owns a NUL-terminated buffer (allocated by Rust); `CStr` is a borrowed view of an existing NUL-terminated C string. |
-| **Pinning** | Preventing the GC from moving (and, with a live reference, freeing) an object during a native call. |
-| **`GCHandle.Alloc(obj, GCHandleType.Pinned)`** | .NET API to pin a managed object and obtain a stable address. |
-| **`fixed`** | C# statement that pins a managed array/string for the duration of a block and yields a raw pointer. |
-| **`GetPrimitiveArrayCritical`** | JNI call that gives a (usually) direct pointer into a Java array, suspending GC for that window — must be released quickly. |
-| **`GC.KeepAlive`** | .NET method that creates a "use" of an object at a point in code, preventing the GC from collecting it before then. |
-| **Buffer protocol / `memoryview`** | Python's mechanism for exposing an object's raw bytes (e.g. NumPy arrays) without copying. |
-| **Out-parameter** | A pointer argument the callee writes into; the C idiom for returning extra values. |
-| **Opaque pointer** | A `void*`/handle whose internals are hidden; you pass it through without dereferencing. |
-| **LP64 / LLP64** | Data models. On 64-bit Unix (LP64) `long` is 64-bit; on 64-bit Windows (LLP64) `long` is 32-bit. A classic interop trap. |
-| **`size_t` / `intptr_t`** | C types sized to the platform's pointer width; map to `usize`/`isize`, `nuint`/`nint`, `C.size_t`, `ctypes.c_size_t`. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -151,38 +106,6 @@ The "obvious" numeric types hide traps:
 When C exposes a complex object (a database connection, a file handle, a parser), the clean design is an **opaque handle**: C returns a `void*` (or a typed-but-incomplete pointer), and you pass it back to every function that operates on it. You **never** dereference it. This decouples your binding from C's internal layout — the struct can change size and you don't care. Treat the handle as a token.
 
 **Out-parameters** are how C returns multiple values: you pass `&result`, the function writes into it, and you read it after. Marshalling an out-parameter means allocating the destination on your side (or pinning it) and passing its address (`byref`/`ref`/`&mut`/`POINTER`). Error-code conventions ride along: many C functions return an `int` status and write the real result through an out-parameter — your binding must check the status before trusting the out value.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Three string questions (length/encoding/ownership)** | Shipping a parcel: how is it sealed, what language is the label in, and who pays return postage? |
-| **Struct padding** | A pre-printed form with fixed-size boxes. You can't write the date in the name box; the boxes are at fixed positions. |
-| **Zero-copy** | Letting the inspector read your original ledger instead of photocopying it — faster, but don't shred it mid-inspection. |
-| **Pinning** | A "do not move during renovation" tag on a specific shelf while the warehouse is reorganized. |
-| **`GC.KeepAlive`** | Telling the cleaning crew "this box is still in use" so they don't haul it away while a contractor works from it. |
-| **Allocator matching** | Returning equipment to the exact depot that issued it; another depot's system rejects it. |
-| **Opaque handle** | A locker key. You operate the locker via the key; you never see the locker's internal mechanism. |
-| **Out-parameter** | Handing over a blank form for the office to fill and return. |
-| **LP64/LLP64 `long`** | A "pint" that means 568 ml in one country and 473 ml in another. Same word, different size. |
-
----
-
-## Mental Models
-
-### The Four Contracts
-
-Every binding is four simultaneous contracts: **encoding** (bytes mean the same characters), **layout** (fields sit at the same offsets), **lifetime** (the data stays valid and unmoved for exactly as long as both sides need it), and **ownership** (exactly one allocator frees each allocation). A binding is correct iff all four hold. When one breaks you get a signature failure: encoding → mojibake; layout → garbage fields; lifetime → use-after-free / GC-moved crash; ownership → leak or double-free. Diagnose by asking which contract broke.
-
-### Draw the Bytes
-
-When a struct or string binding misbehaves, stop guessing and *draw the byte layout on both sides*. Mark offsets, sizes, and padding. Nine times out of ten the bug is visible: a field two bytes off, a missing NUL, a `long` that's 4 bytes on one side and 8 on the other. Bytes don't lie; your mental model of them might.
-
-### Lifetime Is a Window, Not a Point
-
-Validity isn't binary; it's an interval. The data must be valid *from the moment C receives the pointer until the moment C is done with it* — which may extend past the call if C stored the pointer. Pinning and keep-alive both widen that window deliberately. Most lifetime bugs are a window that's too narrow: you freed/unpinned/dropped while C still held the pointer.
 
 ---
 
@@ -336,32 +259,6 @@ JNIEXPORT jlong JNICALL Java_Demo_process(JNIEnv *env, jclass c,
 
 ---
 
-## Pros & Cons
-
-**Pros:**
-
-- Each runtime gives a precise tool per contract — encodings, layout attributes, pinning, paired frees — so correct bindings are achievable, not magic.
-- Zero-copy plus pinning gives near-native performance for large buffers.
-- Opaque handles decouple your binding from C's internal struct layout.
-
-**Cons:**
-
-- Four contracts means four ways to be wrong, often with delayed, location-shifted crashes.
-- Pinning fights the GC: pin too long and you fragment the heap or stall collection.
-- Encoding and `long`-width bugs are silent and platform-dependent.
-- Java's lack of raw struct layout forces field-by-field marshalling or the newer FFM API.
-
----
-
-## Use Cases
-
-- Wrapping a C parser/codec where you pass buffers in and read structured results back via out-parameters.
-- Binding a database driver: query strings (encoding), row buffers (zero-copy + pinning), connection handles (opaque).
-- Calling Win32/POSIX APIs with their structs, wide/UTF-8 strings, and status-code-plus-out-param conventions.
-- Sharing NumPy arrays with C/Fortran numerical kernels with no copy.
-
----
-
 ## Coding Patterns
 
 ### Pattern: Status code + out-parameter, checked
@@ -463,128 +360,24 @@ let s = unsafe { let p = make_string(); let r = CStr::from_ptr(p).to_str()?.to_o
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. List the three independent questions every cross-boundary string poses.
-2. Why does `struct S { char a; int b; }` occupy 8 bytes, not 5?
-3. What does `GC.KeepAlive` accomplish that `fixed`/pinning does not?
-4. Why is a language's `long` a dangerous choice for a C `long` in portable code?
-5. When you receive a `char*` from `strerror`, do you free it? Why or why not?
-6. What's the difference between Rust's `CStr` and `CString`?
+1. Find a real component where **Data Marshalling & Memory Layout** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
-<details>
-<summary>Answers</summary>
+## Verify your work
 
-1. (a) Length/termination (NUL vs counted), (b) encoding (UTF-8/UTF-16/etc.), (c) ownership of a returned string (who frees, with what).
-2. Padding: `int b` must be 4-aligned, so 3 padding bytes follow `a` (offset 1–3), putting `b` at offset 4; total 8.
-3. `KeepAlive` extends an object's *lifetime* (prevents collection) up to a code point; pinning prevents *movement* (and gives a stable address). You may need both — a pinned-but-collectible object is still wrong; a kept-alive-but-movable buffer is still wrong for a stored raw pointer.
-4. `long` is 64-bit on 64-bit Unix (LP64) but 32-bit on 64-bit Windows (LLP64), so the same code marshals different sizes per platform. Use fixed-width types.
-5. No — `strerror` returns a pointer to library-owned (often static) memory. Freeing it is a crash.
-6. `CString` owns a heap NUL-terminated buffer that Rust allocated and will free on drop; `CStr` is a borrowed, unowned view of an existing C string and frees nothing.
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
 
-</details>
+## Review questions
 
----
-
-## Tricky Questions
-
-- **A binding works on Linux, crashes on Windows.** First suspects: `long` width (LP64 vs LLP64) in a struct or signature, or a wide-vs-UTF-8 string assumption.
-- **A C# bool field is sometimes `true` when it should be `false`.** Default `bool` marshals as 4-byte BOOL; the C side wrote 1 byte, leaving 3 garbage bytes. Add `[MarshalAs(UnmanagedType.I1)]`.
-- **A buffer is correct in unit tests but corrupts under load in Java.** A critical-array window that's too long, or GC pressure relocating an unpinned array.
-- **A returned string is fine, then the program crashes on exit.** You freed library-owned memory, or freed callee-allocated memory with the wrong allocator.
-
----
-
-## Cheat Sheet
-
-```text
-STRINGS — three questions: termination? encoding? who frees?
-  Go/Rust string: (ptr,len), UTF-8, NO NUL -> CString to call C
-  Java/C#: UTF-16 -> transcode to UTF-8 (or wide) explicitly
-  Reading back: Rust CStr (borrow), Go C.GoString (copy),
-                C# Marshal.PtrToStringUTF8, Python c_char_p.value
-
-STRUCTS — force C layout, match field sizes
-  Rust #[repr(C)] | C# [StructLayout(Sequential)] | ctypes Structure
-  Watch: padding/alignment, #pragma pack -> Pack/_pack_, long width
-
-ARRAYS — pointer + length; copy or zero-copy
-  zero-copy needs the bytes valid + UNMOVED for the whole call
-
-PINNING / LIFETIME
-  C#:   fixed { } (scoped) | GCHandle.Alloc(Pinned) (long-lived, Free it)
-        GC.KeepAlive(obj) to prevent collection across stored pointers
-  Java: GetPrimitiveArrayCritical (short, no JVM calls inside) + Release
-  Go:   "C must not retain Go pointers"; C-allocate long-lived shared buffers
-  Py:   non-moving GC; keep a reference (refcount) alive
-
-OWNERSHIP — allocator X allocates -> allocator X frees
-  caller-allocates-callee-fills (safest)
-  callee-allocates -> PAIRED free fn (not plain free)
-  callee-owns -> do NOT free
-
-NUMBERS
-  long: 64-bit LP64 (Unix) vs 32-bit LLP64 (Win64) -> use fixed-width
-  size_t/intptr_t -> usize/isize, nuint/nint, c_size_t
-  bool: pin down the width (often I1)
-```
-
----
-
-## Summary
-
-Marshalling resolves into four contracts. **Strings** demand answers to three questions — termination, encoding, ownership — and Go/Rust strings (counted, UTF-8, no NUL) sit opposite C's NUL-terminated `char*`. **Structs** must reproduce C's exact offsets, which means forcing C layout (`#[repr(C)]`, `Sequential`, ctypes `Structure`), matching alignment/padding, and matching field sizes including the `long` LP64/LLP64 trap. **Arrays/buffers** travel as pointer + length, copied or zero-copy, and zero-copy in GC languages requires **pinning** plus a live reference — `fixed`/`GCHandle`/`GC.KeepAlive` in .NET, `GetPrimitiveArrayCritical` in Java, the "no retained Go pointers" rule in Go. **Ownership** rides the allocator-matching law and three conventions for who frees a returned pointer. Master the four and "random" FFI crashes become diagnosable.
-
----
-
-## What You Can Build
-
-- A binding to a C library that uses status-code + out-parameter functions, correctly checked.
-- A zero-copy image/audio buffer bridge with proper pinning in Java or .NET.
-- A safe Rust wrapper type around a C opaque handle that frees exactly once on drop.
-- A cross-platform binding that survives the LP64/LLP64 `long` difference by using fixed-width types.
-
----
-
-## Further Reading
-
-- Your runtime's marshalling reference: .NET `Marshal`/`StructLayout`/`MarshalAs`, JNI string and array functions, Rust `std::ffi` (`CString`, `CStr`), Go cgo documentation, Python `ctypes` and the buffer protocol.
-- The C ABI and struct layout rules (alignment, padding) for your platform.
-- UTF-8 vs UTF-16 transcoding references.
-- This topic's `senior.md` (ABI-exact layout, GC internals, zero-copy at scale).
-
----
-
-## Related Topics
-
-The foreign function interface basics; calling conventions and the C ABI; garbage collection internals (moving vs non-moving collectors); text encodings; memory allocators and the heap; the previous and following topics in this FFI section.
-
----
-
-## Diagrams & Visual Aids
-
-```text
-Struct padding (struct { char a; int b; char c; double d; }):
-
-  offset:  0    1  2  3   4    5  6  7   8    9 ...15  16          23
-          [a] [pad pad pad][   b   ][c][pad...... pad][     d      ]
-           1B   3B padding   4B int  1B   7B padding     8B double
-  total size = 24 (rounded to 8-byte alignment), NOT 14.
-
-
-Lifetime window (must cover C's use of the pointer):
-
-  managed alloc ─┬─ pin/keepalive ──[ C uses pointer ]── unpin ─┬─ free
-                 │<──────────── valid & unmoved ───────────────>│
-   BUG: unpin or free here  ──▶  C reads moved/freed memory.
-
-
-Ownership decision tree for a returned pointer:
-
-  Did C allocate it?
-     ├─ No (you allocated) ............... you free, your allocator
-     └─ Yes
-          ├─ Library gives a free_x()? ... call free_x()  (NOT plain free)
-          └─ Docs say library-owned? ..... do NOT free
-          └─ Unclear? ..................... do NOT free; go find out
-```
+- Which boundary is most affected by Data Marshalling & Memory Layout?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

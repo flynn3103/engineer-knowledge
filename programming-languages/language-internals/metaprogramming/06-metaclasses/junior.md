@@ -1,75 +1,11 @@
-# Metaclasses — Junior Level
+# Metaclasses — Junior
 
-> **Topic:** Metaclasses
-> **Focus:** A class is itself an object. So *something* must have created it. That "something" is a metaclass. What is it, and when do you (almost never) need one?
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **Metaclasses** in one small example and prove the result?
 
-## Introduction
-
-> Focus: **If `dog` is an instance of `Dog`, and `Dog` is itself an object, what is `Dog` an instance of?**
-
-You already know that when you write `dog = Dog()`, the variable `dog` is an **instance** of the class `Dog`. The class `Dog` is the *template* — it knows what methods exist, what attributes to set up, how to build a new dog.
-
-Here is the idea that opens the door to metaclasses: in many languages — Python, Ruby, Smalltalk — **the class `Dog` is itself an object too.** It is a real value that lives in memory. You can assign it to a variable, pass it to a function, print it, ask it questions. And if `Dog` is an object, then by the same logic that says "every object has a class," `Dog` must *also* have a class.
-
-The class of a class is called a **metaclass**.
-
-In Python the answer is almost always one word: `type`.
-
-```python
-class Dog:
-    pass
-
-dog = Dog()
-
-print(type(dog))   # <class '__main__.Dog'>   — the class of the instance
-print(type(Dog))   # <class 'type'>            — the class of the class
-```
-
-So `type` is the thing that *creates classes*, the same way `Dog` is the thing that creates dogs. A metaclass is to a class what a class is to an instance. That single sentence is the whole topic. Everything else is detail.
-
-> 🎓 **Why this matters for a junior:** You will read framework code — Django models, SQLAlchemy tables, ORMs, plugin systems — and find a line like `class User(models.Model):` that does *enormous* invisible work: it builds a database table description, registers the class somewhere, validates fields. That magic is often a metaclass. You do not need to *write* metaclasses (you almost never will). But you need to *recognize* one so that when something weird happens at `class` definition time, you know where to look.
-
-This page covers: what "a class is an object" really means, what a metaclass is, how Python's `type` doubles as both "the type-checking function" and "the class factory," and why the famous advice is **"if you have to ask whether you need a metaclass, you don't."** The next level (`middle.md`) shows how to actually write one and what `__new__`/`__init__`/`__call__` do; `senior.md` covers conflicts, ORMs, and the modern replacements; `professional.md` covers the cross-language picture and production trade-offs.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** What a class and an instance are, in any one language (Python is used most here).
-- **Required:** How to define a class with methods and call `SomeClass()` to make an instance.
-- **Required:** What `__init__` does in Python — it runs when you make an instance.
-- **Helpful but not required:** Basic inheritance (`class B(A)`), and the idea of a base class.
-- **Helpful but not required:** That functions and classes can be passed around as values.
-
-You do **not** need to know:
-
-- How to *write* a metaclass (that's `middle.md`).
-- `__new__`, `__prepare__`, `__set_name__`, MRO, or metaclass conflicts (later levels).
-- Ruby eigenclasses or Smalltalk's metaclass hierarchy (that's `professional.md`).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Instance** | A concrete object built from a class. `dog = Dog()` makes an instance. |
-| **Class** | A template that describes how to build instances and what methods they have. |
-| **Object** | A value that lives in memory and has a type. In Python, *everything* — including classes — is an object. |
-| **Type** | The "kind" of a value. `type(x)` answers "what is `x`?" |
-| **Metaclass** | The class *of a class*. The thing that creates classes, just as a class creates instances. |
-| **`type`** | In Python, the default metaclass. Also the built-in function `type(x)` that tells you an object's class. Same name, two jobs. |
-| **`object`** | In Python, the root base class — every class inherits from it (the top of the *inheritance* tree). |
-| **Class creation** | The moment the `class` statement runs and the class object is built. Happens once, when the module loads — not when you make instances. |
-| **Class body** | The indented code under `class Foo:` — method defs, attributes. It runs once, at class-creation time. |
-| **Factory** | Something that produces objects. A class is a factory for instances; a metaclass is a factory for classes. |
-| **`__init__`** | The method that runs to initialize a *new instance*. |
-| **Declarative class** | A class you write that mostly *declares* fields/structure, and a framework turns that declaration into behavior (e.g. an ORM model). Often powered by a metaclass. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -180,63 +116,6 @@ You will *use* metaclasses indirectly all the time (every Django model, every `a
 
 ---
 
-## Real-World Analogies
-
-**The cookie cutter and the cookie-cutter machine.** An instance is a cookie. A class is the cookie cutter — it stamps out cookies of a fixed shape. A metaclass is the *machine in the factory that manufactures cookie cutters*. Most bakers only ever touch cookies and cutters. The machine that makes cutters is real, it exists, and you almost never need to operate it yourself — but when you want to mass-produce a hundred *new shapes of cutter* with consistent handles, that machine is where you'd go.
-
-**Rubber stamp and stamp-maker.** A class is a rubber stamp; pressing it makes identical instances. The metaclass is the workshop that *engraves new stamps*. You can tell the workshop, "every stamp you make should also engrave a serial number on the back" — that's what writing a metaclass does: it customizes how *all classes of a certain kind* get built.
-
-**The forms office.** Filling out a tax form is making an instance. The blank form template is the class. The bureaucrat who *designs and registers new form templates* — who says "every new form must have a barcode and be logged in the registry" — is the metaclass. They act once, when a new template is created, not every time someone fills one out.
-
-> ⚠️ Analogies break down quickly here. The honest one-liner is: **metaclass : class :: class : instance.** Hold onto that ratio; it is exact, where the cookie/stamp stories are only suggestive.
-
----
-
-## Mental Models
-
-### Model 1: The Two-Step Ladder
-
-Picture a ladder with three rungs:
-
-```text
-   metaclass   (type)          "what builds classes"
-       |  type()
-     class     (Dog)           "what builds instances"
-       |  type()
-   instance    (dog)           "the concrete thing"
-```
-
-Going *down* a rung is "calling": call `type` → get a class; call the class → get an instance. Going *up* a rung is `type()`: `type(dog)` → `Dog`; `type(Dog)` → `type`. The ladder has a top: `type(type)` is `type` itself. We stop there. (Why it stops is a `senior.md` detail; for now: the ladder is finite.)
-
-### Model 2: `class` Is a Function Call in Disguise
-
-When you write:
-
-```python
-class Dog(Animal):
-    legs = 4
-    def bark(self): return "woof"
-```
-
-mentally rewrite it as:
-
-```python
-Dog = type("Dog", (Animal,), {"legs": 4, "bark": <the bark function>})
-```
-
-Both produce the same class. The `class` keyword is friendly syntax over "call the metaclass with name, bases, namespace." Once you see `class` as a *call to a factory*, the question "can I customize that factory?" answers itself — yes, by supplying a different metaclass. That's all a metaclass is.
-
-### Model 3: Construction Time vs. Use Time
-
-There are two distinct clocks:
-
-- **Class-construction time** — when the `class` block runs (import time). Metaclass code fires here.
-- **Instance-construction time** — when you call `Dog()`. `__init__` fires here.
-
-Keeping these clocks separate prevents 90% of metaclass confusion. A metaclass acts at the *first* clock, shaping the class. By the time you're making instances, the metaclass has long since finished its job.
-
----
-
 ## Code Examples
 
 ### Example 1: Proving a class is an object
@@ -316,39 +195,6 @@ The `metaclass=SomeMetaclass` part (or a base class that itself uses one) means:
 
 ---
 
-## Pros & Cons
-
-**Pros (why the mechanism exists):**
-
-- **Lets frameworks do magic at `class` time.** ORMs turn a plain-looking class into a database table; plugin systems auto-register subclasses. This is genuinely useful and powers tools you rely on daily.
-- **Centralizes class-wide policy.** "Every model must have a `created_at` field" can be enforced in one place for all subclasses.
-- **It's the truthful model of the language.** Understanding that classes are objects makes Python's whole object model click — `isinstance`, `type`, descriptors, decorators all become coherent.
-
-**Cons (why you avoid writing them):**
-
-- **Deepest magic in the language.** Code that runs at class-creation time is hard to follow, hard to debug, and surprising to teammates.
-- **Almost always overkill.** A class decorator or `__init_subclass__` usually does the same job with far less mystery.
-- **They compose badly.** Two libraries each using a metaclass can collide (a "metaclass conflict") — a real, confusing error you'll meet later.
-- **Steep learning cliff.** A junior reading metaclass-heavy code can lose hours just figuring out *when* the code even runs.
-
-> Rule of thumb at this level: **read** metaclasses to understand frameworks; **don't write** them. If you think you need one, you almost certainly want a class decorator or `__init_subclass__` instead.
-
----
-
-## Use Cases
-
-You will *encounter* (not author) metaclasses behind:
-
-- **ORMs / declarative models.** Django `models.Model`, SQLAlchemy declarative base, Pydantic v1 — a metaclass reads your declared fields and wires up persistence/validation when the class is defined.
-- **Automatic subclass registration.** Plugin systems where merely *defining* a subclass adds it to a registry, no manual `register()` call needed.
-- **Abstract base classes.** Python's `abc.ABCMeta` (the metaclass behind `abc.ABC`) makes `@abstractmethod` work and blocks instantiation of incomplete subclasses.
-- **Enums.** Python's `enum.Enum` uses a metaclass (`EnumMeta`) to give you the unique-member, iterable behavior.
-- **Singletons / interface enforcement.** Niche cases where every class of a family must obey a rule checked at definition time.
-
-In your own code, the right answer is usually one of the *simpler* tools you'll meet in `middle.md`: a class decorator, or `__init_subclass__`.
-
----
-
 ## Coding Patterns
 
 At junior level the only "pattern" is **recognition**, not authorship.
@@ -389,46 +235,24 @@ Knowing *which rung* a piece of code operates on usually dissolves the confusion
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```text
-INSTANCE  : a thing            dog = Dog()
-CLASS     : makes instances    class Dog: ...
-METACLASS : makes classes      type, or class Meta(type): ...
+1. Choose one small, known input for **Metaclasses**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
-type(dog)   -> Dog       (class of an instance)
-type(Dog)   -> type      (metaclass of a class)
-type(type)  -> type      (the ladder ends; type is its own type)
+## Verify your work
 
-THE CLASS STATEMENT IS A FACTORY CALL:
-  class Dog(Base): body
-  == Dog = type("Dog", (Base,), {namespace from body})
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
 
-TWO CLOCKS:
-  class-creation time  -> runs once at import; metaclass acts here
-  instance-creation    -> runs on Dog(); __init__ acts here
+## Review questions
 
-THE RATIO (memorize):  metaclass : class :: class : instance
-
-YOU SHOULD: recognize metaclasses in frameworks (ORMs, ABCs, enums).
-YOU SHOULD NOT: write one. Prefer a decorator or __init_subclass__.
-TIM PETERS: "If you wonder whether you need metaclasses, you don't."
-```
-
----
-
-## Summary
-
-A **metaclass is the class of a class.** In Python, classes are real objects, so they too have a type, and that type — the factory that builds classes — is `type`. The `class` statement is sugar for calling that factory with a name, a tuple of bases, and a namespace dict; you can even do it by hand with `type(name, bases, namespace)`. Metaclass code runs at **class-creation time** (once, at import), which is a different clock from `__init__`'s instance-creation time.
-
-You will meet metaclasses constantly in *framework* code — ORMs, abstract base classes, enums, plugin registries — and almost never need to *write* one. The guidance to internalize: recognize the mechanism, keep the ratio *metaclass : class :: class : instance* in your head, and reach for simpler tools first. The next level teaches you how to actually build one, and exactly which simpler tools (class decorators, `__init_subclass__`) usually make that unnecessary.
-
----
-
-## Further Reading
-
-- The Python Language Reference, "Data model" — sections on classes, `type`, and metaclasses.
-- The Python `abc` module documentation (`ABCMeta`) — a metaclass you already use.
-- The Python `enum` module documentation — another everyday metaclass.
-- PEP 3115 — "Metaclasses in Python 3000" (introduces `__prepare__`; skim now, read later).
-- PEP 487 — "Simpler customization of class creation" (`__init_subclass__`, `__set_name__`); the modern alternative you'll reach for instead of metaclasses.
+- What problem does Metaclasses solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

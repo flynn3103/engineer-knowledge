@@ -1,31 +1,12 @@
-# Tracing Garbage Collection — Professional Level
+# Tracing Garbage Collection — Professional
 
-> **Topic:** Tracing Garbage Collection
-> **Focus:** Running GC'd systems in production — pause analysis, allocation mechanics (TLABs, bump pointers), pacing and headroom tuning, reading GC logs/traces, and the concrete knobs for Go and the JVM.
+<!-- level-focus -->
+At professional level, focus on this question:
 
+> How should teams adopt and operate **Tracing Garbage Collection** with measurable outcomes and limited coordination?
+
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
-
-## Introduction
-
-In production, the GC stops being an abstraction and becomes a line on your latency dashboard. A p50 of 8 ms with a p99.9 of 400 ms is almost always a GC story. This tier is about operating GC'd systems: how allocation actually works (because reducing allocation is the highest-leverage tuning), how to read and decompose a pause, how pacing and headroom interact, and the specific knobs that move the needle in Go and the JVM. The throughline: **measure first**. GC tuning done from intuition usually makes things worse.
-
-## Prerequisites
-
-- Senior-tier design space: concurrent/incremental/STW, barriers, safepoints, the throughput/latency/memory trinity.
-- Familiarity with at least one runtime's tooling (Go `runtime/metrics`, pprof, GODEBUG; or JVM GC logs, JFR, async-profiler).
-- Comfort reading a latency histogram and distinguishing p50 from tail percentiles.
-
-## Glossary
-
-- **TLAB (Thread-Local Allocation Buffer):** a per-thread slab of the nursery; threads bump-allocate within it lock-free, refilling from the shared heap only when it empties.
-- **Bump pointer:** allocate by incrementing a single pointer; `O(1)`, no free-list search. Requires contiguous free space.
-- **Allocation rate:** bytes/second the application allocates — the dominant driver of GC frequency.
-- **GC pacing:** the runtime's logic deciding *when* to start a cycle so it finishes before the heap fills.
-- **Headroom:** spare heap above the live set that lets allocation continue during a concurrent cycle.
-- **GC assist:** in Go, mutator goroutines are forced to do marking work proportional to their allocation when they outrun the collector.
-- **Promotion rate:** bytes/second moving from young to old generation; high rates drive expensive major GCs.
-- **Stop-the-world (STW) pause:** wall-clock time all mutators are halted.
-- **GC CPU overhead:** fraction of total CPU spent in the collector (Go's `GOGC` ~ targets this indirectly; JVM "GC time").
 
 ## Allocation in a GC'd Heap
 
@@ -128,6 +109,26 @@ A repeatable playbook:
 - **GC assist masquerading as random slowness:** in Go, allocation-heavy goroutines doing assist work look like sporadic latency on *those requests*, not a global pause — easy to misattribute.
 - **Promotion-rate spikes:** bursty traffic promotes short-lived objects, then a major GC must reclaim them — pauses correlate with *yesterday's* allocation burst, not current load.
 
-## Summary
+---
 
-In production the GC is a latency and cost line item with four simultaneous meters — **pause, throughput CPU, memory footprint, floating garbage** — that trade against each other. Allocation is made cheap by **bump pointers and TLABs** (and free via escape analysis), so the highest-leverage tuning is almost always **allocating less**, not changing flags. Decompose pauses into time-to-safepoint, root scan, and concurrent phases, and watch for **fallback STW collections** (Go's GC assist / JVM's evacuation failure) as the source of tail outliers. Pace with **`GOGC` + `GOMEMLIMIT`** (Go) or **collector choice + `-Xmx` + pause goal** (JVM), always matching the runtime's memory view to its container limit and provisioning headroom for concurrent collectors. Measure the four meters, attack allocation first, change one variable at a time, and validate at the tail under realistic load.
+## Apply it
+
+1. Define the user or business outcome that **Tracing Garbage Collection** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
+
+## Verify your work
+
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
+
+## Review questions
+
+- Which measurable outcome justifies investing in Tracing Garbage Collection?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

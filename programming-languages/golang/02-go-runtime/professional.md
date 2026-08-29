@@ -1,14 +1,11 @@
 # Go Runtime — Professional
 
-> **Topic:** [Go Runtime](../README.md)
-> **Focus:** Setting runtime-tuning conventions across services, capacity planning around GC behavior, and knowing when a "runtime problem" is actually an architecture problem.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Go Runtime** with measurable outcomes and limited coordination?
 
-## Introduction
-
-At the professional level, runtime tuning stops being a per-service tweak and becomes an organizational concern: what are the default `GOMAXPROCS`/`GOMEMLIMIT` settings for every service in the fleet, how do you catch allocation regressions before they reach production, and how do you tell engineers "this isn't a GC problem, your architecture is doing 100x more work than it needs to"?
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -57,16 +54,6 @@ Every service imports `internal/bootstrap` once, and gets consistent, container-
 
 ---
 
-## Pros & Cons
-
-| Approach | Pros | Cons |
-|---|---|---|
-| Fleet-wide runtime defaults library | Consistency, fewer "we forgot to set GOMAXPROCS" incidents | Requires adoption discipline; a bug in the shared library affects everything |
-| GC CPU as a capacity-planning input | Prevents under-provisioning surprises | Requires load-testing with realistic allocation patterns, not synthetic no-op load |
-| Treating Go upgrades as routine | Captures free scheduler/GC improvements | Requires a tested upgrade pipeline; some upgrades do carry behavior changes worth reviewing |
-
----
-
 ## Best Practices
 
 1. Bake `automaxprocs` and a `GOMEMLIMIT` derivation into a shared bootstrap library used by every service.
@@ -94,44 +81,24 @@ Every service imports `internal/bootstrap` once, and gets consistent, container-
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```
-Fleet checklist:
-  [ ] automaxprocs (or equivalent) in every service's bootstrap
-  [ ] GOMEMLIMIT derived from container memory limit
-  [ ] GC CPU % tracked in load-test/capacity reports
-  [ ] Documented diagnostic playbook: gctrace -> heap profile -> allocs/op baseline
-  [ ] Go version upgrades scheduled routinely, not deferred indefinitely
-```
+1. Define the user or business outcome that **Go Runtime** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
----
+## Verify your work
 
-## Summary
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
 
-- Runtime tuning at scale is an organizational default, not a per-service afterthought — centralize `GOMAXPROCS`/`GOMEMLIMIT` derivation.
-- GC CPU overhead is a real capacity-planning input; measure it under realistic load, not synthetic no-op traffic.
-- Learn to distinguish a genuine allocation problem from an architecture doing unnecessary work — small wins from pooling point at the latter.
-- Go version upgrades are a recurring, low-effort source of real scheduler/GC improvements — treat them as routine.
+## Review questions
 
----
-
-## Further Reading
-
-- Go release notes (scan for "runtime" and "GC" sections each release): <https://go.dev/doc/devel/release>
-
----
-
-## Related Topics
-
-- [Production Debugging — Professional](../07-production-debugging/professional.md)
-
----
-
-## Check your understanding
-
-1. Explain Go Runtime — Professional Level in your own words and name the problem it solves.
-2. How would you apply the ideas around Introduction, Core Concepts, Code Examples in a realistic engineering change?
-3. What failure mode or misuse should you look for, and what evidence would reveal it?
-4. How would you introduce and govern Go Runtime — Professional Level across teams through reversible, measurable increments?
-5. What observable result would convince you that the approach improved the system?
+- Which measurable outcome justifies investing in Go Runtime?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

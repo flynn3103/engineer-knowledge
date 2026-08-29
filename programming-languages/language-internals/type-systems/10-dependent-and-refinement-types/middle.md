@@ -1,61 +1,11 @@
-# Dependent & Refinement Types — Middle Level
+# Dependent & Refinement Types — Middle
 
-> **Topic:** Dependent & Refinement Types
-> **Focus:** How these types actually *work* — Pi and Sigma types, how refinement predicates get discharged by an SMT solver, and the precise machinery of `Vec n a` and length-indexed programming.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **Dependent & Refinement Types** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-> Focus: **The junior tier gave you the intuition. Now we open the box: the type-theory primitives (Pi, Sigma), and the two checking strategies (manual proof vs. SMT discharge).**
-
-At the junior level you learned the slogan: refinement types are "a base type plus a predicate," dependent types are "a type that mentions a value." That's true, but it's a black box. This tier explains the *mechanism*.
-
-There are two big things to understand:
-
-1. **The type-theory core.** Dependent types are built from two primitives that generalize the function type and the pair type you already know. The *dependent function type* (the **Pi type**, `Π`) generalizes `A -> B` to the case where the *return type depends on the argument value*. The *dependent pair type* (the **Sigma type**, `Σ`) generalizes the pair `(A, B)` to the case where the *type of the second component depends on the first*. Almost everything in a dependently typed language is one of these two, and once you see them, `Vec n a` and friends stop being magic.
-
-2. **The two checking regimes.** When a type carries a proposition ("this index is in range," "this vector has length n+m"), *something* has to verify it. There are two strategies, and the whole engineering character of a tool depends on which it uses:
-   - **Manual / interactive proof** (Idris, Agda, Coq, Lean): you, the programmer, supply evidence the checker validates. Maximal power, real effort.
-   - **Automatic SMT discharge** (Liquid Haskell, F\*, Dafny): the tool emits a logical *verification condition* and hands it to an SMT solver (typically Z3), which says "valid" or "here's a counterexample." Less manual labor, but bounded by what the solver can decide.
-
-This tier makes both concrete. We'll trace how a refinement like `{v: Int | 0 <= v < len arr}` becomes a logical formula the solver checks, and how `append : Vec n a -> Vec m a -> Vec (n+m) a` forces the *implementation* to be length-correct.
-
-> 🎓 **Why this matters at the middle level:** You can't choose the right tool — or read its error messages — without knowing whether it proves things by SMT or by hand. "Liquid Haskell rejected my code" and "Agda rejected my code" are *very* different situations requiring different fixes. This tier gives you the vocabulary to tell them apart.
-
----
-
-## Prerequisites
-
-- **Required:** The junior tier of this topic — refinement vs. dependent, `Vec n a`, the basic examples.
-- **Required:** Comfort with generics / parametric polymorphism (`forall a. List a -> List a`).
-- **Required:** Familiarity with algebraic data types (sum and product types) and pattern matching.
-- **Helpful:** Basic propositional and first-order logic notation (`∀`, `∃`, `∧`, `=>`). We'll keep it light.
-- **Helpful:** Having written a recursive function over a list. Length-indexed code is recursion with the lengths tracked.
-
-You do **not** need: a course in type theory, the internals of Z3, or the Curry–Howard correspondence in full (that's `senior.md`).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Pi type (`Π`, dependent function)** | A function type `(x : A) -> B(x)` where the **return type `B` depends on the argument value `x`**. Generalizes `A -> B`. |
-| **Sigma type (`Σ`, dependent pair)** | A pair type `(x : A) ** B(x)` where the **type of the second component depends on the first value `x`**. Generalizes `(A, B)`. |
-| **Index (of a type)** | A value parameter that varies the type, e.g. the `n` in `Vec n a`. The type is *indexed by* `n`. |
-| **Parameter (of a type)** | A value/type the family is fixed over, vs. an index that varies per constructor. `a` in `Vec n a` is a parameter; `n` is an index. |
-| **Verification condition (VC)** | A logical formula a tool generates whose validity implies the program is safe. Fed to the SMT solver. |
-| **SMT solver** | "Satisfiability Modulo Theories" — e.g. Z3, CVC5. Decides validity of formulas over arithmetic, arrays, etc. |
-| **Decidable theory** | A logic fragment the solver can always answer (e.g. linear integer arithmetic). Predicates here are "SMT-friendly." |
-| **Discharge** | To prove a verification condition (usually automatically, via the solver). |
-| **Refinement** | `{ v: b \| p }` — base type `b` plus predicate `p` over `v`. The set of `b`-values satisfying `p`. |
-| **Subtyping (refinement)** | `{v:b \| p}` is a subtype of `{v:b \| q}` when `p => q`. The solver checks the implication. |
-| **Type family** | A type parameterized by indices, like `Vec : Nat -> Type -> Type`. `Vec 3 Int` is one member. |
-| **`Nat` / `S` / `Z`** | Natural numbers built as `Z` (zero) and `S k` (successor of `k`). `3` is `S (S (S Z))`. |
-| **Erasure** | Removing index/proof information before runtime, so dependent types cost nothing at runtime. |
-| **Totality** | A function that is defined on all inputs and provably terminates (covered fully in senior). |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -148,32 +98,6 @@ A natural worry: if `Vec 3 Int` carries the number `3`, does that `3` cost memor
 
 ---
 
-## Real-World Analogies
-
-**Pi type = a vending machine whose output slot reshapes itself.** A normal machine always dispenses a can-shaped thing. A "dependent" machine reads your selection (a *value*) and the *shape of the output slot itself changes* to match — pick "umbrella" and an umbrella-shaped slot appears. The output *type* depends on the input *value*.
-
-**Sigma type = a labeled evidence bag.** You bag an item *together with* the paperwork proving a fact about it. The paperwork's content depends on the item: a "weight ≤ 5kg" certificate only makes sense alongside the specific package it certifies. Inseparable pair: value + value-dependent evidence.
-
-**SMT discharge = an automated building inspector.** You file a permit stating "this beam holds 2 tons." An automated inspector checks the structural math and stamps APPROVED or hands back a specific load case that fails. You didn't compute the structural analysis; you *stated the claim* and the inspector *verified* it — within the building codes it knows. Outside those codes (an exotic material), it shrugs.
-
-**Definitional equality = a calculator that simplifies both sides.** To check `2 + 3 = 5` you don't prove it; you *evaluate* both sides and see `5 = 5`. The dependent checker does the same with type-level arithmetic — when both sides compute to the same normal form, done. When they don't auto-simplify (like `n + m` vs `m + n`), you must show your work.
-
----
-
-## Mental Models
-
-**1. Π generalizes `->`, Σ generalizes `(,)`.** Don't memorize new things — *extend* the two you know. A Pi type is "a function whose return type can read the argument's value." A Sigma type is "a pair whose second type can read the first value." Every dependent type you meet is built from these.
-
-**2. Constructors are facts; pattern-matching unlocks them.** `Nil : Vec Z a` is the fact "Nil has length 0." When you match and see `(::)`, the checker *learns* the length is `S k`, and that learned fact rules out impossible cases. Dependent matching is a conversation where each branch teaches the type checker something.
-
-**3. Two engines, two failure modes.** SMT engine fails with "couldn't prove this VC; here's a counterexample (or a timeout)." Definitional-equality engine fails with "these two types don't reduce to the same thing; give me a proof." Knowing which engine you're fighting tells you whether to *strengthen a refinement* or *write a proof term*.
-
-**4. The index lives at compile time and dies at erasure.** Think of `n` in `Vec n a` as a ghost the checker sees and the runtime doesn't. It guides verification, then vanishes. Correctness without runtime cost.
-
-**5. Refinement = set comprehension on types.** `{v: Int | p}` is literally "the subset of `Int` where `p` holds." Subtyping is subset inclusion, and the solver decides inclusion via implication. If you think "sets and implications," refinement typing demystifies.
-
----
-
 ## Code Examples
 
 ### Example 1: A safe `index` via Pi + a bound (Idris)
@@ -263,40 +187,6 @@ This is the line where dependent typing stops being free: the checker couldn't a
 
 ---
 
-## Pros & Cons
-
-### Pros
-
-| Benefit | Why it matters |
-|---------|----------------|
-| **Pi/Sigma unify a lot** | Functions, pairs, existentials, and indexed data all come from two primitives. |
-| **SMT discharge is hands-off** | For arithmetic/array predicates, you state and the solver proves. |
-| **Erasure = zero runtime cost** | Indices and proofs vanish after checking; runtime is plain data. |
-| **Precise specs as types** | `Vec (n+m)` and `{v | v=x+1}` are machine-checked contracts. |
-| **Impossible cases drop out** | Indexed matching removes branches you'd otherwise have to handle. |
-
-### Cons
-
-| Cost | Why it hurts |
-|------|--------------|
-| **SMT is bounded** | Outside decidable theories it times out or fails on true facts. |
-| **Definitional equality runs out** | Non-trivial arithmetic identities need hand-written `rewrite`/proofs. |
-| **VC blowup** | Rich refinements can generate large, slow-to-solve VCs. |
-| **Two skill sets** | Refinement debugging ≠ proof debugging; you must know which engine you face. |
-| **Erasure subtleties** | Getting "free at runtime" right sometimes needs explicit erasure annotations. |
-
----
-
-## Use Cases
-
-- **Provably in-range indexing** with `Fin n` (dependent) or `{i | 0 <= i < len}` (refinement).
-- **Length-preserving / length-relating operations** (`map`, `zip`, `append`, `reverse`) with the relationship in the type.
-- **Boundary refinement of parsed input** so downstream code is guarded automatically.
-- **Returning runtime-sized results safely** via Sigma types (filter, partition, decode).
-- **Verification of arithmetic-heavy code** (offsets, sizes, capacities) where SMT shines.
-
----
-
 ## Coding Patterns
 
 **1. Index your data structures.** Reach for `Vec n a`, `Fin n`, length-indexed trees when the size relationships are the source of bugs.
@@ -334,17 +224,24 @@ This is the line where dependent typing stops being free: the checker couldn't a
 
 ---
 
-## Summary
+## Apply it
 
-Dependent types are built from two primitives that generalize tools you already know: the **Pi type** (`(x:A) -> B x`) is a function whose *return type depends on the argument value*, and the **Sigma type** (`(x:A ** B x)`) is a pair whose *second type depends on the first value*. From these come `replicate`, `Fin n`, length-indexed `Vec`, and the ability to return runtime-sized results. **Indices** (like `n` in `Vec n a`) vary the type per constructor, so pattern-matching *learns facts* and impossible cases drop out — that's why `head`/`index` can't go out of bounds. The two checking regimes define the engineering experience: **refinement types** emit **verification conditions** to an **SMT solver** (automatic but bounded by decidable theories), while **dependent types** rely on **definitional equality** (type-level computation) plus **hand-written proofs** when the checker can't auto-reduce two types. Indices are **erased** before runtime, so the safety is free at execution time. The recurring tension: SMT is hands-off but limited; proofs are unlimited but laborious — and choosing a tool means choosing which of those you'll live with.
+1. Find a real component where **Dependent & Refinement Types** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
----
+## Verify your work
 
-## Further Reading
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
 
-- *Type-Driven Development with Idris* — Brady; the clearest treatment of `Vec`, `Fin`, Pi, and Sigma.
-- The Liquid Haskell tutorial — the VC/SMT pipeline made hands-on.
-- *Programming Language Foundations in Agda* — Pi and Sigma from first principles.
-- Z3 guide and SMT-LIB primer — to understand what "the solver can decide."
-- The F\* tutorial — refinement + dependent in one language, with SMT discharge.
-- Edwin Brady, *"Idris, a General Purpose Dependently Typed Programming Language"* — design rationale, including erasure.
+## Review questions
+
+- Which boundary is most affected by Dependent & Refinement Types?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

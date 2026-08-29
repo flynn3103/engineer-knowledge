@@ -1,63 +1,11 @@
-# DSLs via Metaprogramming — Middle Level
+# DSLs via Metaprogramming — Middle
 
-> **Topic:** DSLs via Metaprogramming
-> **Focus:** Operator overloading to build expression trees, and lambdas-with-receiver for nested, type-safe builders (`html { body { ... } }`). The middle band of techniques between fluent chaining and macros.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **DSLs via Metaprogramming** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-> Focus: **How do you make `User.age > 21` build a query instead of return a boolean, and how do `html { body { ... } }` style nested builders actually work?**
-
-In `junior.md` we built internal DSLs with two techniques: **method chaining** (return `self`) and **blocks** (hand the library a closure to run). Those get you fluent builders and `do ... end` configuration. But the most expressive DSLs you use — SQLAlchemy's `User.age > 21`, pandas' `df[df.price > 100]`, Kotlin's `html { body { ... } }`, Gradle's Kotlin DSL — rely on two more powerful techniques that this page is about:
-
-- **Operator overloading.** You redefine what `+`, `>`, `[]`, or `==` *mean* for your types, so an expression like `User.age > 21` does not evaluate to `True`/`False` — it **builds a data structure** (an expression tree) describing the comparison. The DSL captures the *shape* of the expression rather than its result.
-- **Lambdas with receiver** (Kotlin's "type-safe builders"). A block runs with a specific object as its implicit `this`, so inside `html { ... }` the calls `body { ... }` and `p("Hello")` resolve against an `Html` builder — nested, type-checked, with full IDE autocomplete. This is the modern, statically-typed evolution of Ruby's `instance_eval`.
-
-The thread connecting both: a DSL is really a way to **capture intent as data** and interpret it later. Operator overloading captures expressions as trees you can compile to SQL or differentiate for gradients. Receiver-lambdas capture nested structure (HTML, UI, config) as a tree of builder calls. Once you see "the DSL is building a tree, and something walks that tree later," most production DSLs stop looking like magic.
-
-> 🎓 **Why this matters at the middle level:** These are the techniques behind the ORMs, dataframes, and UI toolkits you build features on every day. Understanding *that* `User.age > 21` returns a query object — not a boolean — explains a whole class of "why doesn't `and`/`if` work here?" bugs, and lets you extend these libraries instead of fighting them.
-
-This page covers: operator overloading to build expression trees (Python `__gt__`/`__and__`, the boolean-coercion trap), how query DSLs compile those trees to SQL, Kotlin's lambdas-with-receiver and `@DslMarker`, Groovy/Scala flavors in brief, and the design tension of "host syntax fighting the domain." `senior.md` then covers compile-time, macro-based DSLs (Rust `html!`, `sqlx::query!`) and DSL design as a discipline.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** Everything in `junior.md`: internal vs external DSLs, method chaining/builders, blocks/closures.
-- **Required:** Comfort with classes, methods, and operators in at least one language (Python and/or Kotlin used heavily here).
-- **Required:** What an **expression tree / AST** is at a basic level — a tree where `a > b` is a node with children `a` and `b`. We re-explain it.
-- **Helpful but not required:** Prior use of an ORM (SQLAlchemy, Django ORM, Exposed) or a dataframe library (pandas). You have seen these DSLs.
-- **Helpful but not required:** Familiarity with Kotlin lambdas and extension functions. We explain receivers from scratch.
-
-You do **not** need to know:
-
-- Macros or compile-time code generation (that is `senior.md`).
-- How a real SQL engine parses or optimizes (compilers territory).
-- Type-system theory; we use types pragmatically.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Operator overloading** | Defining what built-in operators (`+`, `>`, `[]`, `==`) do for your own types. |
-| **Expression tree** | A tree data structure representing an expression: `User.age > 21` becomes a `Gt(Column("age"), Literal(21))` node. |
-| **Deferred / lazy evaluation** | The DSL builds a description now and runs it later, instead of computing a value immediately. |
-| **Column object** | An object standing in for a database column (`User.age`) whose overloaded operators build query fragments. |
-| **Boolean coercion** | The implicit conversion of an object to `True`/`False` (Python `__bool__`). A trap for expression-building DSLs. |
-| **Lambda with receiver** | (Kotlin) a function type `T.() -> R` whose body runs with a `T` as its implicit `this`. The engine of type-safe builders. |
-| **Receiver** | The object that is the implicit `this` inside a block; in `html { }`, the receiver is the `Html` builder. |
-| **Extension function** | A function defined "on" a type from outside it: `fun StringBuilder.shout() = append("!")`. Underpins builder DSLs. |
-| **`@DslMarker`** | A Kotlin annotation that stops inner blocks from accidentally calling outer-receiver methods, removing a class of nesting bugs. |
-| **Builder type** | A throwaway object that collects nested structure (tags, columns, tasks) and renders or returns the result. |
-| **Infix notation** | Calling a method *between* operands without dots/parens: Kotlin/Scala `a shouldBe b`. Makes DSLs read like operators. |
-| **By-name parameter** | (Scala) an argument evaluated each time it is used, not once at the call — lets a DSL control *when* a block runs. |
-| **Compile to SQL** | Walking the expression tree the DSL built and emitting a SQL string + bound parameters. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -81,7 +29,6 @@ class Column:
 
     def __and__(self, other):    # cond1 & cond2
         return And(self, other)
-
 
 class Gt:
     def __init__(self, left, right):
@@ -204,28 +151,6 @@ Different syntax, identical mental model: **capture structure or expressions, in
 
 ---
 
-## Real-World Analogies
-
-**A blueprint vs. the building.** `User.age > 21` is a blueprint of a comparison, not the comparison itself. Operator overloading hands you a blueprint (the tree); a separate builder (`to_sql`) constructs the real thing later. DSLs that defer evaluation are always blueprint-makers.
-
-**A stencil set.** Lambdas-with-receiver are nested stencils: the outer stencil (`html`) frames the page, an inner stencil (`body`) frames a region, and inside each you can only draw shapes that stencil allows. `@DslMarker` is the rule that you cannot reach through the inner stencil to scribble on the outer one.
-
-**Sign language vs. spoken words.** Operator overloading reuses familiar gestures (`>`, `&`) to mean something domain-specific. It is powerful precisely because readers already know the gestures — but dangerous when the gesture *almost* means the usual thing (the `and`-vs-`&` trap is exactly this near-miss).
-
----
-
-## Mental Models
-
-**Model 1: "Operators are constructors in disguise."** When you overload `>`, you are not comparing — you are *constructing a node*. Read `a > b` in a DSL as `Gt(a, b)`. Every overloaded operator is a hidden constructor.
-
-**Model 2: "Build a tree now, walk it later."** Separate the two phases in your head: phase one assembles a tree (overloading, receiver-lambdas); phase two interprets it (compile to SQL, render HTML, compute gradients). Bugs usually live in exactly one phase — find which.
-
-**Model 3: "The receiver is the room you are standing in."** Inside a receiver-lambda, unqualified calls resolve against the current receiver. `html { body { p(...) } }` is "stand in the html room, step into the body room, call `p` (which only the body room offers)." `@DslMarker` locks the door behind you.
-
-**Model 4: "The host's grammar is a fixed budget."** You cannot invent syntax in an internal DSL — only repurpose what the host allows. Python gives you `&` but not custom keywords; Kotlin gives you trailing-lambda `{ }` but not arbitrary infix symbols. Good DSL design is spending that fixed budget where it buys the most readability.
-
----
-
 ## Code Examples
 
 ### Example 1: A pandas-style mask (operator overloading you already use)
@@ -316,34 +241,6 @@ The `implicit class` auto-wraps any value so `actual shouldBe expected` compiles
 
 ---
 
-## Pros & Cons
-
-**Pros**
-
-- **Expression DSLs are extremely concise.** `df[(df.a > 1) & (df.b < 2)]` packs filter logic that would be a verbose loop into one readable line.
-- **Deferred trees are portable.** Because the DSL builds *data*, you can compile the same expression to SQL, to an in-memory filter, or to an optimizer's plan.
-- **Receiver-lambdas give nesting + type safety + autocomplete.** Kotlin builders read like markup yet the compiler checks every call and the IDE completes it.
-- **Operators reuse knowledge.** Readers already understand `>`, `+`, `&`; a well-chosen overload needs no new vocabulary.
-
-**Cons**
-
-- **Near-miss operators mislead.** When `>` *almost* behaves normally, the `and`-vs-`&` and short-circuit traps produce silent wrong results, not errors.
-- **Overloading can be abused.** Operators with surprising meanings (`<<` for "append to query"?) hurt readability more than they help.
-- **Tree-building DSLs are harder to debug.** A wrong query is a wrong *tree*; you must inspect the structure, not a stack trace.
-- **Receiver scoping is subtle.** Without `@DslMarker`, nested builders silently resolve to the wrong receiver. The fix exists but must be remembered.
-
----
-
-## Use Cases
-
-- **Querying:** SQLAlchemy, Django `Q`, jOOQ, LINQ, Exposed — operator-overloaded predicates + fluent chaining, compiled to SQL.
-- **Dataframes / arrays:** pandas, Polars, NumPy masks — overloaded comparison/arithmetic build vectorized operations.
-- **Autograd / math:** deep-learning frameworks overload `+`, `*`, `@` to build a computation graph they later differentiate. (The "build a tree, walk it later" model, applied to gradients.)
-- **Markup / UI:** Kotlin HTML, Jetpack Compose, Ktor routing — receiver-lambdas nest structure with type safety.
-- **Configuration:** Gradle Kotlin DSL, server/route config — receiver-lambdas, often the typed successor to a Groovy/Ruby block DSL.
-
----
-
 ## Coding Patterns
 
 **Pattern: overloaded operator returns a node, never a value.** Comparison/arithmetic operators in an expression DSL construct tree nodes. Keep them pure and side-effect free.
@@ -382,34 +279,24 @@ The `implicit class` auto-wraps any value so `actual shouldBe expected` compiles
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-| Idea | One-liner |
-|------|-----------|
-| Operator overloading | Redefine `>`, `&`, `[]` to *build nodes*, not compute values. |
-| Expression tree | `User.age > 21` → `Gt(Column("age"), 21)`. |
-| Two-phase DSL | Build the tree, then walk it to emit SQL/HTML/gradients. |
-| Boolean-coercion trap | `and`/`or`/`if` aren't overloadable → use `&`/`|`/`~` + parens. |
-| `__bool__` raise | Makes `if expr:` fail loudly instead of lying. |
-| Parameterize on interpret | Emit `?` + bound params → injection-safe by construction. |
-| Lambda with receiver | `T.() -> Unit`: block's `this` is a `T`. Kotlin builder engine. |
-| `@DslMarker` | Compiler bans calling outer receivers from inner scope. |
-| Scala flavor | implicits + infix (`a shouldBe b`) + by-name params. |
-| Pick safe overloads | Overload only where domain meaning ≈ usual meaning. |
+1. Find a real component where **DSLs via Metaprogramming** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
----
+## Verify your work
 
-## Summary
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
 
-The middle band of internal-DSL techniques is **operator overloading** and **lambdas-with-receiver**. Operator overloading turns expressions like `User.age > 21` into **expression trees** — data you interpret later by walking the tree to emit SQL, render a mask, or build a gradient graph. The recurring shape is *build a tree now, interpret it later*, and the recurring trap is **boolean coercion**: Python's `and`/`or`/`if` are not overloadable, so expression DSLs use `&`/`|`/`~` with parentheses. The interpret phase is also where these DSLs earn their keep, by parameterizing literals and preventing injection.
+## Review questions
 
-**Lambdas with receiver** (Kotlin `T.() -> Unit`) are the statically-typed evolution of Ruby's `instance_eval`: a block runs with a chosen object as its implicit `this`, giving nested builders (`html { body { ... } }`) that are type-checked and autocompleted. `@DslMarker` closes the nesting footgun where inner blocks reach the wrong receiver. Scala (implicits, infix, by-name) and Groovy (delegate closures) reach the same destination by other roads. The next tier, `senior.md`, pushes into **macros**: DSLs validated at *compile time* (Rust's `html!`, `sqlx::query!`) and the broader discipline of DSL design.
-
----
-
-## Further Reading
-
-- SQLAlchemy Core "Expression Language" docs — the reference implementation of operator-overloaded query DSLs; read how `Column` builds clauses.
-- Kotlin documentation, "Type-safe builders" — the canonical lambda-with-receiver walkthrough, including the HTML example.
-- The pandas indexing/boolean-mask docs — see the `&`/`|`/parentheses rule explained from the user's side.
-- Martin Fowler, *Domain-Specific Languages*, chapters on "Expression Builder" and "Closure" — the pattern names behind these techniques.
+- Which boundary is most affected by DSLs via Metaprogramming?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

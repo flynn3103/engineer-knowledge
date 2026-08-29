@@ -20,12 +20,12 @@ The thread connecting every topic here is **when**. When is an argument evaluate
 
 | # | Topic | The question it answers |
 |---|---|---|
-| 01 | [Evaluation Strategies (call-by-x)](01-evaluation-strategies-call-by-x/) | When and how is an argument passed — by value, reference, name, need? |
-| 02 | [Eager vs. Lazy Evaluation](02-eager-vs-lazy-evaluation/) | Compute now, or only when the result is demanded? |
-| 03 | [Evaluation Order & Sequencing](03-evaluation-order-and-sequencing/) | In what order do sub-expressions and their side effects happen? |
-| 04 | [Interpretation, Compilation, JIT, AOT](04-interpretation-compilation-jit-aot/) | When does source become executable, and on what spectrum? |
-| 05 | [Bytecode & Virtual Machines](05-bytecode-and-virtual-machines/) | What is this intermediate "machine" that JVM/CLR/CPython/Wasm run? |
-| 06 | [Effect & Error Execution Models](06-effect-and-error-execution-models/) | How do exceptions, effects, and control flow actually unwind and resume? |
+| 01 | [Evaluation Strategies (call-by-x)](01-evaluation-strategies-call-by-x/README.md) | When and how is an argument passed — by value, reference, name, need? |
+| 02 | [Eager vs. Lazy Evaluation](02-eager-vs-lazy-evaluation/README.md) | Compute now, or only when the result is demanded? |
+| 03 | [Evaluation Order & Sequencing](03-evaluation-order-and-sequencing/README.md) | In what order do sub-expressions and their side effects happen? |
+| 04 | [Interpretation, Compilation, JIT, AOT](04-interpretation-compilation-jit-aot/README.md) | When does source become executable, and on what spectrum? |
+| 05 | [Bytecode & Virtual Machines](05-bytecode-and-virtual-machines/README.md) | What is this intermediate "machine" that JVM/CLR/CPython/Wasm run? |
+| 06 | [Effect & Error Execution Models](06-effect-and-error-execution-models/README.md) | How do exceptions, effects, and control flow actually unwind and resume? |
 
 ---
 
@@ -39,7 +39,7 @@ Each topic ships the standard `junior` → `middle` → `senior` → `profession
 
 ## Related sections
 
-- **[Compilers & Interpreters](../compilers-and-interpreters/)** — the front-to-back pipeline; this section is the "execution" half seen as semantics rather than phases.
-- **[Runtime Systems](../runtime-systems/)** — JIT tiering, deoptimization, and dispatch are the runtime machinery underneath topic 04.
+- **[Compilers & Interpreters](../compilers-and-interpreters/README.md)** — the front-to-back pipeline; this section is the "execution" half seen as semantics rather than phases.
+- **[Runtime Systems](../runtime-systems/README.md)** — JIT tiering, deoptimization, and dispatch are the runtime machinery underneath topic 04.
 - **Concurrency, Async & Parallel** — the memory model defines the *inter-thread* part of evaluation order.
-- **[Data Representation & Numerics](../data-representation-and-numerics/)** — what the values being evaluated actually are.
+- **[Data Representation & Numerics](../data-representation-and-numerics/README.md)** — what the values being evaluated actually are.

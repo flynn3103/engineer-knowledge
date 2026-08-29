@@ -31,6 +31,14 @@ The knowledge required for modern software development is scattered across count
 
     [:octicons-arrow-right-24: Browse Programming Languages](Programming-Languages/README.md)
 
+- :material-lan:{ .lg .middle } **Networking**
+
+    ---
+
+    Trace requests across protocols, DNS, CDNs, load balancers, service boundaries, and production APIs—and verify each layer with real evidence.
+
+    [:octicons-arrow-right-24: Browse Networking](Networking/README.md)
+
 - :material-head-cog:{ .lg .middle } **Engineering Thinking**
 
     ---

@@ -1,37 +1,11 @@
 # Goroutines and Concurrency — Middle
 
-> **Topic:** [Goroutines and Concurrency](../README.md)
-> **Focus:** `errgroup`, pipelines, `sync.Mutex` vs channels, the race detector, `context` propagation, and preventing leaks by design.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **Goroutines and Concurrency** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-At the junior level you learned to spawn, wait, and pass values through channels. At this level the questions get sharper: how do you propagate an **error** out of a group of goroutines? How do you build a multi-stage **pipeline**? When should you reach for a `sync.Mutex` instead of a channel? And how do you stop writing code that merely *works* and start writing code that provably doesn't race or leak?
-
----
-
-## Prerequisites
-
-- Comfortable with goroutines, `WaitGroup`, unbuffered/buffered channels, and `select` (junior level).
-- Basic familiarity with `context.Context`.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **`errgroup.Group`** | `golang.org/x/sync/errgroup` — like `WaitGroup` but propagates the first error and can cancel a shared `context` on failure. |
-| **Pipeline** | A chain of stages, each a goroutine, connected by channels, where each stage transforms values from the previous one. |
-| **`sync.Mutex`** | A mutual-exclusion lock protecting a critical section of shared memory. |
-| **`sync.RWMutex`** | A lock allowing many concurrent readers or one writer. |
-| **Data race** | Two goroutines accessing the same memory location concurrently, with at least one write, and no synchronization — undefined behavior in Go. |
-| **`-race`** | The Go race detector, a compile-time instrumentation flag (`go test -race`, `go run -race`). |
-| **Context tree** | The parent/child hierarchy formed by `context.WithCancel`/`WithTimeout` — canceling a parent cancels every descendant. |
-| **Backpressure** | Slowing a fast producer down to match a slower consumer, usually via a bounded buffered channel. |
-| **`or-done` channel** | A wrapper pattern that makes a channel read also respect a `context`'s cancellation. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -198,27 +172,6 @@ Many readers can hold `RLock` simultaneously; a writer needs exclusive `Lock`. W
 
 ---
 
-## Pros & Cons
-
-| Approach | Pros | Cons |
-|---|---|---|
-| `errgroup` | First-error propagation, automatic cancellation, `SetLimit` bounding | Pulls in `golang.org/x/sync`; only the *first* error is kept |
-| `sync.Mutex`/`RWMutex` | Simple, fast for small critical sections | Easy to forget to unlock, easy to hold too long, doesn't compose with `select` |
-| Pipelines | Naturally streaming, backpressure-friendly, composable | More boilerplate than a single loop for simple cases |
-
----
-
-## Use Cases
-
-| Situation | Tool |
-|---|---|
-| Call 20 services in parallel, fail fast on first error | `errgroup.WithContext` |
-| Protect an in-memory counter/cache from concurrent access | `sync.Mutex` / `sync.RWMutex` |
-| Stream and transform a large dataset without loading it all into memory | Pipeline of channel-connected stages |
-| Cap "at most N in flight" without a fixed worker count | Buffered channel used as a semaphore, or `errgroup.SetLimit` |
-
----
-
 ## Coding Patterns
 
 - **Cancel-on-first-error**: `errgroup.WithContext` — the idiomatic replacement for hand-rolled "send error to a channel, close done" code.
@@ -264,52 +217,24 @@ Many readers can hold `RLock` simultaneously; a writer needs exclusive `Lock`. W
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```go
-g, ctx := errgroup.WithContext(context.Background())
-g.SetLimit(n)
-g.Go(func() error { return work(ctx) })
-err := g.Wait()
+1. Find a real component where **Goroutines and Concurrency** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
-var mu sync.RWMutex
-mu.RLock(); defer mu.RUnlock()   // reads
-mu.Lock();  defer mu.Unlock()    // writes
+## Verify your work
 
-go test -race ./...
-```
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
 
----
+## Review questions
 
-## Summary
-
-- `errgroup` is the idiomatic upgrade from `WaitGroup` when goroutines can fail: first-error propagation plus automatic cancellation.
-- Choose channels for handing off ownership of values; choose mutexes for protecting small pieces of shared state in place.
-- Pipelines compose from simple channel-owning stages; always close what you own.
-- The race detector (`-race`) belongs in CI on every run, not as an occasional check.
-- Context cancellation is cooperative — every blocking select must explicitly watch `ctx.Done()`.
-
----
-
-## Further Reading
-
-- `golang.org/x/sync/errgroup` docs: <https://pkg.go.dev/golang.org/x/sync/errgroup>
-- The Go Blog — *Pipelines and Cancellation*: <https://go.dev/blog/pipelines>
-- The Go Blog — *Go Concurrency Patterns: Context*: <https://go.dev/blog/context>
-
----
-
-## Related Topics
-
-- [Goroutines and Concurrency — Junior](junior.md) — the fundamentals this page builds on.
-- [Production Debugging](../07-production-debugging/junior.md) — using `-race` and `pprof` together in CI.
-
----
-
-## Check your understanding
-
-1. Explain Goroutines and Concurrency — Middle Level in your own words and name the problem it solves.
-2. How would you apply the ideas around Introduction, Prerequisites, Glossary in a realistic engineering change?
-3. What failure mode or misuse should you look for, and what evidence would reveal it?
-4. Which local design trade-off would make you choose or reject Goroutines and Concurrency — Middle Level in an existing codebase?
-5. What observable result would convince you that the approach improved the system?
+- Which boundary is most affected by Goroutines and Concurrency?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

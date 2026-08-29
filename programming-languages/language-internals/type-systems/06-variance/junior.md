@@ -1,72 +1,11 @@
-# Variance — Junior Level
+# Variance — Junior
 
-> **Topic:** Variance
-> **Focus:** If a `Cat` is an `Animal`, is a `List<Cat>` a `List<Animal>`? The surprising answer is "it depends" — and getting it wrong is one of the oldest bugs in programming.
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **Variance** in one small example and prove the result?
 
-## Introduction
-
-> Focus: **What does it mean for one type to be a subtype of another, and how does that relationship survive when you wrap the types in a container or a generic?**
-
-You already know that a `Cat` is an `Animal`. In a typed language this is written `Cat <: Animal` — read "`Cat` is a subtype of `Animal`." It means: anywhere the program asks for an `Animal`, you can hand it a `Cat` and nothing breaks. That is the **Liskov Substitution Principle** in one line — a subtype must be usable wherever the supertype is expected.
-
-**Variance** is the answer to the next, much harder question: *now that I know `Cat <: Animal`, what is the relationship between `List<Cat>` and `List<Animal>`?* Or between `Function<Cat>` and `Function<Animal>`? Or between `Box<Cat>` and `Box<Animal>`? The component types have a subtype relationship — does the composed type inherit it, reverse it, or lose it entirely?
-
-Most people's first instinct is: *"obviously a list of cats is a list of animals."* That instinct is **wrong for mutable lists**, and the reason it's wrong has caused real, shipped, runtime-crashing bugs in Java and C# for decades. Variance is the set of rules that tells you exactly when your instinct is safe and when it will blow up.
-
-There are only four possibilities, and that's the whole topic:
-
-- **Covariant** — the relationship is preserved. `Cat <: Animal` implies `F<Cat> <: F<Animal>`. (Producers, read-only things.)
-- **Contravariant** — the relationship is *reversed*. `Cat <: Animal` implies `F<Animal> <: F<Cat>`. (Consumers.)
-- **Invariant** — no relationship at all. `F<Cat>` and `F<Animal>` are unrelated types. (Mutable containers, for safety.)
-- **Bivariant** — both directions allowed at once. (Almost always unsound; a footgun.)
-
-> 🎓 **Why this matters for a junior:** The moment you use generics — `List<T>`, `Optional<T>`, `Function<A, B>` — you are using variance, whether you know it or not. When the compiler rejects `List<Animal> a = listOfCats;` you'll think the compiler is being annoying. It isn't. It's saving you from a crash. This page teaches you to read those errors and know *why* the rule exists.
-
-This page covers the four variances, the famous array-covariance bug, and the producer/consumer intuition that lets you pick the right one without memorizing rules. The deeper levels go into declaration-site vs use-site variance, function subtyping, and the formal soundness arguments.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** What a class and a subclass are. `Dog extends Animal`, or `class Dog : Animal`.
-- **Required:** Basic generics. You've seen `List<String>`, `ArrayList<Integer>`, `Map<K, V>`.
-- **Required:** The idea of a "type error" — the compiler refusing a program because the types don't match.
-- **Helpful but not required:** The Liskov Substitution Principle (LSP) by name — though we'll define it.
-- **Helpful but not required:** Having been bitten once by an `ArrayStoreException` or an `InvalidCastException`. If you have, this page will explain *why*.
-
-You do **not** need to know:
-
-- The formal type-theory notation (Γ ⊢ ...) — that's not here.
-- How the compiler implements variance checking — that's `senior.md`.
-- The full PECS rule or Scala's `+T`/`-T` syntax — those are introduced gently and covered in depth later.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Subtype** | `B <: A` ("B is a subtype of A") means a `B` can be used anywhere an `A` is expected. `Cat <: Animal`. |
-| **Supertype** | The reverse: `A` is a supertype of `B`. `Animal` is a supertype of `Cat`. |
-| **Liskov Substitution Principle (LSP)** | The rule that defines subtyping: a subtype must be substitutable for its supertype without breaking the program. |
-| **Generic type / type constructor** | A type that takes another type as a parameter: `List<T>`, `Box<T>`, `Optional<T>`. `T` is the type parameter. |
-| **Variance** | The rule describing how subtyping of `T` carries over to subtyping of `F<T>`. |
-| **Covariant** | Preserves subtyping direction: `Cat <: Animal` ⟹ `F<Cat> <: F<Animal>`. |
-| **Contravariant** | Reverses subtyping direction: `Cat <: Animal` ⟹ `F<Animal> <: F<Cat>`. |
-| **Invariant** | No subtyping relationship between `F<Cat>` and `F<Animal>` even though `Cat <: Animal`. |
-| **Bivariant** | Both covariant and contravariant at once — `F<Cat>` and `F<Animal>` are mutually substitutable. Usually unsound. |
-| **Producer** | Something you only **read from** / get values out of. A source. |
-| **Consumer** | Something you only **write to** / put values into. A sink. |
-| **Mutable** | Can be changed after creation. A normal `List` you can `add` to. |
-| **Immutable** | Cannot be changed after creation. A read-only list. |
-| **Sound** | A type rule is sound if it never lets a type-correct program crash with a type error at runtime. Variance rules exist to preserve soundness. |
-| **Upcast** | Treating a value as one of its supertypes (`Cat` as `Animal`). Always safe. |
-| **Downcast** | Treating a value as one of its subtypes (`Animal` as `Cat`). Not always safe; can fail at runtime. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -136,46 +75,6 @@ You don't have to memorize the four rules. Ask one question about your generic t
 - **Do I do both?** → **invariant** — no variance is safe.
 
 In Java this intuition has a name: **PECS — "Producer Extends, Consumer Super."** When you read/produce, use `? extends T`. When you write/consume, use `? super T`. We'll see this in the examples and go deep on it in `middle.md`.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Subtyping** | A cat *is* an animal. Anywhere a sign says "animals allowed," a cat is allowed. |
-| **Covariance** | A **vending machine that only dispenses cats**. A machine that gives out cats is also (safely) usable as a machine that gives out animals — whatever falls out is an animal. Read-only, so it's safe. |
-| **Contravariance** | A **garbage chute labeled "any animal"**. A chute that accepts *any* animal can stand in for a chute that only needs to accept *cats*. The general acceptor substitutes for the specific one. |
-| **Invariance** | A **pet carrier you both load and unload**. You can't safely treat a cat-carrier as an animal-carrier (someone might load a dog into your cat-only carrier), nor vice versa. It must be exactly what it says. |
-| **The array bug** | You label a box "STRING ONLY," then someone re-labels it "ANYTHING," drops a number in, and the original owner reaches in expecting a string and gets a face full of integer. The mislabeling is the covariance; the crash is the `ArrayStoreException`. |
-| **PECS** | If a friend is *giving* you pets (producer), you'll happily accept "cats or any subtype." If a friend is *taking* pets off your hands (consumer), you'll happily hand them off to anyone who accepts "cats or any supertype." |
-| **Bivariance** | A box labeled both "STRING ONLY" and "ANYTHING" at the same time — every guarantee is meaningless. |
-
----
-
-## Mental Models
-
-### The Arrow Model
-
-Draw the subtype arrow: `Cat ──<:──▶ Animal`.
-
-- **Covariant**: the arrow on `F<...>` points the **same way**: `F<Cat> ──<:──▶ F<Animal>`.
-- **Contravariant**: the arrow **flips**: `F<Animal> ──<:──▶ F<Cat>`.
-- **Invariant**: **no arrow** between `F<Cat>` and `F<Animal>`.
-
-"Co" = together (same direction). "Contra" = against (opposite direction). The Latin tells you the answer.
-
-### The "Which Way Do Values Flow?" Model
-
-The single most useful question: **which direction does data move through the `T` slot?**
-
-- Data flows **out** of the generic (you read `T`) → covariant. The supertype view is safe because everything coming out is at least the supertype.
-- Data flows **in** to the generic (you write `T`) → contravariant. The subtype-of-consumer can accept more, so the general consumer is the subtype.
-- Data flows **both** ways → invariant.
-
-### The "What Lie Could I Tell?" Model
-
-A variance is *unsound* if it lets you tell a lie the runtime can't catch. Covariant-and-writable lets you write a `Dog` into a secret `List<Cat>` — a lie discovered only at read time, possibly far away. Contravariant-and-readable lets you read an `Animal` out of something promised to give `Cat`s — same problem. Invariance forbids both lies. Whenever you're unsure, ask: *"if the compiler allowed this, what wrong value could sneak through?"*
 
 ---
 
@@ -309,29 +208,6 @@ TypeScript, like Java, lets mutable arrays be covariant for ergonomic reasons �
 
 ---
 
-## Pros & Cons
-
-| Aspect | Pros | Cons |
-|--------|------|------|
-| **Covariance** | Natural, intuitive; lets you pass `List<Cat>` where `List<? extends Animal>` is wanted; safe for read-only data. | Unsound if the type can be mutated — the source of the array bug. |
-| **Contravariance** | Lets one general consumer/comparator/callback serve many specific needs; reduces duplication. | Counterintuitive direction; trips up almost everyone the first time. |
-| **Invariance** | Always sound; the safe default for mutable containers. | Rigid: forces wildcards/casts to pass `List<Cat>` where `List<Animal>` is asked. |
-| **Bivariance** | Maximum flexibility, fewer compile errors. | Almost always unsound; defeats the point of static typing. |
-| **Variance in general** | Lets generic APIs be flexible *and* safe at the same time. | One of the hardest parts of a type system to learn and to read in signatures. |
-
----
-
-## Use Cases
-
-You reach for each variance when:
-
-- **Covariance** — you have a read-only / producing generic: an immutable list, an `Iterator`, a function return type, `Optional`/`Maybe`, a `Supplier<T>`. You want `Producer<Cat>` to be usable as `Producer<Animal>`.
-- **Contravariance** — you have a consuming generic: a `Comparator<T>`, an event `Consumer<T>`, a callback, a function's parameter slot, a logging sink. You want `Consumer<Animal>` to be usable as `Consumer<Cat>`.
-- **Invariance** — you have a mutable container that is both read and written: a normal `List<T>`, a `Map<K, V>`, a mutable `Box<T>`, a cache. Safety requires no variance.
-- **Bivariance** — essentially never on purpose. You'll meet it only as a default you want to *turn off* (TypeScript's `strictFunctionTypes`).
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: PECS for flexible method signatures (Java)
@@ -396,64 +272,24 @@ static void sortCats(List<Cat> cats, Comparator<? super Cat> cmp) {
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. State the definition of covariant, contravariant, and invariant using the symbols `<:`, `Cat`, and `Animal`.
-2. Why is `Object[] a = new String[1]; a[0] = 42;` accepted by the Java compiler but rejected by the JVM at runtime? What is the exception's name?
-3. A `Consumer<T>` only ever *receives* `T`s. Should `Consumer<Animal>` be a subtype of `Consumer<Cat>`, or the other way around? Explain using the "which way do values flow?" model.
-4. Your colleague writes `List<Animal> a = catList;` and is annoyed the compiler rejects it. In two sentences, explain why the rejection prevents a bug.
-5. Translate "Producer Extends, Consumer Super" into the producer/consumer flow model. Which wildcard reads, which writes?
-6. Kotlin's read-only `List<out T>` is covariant but `MutableList<T>` is invariant. Both hold the same data. What single property makes the difference, and why?
-7. In C#, you mark an interface's type parameter `out`. What does the compiler now forbid you from doing with that parameter, and why does that restriction make covariance safe?
+1. Choose one small, known input for **Variance**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
----
+## Verify your work
 
-## Cheat Sheet
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
 
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│                          VARIANCE                                 │
-├──────────────────────────────────────────────────────────────────┤
-│ Given:  Cat <: Animal   ("a Cat is an Animal")                    │
-├──────────────────────────────────────────────────────────────────┤
-│ COVARIANT      F<Cat> <: F<Animal>     (same direction)           │
-│                safe for PRODUCERS (read-only / output)            │
-│                Java ? extends | C#/Kotlin out                     │
-│                                                                   │
-│ CONTRAVARIANT  F<Animal> <: F<Cat>     (reversed!)                │
-│                safe for CONSUMERS (write-only / input)            │
-│                Java ? super | C#/Kotlin in                        │
-│                                                                   │
-│ INVARIANT      F<Cat> and F<Animal> unrelated                     │
-│                required for MUTABLE containers (read AND write)   │
-│                Java List<T>, C#/Kotlin default                    │
-│                                                                   │
-│ BIVARIANT      both directions — almost always UNSOUND            │
-├──────────────────────────────────────────────────────────────────┤
-│ THE PRODUCER/CONSUMER TEST                                        │
-│   read T out  → producer → covariant                              │
-│   write T in  → consumer → contravariant                          │
-│   both        → invariant                                         │
-│   PECS: Producer Extends, Consumer Super                          │
-├──────────────────────────────────────────────────────────────────┤
-│ THE BUG TO NEVER FORGET                                           │
-│   Object[] a = new String[1];  // covariant array                │
-│   a[0] = 42;                    // compiles                        │
-│   --> ArrayStoreException       // crashes at runtime             │
-│   covariance + mutation = unsound  => mutable must be invariant   │
-└──────────────────────────────────────────────────────────────────┘
-```
+## Review questions
 
----
-
-## Summary
-
-- **Subtyping** (`Cat <: Animal`) means a `Cat` is usable anywhere an `Animal` is. **Variance** answers what happens to that relationship when you wrap the types: is `F<Cat>` related to `F<Animal>`?
-- **Covariant** preserves the direction (`F<Cat> <: F<Animal>`) and is safe for **producers** — things you only read from. Java `? extends`, C#/Kotlin `out`.
-- **Contravariant** reverses the direction (`F<Animal> <: F<Cat>`) and is safe for **consumers** — things you only write to. Java `? super`, C#/Kotlin `in`.
-- **Invariant** means no relationship at all, and it is the *required, safe* variance for **mutable containers** that are both read and written.
-- **Bivariant** allows both and is almost always **unsound** — a hole in type safety.
-- The famous proof that mutable containers must be invariant is the **array covariance bug**: `Object[] a = new String[1]; a[0] = 42;` compiles but throws `ArrayStoreException`. **Covariance + mutation = unsound.**
-- The shortcut that replaces memorization: **which way do values flow?** Out = covariant (producer), in = contravariant (consumer), both = invariant. In Java this is **PECS — Producer Extends, Consumer Super.**
-- Mutability is the hinge: an *immutable* list can be safely covariant; a *mutable* one cannot. Kotlin's `List` (read-only) is covariant, its `MutableList` is invariant — same data, different variance.
-- Next levels go deeper: function subtyping (contravariant in args, covariant in returns), declaration-site vs use-site variance, and the formal soundness arguments.
+- What problem does Variance solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

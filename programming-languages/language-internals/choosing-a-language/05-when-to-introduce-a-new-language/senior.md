@@ -1,8 +1,11 @@
 # When to Introduce a New Language — Senior
 
-> **What?** The decision framework you actually own as a senior: weighing the one-time *plus recurring* cost of N+1 against a benefit that decays, the slippery slope from one exception to language sprawl, how "temporary" languages become permanent, defining reversibility and exit criteria up front, killing a pilot against sunk-cost pressure, and how language count is bounded by team size.
-> **How?** By treating a new language as a long-lived liability on the org's balance sheet, not a line in a sprint; by deciding the exit *before* the entry; and by being the person willing to count to "no" when the team is excited.
+<!-- level-focus -->
+At senior level, focus on this question:
 
+> Which system invariant is affected by **When to Introduce a New Language** under failure, load, and change?
+
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## 1. The cost is one-time entry plus a perpetual annuity
@@ -135,7 +138,7 @@ To stay honest, the senior also knows when the restraint dogma is *wrong*:
 
 - **Forced-platform reality.** A web product *is* a multi-language org whether you like it or not — the browser forces JS/TS, so "minimize languages" already lost at the frontend boundary. Don't waste restraint capital fighting physics; spend it on the backend where you actually have a choice.
 - **A language genuinely opens a market or capability** you otherwise can't reach — Swift for an iOS app you must ship, CUDA for GPU work that's the whole product. Restraint that blocks a capability the business needs is just obstruction.
-- **The "boring monolith of one language" can also be a trap** — forcing ML into your Java backend because "we don't add languages" is the law-of-the-instrument error from [`01-language-selection-criteria`](../01-language-selection-criteria/) wearing a discipline costume. Refusing the obviously-right tool to protect a count is as dumb as adding a needless language.
+- **The "boring monolith of one language" can also be a trap** — forcing ML into your Java backend because "we don't add languages" is the law-of-the-instrument error from [`01-language-selection-criteria`](../01-language-selection-criteria/README.md) wearing a discipline costume. Refusing the obviously-right tool to protect a count is as dumb as adding a needless language.
 
 The senior position is not "never add languages." It's "treat each addition as a perpetual liability, make the count a governed quantity, and require a real trigger plus a real exit plan — while staying honest that sometimes the trigger is real and the answer is a disciplined yes."
 
@@ -153,16 +156,24 @@ The senior position is not "never add languages." It's "treat each addition as a
 
 ---
 
-## 10. What's next
+## Apply it
 
-| Topic | File |
-|---|---|
-| Governance machinery: RFC process, supported-language tiers, paved roads, sunsetting, the politics of "no" | `professional.md` |
-| Practice — NPV cost sheets, exit-criteria drafting, killing-a-pilot reasoning | `tasks.md` |
-| Interview questions from "teammate wants Rust" to "design an org adoption process" | `interview.md` |
-| The mechanics of actually migrating or reverting between languages | [`06-migrating-between-languages`](../06-migrating-between-languages/) |
-| Long-term betting and lock-in once a language is in | [`08-language-longevity-and-lock-in-risk`](../08-language-longevity-and-lock-in-risk/) |
+1. State the system invariant that **When to Introduce a New Language** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
----
+## Verify your work
 
-**Memorize this:** a new language is a one-time payment for a perpetual liability against a decaying benefit — so decide the exit before the entry, keep the pilot's default outcome at *revert*, and ignore sunk cost when the criteria say no. Every addition is precedent-setting and pushes a count that's bounded by your team size; even orgs with unlimited engineers limit themselves on purpose. Sometimes the trigger is real and the answer is a disciplined yes — but it's earned, governed, and reversible, never default.
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
+
+## Review questions
+
+- Which invariant must remain true when When to Introduce a New Language fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

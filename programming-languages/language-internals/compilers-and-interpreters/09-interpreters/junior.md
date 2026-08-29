@@ -1,65 +1,11 @@
-# Interpreters — Junior Level
+# Interpreters — Junior
 
-> **Topic:** Interpreters
-> **Focus:** What it means to *run* a language by walking its tree instead of compiling it — and how to write the smallest interpreter that actually works.
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **Interpreters** in one small example and prove the result?
 
-## Introduction
-
-> Focus: **What is an interpreter, and how do you write one that takes source code and produces an answer — without ever generating machine code?**
-
-A **compiler** translates your program into another language (usually machine code) ahead of time; you run that output later. An **interpreter** does something more direct: it reads your program and *carries out what it says*, right now. There is no separate "executable" produced — the interpreter *is* the executable, and your program is just its input data.
-
-The simplest kind of interpreter is a **tree-walking interpreter**. After you parse source text into an **abstract syntax tree** (AST) — a tree of nodes like "addition," "variable lookup," "if statement" — you write a function, traditionally called `eval`, that takes a node and *returns its value* by recursively evaluating its children. To evaluate `2 + 3 * 4`, you evaluate the `+` node, which evaluates its left child (`2`) and its right child (the `*` node), which evaluates *its* children (`3` and `4`), multiplies them, and so on back up the tree. The whole interpreter is a recursive walk over the tree.
-
-This is the approach taught in the well-loved book *Crafting Interpreters* (its language is called Lox), and it is exactly how many real config languages, template engines, and embedded scripting languages work. It is the **fastest interpreter to build** and the **slowest to run** — and for a huge number of jobs, that trade is perfect.
-
-> 🎓 **Why this matters for a junior:** Writing a tiny interpreter is the single best way to understand how *every* language works — variables, scope, function calls, recursion, errors. Once you have written `eval`, you will never again be confused about what `x = x + 1` "really does," because you will have implemented it. This is foundational knowledge that pays off in debugging, in reading other people's code, and in any future systems work.
-
-This page covers: what an interpreter is and how it differs from a compiler, the parse → tree → `eval` pipeline, how variables are stored in an **environment**, how `if`/`while`/functions are evaluated, and a complete, runnable tiny interpreter. The next level (`middle.md`) introduces **bytecode** — compiling the tree to a flat list of instructions and running a loop over them, which is how production languages like Python, Ruby, and Lua actually work.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** How to write functions and use recursion in at least one language (Python, JavaScript, Go, Java, or C).
-- **Required:** What a tree data structure is — nodes with children — and how to walk one recursively.
-- **Required:** Basic understanding of a hash map / dictionary (we use one to store variables).
-- **Helpful but not required:** Having seen a parser or the words "tokenizer"/"lexer"/"AST" before. We will recap, but we will not teach parsing in depth here.
-- **Helpful but not required:** A vague sense that programs are "compiled" or "run" — we will sharpen that fuzzy idea.
-
-You do **not** need to know:
-
-- How to write a parser from scratch (we assume you can get an AST; the focus is evaluating it).
-- Anything about bytecode, virtual machines, or dispatch (that is `middle.md` onward).
-- Compiler theory, type systems, or garbage collection internals.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Interpreter** | A program that executes another program directly, by reading and acting on it, rather than translating it to machine code first. |
-| **Compiler** | A program that translates source code into another form (often machine code) to be run later. |
-| **Source code** | The text you write — the program, as characters. |
-| **Token** | The smallest meaningful piece of source: a number, a name, a `+`, a `(`. Produced by the lexer. |
-| **Lexer / Tokenizer / Scanner** | The stage that turns characters into a stream of tokens. |
-| **Parser** | The stage that turns tokens into a tree (the AST) reflecting the grammar. |
-| **AST (Abstract Syntax Tree)** | A tree of nodes representing the structure of the program: expressions, statements, declarations. |
-| **Node** | One element of the AST — e.g. a `BinaryOp` node, a `Number` node, an `If` node. |
-| **`eval` / evaluate** | The function that takes an AST node and computes its value (or runs its effect). |
-| **Tree-walking interpreter** | An interpreter that executes a program by recursively evaluating its AST nodes. |
-| **Environment** | The store that maps variable names to their current values; sometimes called a *scope* or *frame*. |
-| **Scope** | The region of a program where a name is valid; environments implement scopes. |
-| **Expression** | A piece of code that produces a value: `2 + 3`, `x`, `f(10)`. |
-| **Statement** | A piece of code that performs an action: `x = 5`, `if ... { ... }`, `print(x)`. |
-| **REPL** | Read–Eval–Print Loop: an interactive prompt that reads one expression, evaluates it, prints the result, and repeats. |
-| **Literal** | A value written directly in the source, like `42`, `"hello"`, `true`. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -154,38 +100,6 @@ But for a config file, a template, a query, a build script, or a teaching langua
 
 ---
 
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Compiler** | A translator who converts a whole book into another language and hands you the printed translation; you read it later, on your own. |
-| **Interpreter (the program)** | A live human interpreter at a conference who listens to each sentence and speaks the meaning *immediately*. No printed copy exists. |
-| **Tree-walking** | Reading a recipe and *doing* each step in order, descending into sub-steps ("make the sauce" → "chop onion," "heat oil") before continuing. |
-| **AST** | An outline of a document, with headings and sub-bullets nested inside — the structure, not the prose. |
-| **`eval` recursion** | Calculating a nested math expression on paper: you solve the innermost parentheses first, then work outward. |
-| **Environment** | A whiteboard listing each variable's current value; you erase and rewrite as the program assigns. |
-| **Scope** | A meeting room: names defined inside are visible inside; the hallway (outer scope) cannot see them, but they can see the hallway. |
-| **REPL** | A conversation: you say one thing, it answers, you say the next, building on what came before. |
-| **Literal** | A fact stated outright ("the number 42") rather than computed. |
-
----
-
-## Mental Models
-
-### The "Do What It Says" Model
-
-A compiler *writes down instructions for later*. An interpreter *follows the instructions now*. When you read `print(2 + 2)`, the interpreter does not produce a file that, when run, prints 4 — it *prints 4*. Hold this distinction: the interpreter's job is action, not translation. Everything else is detail about how it organizes that action.
-
-### The "Recursive Calculator" Model
-
-Picture `eval` as a calculator that, given any expression node, returns its number. For a leaf (a literal), it returns the number directly. For an operator, it first *calls itself* on each operand to get those numbers, then combines them. The whole interpreter is this calculator generalized from arithmetic to variables, branches, and calls. If you can evaluate `(2 + (3 * 4))` on paper inside-out, you already understand the core algorithm.
-
-### The "Host Lends Its Powers" Model
-
-You are writing the guest language *in* a host language. Whatever the host can do, you can borrow. The host's recursion gives the guest recursion. The host's `while` gives the guest `while`. The host's exceptions can give the guest exceptions. The host's hash map gives the guest variables. An interpreter is, in large part, a *thin layer of glue* mapping guest constructs onto host capabilities. This is why a basic interpreter is so small.
-
----
-
 ## Code Examples
 
 We will build a tiny but real tree-walking interpreter for a calculator-with-variables language. To keep the focus on **evaluation**, we hand-build the AST instead of parsing text. (Adding a parser is a great exercise — see `tasks.md`.)
@@ -212,7 +126,6 @@ class Assign: # x = expr
 
 class Print:  # print(expr)
     def __init__(self, expr): self.expr = expr
-
 
 # --- The interpreter: one recursive eval over the tree ---
 def eval_node(node, env):
@@ -242,7 +155,6 @@ def eval_node(node, env):
         print(value)
         return value
     raise TypeError(f"cannot evaluate node: {node}")
-
 
 # --- Run a small program: x = 2 + 3 * 4; print(x) ---
 program = [
@@ -363,38 +275,6 @@ Because `env` persists across iterations, `x = 5` on one line is visible to `pri
 
 ---
 
-## Pros & Cons
-
-| Aspect | Pros | Cons |
-|--------|------|------|
-| **Build speed** | Fastest interpreter to write. A working tree-walker fits in a few hundred lines. | Slowest *runtime* of all execution strategies. |
-| **Simplicity** | Maps directly to the AST; easy to read, debug, and extend node by node. | Per-node type dispatch and pointer-chasing make it cache-unfriendly. |
-| **Flexibility** | Trivial to add new node types, new operators, new built-ins. Great for evolving languages. | Hard to optimize *as a tree-walker*; real speedups require switching to bytecode. |
-| **Error reporting** | You hold the whole tree, with source positions, so you can give rich error messages. | If you forget to thread source positions through, errors become vague. |
-| **Tooling/REPL** | Naturally supports a REPL and interactive use — just keep the environment alive. | State across REPL lines can hide bugs that a fresh run would not. |
-| **Portability** | Runs anywhere the host language runs; no code generation, no target architecture. | No native-code speed; CPU-bound workloads suffer. |
-| **Startup** | No compile-and-link step; runs instantly. | Re-does the walk on every execution; no caching of work across runs. |
-
----
-
-## Use Cases
-
-A tree-walking interpreter is the right tool when:
-
-- **You are learning or teaching how languages work.** It is the clearest possible model.
-- **You are prototyping a new language.** Get semantics right first; optimize later.
-- **You are building a small embedded/scripting language** for config, rules, templates, or queries, where simplicity matters more than raw speed.
-- **The workload is I/O-bound or runs briefly.** If your "program" runs for milliseconds, interpreter overhead is invisible.
-- **You need rich, position-aware error messages** and the simplicity of having the whole AST on hand.
-
-It is the **wrong** tool when:
-
-- You have hot loops running millions of iterations where speed dominates — move to a bytecode interpreter (`middle.md`).
-- You need near-native performance — that calls for bytecode plus a JIT, or ahead-of-time compilation.
-- The language must run in tightly memory- or latency-constrained environments where pointer-chasing AST nodes are too costly.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: One `eval` function, dispatch on node type
@@ -458,82 +338,24 @@ AST nodes should be plain data (fields only). Put all behavior in `eval`. This k
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. In your own words, what is the difference between compiling a program and interpreting it? Give one real tool for each.
-2. Draw the AST for `1 + 2 * 3 - 4`. Then trace `eval` over it, writing down the value returned at each node. What is the final result, and why is it not `(1+2)*(3-4)`?
-3. The interpreter raises a `NameError` for `Var("y")` when `y` was never assigned. Where in the code does that check live, and why is returning `None` instead a bad idea?
-4. Add a unary minus node (`Neg(expr)`) to the Python interpreter so that `-(3 + 4)` evaluates to `-7`. Which one function do you change?
-5. Trace what happens in the REPL when you type `x = 10` then on the next line `x = x + 5`. Why does the second line see the value from the first?
-6. The `While` evaluator uses the host language's `while`. Rewrite the guest `while` so it counts down from 3 to 0 (as an AST), and trace how many times the body runs.
-7. Why is a tree-walking interpreter slow for a million-iteration loop? Name two concrete sources of overhead per node.
-8. If `2 + 3 * 4` ever evaluated to `20`, which stage of the pipeline has the bug — lexer, parser, or evaluator? Explain.
+1. Choose one small, known input for **Interpreters**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
----
+## Verify your work
 
-## Cheat Sheet
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
 
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│                    TREE-WALKING INTERPRETER                       │
-├──────────────────────────────────────────────────────────────────┤
-│ COMPILER   : source -> machine code (run later)                   │
-│ INTERPRETER: source -> the result (run now)                       │
-├──────────────────────────────────────────────────────────────────┤
-│ Pipeline:   text -> [lexer] -> tokens -> [parser] -> AST          │
-│                  -> [eval]  -> result                             │
-├──────────────────────────────────────────────────────────────────┤
-│ The whole interpreter = one recursive function:                   │
-│                                                                   │
-│   eval(node, env):                                                │
-│     literal   -> return its value                                 │
-│     variable  -> look it up in env                                │
-│     binop     -> eval(left); eval(right); combine                 │
-│     assign    -> env[name] = eval(expr)                           │
-│     if        -> eval cond; run the chosen branch                 │
-│     while     -> host while loop around eval(body)                │
-├──────────────────────────────────────────────────────────────────┤
-│ Environment = hash map { name -> value }, passed into eval        │
-│ Precedence  = decided by the PARSER (tree shape), not eval        │
-│ Control flow= the HOST language's if/while/recursion              │
-├──────────────────────────────────────────────────────────────────┤
-│ Trade-off: fastest to BUILD, slowest to RUN.                      │
-│ Next step for speed: compile AST -> bytecode (see middle.md)      │
-└──────────────────────────────────────────────────────────────────┘
-```
+## Review questions
 
----
-
-## Summary
-
-- An **interpreter** runs a program directly by reading and acting on it, instead of translating it to machine code to run later like a **compiler** does.
-- The simplest interpreter is a **tree-walking interpreter**: parse source into an **AST**, then write a recursive `eval(node, env)` that computes each node's value by first evaluating its children.
-- **Variables** live in an **environment** — a hash map from name to value — that is passed into `eval` so every node can read and write it.
-- **Control flow** (`if`, `while`) and **recursion** need no special machinery: they are implemented using the *host language's* own control flow. The host lends its powers to the guest.
-- **Operator precedence** is decided by the parser's tree shape, not by the evaluator — a common source of confusion.
-- A **REPL** is just `eval` in a loop with the environment kept alive between lines.
-- Tree-walking is the **fastest to build and slowest to run** — perfect for prototypes, config/scripting languages, teaching, and I/O-bound work. It is too slow for hot numeric loops.
-- When speed matters, the next step is a **bytecode interpreter** (`middle.md`): compile the AST to a flat instruction list and run a fast fetch-decode-execute loop. That is how Python, Ruby, and Lua really work.
-- A junior's #1 takeaway: writing your own `eval` demystifies *every* language feature, because you will have implemented it yourself.
-
----
-
-## What You Can Build
-
-- **A four-function calculator with variables.** Parse and evaluate `+ - * /`, parentheses, and `x = ...` assignments. Add a REPL.
-- **A tiny scripting language.** Numbers, strings, booleans, `if`, `while`, `print`, and comparison operators — enough to write FizzBuzz in *your* language.
-- **A spreadsheet-cell evaluator.** Cells contain expressions referencing other cells (`A1 = B1 + C1`); evaluate the dependency tree.
-- **A config/expression mini-language.** Let users write `timeout = base * 2 + jitter` in a config file and evaluate it with their variables in the environment.
-- **A "math homework checker."** Parse arithmetic expressions and evaluate them to verify a student's answer, with friendly error messages on invalid input.
-- **A guest-language FizzBuzz.** Implement enough of a language (loops, `if`, modulo, print) to run FizzBuzz *through your interpreter* — a satisfying milestone.
-
----
-
-## Further Reading
-
-- *Crafting Interpreters* — Robert Nystrom. The definitive, friendly book; Part II builds exactly the tree-walker described here (the Lox language). Free online at https://craftinginterpreters.com/
-- *Writing An Interpreter In Go* — Thorsten Ball. A hands-on, test-driven tree-walking interpreter for the Monkey language.
-- *Structure and Interpretation of Computer Programs (SICP)* — Abelson & Sussman. Chapter 4 builds a metacircular evaluator — the classic `eval`/`apply`.
-- *Programming Languages: Application and Interpretation (PLAI)* — Shriram Krishnamurthi. Free; builds interpreters incrementally.
-- *Essentials of Programming Languages* — Friedman & Wand. Rigorous treatment of interpreters and environments.
-- *Build Your Own Lisp* — Daniel Holden. Free online; a complete interpreter in C, lexer through eval.
+- What problem does Interpreters solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

@@ -1,63 +1,11 @@
-# Integer Representation & Overflow — Junior Level
+# Integer Representation & Overflow — Junior
 
-> **Topic:** Integer Representation & Overflow
-> **Focus:** What an integer *actually is* in memory — just a fixed number of bits — and what happens when you ask those bits to hold a number that doesn't fit.
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **Integer Representation & Overflow** in one small example and prove the result?
 
-## Introduction
-
-> Focus: **An integer in a computer is not "a number." It is a fixed-size box of bits.** Understanding the box — how wide it is, how it encodes negatives, and what happens when a value is too big for it — is the whole topic.
-
-When you write `int x = 5;`, you imagine a number `5` living in a variable. The hardware sees something more literal: a small, fixed run of binary digits — say 32 of them — set to `00000000 00000000 00000000 00000101`. That box has a maximum capacity. A 32-bit signed integer can hold values from about **−2.1 billion to +2.1 billion** and *not one more*. Ask it to hold 2,147,483,648 and it cannot; instead of erroring, on most languages it silently **wraps around** to −2,147,483,648. The odometer rolled over.
-
-This single fact — **integers have a finite width, and arithmetic that exceeds it does something other than what math says** — is responsible for an astonishing number of real bugs: a flight-control system that needed rebooting every 248 days, a video that broke YouTube's view counter, a financial calculation that flipped a balance negative, and a long list of security vulnerabilities where an attacker made a size calculation wrap to a tiny number and then wrote past the end of a buffer.
-
-In one sentence: **a computer integer is a clock face — count past the top and you land back at the bottom.** Everything in this page is a consequence of that.
-
-> 🎓 **Why this matters for a junior:** You will reach for `int` thousands of times in your career. Most of the time it just works, which is exactly why the day it *doesn't* — a counter wrapping, a `length * size` multiplication overflowing, a negative number compared against an unsigned one — you will be utterly baffled unless you already know what's happening underneath. Ten minutes of understanding now saves you a day of debugging later.
-
-This page covers: how bits encode unsigned and signed integers, why negatives are stored in "two's complement," what the different widths (8/16/32/64) mean, what **overflow** is, and how five mainstream languages (C, Java, Python, Go, Rust) each react to it — because they react *very* differently. The next level (`middle.md`) goes deep on overflow detection and conversion bugs; `senior.md` covers cross-language internals and the `INT_MIN` traps; `professional.md` covers real CVEs, security, and production debugging.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** How to declare a variable and do arithmetic (`+ - * /`) in at least one language (C, Java, Python, Go, or Rust).
-- **Required:** What a `for` loop and a counter variable are.
-- **Helpful but not required:** A vague sense that data in a computer is stored as bits (0s and 1s).
-- **Helpful but not required:** Knowing what "binary" means — base-2 counting. We'll re-explain it.
-
-You do **not** need to know:
-
-- How the CPU's adder circuit works at the gate level (that's an internals detail, touched in `senior.md`).
-- Floating-point numbers — those are a *different* representation with their own page. This page is integers only.
-- Undefined behavior subtleties in the C standard (that's `middle.md` / `senior.md`).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Bit** | A single binary digit: `0` or `1`. The atom of all data. |
-| **Byte** | 8 bits. The smallest individually-addressable unit of memory. |
-| **Integer** | A whole number with no fractional part, stored in a fixed number of bits. |
-| **Width / size** | How many bits an integer occupies: 8, 16, 32, or 64. Determines its range. |
-| **Unsigned** | An integer that can only be ≥ 0. All its bits encode magnitude. |
-| **Signed** | An integer that can be negative or positive. One bit's worth of range is "spent" representing the sign. |
-| **Two's complement** | The near-universal scheme for encoding signed integers in binary. Explained below. |
-| **MSB (most significant bit)** | The leftmost, highest-value bit. In two's complement signed integers, it acts as the sign bit. |
-| **LSB (least significant bit)** | The rightmost, lowest-value bit (the "ones" place). |
-| **Range** | The set of values a given integer type can hold, e.g. `[−128, 127]` for a signed 8-bit. |
-| **Overflow** | When an arithmetic result is larger than the type's maximum (or smaller than its minimum). |
-| **Wraparound** | What overflow does in many languages: the value "rolls over" past the max back to the min (or vice versa), like an odometer. |
-| **Modular arithmetic** | Arithmetic "mod 2ⁿ" — exactly what unsigned wraparound is. `255 + 1 == 0` for an 8-bit unsigned. |
-| **`MAX` / `MIN`** | The largest and smallest value a type holds, e.g. `INT_MAX`, `Integer.MAX_VALUE`. |
-| **Undefined behavior (UB)** | In C/C++, the standard says signed overflow has *no defined result* — the program may do anything. A serious trap. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -146,39 +94,6 @@ This is the part juniors most need to internalize. **Overflow is not one behavio
 | **JavaScript** | Numbers are 64-bit floats; they lose precision past 2⁵³ rather than wrap. `BigInt` gives true arbitrary precision. |
 
 The same line of code — `x + 1` — can crash, silently corrupt, or quietly produce a giant number, depending on the language. There is no universal answer; you must know your language's rule.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Fixed-width integer** | A car odometer with a fixed number of dials. |
-| **Maximum value** | The odometer reading `999999`. |
-| **Overflow / wraparound** | Driving one more mile: the odometer flips to `000000`. |
-| **Unsigned** | An odometer that only counts up from 0 (mileage). |
-| **Signed (two's complement)** | A thermometer that goes below zero — half the dial is negative. |
-| **Two's complement's single zero** | One "0°" mark, not a separate "+0" and "−0". |
-| **`INT_MIN` asymmetry** | A 12-hour clock where there's a 12 but you reach −11 differently than +11 — the range isn't symmetric. |
-| **Truncation (narrowing)** | Pouring a gallon into a pint glass — most of it just doesn't fit, and you keep only the bottom part. |
-| **Sign extension** | When you reformat "−5°" from a tiny display into a big one, you must keep the minus sign, not pad with blanks. |
-| **Python's big integers** | A magic notebook where you can always add another page — it never runs out of room. |
-
----
-
-## Mental Models
-
-### The Clock / Odometer Model
-
-The single best model: **integers live on a clock face (a ring), not a number line.** On a 12-hour clock, `11 o'clock + 2 hours = 1 o'clock` — you wrapped past 12. Computer integers are the same: count past the maximum and you land back at the minimum. For an unsigned 8-bit, the "clock" has 256 positions, `0` next to `255`. When you do arithmetic, imagine moving around the ring. Overflow is simply *crossing the seam* where max meets min.
-
-### The "Box of N Bits" Model
-
-Stop thinking of `int x` as "a number." Think of it as **a box exactly 32 bits wide**. Every operation must produce something that fits in 32 bits. If math wants to produce more, the extra bits *fall off the top* and are gone. Truncation, overflow, and wraparound are all the same phenomenon: bits that don't fit are discarded.
-
-### The "Two Interpretations of the Same Bits" Model
-
-The bit pattern `11111111` (8 bits) is **both** 255 (read as unsigned) **and** −1 (read as signed). The bits don't carry a label saying which they are — *the type tells the compiler how to read them.* This is why a value can change meaning when you reinterpret its type: nothing in memory moved, but the rule for reading it did. Carry this when you debug "why did my number suddenly become huge/negative?"
 
 ---
 
@@ -296,32 +211,6 @@ JS numbers are 64-bit floats. Past 2⁵³ they don't wrap — they lose the abil
 
 ---
 
-## Pros & Cons
-
-| Aspect | Pros | Cons |
-|--------|------|------|
-| **Fixed-width (C/Java/Go/Rust)** | Fast — maps directly to a CPU register and one instruction. Predictable memory size. | Can overflow; you must reason about range. |
-| **Wraparound semantics (Java/Go)** | Fully defined, portable, no UB, useful for hashing and checksums. | Silent — a bug produces wrong numbers with no signal. |
-| **Undefined behavior (C/C++)** | Lets the compiler optimize aggressively (assume loops terminate, etc.). | Catastrophic: optimizer can delete your overflow checks; bugs become security holes. |
-| **Panic-on-overflow (Rust debug)** | Catches bugs at the moment they happen, during development. | Off in release builds by default; you must opt into checked ops for production safety. |
-| **Arbitrary precision (Python)** | You literally never overflow. Simplicity. | Slower, uses more memory, unpredictable performance for huge numbers. |
-| **Unsigned types** | Double the positive range; correct modular arithmetic; right for sizes/indices/bitmasks. | Subtracting can wrap to a giant number; mixing with signed is a notorious bug source. |
-
----
-
-## Use Cases
-
-Pick the representation deliberately:
-
-- **Counters, IDs, indices:** fixed-width integers. Use 64-bit when in doubt — a 32-bit counter at 1000/sec overflows in ~50 days; a 64-bit one effectively never does.
-- **Sizes, lengths, memory offsets:** unsigned types (`size_t` in C, `usize` in Rust) — a length is never negative, and the modular semantics are right.
-- **Bit flags / bitmasks:** unsigned, so shifts and masks behave predictably without sign extension surprises.
-- **Money:** **never** floating point. Use fixed-width integers counting the smallest unit (cents, satoshis) — but then guard multiplication against overflow.
-- **Cryptographic / huge math:** Python's big ints, Java's `BigInteger`, or a bignum library — correctness over speed.
-- **Hashing, checksums, PRNGs:** wraparound is a *feature*; use it deliberately (Go/Java naturally, Rust's `Wrapping<T>`).
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Choose a width that can't overflow for your domain
@@ -422,193 +311,24 @@ if len > 0 { let last = len - 1; /* ... */ }
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. Write out the 8-bit two's-complement representation of `−5`. (Hint: take `5` = `00000101`, flip all bits, add 1.)
-2. What is the unsigned 8-bit result of `200 + 100`? What's the signed 8-bit result of the same bit pattern?
-3. For a signed 16-bit integer, what does `32767 + 1` equal? Why?
-4. In C, `unsigned char c = 0; c = c - 1;` — what is `c` now? Why isn't it `−1`?
-5. Why does two's complement have only one zero while sign-magnitude has two? Show both bit patterns for "zero" in sign-magnitude.
-6. Predict the output of `Integer.MAX_VALUE + 1` in Java, then the same operation in Rust debug mode. Why do they differ?
-7. Compute `(2_000_000_000 + 2_000_000_000) / 2` using 32-bit signed `int` math. Is the answer 2,000,000,000? If not, why, and how do you fix the midpoint formula?
-8. Take the value `300` and store it in an unsigned 8-bit type. What value remains, and what bit operation explains it?
+1. Choose one small, known input for **Integer Representation & Overflow**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
----
+## Verify your work
 
-## Tricky Questions
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
 
-**Q1: Is `unsigned x = 0; x--;` undefined behavior in C?**
+## Review questions
 
-No. Unsigned arithmetic is *defined* to wrap modulo 2ⁿ, so `0 - 1` becomes `UINT_MAX` (4294967295 for 32-bit). It's a bug if you didn't expect it, but it is well-defined. Signed overflow is the undefined one.
-
-**Q2: If `11111111` can mean both 255 and −1, how does the CPU know which to add correctly?**
-
-It doesn't need to — that's the beauty of two's complement. The *same* binary addition produces the correct bit pattern for both interpretations. The CPU just adds bits; *you* decide whether to read the result as signed or unsigned.
-
-**Q3: Why is 64-bit usually "safe enough" for counters?**
-
-A 64-bit unsigned counter holds ~1.8×10¹⁹ values. Incrementing it a billion times per second, it would take roughly 585 years to overflow. For almost any real counter, that's effectively never — which is why "just use int64" is sound default advice.
-
-**Q4: Does Python ever overflow integers?**
-
-No. Python's `int` automatically grows to arbitrary precision. `2 ** 10000` computes exactly. The trade-off is speed and memory. Note: NumPy arrays use fixed-width C types and *do* wrap.
-
-**Q5: My loop `for (unsigned i = n; i >= 0; i--)` never ends. Why?**
-
-Because an unsigned `i` is *always* `≥ 0` — when `i` is 0 and you do `i--`, it wraps to `UINT_MAX`, which is still `≥ 0`. The condition can never become false. Use a signed loop variable or restructure the loop.
-
-**Q6: Is the wraparound from `MAX + 1` to `MIN` guaranteed in every language?**
-
-No! It's guaranteed in Java and Go. It's *undefined* in C/C++. In Rust it panics (debug) or wraps (release). In Python it can't happen. Never assume wraparound is portable.
-
-**Q7: Why might `count * size` be a security vulnerability?**
-
-If an attacker supplies a large `count`, the multiplication can overflow to a *small* number. The program then allocates a small buffer (the wrapped size) but later writes `count` elements into it — a heap buffer overflow. Many real CVEs follow exactly this shape.
-
----
-
-## Cheat Sheet
-
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│                INTEGER REPRESENTATION & OVERFLOW                 │
-├──────────────────────────────────────────────────────────────────┤
-│ An integer = a fixed box of N bits. Count past the top → wrap.   │
-├──────────────────────────────────────────────────────────────────┤
-│ Unsigned n-bit range:   0 .. 2^n - 1                             │
-│ Signed   n-bit range:  -2^(n-1) .. 2^(n-1) - 1   (two's comp)    │
-│   one more negative than positive  → -INT_MIN is BROKEN          │
-├──────────────────────────────────────────────────────────────────┤
-│ Ranges:                                                          │
-│   8-bit  signed -128..127        unsigned 0..255                 │
-│  16-bit  signed -32768..32767    unsigned 0..65535               │
-│  32-bit  signed +/-2.1 billion   unsigned 0..4.29 billion        │
-│  64-bit  signed +/-9.2e18        unsigned 0..1.8e19              │
-├──────────────────────────────────────────────────────────────────┤
-│ Two's complement: top bit's place value is NEGATIVE.            │
-│   one zero, one adder for signed+unsigned → hardware loves it    │
-├──────────────────────────────────────────────────────────────────┤
-│ Overflow behavior BY LANGUAGE:                                   │
-│   C/C++   signed=UNDEFINED, unsigned=wraps                       │
-│   Java    wraps (silent, defined); Math.addExact throws          │
-│   Go      wraps (silent, defined)                                │
-│   Rust    panics(debug)/wraps(release); checked/wrapping/sat.    │
-│   Python  never overflows (arbitrary precision)                  │
-│   JS      float past 2^53 loses precision; BigInt is exact       │
-├──────────────────────────────────────────────────────────────────┤
-│ Classic traps:                                                   │
-│   * unsigned 0 - 1  = MAX  (not -1)                              │
-│   * len - 1 when len==0  → huge index                            │
-│   * count * size overflow → tiny alloc → buffer overflow         │
-│   * (a + b) / 2 midpoint overflows → use a + (b - a)/2           │
-│   * narrowing truncates (keeps low bits), never rounds           │
-└──────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## Summary
-
-- A computer integer is a **fixed-width box of bits**, not an abstract number. Its width (8/16/32/64) sets its range.
-- **Unsigned** integers hold `0 … 2ⁿ−1`; all bits are magnitude.
-- **Signed** integers use **two's complement**: the top bit carries a *negative* place value. This gives exactly one zero, lets one adder serve both signed and unsigned, and is why every modern CPU uses it.
-- Two's complement is **asymmetric**: one more negative than positive value, so `−INT_MIN` and `abs(INT_MIN)` are broken.
-- **Overflow** happens when a result won't fit; the visible effect is **wraparound** (the odometer rolls over).
-- **The reaction to overflow is language-specific**: C/C++ undefined, Java/Go silent wrap, Rust panic-or-wrap-plus-explicit-APIs, Python never overflows, JS loses precision.
-- **Narrowing truncates** (keeps the low bits); **widening sign-extends** signed values.
-- The big real-world dangers: **unsigned underflow** (`0 − 1` = huge), **multiplication overflow in size math** (a security vector), and **C's undefined behavior** silently deleting overflow checks.
-- A junior's #1 habit: **know your language's overflow rule, default to 64-bit for counters, and validate the range of any externally-supplied number before you do arithmetic on it.**
-
----
-
-## What You Can Build
-
-- **A wraparound visualizer.** Print the value of an 8-bit signed and unsigned counter as you increment it from 250 to 260, showing the wrap.
-- **A "five languages, one overflow" demo.** Run `MAX + 1` in C, Java, Go, Rust, and Python and tabulate the wildly different results.
-- **A binary↔decimal converter** that shows the two's-complement interpretation of any 8-bit pattern (both the signed and unsigned reading).
-- **A safe-add library** in your language: `safeAdd(a, b)` that returns an error/None on overflow instead of wrapping. Test it at the boundaries.
-- **An odometer simulation** that wraps at a configurable width — make the off-by-one at the seam obvious.
-- **A "find the overflow" challenge** for a friend: write a size calculation `count * size` that overflows for a specific input, and see if they can spot why it's exploitable.
-
----
-
-## Further Reading
-
-- *Computer Systems: A Programmer's Perspective* (Bryant & O'Hallaron) — Chapter 2 is the definitive, accessible treatment of integer representation.
-- *Code: The Hidden Language of Computer Hardware and Software* — Charles Petzold. Builds binary from first principles.
-- *Hacker's Delight* — Henry S. Warren. The bible of bit-level integer tricks (more advanced).
-- *The Rust Book* — section on integer overflow. https://doc.rust-lang.org/book/ch03-02-data-types.html
-- Two's complement on Wikipedia — surprisingly good, with worked examples.
-- *What Every Computer Scientist Should Know About... integer overflow* — various blog treatments; search "integer overflow CWE-190".
-- The CWE entry **CWE-190: Integer Overflow or Wraparound** — the security framing.
-
----
-
-## Related Topics
-
-- This folder, next levels: [`middle.md`](middle.md), [`senior.md`](senior.md), [`professional.md`](professional.md), [`interview.md`](interview.md), [`tasks.md`](tasks.md).
-- Sibling numeric topics (same section):
-  - [Floating-Point Representation](../02-floating-point-ieee-754/junior.md) — the *other* number representation, with its own surprises.
-- The hardware view: `../../cpu-architecture/01-alu/junior.md` — how the adder actually works.
-- The security view: `../../../quality-engineering/static-analysis/junior.md` — tools that catch overflow.
-
----
-
-## Diagrams & Visual Aids
-
-### The Integer Clock (8-bit unsigned)
-
-```text
-                     0
-              255 ─┐ │ ┌─ 1
-                   ╲│╱
-            254 ────●──── 2
-                   ╱│╲
-                  ╱ │ ╲
-                 ...   ...
-                       │
-              128 ───────── 127     ← wrap seam is between 255 and 0
-        (count past 255 → back to 0; below 0 → back to 255)
-```
-
-### Two's Complement Place Values (signed 8-bit)
-
-```text
-   bit position:   7    6    5    4    3    2    1    0
-   place value:  -128  +64  +32  +16  +8   +4   +2   +1
-                   ▲
-                   └── only the TOP bit is negative
-
-   10000000 = -128                (most negative; no positive twin)
-   11111111 =  -1                 (all ones)
-   00000000 =   0                 (only one zero)
-   01111111 = +127                (most positive)
-```
-
-### Signed 8-bit Overflow at the Seam
-
-```text
- value:  ... 125  126  127 │-128  -127  -126 ...
-                       │   │
-              +1 ──────┘   │
-                           ▼
-                    wraps to -128   (127 + 1 ≠ 128; it's the minimum)
-```
-
-### Sign Extension vs Zero Extension (8-bit → 16-bit)
-
-```text
-  signed   -1  =  11111111   →  11111111 11111111   (-1, sign-extended)
-  unsigned 255 =  11111111   →  00000000 11111111   (255, zero-extended)
-
-  same 8 bits, different widening rule because the TYPE differs
-```
-
-### The "count * size" Overflow-to-Exploit Pattern
-
-```text
-  attacker sends count = 4294967296 / size  (chosen to overflow)
-        count * size  ──overflows──►  small number, e.g. 16
-        malloc(16)    ──allocates──►  tiny buffer
-        write `count` elements into it  ──►  HEAP BUFFER OVERFLOW
-```
+- What problem does Integer Representation & Overflow solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

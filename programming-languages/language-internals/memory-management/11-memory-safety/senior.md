@@ -1,41 +1,11 @@
-# Memory Safety — Senior Level
+# Memory Safety — Senior
 
-> **Topic:** Memory Safety
-> **Focus:** Language-design strategies for safety, what the guarantees precisely do and don't cover, and the formal notions (soundness, the `unsafe` contract) that make those guarantees meaningful.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Memory Safety** under failure, load, and change?
 
-## Introduction
-
-A senior engineer doesn't just *use* a memory-safe language — they can reason about *what the safety guarantee actually is*, where its edges are, and what it costs. "Memory-safe" is a precise claim about the language's *safe subset*, not a vague reassurance. This tier examines the design space: how different languages draw the safety boundary, what soundness means, why Rust's affine type system buys safety without a GC, and the uncomfortable truths (safe Rust can still deadlock, leak, and panic; safety guarantees end at the FFI boundary; data races break Go's safety).
-
-The goal is to be able to answer, for any language: *"Exactly which guarantee does this give me, under what assumptions, and at what cost?"*
-
----
-
-## Prerequisites
-
-- Middle-tier mechanisms: violation categories, ASan internals, the `unsafe` boundary.
-- Familiarity with at least two of: Rust ownership, Java/Go runtime semantics, C/C++ object lifetimes.
-- Comfort with type-system vocabulary (substructural types, lifetimes, variance) at a conceptual level.
-- Understanding of compilation vs. runtime enforcement trade-offs.
-
----
-
-## Glossary
-
-| Term | Meaning |
-| --- | --- |
-| **Safe subset** | The portion of a language whose programs are guaranteed memory-safe. |
-| **Affine / substructural type** | A type whose values can be used *at most once* (basis of move semantics / ownership). |
-| **Lifetime** | A compile-time region during which a borrow/reference is guaranteed valid. |
-| **Soundness (of a type system)** | "Well-typed programs don't go wrong" — accepted programs cannot violate the property. |
-| **Aliasing XOR mutability** | The rule: a value may be aliased *or* mutated, never both simultaneously. |
-| **Memory model** | The spec defining which inter-thread memory behaviors are allowed/defined. |
-| **Provenance** | The notion that a pointer "comes from" a specific allocation and may only access it. |
-| **Tagged / capability memory** | Hardware that attaches metadata (bounds, validity) to pointers (MTE, CHERI). |
-| **Total memory safety** | Spatial + temporal + type + initialization (+ sometimes thread) safety together. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -109,30 +79,6 @@ Confusing "safe" with "correct" or "robust" is a category error. Memory safety e
 
 ---
 
-## Real-World Analogies
-
-- **The safe subset = a fenced playground.** Inside the fence, the rules guarantee no one falls off the cliff. `unsafe` is a gate to the cliffside path — sometimes you must take it, and whoever opens it is responsible for not falling *and* for not leaving the gate open so the children inside wander out.
-
-- **Soundness = a bank's accounting invariant.** "Money is never created or destroyed by a transfer." Every *safe* operation preserves it. An `unsafe` operation is a manual ledger entry: if the teller gets it wrong, the books are corrupt even though every automated transaction afterward was "correct."
-
-- **Affine types = a single physical key.** Ownership means there's exactly one key to the house. Hand it to someone (move) and you no longer have it. You can lend copies that only open the door for reading (shared borrows) *or* lend the single master that lets you remodel (mutable borrow) — never both at once.
-
-- **GC vs. ownership = janitor vs. checkout discipline.** GC is a janitor who periodically sweeps unreachable trash (works, but on its own schedule). Ownership is a checkout policy where you clean your room the instant you leave — deterministic, no janitor needed, but you must follow the policy strictly.
-
----
-
-## Mental Models
-
-**Model 1: Safety is a property of a *subset*, with a *boundary*.** Always identify the safe subset and its boundary (`unsafe`, FFI, races). The guarantee is "no UB *as long as you stay in the subset and the islands are correct*."
-
-**Model 2: Move the cost, don't remove it.** GC pays at runtime; Rust pays at compile-time and in cognitive load; sanitizers pay in test-time slowdown. There's no free safety — choose *where* you want to pay.
-
-**Model 3: Safety guarantees compose like a chain.** A safe app over a safe stdlib over a sound compiler over correct `unsafe` over a trusted C FFI — the whole is only as safe as its weakest link. Audit the links, especially the human-verified ones.
-
-**Model 4: Aliasing XOR mutability is the keystone.** It's astonishing how much falls out of one rule: temporal safety, data-race freedom, and even some optimization freedoms (the compiler can assume `&mut` is unique). Recognizing this rule clarifies most of Rust's design.
-
----
-
 ## Code Examples
 
 ### The same logic, three safety philosophies
@@ -197,30 +143,6 @@ std::mem::forget(data);   // leaks 1KB. This is a SAFE function. Not a safety bu
 
 ---
 
-## Pros & Cons
-
-**Static ownership (Rust):**
-- ✅ Total memory safety (incl. data-race freedom) with no GC; deterministic destruction; zero-cost where checks can be elided.
-- ❌ Conservative borrow checker rejects some sound programs; steep learning curve; `unsafe` still required at the edges and must be audited.
-
-**Tracing GC (managed runtimes):**
-- ✅ Simple model, high productivity, no lifetime reasoning.
-- ❌ Pauses, memory overhead, non-deterministic finalization; doesn't guarantee data-race freedom.
-
-**Choosing the boundary:**
-- ✅ Drawing a small, explicit unsafe boundary concentrates audit effort.
-- ❌ A boundary drawn carelessly (large `unsafe`, sprawling FFI) silently erases the guarantee.
-
----
-
-## Use Cases
-
-- **Designing a new systems component** (kernel module, hypervisor, browser sandbox): Rust's static safety is the reason it's now in the Linux kernel, Android, and Windows.
-- **Evaluating a dependency's safety claim:** a Rust crate advertising a safe API is only sound if its internal `unsafe` upholds its invariants — review the `unsafe` blocks and their `// SAFETY:` justifications.
-- **Latency-critical services:** weighing a low-pause GC (ZGC) against Rust's deterministic, GC-free model.
-
----
-
 ## Coding Patterns
 
 - **Soundness encapsulation:** never expose a safe function that can be driven to UB; the bounds/validity check belongs *inside* the safe boundary.
@@ -252,10 +174,24 @@ std::mem::forget(data);   // leaks 1KB. This is a SAFE function. Not a safety bu
 
 ---
 
-## Summary
+## Apply it
 
-- "Memory-safe" decomposes into **spatial, temporal, type, initialization, and (sometimes) thread** safety; different languages guarantee different subsets under different assumptions.
-- **GC runtimes** enforce safety via bounds checks + tracing collection + checked casts, paying at runtime (pauses, headroom, non-deterministic destruction) and *not* guaranteeing data-race freedom.
-- **Rust** achieves *total* memory safety without a GC via **affine ownership, lifetimes, and aliasing-XOR-mutability**, paying at compile-time and in learning curve, with a conservative borrow checker.
-- **Soundness** means accepted programs can't go wrong; the **`unsafe` contract** shifts a proof obligation onto the author, and its blast radius extends into safe code — so the program is only as safe as its unsafe islands and FFI boundaries.
-- Safety is **not** correctness: leaks, deadlocks, panics, and logic bugs are all "safe." Know exactly what the guarantee buys you — and what it doesn't.
+1. State the system invariant that **Memory Safety** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
+
+## Verify your work
+
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
+
+## Review questions
+
+- Which invariant must remain true when Memory Safety fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

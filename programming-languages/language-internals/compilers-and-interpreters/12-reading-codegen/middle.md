@@ -1,71 +1,11 @@
-# Reading Codegen (Disassembly & Compiler Output) — Middle Level
+# Reading Codegen (Disassembly & Compiler Output) — Middle
 
-> **Topic:** Reading Codegen (Disassembly & Compiler Output)
-> **Focus:** Recognizing real optimizations in the output — vectorization, inlining, bounds-check elimination — and using `perf annotate` to find which instructions actually cost time.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **Reading Codegen (Disassembly & Compiler Output)** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-> Focus: **You can read the basics. Now: did the loop *vectorize*? Did the bounds check survive? Where does the time actually go?**
-
-At the junior level you learned to open the hood — Compiler Explorer, the registers, the dozen instructions, constant folding and strength reduction. That's the alphabet. This level is reading sentences: recognizing the *optimizations that matter for performance* in real output, and connecting the assembly to where time is actually spent.
-
-The questions get sharper:
-
-- "I have a hot numeric loop. Did the compiler **vectorize** it into SIMD instructions (`xmm`/`ymm`/`zmm`, packed adds), or is it processing one element at a time?"
-- "In Rust/Go/Java, every array access can carry a **bounds check**. Did the compiler eliminate it in my hot loop, or am I paying for a comparison-and-branch on every iteration?"
-- "I expected this function to inline. It didn't. *Why?*"
-- "`perf` says this loop is 40% of my runtime. Which *instruction* inside it is hot?"
-
-Reading codegen at this level is how you turn "it feels slow" into "the compiler failed to vectorize because of this loop-carried dependency, here in the assembly." That's the difference between a guess and a diagnosis.
-
-> 🎓 **Why this matters for a mid-level engineer:** You're now the person who's expected to *fix* the slow thing, not just notice it. The most common performance wins on hot numeric code are (1) getting the compiler to vectorize, (2) eliminating bounds checks, and (3) getting a hot call inlined. You can't make any of those happen reliably if you can't *see* whether they're happening. The assembly is your feedback loop.
-
-This page covers: SIMD/vectorization and how to recognize it in the output (`xmm`/`ymm`/`zmm`, packed `padd`/`mulps`/`vfmadd`), bounds-check elimination across Rust/Go/Java/C++, why inlining sometimes doesn't happen and how to read that, loop unrolling, the calling convention as visible in the prologue/epilogue, and `perf record` + `perf annotate` to map hot time onto instructions. `senior.md` covers proving optimizations rigorously and the benchmark-optimized-away trap; `professional.md` covers JIT disassembly and aliasing.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** Comfortable reading the basic x86-64 from `junior.md` — registers, `mov`/`lea`/`add`/`cmp`/`jmp`/`call`, addressing modes, Intel syntax.
-- **Required:** You can drive Compiler Explorer (select compiler, set flags, read the color-mapped output).
-- **Required:** Understanding what a loop and an array index look like in assembly.
-- **Helpful but not required:** A vague sense of what SIMD is ("do the same operation on 4/8/16 numbers at once").
-- **Helpful but not required:** You've run a profiler at least once, even just `time` or a flame graph.
-
-You do **not** need to know:
-
-- How to write SIMD intrinsics or assembly by hand (we only *recognize* the compiler's SIMD output).
-- The microarchitecture (ports, latency/throughput tables) — that's deep performance work beyond this page.
-- JIT internals or aliasing analysis in depth — `professional.md`.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **SIMD** | "Single Instruction, Multiple Data" — one instruction operates on a *vector* of several values at once. |
-| **Vectorization** | The compiler transforming a scalar loop (one element per iteration) into SIMD (many elements per iteration). |
-| **`xmm` / `ymm` / `zmm`** | The SIMD registers: 128-bit (`xmm0`–`xmm15`, SSE), 256-bit (`ymm`, AVX/AVX2), 512-bit (`zmm`, AVX-512). Wider = more elements per instruction. |
-| **Packed instruction** | A SIMD instruction that operates on packed lanes, e.g. `paddd` (packed add of 4 int32s), `mulps`/`vmulps` (packed multiply of floats). The `p`/`ps`/`pd` suffixes signal "packed." |
-| **Scalar instruction** | Operates on *one* value, e.g. `addss` (add *scalar* single). The presence of `ss`/`sd` instead of `ps`/`pd` means **not** vectorized. |
-| **Bounds check** | A runtime `if (index >= length) panic;` inserted by memory-safe languages (Rust, Go, Java, C#) before an array access. |
-| **Bounds-check elimination (BCE)** | The optimizer proving a check is always true and removing it, saving a compare+branch per access. |
-| **Inlining** | Copying a callee's body into the caller. Removes call overhead and *enables* further optimization across the boundary. |
-| **Loop unrolling** | Replicating a loop body N times so fewer iterations (and fewer branch checks) run. |
-| **Register spill** | When the compiler runs out of registers and stores values to the stack (`mov [rsp+...], reg`), then reloads them. Costs memory traffic. |
-| **Prologue / Epilogue** | Function entry/exit code: saving callee-saved registers, adjusting `rsp`, restoring on return. |
-| **Calling convention (ABI)** | The agreed rules: on Linux x86-64 (System V), integer args go in `rdi, rsi, rdx, rcx, r8, r9`; return in `rax`. |
-| **`perf`** | The Linux sampling profiler. `perf record` samples the running program; `perf report`/`perf annotate` show where time went, down to the instruction. |
-| **`perf annotate`** | Shows a function's disassembly with a *percentage of samples* next to each instruction — the hottest instructions. |
-| **Hot instruction** | An instruction where the profiler attributes a lot of time (often a memory load that misses cache, or a hard-to-predict branch). |
-| **FMA** | Fused multiply-add: `a*b + c` in one instruction (`vfmadd...`). A strong signal the compiler vectorized a dot-product-style loop. |
-| **Reduction** | A loop that accumulates into a scalar (`sum += a[i]`). Vectorizing it requires the compiler to use multiple accumulators and combine at the end. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -146,34 +86,6 @@ perf annotate -s my_hot_function
 ```
 
 `perf annotate` shows the function's disassembly with a **percentage of samples** beside each instruction. The instructions with high percentages are where time actually goes — usually a memory load (cache miss) or a mispredicted branch. This closes the loop: *read* the asm to understand the work, *profile* it to find the cost.
-
----
-
-## Real-World Analogies
-
-**Assembly line, single vs. multi-head.** A scalar loop is one worker fitting one bolt at a time. A vectorized loop is a multi-head machine fitting 8 bolts in one motion (`ymm` = 8 lanes). Recognizing vectorization is glancing at the machine and counting the heads.
-
-**The security checkpoint that learns you're a regular.** A bounds check is a guard checking your ID at every door. Bounds-check elimination is the guard realizing, after one check at the entrance, that you're cleared for the whole floor and waving you through the rest — fewer stops, same safety, because it's *provably* fine.
-
-**Photocopying a colleague into your office.** Inlining is photocopying a small helper's work directly onto your desk so you don't have to walk down the hall (`call`) every time. When the helper's job is huge, you don't photocopy it — you still walk over. Reading the asm tells you which one happened.
-
-**A heat map over a blueprint.** The disassembly is the blueprint of what the machine does. `perf annotate` is a thermal camera laid over it, showing which instructions are actually hot. The blueprint alone can't tell you where the heat is.
-
----
-
-## Mental Models
-
-**Model 1: `p` is parallel, `s` is scalar.** When scanning SIMD output, the suffix tells you everything. `addps`/`paddd` = packed = vectorized. `addss`/`addsd` = scalar = one lane = *not* vectorized even though SIMD registers are involved. Train your eye to catch that single letter.
-
-**Model 2: The compiler vectorizes only what it can prove safe.** If you don't see vectorization, ask "what couldn't it prove?" — aliasing, a dependency, a float reassociation, an opaque call. The blocker is usually nameable.
-
-**Model 3: A bounds check is a `cmp`+branch to a panic block.** Train yourself to spot the panic/`bounds_check_fail` target. Its presence inside a loop = check still there. Its absence = eliminated.
-
-**Model 4: No `call` where you expected one = inlined; a `call` where you wanted none = a missed inline.** The `call` instruction is your inlining detector.
-
-**Model 5: Asm shows work, `perf` shows cost.** Two instructions that look equally cheap can differ 100× at runtime (cache hit vs. miss). Never infer "slow" from the *instruction list* alone — overlay a profile.
-
-**Model 6: Unrolling + vectorization compound.** Modern `-O3` often unrolls *and* vectorizes, so the hot loop body looks long and dense. Don't be alarmed — count the elements-per-iteration (the counter increment) to see the real width.
 
 ---
 
@@ -313,37 +225,6 @@ In the Go disassembly, a remaining bounds check appears as a `CMPQ` against the 
 
 ---
 
-## Pros & Cons
-
-**Pros of reading optimization-level codegen:**
-
-- **You can verify the three highest-value optimizations** (vectorization, BCE, inlining) instead of hoping.
-- **`perf annotate` turns "slow" into a specific hot instruction**, redirecting your effort to the real bottleneck.
-- **You learn *why* an optimization didn't happen**, which is exactly what you need to *make* it happen.
-- **It makes you precise in code review:** "this indexing keeps a bounds check; switch to an iterator" is a concrete, checkable claim.
-
-**Cons / costs:**
-
-- **More to recognize:** SIMD mnemonics, panic branches, FMA forms — a bigger vocabulary than the junior set.
-- **Output depends heavily on flags** (`-march`, `-ffast-math`, LTO). You must control these to read meaningfully.
-- **Vectorized `-O3` output is dense and long**, which can be intimidating before you learn to skim it.
-- **`perf` needs a real run on real data** (and often root/`perf_event_paranoid` config), unlike Godbolt which is instant.
-- **It's still only half the picture** without microarchitectural understanding (latency/throughput) for the deepest tuning.
-
----
-
-## Use Cases
-
-- **Confirming a hot loop vectorized** before and after a refactor (e.g. switching to iterators, adding `restrict`, enabling `-march`).
-- **Diagnosing a missed vectorization** by reading the scalar output and naming the blocker (dependency, aliasing, float reassociation).
-- **Proving a bounds check was eliminated** when you rewrote indexing as iteration in Rust/Go.
-- **Checking whether a hot helper inlined**, and using `-Rpass-missed=inline` to learn why not.
-- **Finding the actual hot instruction** in a loop with `perf annotate` — usually revealing a memory or branch bottleneck, not the arithmetic you assumed.
-- **Validating a `-march`/`-mtune` change** actually produced wider SIMD instructions.
-- **Reviewing a teammate's "optimization"** by checking the assembly is genuinely different (and better), not just differently-spelled source.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Toggle `-march` to test vectorization potential
@@ -418,3 +299,27 @@ First check inlining (look for the `call`). *Then* profile. An inlined function 
 - **Forgetting LTO.** Cross-file inlining only happens with link-time optimization. A `call` to another translation unit at `-O2` without LTO doesn't mean "can't inline" — it means "couldn't see the body."
 - **`-O3` not always faster.** More unrolling/inlining can bloat code and thrash the instruction cache. Sometimes `-O2` is faster on the *whole* program. Read *and* measure; don't assume bigger optimization level wins. (`senior.md` digs into this.)
 - **Float vs. double width confusion.** A `ymm` holds 8 floats *or* 4 doubles. If your data is `double`, the same register processes half as many elements — don't expect 8-wide throughput.
+
+---
+
+## Apply it
+
+1. Find a real component where **Reading Codegen (Disassembly & Compiler Output)** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
+
+## Verify your work
+
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
+
+## Review questions
+
+- Which boundary is most affected by Reading Codegen (Disassembly & Compiler Output)?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

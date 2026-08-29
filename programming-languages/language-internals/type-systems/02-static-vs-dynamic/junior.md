@@ -1,69 +1,11 @@
-# Static vs Dynamic Typing — Junior Level
+# Static vs Dynamic Typing — Junior
 
-> **Topic:** Static vs Dynamic Typing
-> **Focus:** When are types checked — before the program runs, or while it runs? And what does each choice catch, miss, and cost you?
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **Static vs Dynamic Typing** in one small example and prove the result?
 
-## Introduction
-
-> Focus: **What does it mean for a type to be checked "at compile time" versus "at run time"?** And **why does that single decision shape everything from how fast you write code to where your bugs show up?**
-
-Every value your program touches has a **type**: `42` is an integer, `"hello"` is a string, `[1, 2, 3]` is a list. A type is a promise about what a value *is* and therefore what you can *do* with it. You can add two integers. You can uppercase a string. You cannot uppercase an integer — and if you try, something has to notice.
-
-The whole static-vs-dynamic debate comes down to **when "something notices"**:
-
-- In a **statically typed** language (Java, Go, Rust, TypeScript, Haskell, C#), the compiler checks types **before the program ever runs**. If you write `"hello".length() + 5` where `+ 5` doesn't make sense, the build fails. You can't even produce a runnable program until the types line up.
-- In a **dynamically typed** language (Python, JavaScript, Ruby, PHP, Lisp), types are checked **while the program runs**, at the moment of each operation. The same nonsensical expression compiles fine and starts running — and then *blows up* the instant it actually executes that line. If that line never runs, you never find out.
-
-In one sentence: **static typing asks "will this ever go wrong?" before launch; dynamic typing asks "is this going wrong right now?" as it flies.**
-
-That timing difference has consequences a junior feels immediately. Static typing catches a whole category of mistakes — typos in field names, passing a string where a number was wanted, calling a method that doesn't exist — *before you run anything*. The price is ceremony: you write more type annotations, and the compiler sometimes rejects programs that would actually have worked. Dynamic typing is terse and flexible — you just write the logic — but a typo in a rarely-taken branch can sit silently in your codebase for months and then crash in production at 2 a.m.
-
-> 🎓 **Why this matters for a junior:** The single most common production crash you will ever cause is some flavor of `'NoneType' object has no attribute 'name'` (Python) or `undefined is not a function` (JavaScript). Those are *type errors that escaped to runtime* — exactly the errors a static type system is built to catch before you ship. Understanding which world you're in, and what it does and doesn't protect you from, is the difference between confident shipping and superstition.
-
-This page covers: what a type is, the precise meaning of "compile time" vs "run time," the canonical type-error in both worlds (and where it shows up), the **strong vs weak** axis (which is *not* the same thing — a frequent confusion), and the same small program written in a static language and a dynamic one. The next levels go deeper: `middle.md` covers gradual typing (TypeScript, Python type hints) and duck typing; `senior.md` covers soundness, erasure vs reification, and inference; `professional.md` covers performance, the empirical bug-rate research, and large-codebase migrations.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** How to write and run a simple program with variables and functions in at least one language (Python, JavaScript, Java, or Go).
-- **Required:** What a variable is and what it means to call a function or method on a value.
-- **Required:** The rough idea that there's a "build" or "compile" step in some languages (Java, Go) and not in others (Python, JavaScript — you just run the file).
-- **Helpful but not required:** Having seen at least one error message from each world — a compiler error and a runtime exception.
-
-You do **not** need to know:
-
-- Type theory, lambda calculus, or the formal definition of soundness (that's `senior.md`).
-- How a compiler's type checker is implemented or how inference works (later levels).
-- Anything about generics, variance, or advanced type features.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Type** | A classification of a value that says what it is and what operations are valid on it. `int`, `string`, `bool`, `User`. |
-| **Static typing** | Types are checked **before the program runs**, by a compiler/checker. Type errors block the build. |
-| **Dynamic typing** | Types are checked **while the program runs**, at each operation. Type errors become runtime exceptions. |
-| **Compile time** | The phase when source code is translated and checked, before execution. Static type checks happen here. |
-| **Run time** | The phase when the program is actually executing. Dynamic type checks happen here. |
-| **Type annotation** | An explicit note in source code stating a type, e.g. `int count` or `count: int`. |
-| **Type error** | An operation applied to a value of the wrong type, e.g. calling `.length()` on a number. |
-| **Type inference** | The compiler figuring out a type you didn't write down, e.g. Go's `x := 5` infers `int`. |
-| **Strong typing** | The language resists implicit, surprising type conversions. `"5" + 5` is an error, not magic. |
-| **Weak typing** | The language freely, implicitly coerces types. `"5" + 5` quietly becomes `"55"` or `10`. |
-| **Duck typing** | "If it walks like a duck and quacks like a duck, treat it as a duck." Dynamic languages care about whether a value *has* a method, not what its declared type is. |
-| **`null` / `None` / `nil` / `undefined`** | The "no value here" value. The source of the single most common type-related crash. |
-| **Coercion** | Automatic conversion of a value from one type to another, e.g. number to string. |
-| **REPL** | Read-Eval-Print Loop — an interactive prompt where you type code and see results immediately. Common in dynamic languages. |
-
-> ⚠️ **Do not confuse two different axes.** "Static vs dynamic" is about *when types are checked*. "Strong vs weak" is about *how willing the language is to coerce between types*. They are independent. Python is **dynamic and strong**. C is **static and weak**. We'll untangle this in Core Concepts.
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -152,39 +94,6 @@ console.log(user.name);     // TypeError: Cannot read properties of undefined (r
 ```
 
 In a dynamic language, this is a runtime crash that only happens when `find_user` actually returns nothing. A *static* type system that distinguishes "User" from "maybe-a-User" (like Rust's `Option<User>`, Kotlin's `User?`, or Haskell's `Maybe User`) can force you to handle the empty case **at compile time** — turning a 2 a.m. production page into a build error on your laptop. This is one of the strongest practical arguments for static typing, and you'll meet it again at every level.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Static type checking** | Airport security screening *before* you board — every passenger checked at the gate, the plane doesn't take off with a problem aboard. |
-| **Dynamic type checking** | A bouncer checking IDs at each door *inside* the club — you're already in the building; you only get stopped when you try to enter a room. |
-| **Type error** | Trying to plug a US plug into a UK socket. It simply doesn't fit. |
-| **Compile time** | Proofreading the whole essay before printing 10,000 copies. |
-| **Run time** | Reading the essay aloud and discovering the typo only when you reach that word. |
-| **`null` crash** | Reaching into your pocket for your keys, finding nothing, and the door staying locked. |
-| **Conservatism (static rejects valid code)** | A strict spell-checker flagging "Anthropic" as a misspelling — it's actually fine, but the checker can't prove it. |
-| **Duck typing** | Hiring based on "can you do the job?" rather than "what's your job title?" If it can quack, it's hired as a duck. |
-| **Weak typing / coercion** | A vending machine that accepts a button as a coin because it's round and metal — convenient until it gives you the wrong snack. |
-| **Type annotation** | Labeling every box in a move "KITCHEN — FRAGILE" so nobody has to open it to know what's inside. |
-
----
-
-## Mental Models
-
-### The "Spell-Check vs Read-Aloud" Model
-
-Static typing is like a spell-checker that scans the **entire document** before you publish. It flags every misspelling, even in the footnote nobody reads. It occasionally flags a real word it doesn't recognize (a false alarm — that's conservatism). Dynamic typing is like proofreading by **reading aloud**: you only catch the typo when you reach that exact word, and if you skip a paragraph, its typos go unnoticed. Both find typos; one finds them all up front, the other finds them as you go and misses the parts you skip.
-
-### The "Label on the Box vs Label on the Item" Model
-
-In a static language, the **box** (variable) is labeled "INTEGERS ONLY," and you may only ever put integers in it. The checker enforces the label without opening the box. In a dynamic language, the box is unlabeled — anything goes in — and each **item** inside carries its own tag. You find out what you grabbed only when you pull it out and look. This is the variable-typed-vs-value-typed distinction made physical.
-
-### The "Pay Now vs Pay Later" Model
-
-Static typing makes you **pay up front** with annotations and the occasional rejected-but-valid program — in exchange, fewer surprises later. Dynamic typing lets you **pay later**: write fast and loose now, and possibly pay with a production crash on an untested path. Neither is free; they just move the cost to different times. As a codebase grows and lives longer, the "pay later" bill tends to grow, which is why large old codebases drift toward static checking.
 
 ---
 
@@ -314,42 +223,6 @@ The static type `Option<&User>` literally cannot be used as a `User` until you u
 
 ---
 
-## Pros & Cons
-
-| Aspect | Static Typing | Dynamic Typing |
-|--------|---------------|----------------|
-| **When errors are found** | Before running — at build time. Fail fast. | While running — only on executed lines. |
-| **Whole-program guarantees** | Yes — even unexecuted branches are checked. | No — only the paths you actually run are checked. |
-| **Verbosity** | More annotations and ceremony. | Terse — just write the logic. |
-| **Flexibility** | Less — the checker is conservative and rejects some valid programs. | More — anything goes until it actually breaks. |
-| **Refactoring safety** | High — rename a field and the compiler lists every broken caller. | Low — you hope your tests cover every call site. |
-| **Onboarding / reading** | Types document intent; IDE autocomplete is precise. | You must read the code or run it to know the shape of data. |
-| **Speed of prototyping** | Slower to get started; fight the checker. | Fast — great for scripts, exploration, REPL. |
-| **Tooling (autocomplete, jump-to-def)** | Excellent — the IDE knows types. | Weaker — the IDE has to guess. |
-| **Runtime performance** | Often faster — no runtime type checks needed (see `professional.md`). | Pays for runtime type tags and checks (JITs claw some back). |
-
----
-
-## Use Cases
-
-**Reach for static typing when:**
-
-- The codebase is **large, long-lived, or has many contributors** — the compiler is a tireless reviewer who never forgets a field name.
-- **Correctness matters more than speed of writing** — payments, infrastructure, libraries other teams depend on.
-- You'll do a lot of **refactoring** — renaming and reshaping data safely is static typing's superpower.
-- You want **precise IDE support** — accurate autocomplete and "find all usages."
-
-**Reach for dynamic typing when:**
-
-- You're **prototyping, scripting, or exploring** — a quick data-munging script, a one-off automation, a notebook.
-- The program is **small and short-lived** — the bug-catching value of static types is lowest here.
-- You need **maximum flexibility** — metaprogramming, plugins, gluing together loosely-shaped data (JSON from anywhere).
-- You're working in a **REPL-driven, interactive** style and want instant feedback.
-
-**The modern reality (covered fully in later levels):** the line is blurring. Dynamic languages are bolting on *optional* static checking — TypeScript over JavaScript, type hints + mypy over Python — to get the best of both: dynamic flexibility where you want it, static safety where it pays.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Validate at the boundary (dynamic languages)
@@ -412,73 +285,24 @@ Don't lean on weak-typing coercion even when the language offers it — it's the
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. Define static typing and dynamic typing in one sentence each, focusing on *when* checks happen.
-2. Place these languages on the static/dynamic and strong/weak grid: Python, JavaScript, Go, C, Haskell, Ruby.
-3. Why is "Python is strongly typed" not a contradiction with "Python is dynamically typed"? Give the example that proves both.
-4. In the Python typo example (`user.naem`), why does the program run at all before crashing? In the Java version, why doesn't it?
-5. Write a function in a dynamic language with a type bug inside an `if` branch that only runs when its argument is negative. Explain when the bug would be discovered.
-6. What does JavaScript print for `"Hello, " + user.naem` when `naem` doesn't exist, and why is that more dangerous than Python's behavior?
-7. Explain how a static `Option<User>` / `User?` type prevents the `NoneType has no attribute` crash. What does the compiler force you to do?
-8. Give one program that is actually correct but a static type checker would (reasonably) reject. Why can't the checker prove it safe?
+1. Choose one small, known input for **Static vs Dynamic Typing**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
----
+## Verify your work
 
-## Cheat Sheet
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
 
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│                 STATIC vs DYNAMIC TYPING                          │
-├──────────────────────────────────────────────────────────────────┤
-│ STATIC   types checked BEFORE running (compile time)             │
-│          type attached to the VARIABLE/slot                      │
-│          catches typos, wrong args, missing methods up front     │
-│          rejects some valid programs (conservative)              │
-│          e.g. Java, Go, Rust, Haskell, TypeScript, C#            │
-├──────────────────────────────────────────────────────────────────┤
-│ DYNAMIC  types checked WHILE running (run time)                  │
-│          type attached to the VALUE                              │
-│          terse, flexible, REPL-friendly, duck typing             │
-│          type bugs hide on unexecuted paths until they run       │
-│          e.g. Python, JavaScript, Ruby, PHP, Lisp                │
-├──────────────────────────────────────────────────────────────────┤
-│ ORTHOGONAL AXIS — STRONG vs WEAK (do NOT confuse!)              │
-│   strong: refuses surprise coercion  ("5"+5 => error)            │
-│   weak:   coerces freely             ("5"+5 => "55" or 10)       │
-│                                                                  │
-│            STRONG            WEAK                                │
-│   STATIC   Java, Go, Rust    C, C++                              │
-│   DYNAMIC  Python, Ruby      JavaScript, PHP                     │
-├──────────────────────────────────────────────────────────────────┤
-│ THE #1 RUNTIME CRASH                                            │
-│   None / null / undefined has no attribute/method               │
-│   static "maybe" types (Option/?/Maybe) catch it at compile     │
-├──────────────────────────────────────────────────────────────────┤
-│ RULE OF THUMB                                                   │
-│   small / script / explore  -> dynamic is fine                  │
-│   large / long-lived / team -> static earns its keep            │
-│   modern trend: add static checks ON TOP of dynamic (TS, mypy)  │
-└──────────────────────────────────────────────────────────────────┘
-```
+## Review questions
 
----
-
-## Summary
-
-- A **type** is a promise about what a value is and what you can do with it. A **type error** is breaking that promise (e.g. uppercasing a number). Type errors are *always* caught eventually — the question is **when**.
-- **Static typing** checks types **before the program runs**. The type is attached to the **variable**. It catches typos, wrong arguments, and missing methods across the *whole* program — even unexecuted branches — and fails the build. The cost: annotations, ceremony, and rejecting some valid-but-unprovable programs (conservatism).
-- **Dynamic typing** checks types **while the program runs**. The type is attached to the **value**. It's terse, flexible, and REPL-friendly, and never rejects a valid program. The cost: type bugs on unexercised paths stay invisible until those paths run — often in production.
-- **Strong vs weak is a *different* axis** — it's about whether the language silently coerces types (`"5" + 5`), not about when checks happen. Python is dynamic *and* strong; C is static *and* weak. Never conflate the two.
-- The **single most common runtime type crash** is `None`/`null`/`undefined` having no such attribute/method. Static "maybe" types (`Option`, `User?`, `Maybe`) can force you to handle the empty case at compile time.
-- **Rule of thumb:** dynamic is great for small, short-lived, exploratory code; static earns its keep as codebases grow large, long-lived, and shared. The modern industry trend is to **bolt static checking onto dynamic languages** (TypeScript, Python type hints) — the subject of the next level.
-
----
-
-## What's Next
-
-- `middle.md` — **gradual typing** (TypeScript, Python hints + mypy), **duck typing vs structural typing**, the `any`/`Any` escape hatch, and how the static and dynamic worlds meet in the middle.
-- `senior.md` — **type soundness**, **erasure vs reification**, **type inference** making static feel dynamic, and the runtime mechanics.
-- `professional.md` — **performance** (monomorphization, JITs, inline caches), the **empirical bug-rate research**, and migrating a large Python/JS codebase to static checking.
-- `interview.md` — graded questions across all of the above.
-- `tasks.md` — exercises to make the distinction muscle-memory.
+- What problem does Static vs Dynamic Typing solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

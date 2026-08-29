@@ -1,61 +1,11 @@
-# Deoptimization & Speculation — Professional Level
+# Deoptimization & Speculation — Professional
 
-> **Topic:** Deoptimization & Speculation
-> **Focus:** Production reality — diagnosing deopt storms at scale, reading engine telemetry across V8 / HotSpot / SpiderMonkey / .NET, the deopt-bailout-reason taxonomy, warm-up and tier policy, and the engineering playbook for keeping a large system on its fast paths.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Deoptimization & Speculation** with measurable outcomes and limited coordination?
 
-## Introduction
-
-> Focus: **You own a hot service or library. Something keeps deoptimizing in production. How do you find it, prove it, fix it, and prevent regressions — across four very different engines?**
-
-Everything below the professional level explains *how* speculation and deopt work. This level is about *operating* a system where they matter. In production you'll meet:
-
-- A Node.js service whose p99 latency degraded after a refactor, because one hot handler slid to **megamorphic** and stopped inlining.
-- A JVM service whose throughput collapses for seconds after a deploy, because dynamically loaded classes triggered a wave of **CHA invalidations** and re-compilation.
-- A numeric pipeline that's mysteriously slow because one code path produces a **hole** or a **double** that deopts a `PACKED_SMI` loop a billion times.
-- A **deopt storm**: a function pinned in an optimize → deopt → re-optimize cycle, where the runtime burns CPU compiling code it immediately discards, and the function is effectively *never* fast.
-
-The professional job is to make these *legible* and *fixable*: turn on the right telemetry, read the **bailout/deopt reason taxonomy** (each reason names the broken bet), localize the offending site, fix it by *stabilizing the speculation* (type, shape, target, value domain) rather than by disabling optimization, and add a regression guard so it doesn't silently return. And you must do this across engines that disagree on vocabulary: V8 *bailouts*, HotSpot *uncommon traps* / *not entrant*, SpiderMonkey *bailouts* between its tiers, and .NET's tiered JIT (which historically does **not** speculatively deopt the way V8/HotSpot do — an important cross-engine distinction).
-
-> 🎓 **Why this matters for a professional:** Deopt pathologies are among the most expensive and least obvious performance bugs, because the source code looks innocent and the slowdown is emergent. The engineer who can read `--trace-deopt` / `PrintCompilation` and say "this site went megamorphic on commit X; here's the one-line fix and the regression test" is worth a great deal. This is also the level where you decide *policy*: warm-up handling, tier configuration, when to give the engine type hints, and when to stop fighting it.
-
-This page covers: the cross-engine deopt model and vocabulary, the reason-code taxonomy, diagnosing and killing deopt storms, warm-up and tiering policy, production telemetry, and the regression-prevention discipline.
-
----
-
-## Prerequisites
-
-- **Required:** `junior.md` → `senior.md` in full — bet/guard/deopt, reconstruction metadata, eager/lazy, CHA, scalar replacement/reification, safepoints, IC mono→mega, value-domain bets.
-- **Required:** Comfort reading runtime flags and logs (`-XX:...`, `node --trace-*`).
-- **Required:** Production performance fundamentals — percentiles, warm-up, throughput vs latency, profiling.
-- **Helpful but not required:** Exposure to more than one of V8 / HotSpot / SpiderMonkey / CLR.
-
-You do **not** need:
-
-- To have implemented a JIT. This is operations and engineering, not compiler construction.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Deopt storm / loop** | A pathology where a function is repeatedly optimized then deopted, never reaching stable fast code. |
-| **Bailout reason** | (V8/SpiderMonkey) The named cause of a deopt: `wrong map`, `not a Smi`, `insufficient type feedback`, etc. |
-| **Uncommon trap** | (HotSpot) The compiled trap that triggers deopt; trap *reasons* (`class_check`, `null_check`, `range_check`, `unstable_if`) name the broken bet. |
-| **Not entrant / zombie** | (HotSpot) Lifecycle states of invalidated compiled code: *not entrant* (no new entries), then *zombie* (reclaimable). |
-| **Tiered compilation** | Running multiple compilers (interpreter → baseline → optimizing) with promotion/demotion policy between them. |
-| **Reoptimization budget / bailout cap** | A limit after which an engine stops re-optimizing a chronically-deopting function and leaves it in a lower tier. |
-| **Deopt-all** | Mass deoptimization of all optimized code (e.g. on debugger attach, certain runtime reconfigurations). |
-| **FeedbackVector** | (V8) Per-function structure storing type feedback (IC states) that drives speculation. |
-| **OSR (On-Stack Replacement)** | Compiling and entering an optimized version of a long-running loop mid-execution. |
-| **Tiered JIT (CLR)** | .NET's QuickJIT → optimized JIT (Tier-1) progression; ReadyToRun for AOT-ish startup. Notably **not** speculative-deopt-driven. |
-| **PGO** | Profile-guided optimization; in .NET, *Dynamic PGO* feeds Tier-1; in HotSpot, profiling drives C2. |
-| **Megamorphic** | A site with too many shapes/types to specialize; loses inlining and most speculation. |
-| **Warm-up** | The interval during which a process is still profiling and tiering up; pre-steady-state performance is unrepresentative. |
-| **Steady state** | Post-warm-up behavior, after compilation has settled — what production latency actually reflects. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -155,36 +105,6 @@ The professional move is **canary tracing**: enable verbose deopt logging on one
 
 ---
 
-## Real-World Analogies
-
-**A factory that keeps re-tooling for the wrong product (deopt storm).** A line is re-tooled to mass-produce one widget super-efficiently (optimize). Then a different widget arrives, the line jams and re-tools for the general case (deopt + re-opt). If the product mix keeps flip-flopping, the line spends all day re-tooling and ships almost nothing. The fix isn't to ban efficient tooling — it's to *sort the inputs* so each line sees a consistent product (stabilize the bet).
-
-**New-hire ramp-up (warm-up).** A new employee is slow on day one — they don't know the shortcuts yet (interpreter). Over weeks they learn the fast paths (tier up). Judging the team's throughput by the new hire's first morning (un-warmed benchmark) is misleading; judge by steady state.
-
-**Four dialects of the same trade (cross-engine vocabulary).** V8 says "bailout," HotSpot says "uncommon trap," SpiderMonkey says "bailout," .NET mostly says "I don't do that, I branch instead." Same craft, different words; a professional speaks all four well enough to diagnose any of them.
-
----
-
-## Mental Models
-
-### Model 1: The reason code is a root-cause pointer
-
-Don't treat deopt logs as noise. Each reason is a **direct pointer to the broken bet**: `wrong map` → shape, `not a Smi` → numeric domain, `class_check` → devirt target, `range_check` → bounds. Reading reasons turns a vague "it's slow" into a specific "site X bets on Y, input Z breaks Y."
-
-### Model 2: Stabilize the bet, never disable the optimizer
-
-The fix space has two doors. Door A: *disable optimization* (`-Xint`, `--no-opt`) — makes the symptom vanish by making everything uniformly slow. Door B: *stabilize the speculation* — unify shapes, fix the value domain, split megamorphic sites, make methods final. Always take Door B. Door A is only for *diagnosis* (A/B confirmation), never for *production fix*.
-
-### Model 3: Steady state is the only state that matters (mostly)
-
-For long-lived services, optimize and benchmark **steady state**. For short-lived / cold-start-sensitive workloads (serverless, CLIs), **warm-up is the product** — and you switch strategy toward AOT (GraalVM native-image, .NET ReadyToRun/NativeAOT), lower tiers, or keeping processes warm. Know which regime you're in *before* tuning.
-
-### Model 4: .NET is the exception that proves the rule
-
-Holding .NET next to V8/HotSpot sharpens the concept: speculation is universal, but *frame-rewinding deoptimization* is one specific implementation of fallback. .NET shows you can speculate (PGO, guarded devirt) and fall back via *in-method branches* instead. Don't over-generalize "JIT ⇒ deopt storms."
-
----
-
 ## Code Examples
 
 ### Example 1: Query a function's optimization status programmatically (V8)
@@ -267,33 +187,6 @@ node --prof-process isolate-*.log > processed.txt
 ```
 
 Time concentrated in `*IC` builtins (rather than inlined optimized frames) is the fingerprint of a site that went polymorphic/megamorphic and can no longer be inlined or specialized.
-
----
-
-## Pros & Cons
-
-### Pros (of mastering this at the professional level)
-
-- **You can fix the most opaque perf bugs.** Deopt storms and megamorphic regressions are invisible in source; reason-code literacy makes them tractable.
-- **You set sound policy.** Warm-up handling, tier flags, AOT vs JIT, canary tracing — informed, measured decisions instead of cargo-culting flags.
-- **You prevent regressions.** Asserting optimization status / deopt counts in CI keeps the fast path fast across refactors.
-
-### Cons / hazards
-
-- **Engine-specific knowledge dates quickly.** V8 added Maglev; HotSpot has Graal; .NET added Dynamic PGO. Reason strings and tier names shift release to release. Re-verify against current docs.
-- **Over-tuning for the JIT hurts readability.** Shape-stable, monomorphic, typed-array code can be uglier; apply it only on proven hot paths.
-- **Tracing is expensive.** Verbose deopt/compile logging perturbs timing and floods logs; canary it, don't fleet it.
-- **Wrong regime, wrong fix.** Optimizing steady state for a cold-start-bound workload (or vice versa) wastes effort. Identify the regime first.
-
----
-
-## Use Cases
-
-- **Latency regression triage** after a deploy: was a hot site pushed megamorphic, or did class loading trigger an invalidation wave?
-- **Throughput tuning** of long-lived services: keep hot paths monomorphic and value-domain-stable; verify scalar replacement / inlining held.
-- **Cold-start optimization** for serverless/CLI: AOT (native-image / NativeAOT / ReadyToRun), lower tiers, or process pre-warming.
-- **Library design** for a hot ecosystem dependency: ship shape-stable, monomorphic-friendly APIs so *consumers* stay on fast paths.
-- **CI performance gates**: assert optimization status and deopt budgets so regressions fail builds.
 
 ---
 
@@ -400,42 +293,24 @@ Deopt/uncommon-trap reason strings are *not* a stable API. A regression-guard pa
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```text
-CROSS-ENGINE     V8: bailout/deopt (maps, elements-kind, FeedbackVector)
-                 HotSpot: uncommon trap / "not entrant" (CHA, profiling)
-                 SpiderMonkey: bailout (Warp/Ion <-> Baseline)
-                 .NET: tiering + guarded devirt + Dyn-PGO; NOT frame-deopt
+1. Define the user or business outcome that **Deoptimization & Speculation** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
-REASON = ROOT    wrong map->shape | not a Smi->numeric domain | hole->packed
-                 class_check->devirt target | range_check->bounds |
-                 null_check->non-null bet | insufficient feedback->cold site
+## Verify your work
 
-STORM SIGNATURE  same function + same reason + repeats AFTER warm-up + re-opt.
-                 Fix: stabilize the bet (shape/type/target/domain), then
-                 lock with a deopt-count / opt-status regression test.
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
 
-NEVER FIX BY     -Xint / --no-opt / -XX:-TieredCompilation  (diagnosis only!)
+## Review questions
 
-TELEMETRY        JVM: JFR, PrintCompilation+TraceDeoptimization (canary),
-                      async-profiler, -Xlog:class+load
-                 V8 : --trace-deopt, --prof, --allow-natives-syntax
-                      (%GetOptimizationStatus), --perf-prof
-                 .NET: dotnet-trace/EventPipe, DOTNET_TieredPGO,
-                       DOTNET_JitDisasmSummary
-
-WARM-UP POLICY   services -> tune & bench STEADY STATE; gate LB on warm-up.
-                 cold-start -> AOT (native-image / NativeAOT / R2R), keep warm.
-
-INVARIANT        Semantics preserved across every engine. Deopt/bailout/trap =
-                 slower, never wrong.
-```
-
----
-
-## Summary
-
-At the professional level, speculation and deopt stop being compiler trivia and become **operational reality**. The flagship pathology is the **deopt storm**: a function trapped in optimize → deopt → re-optimize, burning CPU compiling code it discards, never running fast. You diagnose it by confirming it's steady-state (not warm-up), reading the **deopt reason** — which directly names the broken bet (`wrong map` → shape, `not a Smi` → numeric domain, `class_check` → devirt target, `range_check` → bounds) — localizing the input that breaks the bet, and **stabilizing the speculation at its source**: unify shapes, fix the value domain, split megamorphic sites, make hot virtuals `final`, front-load class loading. The cardinal rule is *fix the bet, never disable the optimizer* — `-Xint`/`--no-opt` is a diagnostic, not a production fix.
-
-You operate across four engines that share the bet/guard core but differ in dialect and aggression: **V8** (bailouts, maps, elements-kinds), **HotSpot** (uncommon traps, CHA, *not entrant*), **SpiderMonkey** (bailouts between Warp/Ion and Baseline), and **.NET** — the instructive exception, which speculates via tiering, **guarded devirtualization**, and **Dynamic PGO** but does **not** frame-rewind-deopt, so its fallbacks are in-method branches rather than storms. You treat **warm-up** as a first-class production concern (gate load balancers on it; choose AOT for cold-start-bound workloads), make deopt observable through **canary tracing and low-overhead profilers**, and lock fixes in with **CI regression guards** that assert optimization status or deopt budgets. Through all of it, the invariant from `junior.md` still holds without exception: every deopt, bailout, and uncommon trap is *slower but correct* — semantics are never traded for speed.
+- Which measurable outcome justifies investing in Deoptimization & Speculation?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

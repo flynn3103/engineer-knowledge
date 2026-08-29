@@ -1,8 +1,11 @@
 # Migrating Between Languages — Middle
 
-> **What?** The *mechanics* of moving a system from one language to another without a death-march rewrite. The junior level told you to migrate incrementally and never big-bang; this level is the named patterns and concrete plumbing that make "incremental" actually work — the strangler fig, the anti-corruption layer, shadow traffic, and honest cost estimation.
-> **How?** Put a facade in front of the old system, then move traffic to new-language replacements one route at a time, validating each against the old behavior before you trust it. The old system shrinks gradually until there's nothing left of it — strangled, not demolished.
+<!-- level-focus -->
+At middle level, focus on this question:
 
+> Where does **Migrating Between Languages** belong in a maintainable component, and which trade-off selects the design?
+
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## 1. The strangler fig pattern
@@ -174,15 +177,24 @@ The reflex is to start with the *hardest* part "to get it out of the way." Resis
 
 ---
 
-## 8. What's next
+## Apply it
 
-| Topic | File |
-|---|---|
-| When *not* to migrate; data migration; the two-system tax; multi-year morale | `senior.md` |
-| The business case, multi-team programs, deprecation forcing functions, case studies | `professional.md` |
-| Interview questions from "Python→Go" to "1M-line Perl monolith" | `interview.md` |
-| Design a strangler plan, a shadow plan, a cutover sequence | `tasks.md` |
+1. Find a real component where **Migrating Between Languages** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
----
+## Verify your work
 
-**Memorize this:** the strangler fig — facade in front, slice-by-slice cutover, old system shrinking to zero — is how real migrations succeed without a feature freeze. Validate every slice with shadow traffic and automated diffing against the proven system, keep instant rollback on every cut, and estimate honestly: the old code *is* the spec, and reading it back out is most of the work.
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
+
+## Review questions
+
+- Which boundary is most affected by Migrating Between Languages?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

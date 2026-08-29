@@ -1,61 +1,11 @@
-# Cross-Language Interop — Senior Level
+# Cross-Language Interop — Senior
 
-> **Topic:** Cross-Language Interop
-> **Focus:** In-process polyglot runtimes (JVM, CLR, GraalVM/Truffle), WebAssembly as a universal interop target (core Wasm, the Component Model, WIT, WASI), object/component systems (COM, WinRT, Objective-C/Swift), and a rigorous decision framework across the whole spectrum.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Cross-Language Interop** under failure, load, and change?
 
-## Introduction
-
-> Focus: **Beyond flattening to C, there are runtimes where many languages share a type system and a garbage collector, and there is an emerging universal interop target — WebAssembly — that solves the ABI problem with a shared interface language.**
-
-The junior and middle levels established the spectrum and the hardest in-process case (C++). This level covers the two ends of the modern interop story that a senior engineer is expected to reason about fluently.
-
-First, **shared-runtime polyglot interop.** Some platforms sidestep the ABI problem entirely by making multiple languages compile to the *same* intermediate representation and share *the same* type system, object model, and garbage collector. On the **JVM**, Java, Kotlin, Scala, Clojure, and Groovy all produce bytecode and pass each other real, live objects with no marshalling. On the **CLR/.NET**, C#, F#, and VB.NET share the Common Type System (CTS) defined by the Common Language Infrastructure (CLI). **GraalVM/Truffle** generalizes this to a polyglot engine where JavaScript, Python, Ruby, R, Java, and LLVM-based languages run in one VM and exchange objects. The big advantage: when languages already share types and a GC, "interop" is nearly free — it's just calling a method on an object.
-
-Second, **WebAssembly as a universal target.** Wasm started as a fast, sandboxed, portable bytecode for the browser. Its **Component Model** plus **WIT** (WebAssembly Interface Types) turn it into something more ambitious: a *language-neutral, ABI-stable composition layer*. You describe an interface once in WIT; any language that compiles to a Wasm component can implement or consume it; the toolchain handles the lifting and lowering of rich types (strings, lists, records, variants) across the boundary. Wasm is, in effect, an attempt to solve the in-process interop problem *properly* — the canonical ABI problem replaced by a shared IDL, inside a sandbox.
-
-Third, the **object/component systems** — COM, WinRT, and the Objective-C/Swift runtime — that solved cross-language objects in earlier eras, and whose ideas echo in everything above.
-
-Finally, a **decision framework** that places all of this on one axis.
-
-> 🎓 **Why this matters at this level:** Choosing the interop strategy for a system — FFI vs polyglot VM vs Wasm component vs RPC — is an architectural decision with multi-year consequences for performance, safety, team boundaries, and portability. This page is the reasoning toolkit for making it well.
-
----
-
-## Prerequisites
-
-- **Required:** Middle level — the C++ flattening pattern, opaque handles, ownership contracts, and the IDL/RPC model.
-- **Required:** Understanding of what a garbage collector does and why GC interop is hard across runtimes.
-- **Required:** Familiarity with bytecode/intermediate representations conceptually (JVM bytecode, CIL).
-- **Helpful:** Having used at least one JVM or .NET language, and having seen Wasm in any context.
-- **Helpful:** Awareness of sandboxing and capability-based security.
-
-You do **not** yet need: the large-scale binding-maintenance, format-selection-at-scale, and production-discipline material in `professional.md`.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Polyglot runtime** | A VM that hosts multiple languages and lets them share objects, types, and a GC (JVM, CLR, GraalVM). |
-| **CTS / CLI** | .NET's Common Type System and Common Language Infrastructure — the shared type model that lets C#, F#, and VB.NET interoperate as one. |
-| **Truffle** | GraalVM's framework for building language interpreters that the Graal JIT can optimize and that can share objects across languages. |
-| **Interop message (Truffle)** | The protocol by which Truffle languages expose objects to each other (member access, array reads, executable calls). |
-| **Wasm core** | The base WebAssembly: a stack machine with i32/i64/f32/f64, linear memory, and module imports/exports. No high-level types. |
-| **Linear memory** | A Wasm module's single flat byte array; the only place complex data (strings, structs) lives at the core level. |
-| **Component Model** | A Wasm specification layering rich, language-neutral interfaces and composition on top of core Wasm modules. |
-| **WIT (WebAssembly Interface Types)** | The IDL of the Component Model: describes records, variants, lists, strings, results, resources — independent of any language. |
-| **Lifting / lowering** | Converting a language's native value to the canonical Component Model representation (lower) and back (lift) at a component boundary. |
-| **Canonical ABI** | The Component Model's specified, stable way of laying out WIT types over core Wasm — the "solved" ABI. |
-| **WASI** | The WebAssembly System Interface — a capability-based, POSIX-like API giving Wasm access to files, clocks, sockets, etc. |
-| **Resource (WIT)** | A handle to an opaque, owned object passed across a component boundary — the Component Model's principled version of the opaque pointer. |
-| **COM** | Microsoft's Component Object Model: a binary standard for cross-language objects via vtable-based interfaces, `IUnknown`, and reference counting. |
-| **IUnknown** | The base COM interface every COM object implements: `QueryInterface`, `AddRef`, `Release`. |
-| **WinRT** | Windows Runtime — a modern, metadata-rich evolution of COM underpinning modern Windows APIs. |
-| **Objective-C runtime** | A dynamic message-dispatch runtime that Swift bridges to, enabling Swift↔Objective-C interop on Apple platforms. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -132,37 +82,6 @@ Decision questions, in order:
 4. **Do you need fault isolation, independent deploy/scale, or a cross-machine boundary**? RPC/IPC, accept the latency.
 
 The senior skill is recognizing which question dominates for *this* system, and not defaulting to whatever the team used last time.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Shared-runtime interop (JVM/CLR)** | Coworkers who all speak one common language natively — no translator needed, they just talk. |
-| **GraalVM polyglot** | A United Nations room where one universal interpreter lets every delegate's statement be understood by all the others instantly. |
-| **Core Wasm linear memory** | A shared shipping container: everyone can put bytes in, but unless you agree on how things are packed, the other end finds a jumble. |
-| **Component Model + WIT** | A universal, standardized customs declaration form: pack by the spec and any country's port can unpack your goods correctly. |
-| **Canonical ABI** | A globally standardized pallet size — warehouses worldwide can handle your shipment because everyone agreed on the dimensions. |
-| **WASI capabilities** | A guest who can only use the specific keys the host hands them — no master key, no roaming the building. |
-| **COM vtable + IUnknown** | A standard wall-socket plus a meter: any appliance can plug in, and a counter tracks how many things are drawing power so the supply turns off when the last unplugs. |
-| **The decision axis** | A mixing console fader: slide toward speed (left) or toward isolation (right); you can't have both maxed. |
-
----
-
-## Mental Models
-
-### The "One Heap, No Translation" Model
-
-For shared-runtime interop, picture all the languages sharing a single heap and a single GC. There is no boundary to marshal across — a value created by one language is *the same object* another language sees. Interop cost approaches zero. The price is admission: you must compile to that runtime and live by its rules. This is the cheapest interop in existence *if* you can pay the entry fee.
-
-### The "Sandbox With a Standard Doorway" Model
-
-For Wasm components, picture each language compiled into its own sealed box (the sandbox) with a single, standardized doorway (the canonical ABI / WIT). Boxes can't reach into each other's memory — but they can pass rich, typed values through the standard doorway, and the toolchain handles the packing and unpacking. You get the isolation of separate processes with the locality of one process and the portability of a single bytecode. This is why many believe Wasm components are *the* interop layer of the next decade.
-
-### The "Contract Is the Component" Model (from COM)
-
-COM's deep idea, worth internalizing: **the object is whatever satisfies the binary interface contract.** Identity (`QueryInterface`), lifetime (`AddRef`/`Release`), and a fixed vtable layout *are* the object as far as another language is concerned. The implementation language is irrelevant. WIT `resource`s and the canonical ABI restate this with modern, portable, sandboxed semantics. When you design any cross-language object boundary, you are really designing a contract of identity, lifetime, and dispatch.
 
 ---
 
@@ -248,30 +167,6 @@ Any language that can call through this vtable and honor `AddRef`/`Release` can 
 
 ---
 
-## Pros & Cons
-
-| Approach | Pros | Cons |
-|----------|------|------|
-| **Shared-runtime (JVM/CLR)** | Near-zero interop cost; shared types and GC; mature tooling | All languages must target that runtime; no native-code or arbitrary-language inclusion; one process = shared crash domain |
-| **GraalVM polyglot** | Many languages share objects in one engine; no per-pair bindings | Engine lock-in; variable guest-language performance/completeness; large runtime |
-| **Wasm core** | Portable, sandboxed, many source languages | No rich-type interop by itself — you re-invent an ABI in linear memory |
-| **Wasm Component Model** | Language-neutral, ABI-stable, sandboxed, portable, rich types, capability security | Younger ecosystem; toolchain maturity varies; lift/lower has some cost |
-| **COM / WinRT** | Battle-tested binary cross-language objects; identity + lifetime standardized | Windows-centric; refcounting is error-prone; verbose; aging model |
-| **RPC / IPC** | Fault isolation, independent deploy, cross-machine, designed to evolve | Serialization + network latency on every call; operational complexity |
-
----
-
-## Use Cases
-
-- **A product built entirely on the JVM or .NET** → use shared-runtime interop; reaching for FFI or RPC between, say, Kotlin and Java would be self-inflicted complexity.
-- **Embedding many scripting languages in one analytics engine** → GraalVM polyglot, so a user's Python and the engine's Java exchange objects without per-pair bindings.
-- **Running untrusted plugins at near-native speed inside your app** → Wasm components with WASI capabilities: speed *and* a sandbox, which raw FFI cannot give.
-- **Composing functions written in different languages into one binary, portably** → Wasm Component Model; WIT is the contract, the canonical ABI is the stable wire.
-- **Driving legacy Windows components from a modern app** → COM/.NET COM interop, accepting the refcounting discipline.
-- **Two teams, two languages, separate SLAs and deploys** → RPC, because shared runtime/Wasm/FFI all couple lifetime and deployment.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Prefer shared-runtime when the family already fits
@@ -321,3 +216,27 @@ Different boundaries in one system can sit at different points: a hot inner loop
 - **Lift/lower cost ignored.** The Component Model isn't free — large records and lists are copied across the canonical ABI. For ultra-hot paths, even this can matter; measure.
 - **Capability over-granting in WASI.** Handing a component a whole filesystem root "to be safe" defeats the sandbox. Grant the minimum.
 - **Choosing a polyglot VM for languages that don't really fit it.** Forcing a native-heavy or systems language into a managed polyglot engine can cost more than a clean RPC or FFI boundary. The shared-runtime advantage only applies to languages that genuinely target the runtime.
+
+---
+
+## Apply it
+
+1. State the system invariant that **Cross-Language Interop** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
+
+## Verify your work
+
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
+
+## Review questions
+
+- Which invariant must remain true when Cross-Language Interop fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

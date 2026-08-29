@@ -1,58 +1,11 @@
-# Reflection — Middle Level
+# Reflection — Middle
 
-> **Topic:** Reflection
-> **Focus:** The real mechanics — Go's `Type`/`Value`/`Kind` and settability rules, Java's `Field`/`Method`/`Constructor` and the performance cliff, Python's `inspect`, and *why reflective calls are 10–100× slower* — plus how to cache your way out.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **Reflection** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-> Focus: **How does reflection actually work in Go, Java, and Python — and what does it cost?**
-
-At the junior level, reflection was "the magic that makes JSON work." At the middle level you stop treating it as magic and start treating it as an API with sharp edges and a price tag. Three questions drive this page:
-
-1. **What are the real objects?** Go gives you `reflect.Type` and `reflect.Value`, distinguished by `Kind`. Java gives you `Class`, `Field`, `Method`, `Constructor`. Python gives you `__dict__`, `type()`, and the `inspect` module. You need to know what each represents and how they fit together.
-2. **What are the rules that bite?** Go's **addressability and settability** rules cause more reflective panics than anything else. Java's accessibility and the module system gate what you can touch. You need these in your bones.
-3. **What does it cost, and how do you pay less?** A reflective method call in Java can be 10–100× slower than a direct one. The fix is almost always **caching**: resolve the `Field`/`Method`/struct-field *once*, reuse it forever.
-
-In one sentence: **the middle level is where you learn that reflection is a normal API with a settability rulebook and a performance bill, and how to keep both under control.**
-
-This page leans on concrete, runnable code. The lowest-level *why* (how the runtime stores type metadata, how `invokedynamic` rewires call sites) is in `senior.md`; production concerns (module system, GraalVM, security CVEs) are in `professional.md`.
-
----
-
-## Prerequisites
-
-- **Required:** Comfort with `junior.md` — the two halves of reflection, the type-handle entry point, struct tags vs. annotations.
-- **Required:** Solid grasp of pointers/references in your language (Go pointers especially — settability *is* a pointer story).
-- **Required:** Understanding of public/private (Java) and exported/unexported (Go capitalization) visibility.
-- **Helpful:** Having read the source of one serializer or written a tiny one.
-- **Helpful:** Basic benchmarking experience (`go test -bench`, JMH, `timeit`).
-
-You do **not** need: the bytecode/`invokedynamic` internals (`senior.md`), or the module-system/native-image story (`professional.md`).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **`reflect.Type` (Go)** | Describes a type: its name, kind, fields, methods, tags. Comparable, usable as a map key. |
-| **`reflect.Value` (Go)** | Wraps an actual value and lets you read/set it (subject to rules). Pairs with a `Type`. |
-| **`Kind` (Go)** | The *category* of a type: `Struct`, `Ptr`, `Slice`, `Int`, `String`, `Interface`, etc. You switch on `Kind` constantly. Distinct from the named `Type`. |
-| **Addressable (Go)** | A value has a memory address you can take. Only addressable values can be set. Values obtained from `reflect.ValueOf(x)` are **not** addressable; from `reflect.ValueOf(&x).Elem()` they are. |
-| **Settable / `CanSet` (Go)** | A `Value` can be assigned to. Requires addressability **and** an exported field. |
-| **`Elem()` (Go)** | Dereferences: turns a `Value` of a pointer into the `Value` it points to (and similarly for interfaces). The key to getting an addressable struct. |
-| **`Class<T>` (Java)** | The runtime handle for a type. Source of `Field`/`Method`/`Constructor` objects. |
-| **`Field` / `Method` / `Constructor` (Java)** | Reflective handles for a member. Carry metadata and can `get`/`set`/`invoke`/`newInstance`. |
-| **`setAccessible(true)` (Java)** | Disables the access check (`private`) on a member. Subject to the module system. |
-| **`getMethods()` vs `getDeclaredMethods()` (Java)** | `getMethods`: all *public* members including inherited. `getDeclaredMethods`: all members declared *in this class only*, any visibility. |
-| **`inspect` (Python)** | Standard-library module for higher-level introspection: signatures, source, members, MRO. |
-| **`__dict__` (Python)** | The dictionary holding an object's (or class's) attributes. The raw substrate of Python reflection. |
-| **MRO** | Method Resolution Order — the linearized chain Python walks to find an attribute/method across base classes. |
-| **Reflective dispatch** | Resolving which field/method to use at runtime instead of at compile time. The source of the cost. |
-| **Handle caching** | Resolving a `Field`/`Method`/struct-field once and reusing it, instead of looking it up on every call. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -156,28 +109,6 @@ A reflective access does work a direct access never does:
 - **No inlining** — the JIT/compiler can't see through a reflective call, so it can't inline, devirtualize, or specialize it.
 
 Net effect: reflective field reads and method calls commonly run **10–100× slower** than direct ones, and allocate. The two universal mitigations are **caching the handle** and, in Java, upgrading to **`MethodHandle`** (covered in `senior.md`).
-
----
-
-## Real-World Analogies
-
-**The phone book vs. speed dial.** A direct call is speed dial — the number is wired to a button. A reflective call is looking the person up in the phone book by name every single time. Caching the handle is writing their number on a sticky note after the first lookup: you still dial manually, but you skip the search.
-
-**Go's settability = renting vs. owning.** `reflect.ValueOf(u)` hands you a *photocopy* of a document — you can read it, but scribbling on the copy is pointless, so the system won't let you. `reflect.ValueOf(&u).Elem()` hands you the *original in its folder* (an address), and now your edits stick. "Exported field" is the extra rule that some sections of the original are sealed (unexported) and stay read-only no matter what.
-
-**`inspect` as the museum tour vs. the storeroom.** `__dict__` is the raw storeroom — everything's there but unlabeled and messy. `inspect` is the curated tour: signatures, sources, and members presented cleanly. Same artifacts, friendlier access.
-
----
-
-## Mental Models
-
-**Model 1: "Type vs. Value vs. Kind = blueprint, brick, category."** The `Type` is the blueprint, the `Value` is an actual brick you can hold (and maybe reshape), and the `Kind` is "it's a brick" vs. "it's a beam." Generic code dispatches on the category (`Kind`), reads/writes the brick (`Value`), and consults the blueprint (`Type`) for layout.
-
-**Model 2: "Settability is a chain of permissions."** To write a Go field via reflection you need *both* keys: addressability (you came through a pointer + `Elem`) **and** export (the field is public). Miss either, and the door stays locked. Visualize a two-lock door.
-
-**Model 3: "Reflection is a tax; caching is the deduction."** Every reflective op pays tax (lookup, checks, boxing). You can't avoid the tax entirely, but caching the handle removes the biggest line item (lookup), and `setAccessible` removes another (per-call checks). Pay once, not per request.
-
-**Model 4: "Python keeps the receipts."** Python never throws away structure, so reflection is cheap *to write* (it's just attribute access) but still not free *to run*. `inspect` is the accountant that organizes the receipts for you.
 
 ---
 
@@ -298,34 +229,6 @@ This 8-line sketch is the *entire idea* behind Spring's field injection: reflect
 
 ---
 
-## Pros & Cons
-
-**Pros**
-
-- **Library-grade generality** without per-type code, now with the mechanics to do it correctly.
-- **Tag/annotation-driven configuration** keeps mapping declarative and local to the data.
-- **`inspect`/signature introspection** unlocks signature-aware tooling (RPC, CLIs, fixtures).
-
-**Cons (sharpened at this level)**
-
-- **The settability/accessibility rulebook** is easy to get wrong (Go `Elem`, Java module gates).
-- **The 10–100× cost** is real and shows up in hot paths; ignoring caching is a classic perf bug.
-- **Allocations from boxing** add GC pressure in tight reflective loops.
-- **Error site moves to runtime** — a cached `Method` that no longer exists fails far from where it was wired up.
-
----
-
-## Use Cases
-
-- **Hand-rolled serializers / mappers** where you now correctly handle tags, nested structs, and settability.
-- **Config binding** — map a `map[string]any` or env vars onto a struct via reflection + tags.
-- **DI containers** — constructor/field injection driven by annotations.
-- **Generic validators** — walk fields, read `validate:"..."` tags, apply rules.
-- **Test/fixture frameworks** — `inspect.signature` to wire arguments by name and type.
-- **Object diffing / cloning** — `CopyFields`-style deep operations across unknown types.
-
----
-
 ## Coding Patterns
 
 **Pattern 1: Resolve once, reuse forever.** Cache the `Field`/`Method`/`StructField` keyed by `(Type, name)` in a `ConcurrentHashMap` / `sync.Map`. Reflection is fine on setup, deadly per request.
@@ -375,63 +278,24 @@ This 8-line sketch is the *entire idea* behind Spring's field injection: reflect
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. In Go, why does `reflect.ValueOf(u).Field(0).SetString("x")` panic, and what's the fix?
-2. What are the two conditions for `CanSet()` to be true in Go?
-3. Distinguish `Type`, `Value`, and `Kind`. When do you switch on `Kind`?
-4. In Java, what's the difference between `getMethods()` and `getDeclaredMethods()`?
-5. Why is an uncached reflective call slow? List at least three contributing factors.
-6. What does caching a `Method`/`StructField` remove from the cost, and what does it *not* remove?
-7. What does `inspect.signature` give you that raw `__dict__` access doesn't?
-8. Why can reflection-heavy frameworks hurt startup latency even if steady-state throughput is fine?
+1. Find a real component where **Reflection** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
-<details>
-<summary>Answers</summary>
+## Verify your work
 
-1. `reflect.ValueOf(u)` copies `u`; the copy isn't addressable, so it isn't settable. Fix: `reflect.ValueOf(&u).Elem()`.
-2. Addressability (came through a pointer + `Elem()`) and the field being exported (capitalized).
-3. `Type` = the named type/blueprint; `Value` = an actual value you can read/maybe set; `Kind` = the category (`Struct`, `Int`...). Switch on `Kind` for generic code, since many named types share a kind.
-4. `getMethods()` returns public members including inherited; `getDeclaredMethods()` returns all visibilities but only those declared on the class itself.
-5. Name lookup by string, per-call access checks, boxing of args/returns (allocations), and the inability of the JIT to inline/optimize the call.
-6. Caching removes the lookup; it does not remove boxing or the lack of inlining (a `MethodHandle` helps with those).
-7. Parsed parameters with names, defaults, kinds (positional/keyword-only), and annotations — a structured signature, not just a list of attributes.
-8. Boot-time reflection (class scanning, DI wiring) runs before serving traffic; it's pure startup cost and scales with the number of types/annotations, hurting cold-start latency.
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
 
-</details>
+## Review questions
 
----
-
-## Cheat Sheet
-
-| Task | Go | Java | Python |
-|------|----|----|--------|
-| Type handle | `reflect.TypeOf(x)` | `x.getClass()` | `type(x)` |
-| Value handle | `reflect.ValueOf(x)` | (the object) | (the object) |
-| Make settable | `reflect.ValueOf(&x).Elem()` | `f.setAccessible(true)` | (always mutable) |
-| List fields | `t.Field(i)`, `t.NumField()` | `getDeclaredFields()` | `x.__dict__`, `vars(x)` |
-| Read field | `v.Field(i)` | `f.get(x)` | `getattr(x,"f")` |
-| Set field | `v.Field(i).Set(...)` (settable!) | `f.set(x,v)` | `setattr(x,"f",v)` |
-| Read tag/meta | `f.Tag.Get("json")` | annotations | decorators |
-| Invoke method | `v.MethodByName("M").Call(...)` | `m.invoke(x,...)` | `getattr(x,"m")(...)` |
-| Signature | (parse manually) | `m.getParameterTypes()` | `inspect.signature(m)` |
-
-**Go laws:** ① interface→reflect ② reflect→interface ③ to set, be **settable** (addressable + exported).
-**Perf rule:** cache the handle; `setAccessible` once; benchmark against a direct-call baseline.
-
----
-
-## Summary
-
-The middle level turns reflection from magic into a mechanical, costed API. In **Go** you juggle `Type`, `Value`, and `Kind`, and you live or die by **addressability and settability**: reflect through a pointer and call `Elem()`, and remember only exported, addressable fields are settable. In **Java** everything hangs off `Class`, you must know `getX` vs. `getDeclaredX`, and `setAccessible(true)` unlocks (and speeds up) member access. In **Python**, reflection is just `__dict__` plus the friendly `inspect` module for signatures and members.
-
-The unifying theme is **cost**: uncached reflective access runs 10–100× slower because of lookup, access checks, boxing, and the loss of inlining. The fix is nearly universal — **resolve handles once and cache them**, set accessibility at cache time, and keep reflection out of hot paths. Master the settability rulebook and the caching discipline, and you can use reflection confidently. The next level explains *why* it's slow at the runtime/JIT level and how `MethodHandle`/`invokedynamic` claw the performance back.
-
----
-
-## Further Reading
-
-- Go: "The Laws of Reflection" and the `reflect` package docs; read `encoding/json`'s `encode.go` field-caching for a production pattern.
-- Java: `java.lang.reflect` API, `Class` methods, and the `AccessibleObject` contract.
-- Python: the `inspect` module reference and the data-model chapter on attributes and the MRO.
-- Then continue to `senior.md` for the runtime mechanics, `MethodHandle`/`LambdaMetafactory`/`invokedynamic`, and lock-free reflective dispatch.
+- Which boundary is most affected by Reflection?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

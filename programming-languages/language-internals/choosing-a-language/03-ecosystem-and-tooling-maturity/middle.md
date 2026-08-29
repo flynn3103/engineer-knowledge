@@ -1,8 +1,11 @@
 # Ecosystem & Tooling Maturity — Middle
 
-> **What?** The discipline of *evaluating* an ecosystem and its individual libraries before you bet code on them. Junior taught you what an ecosystem contains; this level teaches you to tell the difference between **"a library exists"** and **"a library I'd run in production for the next five years."**
-> **How?** Treat every dependency as a hiring decision. You're not downloading code — you're recruiting an unpaid, unaccountable, anonymous team member into your codebase. Vet them: who maintains it, how alive is it, what does it drag in, what license, what's its security history. Then make the trust explicit.
+<!-- level-focus -->
+At middle level, focus on this question:
 
+> Where does **Ecosystem & Tooling Maturity** belong in a maintainable component, and which trade-off selects the design?
+
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## 1. "It exists" is not "I'd bet production on it"
@@ -110,7 +113,7 @@ Libraries get most of the attention, but **tooling quality silently sets your te
 | Dependency mgmt | One standard, lockfiles, reproducible (`cargo`, `go mod`) | Multiple competing tools, version hell |
 | Test + run | One command (`cargo test`, `go test ./...`) | Bespoke per-project setup |
 
-The multiplier is real and compounding. A team on a language with a great LSP, instant incremental compilation, and one obvious dependency tool ships meaningfully faster than a team fighting their toolchain — *with the same engineers*. When you score an ecosystem (see [`01-language-selection-criteria`](../01-language-selection-criteria/)'s weighted matrix), tooling quality deserves its own line, not a footnote under "ecosystem."
+The multiplier is real and compounding. A team on a language with a great LSP, instant incremental compilation, and one obvious dependency tool ships meaningfully faster than a team fighting their toolchain — *with the same engineers*. When you score an ecosystem (see [`01-language-selection-criteria`](../01-language-selection-criteria/README.md)'s weighted matrix), tooling quality deserves its own line, not a footnote under "ecosystem."
 
 > A concrete contrast: **Rust's tooling** (`cargo` for build+test+deps, `clippy` for lints, `rustfmt` for style, `rust-analyzer` for the editor) is unusually unified for a young language — much of its productivity reputation comes from tooling, not just the borrow checker. Compare to a fragmented experience where build, format, lint, and dependency management are four unrelated tools you wire together yourself.
 
@@ -160,15 +163,24 @@ Your service needs a robust HTTP client. Three candidates exist. Here's how the 
 
 ---
 
-## 11. What's next
+## Apply it
 
-| Topic | File |
-|---|---|
-| Ecosystem maturity as a moving risk, supply-chain attacks, dependency sprawl at scale | `senior.md` |
-| Org-level golden paths, private registries, SBOMs, 5-10 year bets | `professional.md` |
-| Interview questions — buy-vs-build, supply-chain risk for a regulated product | `interview.md` |
-| Practice — score libraries, audit a dependency tree, build a maturity scorecard | `tasks.md` |
+1. Find a real component where **Ecosystem & Tooling Maturity** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
----
+## Verify your work
 
-**Memorize this:** "a library exists" and "a library you'd bet production on" are different claims, and bridging them is your job. Vet every meaningful dependency like a hire — maintenance, bus factor, license, transitive weight, security history — and remember the cost is the whole tree, not the README. The boring, maintained, dominant library beats the fast or trendy one almost every time.
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
+
+## Review questions
+
+- Which boundary is most affected by Ecosystem & Tooling Maturity?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

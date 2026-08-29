@@ -1,61 +1,11 @@
-# Name Mangling & Linking — Middle Level
+# Name Mangling & Linking — Middle
 
-> **Topic:** Name Mangling & Linking
-> **Focus:** Decoding the Itanium C++ ABI mangling by hand, how the linker resolves symbols against archives and shared objects, and the first layer of symbol visibility control.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **Name Mangling & Linking** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-> Focus: **How do you read `_ZN3foo3barEi` without a demangler? How does the linker decide which definition wins when a symbol appears in multiple places? And how do you stop your library from leaking every internal symbol?**
-
-At junior level you learned that C++ mangles a function's signature into its symbol, and that `c++filt` decodes it. At middle level you stop treating mangling as a black box and learn to *read it by hand* — because the **Itanium C++ ABI** mangling scheme is a precise, documented grammar, and being able to decode `_ZN3foo3barEi` → `foo::bar(int)` in your head turns linker errors from terrifying to trivial. (The Itanium ABI is what GCC and Clang use on Linux, macOS, the BSDs — essentially everywhere except Windows/MSVC.)
-
-You also go deeper on the linker itself. A real program doesn't just link a handful of `.o` files; it links against **static archives** (`.a`) and **shared objects** (`.so`/`.dylib`), and the rules for *which definition is pulled in and which one wins* are subtle. An archive is pulled in member-by-member, only when needed. A shared object contributes symbols at *load time*, not at *link time*. Getting these wrong produces the confusing class of bugs where "it links but crashes," or "it links in one order but not another."
-
-Finally, you meet **symbol visibility** — the difference between a symbol that's part of your library's public contract and one that's an internal implementation detail. By default, on most Unix toolchains, *every non-static symbol is exported*, which bloats your dynamic symbol table, slows load time, and freezes internal functions into your ABI. `-fvisibility=hidden` plus `__attribute__((visibility("default")))` lets you export only what you mean to. This is the first real "designing an ABI surface" skill.
-
-> 🎓 **Why this matters at middle level:** The jump from "I can fix a missing-symbol error" to "I can reason about *why* this symbol is or isn't visible, which definition the linker chose, and what that means for my library's interface" is the jump from someone who *uses* the toolchain to someone who *understands* it. Decoding mangled names by sight and reading `nm`/`readelf` output fluently is a marker of a mid-to-senior systems engineer.
-
-This page covers Itanium mangling decoding, archive vs shared-object resolution, and basic visibility. `senior.md` adds MSVC and Rust mangling, weak/COMDAT/vague linkage, and ABI-mismatch debugging. `professional.md` covers symbol versioning, export-map design, and load-time cost at scale.
-
----
-
-## Prerequisites
-
-- **Required:** Everything in `junior.md` — symbols, the compile-then-link split, `extern "C"`, `nm`, `c++filt`, undefined/multiple-definition errors.
-- **Required:** Comfort building C++ with `g++`/`clang++`, including `-c`, `-shared`, `-fPIC`, and linking against `-l` libraries.
-- **Required:** Knowing the difference between a static library (`.a`) and a shared library (`.so`).
-- **Helpful:** Having run `readelf` or `objdump` at least once.
-- **Helpful:** Familiarity with C++ namespaces, overloading, `const` member functions, and references.
-
-You do **not** need:
-
-- The MSVC or Rust mangling schemes (that's `senior.md`).
-- Weak symbols, COMDAT folding, or template-instantiation linkage details (that's `senior.md`).
-- Symbol versioning (`GLIBC_2.x`) or version scripts (that's `professional.md`).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Itanium C++ ABI** | The C++ ABI (including the mangling scheme) used by GCC, Clang, and most non-Windows toolchains. Named for the Itanium architecture it was first specified on; now near-universal off Windows. |
-| **Mangling grammar** | The formal, documented rules that turn a C++ entity into a symbol string. Deterministic and reversible. |
-| **`_Z` prefix** | The marker that begins every Itanium-mangled C++ symbol. Tells the demangler "this is mangled." |
-| **Nested name** (`N...E`) | The Itanium encoding for a qualified name like `foo::bar`: `N` … `E` brackets the components. |
-| **Substitution** (`S_`, `S0_`, …) | A compression mechanism: repeated name components are encoded as back-references to save space. |
-| **Static archive** (`.a`) | A bundle of `.o` files. The linker pulls in *only the members that satisfy an undefined symbol*. |
-| **Shared object** (`.so`, `.dylib`) | A library linked at *load time*. Contributes symbols to the dynamic symbol table, not copied into the executable. |
-| **Symbol visibility** | Whether a symbol is exported from a shared object (`default`) or kept internal (`hidden`/`internal`). |
-| **`-fvisibility=hidden`** | A compiler flag making all symbols hidden by default; you opt specific ones back in. |
-| **`__attribute__((visibility("default")))`** | The GCC/Clang attribute that marks a symbol as exported. |
-| **Dynamic symbol table** (`.dynsym`) | The list of symbols a shared object exports/imports at load time. Inspect with `nm -D` or `readelf --dyn-syms`. |
-| **`readelf`** | A tool to inspect ELF object/binary structure, including symbol tables and relocations. |
-| **PIC** (Position-Independent Code) | Code (`-fPIC`) that works at any load address — required for shared objects. |
-| **Local vs global symbol** | A `static`/anonymous-namespace symbol is *local* (invisible to the linker across files); a normal one is *global*. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -169,37 +119,6 @@ namespace { int helper2(int x); }  // C++ anonymous-namespace internal linkage
 ```
 
 Local symbols (`nm` shows them lowercase: `t`, `d`, `b`) never participate in cross-object resolution and never collide. Use them for everything that doesn't need to be seen outside the file.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Mangling grammar** | A standardized shipping label: country code, postal code, street, name — each field in a fixed slot you can parse by eye. |
-| **`N…E` nested name** | Parentheses around a full bureaucratic title: "(Department of (Audio), function (process))." |
-| **Substitution (`S_`)** | "Same as above" / "ditto" marks on a form to avoid rewriting the same long address. |
-| **Static archive** | A box of spare parts; the mechanic takes *only* the parts the repair needs, leaves the rest. |
-| **Shared object** | A utility line (water, power) the building taps at occupancy time, shared with neighbors — not copied into each apartment. |
-| **Symbol visibility** | The difference between a company's published phone directory (default) and its internal extensions (hidden). |
-| **`static` / anonymous namespace** | A nickname used only inside one room — meaningless and invisible to the rest of the building. |
-| **Link-time vs load-time** | Checking a recipe lists "flour" (link time) versus actually having flour in the pantry when you cook (load time). |
-
----
-
-## Mental Models
-
-### The "Mangled Name Is a Sentence" Model
-
-Read a mangled name left to right like a sentence with grammar: `_Z` is the opening quote, `N…E` is a clause naming the function's full path, and the trailing letters are the argument list. Once you've parsed `_ZN3foo3barEi` once by hand, the structure clicks and you stop reaching for `c++filt` on simple names. The grammar is small; the scary part is just unfamiliarity.
-
-### The "Pull on Demand" Model for Archives
-
-Picture the linker holding a shopping list of undefined symbols, walking past shelves (object files and archives) left to right. At each archive it checks: "does this shelf have anything on my list?" If yes, it takes that member (which may add *new* items to the list). If no, it walks past. This is exactly why a library placed *before* the code that needs it is walked past with an empty list — and why link order bites you.
-
-### The "Exported vs Internal" Model for Visibility
-
-Think of your shared library as a building with a front desk. **Exported (default-visibility)** symbols are the people the front desk will page for outside visitors. **Hidden** symbols are staff who exist and work but whom outsiders can't summon. By default the front desk pages *everyone* (every global symbol exported) — chaotic and slow. `-fvisibility=hidden` flips it: nobody is pageable unless you put them on the public list. You design the public list; you don't leak it.
 
 ---
 
@@ -331,28 +250,6 @@ Two `helper`s, no multiple-definition error, because internal linkage keeps each
 
 ---
 
-## Pros & Cons
-
-| Aspect | Pros | Cons |
-|--------|------|------|
-| **Readable mangling grammar** | A deterministic scheme you can decode by hand and that round-trips perfectly. | Templates and `std::` types produce long, substitution-heavy names that are hard to read raw. |
-| **Archive member pulling** | Only needed code is linked → smaller binaries; unused library code is free. | Link order sensitivity (classic `ld`) is a recurring source of confusing errors. |
-| **Shared-object load-time binding** | Code shared across processes, smaller executables, library can be patched without relinking apps. | Link-time success doesn't guarantee runtime success; version drift causes "symbol not found" at startup. |
-| **Visibility control** | Smaller ABI surface → faster load, freedom to change internals, fewer collisions. | Requires discipline and per-symbol annotation; getting it wrong hides a symbol you needed. |
-
----
-
-## Use Cases
-
-- **Decoding a build or crash log by sight** when you don't have `c++filt` handy or want to skim quickly.
-- **Diagnosing `undefined reference` after a signature change** — the mangled name in the error *is* the expected signature; compare it to what's actually defined with `nm -C`.
-- **Fixing link-order failures** against static libraries.
-- **Designing a shared library's public interface** by hiding internals with visibility flags — smaller, faster-loading, more maintainable libraries.
-- **Avoiding symbol collisions** between two libraries by keeping internals `static`/hidden.
-- **Understanding why a link succeeds but the program fails at startup** with a missing dynamic symbol.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Decode-then-verify
@@ -419,73 +316,24 @@ Make it a habit in every Makefile/build script: objects and their consumers come
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. Decode `_ZN5audio7processEv` by hand using the type-code table. What namespace, function, and parameters? Confirm with `c++filt`.
-2. Decode `_Z3addRKiS0_` by hand. (Hint: `R`, `K`, and `S0_` is a substitution.) Confirm with `c++filt`.
-3. Compile a class with two member functions and run `nm -C`. Identify which part of each mangled name is the class, which is the method, and which is the parameter list.
-4. Build a static archive `libfoo.a` and link it *before* and *after* the object that uses it. Which order fails, and exactly why does the linker pull in no members in the failing case?
-5. Compile a shared library with two functions, once with default visibility and once with `-fvisibility=hidden` (marking only one `default`). Compare `nm -D` output. Which symbol disappeared and what does that mean for callers?
-6. Put two different `static helper()` functions in two files and link them. Why is there no multiple-definition error? What does the lowercase `t` in `nm` tell you?
-7. Take a parameter from `int` to `const std::string&` and look at how the mangled name changes with `nm` (not `-C`). Why is the new name so much longer?
+1. Find a real component where **Name Mangling & Linking** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
----
+## Verify your work
 
-## Cheat Sheet
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
 
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│              ITANIUM MANGLING + LINKING (MIDDLE)                 │
-├──────────────────────────────────────────────────────────────────┤
-│ Every mangled C++ symbol starts with  _Z                         │
-│   <n><name>   e.g. 3foo = "foo"                                  │
-│   N ... E     nested/qualified name: N3foo3barE = foo::bar       │
-│   St          std::                                              │
-│   S_ S0_ ...  substitutions (back-references / "ditto")          │
-├──────────────────────────────────────────────────────────────────┤
-│ Type codes (parameter list):                                     │
-│   v void  b bool  c char  i int  l long  x longlong              │
-│   f float d double                                               │
-│   P ptr   R ref   K const   (prefix the type: PKc = const char*) │
-├──────────────────────────────────────────────────────────────────┤
-│ Worked: _ZN3foo3barEi = foo::bar(int)                            │
-│         _ZNK6Vector4sizeEv = Vector::size() const  (K=const mbr) │
-├──────────────────────────────────────────────────────────────────┤
-│ Static archive (.a): pulls ONLY members satisfying current       │
-│   undefineds. → put libraries AFTER objects on the link line.    │
-│ Shared object (.so): binds at LOAD time. Link-time OK does not   │
-│   guarantee runtime OK (version drift → "symbol not found").     │
-├──────────────────────────────────────────────────────────────────┤
-│ Visibility:                                                      │
-│   default: every global symbol exported (bad for libraries)      │
-│   -fvisibility=hidden + __attribute__((visibility("default")))   │
-│   static / anonymous namespace → LOCAL (lowercase in nm)         │
-├──────────────────────────────────────────────────────────────────┤
-│ Inspect: nm -C (demangle)  nm -D (dynamic syms)                  │
-│          readelf --dyn-syms   objdump -t                         │
-└──────────────────────────────────────────────────────────────────┘
-```
+## Review questions
 
----
-
-## Summary
-
-- The **Itanium C++ ABI** mangling is a small, deterministic grammar you can decode by hand: `_Z` opens it, `N…E` brackets a qualified name, length-prefixed identifiers name the parts, and trailing type codes (`i`, `d`, `P`, `R`, `K`, …) encode the parameter list.
-- Because the symbol *is* the signature, `const`, references, and pointers all change the symbol — which is exactly why a signature change breaks a stale caller's link.
-- **Substitutions** (`S_`, `St`, …) are compression of repeated name components; let `c++filt` expand them.
-- A **static archive** (`.a`) is pulled in **member-by-member**, only to satisfy currently-undefined symbols — so libraries must come *after* their consumers on the link line.
-- A **shared object** (`.so`) binds at **load time**, not link time; a clean link does not guarantee the runtime library will have the symbol, which is the root of version-drift startup failures.
-- **Symbol visibility** controls the ABI surface: by default every global symbol is exported (bloated, fragile), so compile libraries with `-fvisibility=hidden` and explicitly mark the public API `default`.
-- **`static` and anonymous namespaces** give *internal linkage* — local symbols that never collide and never participate in cross-file resolution.
-- Fluency with **`nm -C`**, **`nm -D`**, and **`readelf`** turns symbol problems from guesswork into reading.
-
----
-
-## Further Reading
-
-- *Itanium C++ ABI* — the official mangling specification. https://itanium-cxx-abi.github.io/cxx-abi/abi.html#mangling — surprisingly readable; the mangling section is a reference you'll return to.
-- *Computer Systems: A Programmer's Perspective* (CSAPP) — Chapter 7 on linking, now revisited with archives and shared objects in mind.
-- *How To Write Shared Libraries* — Ulrich Drepper. The definitive paper on visibility, symbol tables, and load-time cost on ELF systems.
-- *GCC Visibility wiki* — https://gcc.gnu.org/wiki/Visibility — practical recipes for `-fvisibility=hidden` and export macros.
-- *`readelf` and `nm` man pages* — especially `nm -C`, `nm -D`, `readelf --dyn-syms`.
-- *Linkers and Loaders* — John R. Levine, chapters on archives and shared libraries.
+- Which boundary is most affected by Name Mangling & Linking?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

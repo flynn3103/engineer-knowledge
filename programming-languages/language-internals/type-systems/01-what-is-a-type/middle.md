@@ -1,64 +1,11 @@
-# What Is a Type — Middle Level
+# What Is a Type — Middle
 
-> **Topic:** What Is a Type
-> **Focus:** The static type (attached to expressions, known at compile time) vs the dynamic type (the runtime tag on a value), what a type system actually checks, and why "well-typed programs don't go wrong."
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **What Is a Type** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-> Focus: **Where does a type "live"?** On the *expression* (static, compile time) or on the *value* (dynamic, run time)? And **what does a type system actually do** when it "checks" your program?
-
-At the junior level a type is "a set of values plus operations." That's true and useful, but it papers over a distinction that drives every practical decision about typed languages: **a type can be attached to an expression at compile time, or to a value at run time, and these are not the same thing.**
-
-Consider `Animal a = getAnimal();`. The **static type** of the expression `a` is `Animal` — that's what the compiler knows about it, decided before the program runs, by looking at the declaration. But at run time, `a` might *actually* refer to a `Dog`, a `Cat`, or a `Penguin`. That actual runtime identity is the **dynamic type** — the tag the value carries while the program executes. The compiler reasons about static types; the running machine reasons about dynamic types. Most of the subtlety in real typed code lives in the gap between these two.
-
-This page builds the framework. We'll define type checking precisely (verifying that every operation is applied to operands whose static types support it), introduce **type inference** (the compiler reconstructing types you didn't write) and **type erasure** (throwing types away after checking), and state — gently — the property that justifies the whole enterprise: **type soundness**, Robin Milner's slogan that *"well-typed programs don't go wrong."* We'll also nail down what "strong" and "weak" typing really mean (and why those words are nearly useless), and connect a type to the memory layout the compiler chooses for it.
-
-> 🎓 **Why this matters at this level:** Once you understand static-vs-dynamic, a hundred confusing behaviors snap into focus — why a Java cast can fail at run time even though the code compiled, why TypeScript types vanish in the running JavaScript, why Python lets you do anything until the moment it explodes, why a Go `interface{}` needs a "type assertion." These aren't quirks; they're direct consequences of *which* type — static or dynamic — is doing the work at each moment.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** The junior view — a type is a set of values plus valid operations; types classify values; types are contracts.
-- **Required:** Comfort writing functions, generics/collections, and at least skimming a compiler/interpreter error message in one typed language.
-- **Required:** The difference between "compile" and "run" a program.
-- **Helpful but not required:** Having hit a `ClassCastException`, `TypeError`, or "type assertion failed" and wondered why the compiler didn't catch it.
-- **Helpful but not required:** Awareness that some languages check types before running (Java, Go, Rust, TypeScript) and some during (Python, JavaScript, Ruby).
-
-You do **not** need:
-
-- Formal type theory (typing judgments, the Curry–Howard correspondence) — that's the senior level.
-- The internals of a type inference algorithm (Hindley–Milner) — touched on, detailed later.
-- Memory-layout minutiae (alignment, padding) — introduced here, detailed at the professional level.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Static type** | The type the compiler assigns to an *expression* or *variable*, decided at compile time without running the program. |
-| **Dynamic type** | The actual type of the *value* at run time, carried as a runtime tag. May be a subtype of the static type. |
-| **Type checking** | Verifying that every operation's operands have static types that support the operation. |
-| **Static typing** | Type checking performed at compile time, before the program runs. |
-| **Dynamic typing** | Type checking performed at run time, as operations execute. |
-| **Type inference** | The compiler deducing a type the programmer didn't write explicitly. |
-| **Type annotation** | An explicit written type. The opposite of an inferred type. |
-| **Type erasure** | Discarding type information after checking, so it's absent at run time (Java generics, TypeScript). |
-| **Type soundness** | The guarantee that a well-typed program won't encounter certain runtime type errors. "Well-typed programs don't go wrong." |
-| **Type tag** | A runtime marker on a value recording its dynamic type. |
-| **Upcast** | Treating a value as one of its supertypes. Always safe. |
-| **Downcast** | Treating a value as one of its subtypes. May fail at run time. |
-| **Type assertion / cast** | A programmer claim about a value's type that the compiler trusts (and the runtime may verify). |
-| **Strong / weak typing** | Vague, contested terms describing how strictly a language prevents type-violating operations. |
-| **Memory representation** | The bytes and layout the compiler uses to store a value of a given type. |
-| **Nominal typing** | Types are compatible if they share a *name/declaration*. |
-| **Structural typing** | Types are compatible if they have the same *shape*. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -175,42 +122,6 @@ The *same bytes* mean different things under different types: the 4 bytes `0x404
 
 ---
 
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Static type** | The label on a shipping container: "ELECTRONICS." Decided and stamped before the ship sails. |
-| **Dynamic type** | What's *actually* inside the container when opened at the destination — maybe specifically "phones." |
-| **Static ⊆ dynamic invariant** | A box labeled "FRUIT" may contain apples or oranges, never a brick. The label is an honest upper bound. |
-| **Downcast that fails** | Opening a "FRUIT" box expecting *apples* and finding oranges — your assumption was narrower than the label promised. |
-| **Type checking** | Customs inspecting that the contents match the declared category before the goods move. |
-| **Type inference** | A clerk who fills in the category for you by looking at the contents, so you don't have to write it. |
-| **Type erasure** | Removing all the labels once goods clear customs — fine for shipping, but now you can't tell boxes apart by sight. |
-| **Type soundness** | A guarantee from customs: "anything that cleared will never explode in transit" (rules out one disaster class, not all). |
-| **Type as memory layout** | A blueprint that says "these 8 bytes are two 4-byte integers" — the same wall of bricks, read as a structure. |
-
----
-
-## Mental Models
-
-### The Two-Question Model
-
-For any value at any moment, ask two *separate* questions: (1) **What does the compiler think this is?** (static type — governs what you may write) and (2) **What is it really, right now?** (dynamic type — governs which code runs). Almost every confusing typed-language behavior dissolves once you keep these questions apart. A cast is "I'm asking the runtime to confirm my answer to question 2 is more specific than question 1."
-
-### The Upper-Bound Model
-
-The static type is an **upper bound** on the value: a promise that the value is *at most* this general. `Animal a` promises "no worse than an `Animal`." The runtime is always free to be *more specific* (a `Dog`), never *less* (a `String`). Static checking is safe because it reasons about the bound, and the bound is never violated. Downcasting is "betting the actual value is tighter than the bound" — and the bet can lose.
-
-### The "Lens Over Bits" Model
-
-Underneath, memory is just bytes. A type is a **lens** that says how to read a region of bytes: as an integer, a float, a pointer, a struct. Two different types over the same bytes give two different readings. This model explains both performance (the compiler picks tight layouts) and danger (reinterpreting bytes under the wrong type — a `union`, a `reinterpret_cast`, an `unsafe` transmute — is exactly putting the wrong lens on the bits).
-
-### The "Proof vs Test" Model
-
-Static type checking is a **proof** about all runs: "no type error can occur, for any input, on any path." Dynamic type checking is a **test** on the actual run: "no type error occurred *this time*, on *this* path, with *these* values." Soundness is the statement that the proof is valid. Holes in soundness (`null`, casts, `any`) are places where the proof has a gap, and a runtime test is the only safety net left.
-
----
-
 ## Code Examples
 
 ### Java — static vs dynamic, and a downcast that fails
@@ -320,29 +231,6 @@ You didn't write the type, but it's known and checked at compile time. Inference
 
 ---
 
-## Pros & Cons
-
-| Aspect | Static typing | Dynamic typing |
-|--------|---------------|----------------|
-| **When errors caught** | Compile time, across all paths. | Run time, only on exercised paths. |
-| **Guarantees** | Soundness can rule out type errors entirely (modulo holes). | No ahead-of-time guarantee. |
-| **Tooling** | Rich: autocomplete, refactor, navigation from static types. | Weaker; the IDE can't always know the type. |
-| **Speed of iteration** | Must satisfy the checker before running. | Run immediately, fix as you go. |
-| **Performance** | Types drive efficient layout and dispatch. | Runtime tags cost memory and indirection. |
-| **Expressiveness** | Some valid programs are rejected (checker is conservative). | Anything goes until it breaks. |
-| **Erasure cost** | Erased types: no runtime info (can't reflect on them). | Full runtime types available for reflection. |
-
----
-
-## Use Cases
-
-- **Choose static typing** for large, long-lived, multi-author codebases; for APIs and libraries where the contract must be enforced; for performance-critical code; for domains where a type error is expensive (payments, medical, aerospace).
-- **Choose dynamic typing** for scripting, glue code, rapid prototyping, data exploration, and situations where the data shape is genuinely unknown until run time.
-- **Use gradual/optional typing** (TypeScript over JS, mypy over Python) to get static guarantees on the parts that matter while keeping dynamic flexibility elsewhere — the common modern compromise.
-- **Reach for runtime type info** (reflection, `isinstance`, type assertions) deliberately and sparingly — it's where static guarantees end and runtime checks begin.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Prefer the comma-ok / checked downcast over the panicking one
@@ -421,78 +309,24 @@ When you must reinterpret (a `union`, `unsafe`, `as`), isolate it in a small, we
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. For `Animal a = new Dog();`, state the static type and the dynamic type of `a`, and explain which one decides whether `a.bark()` compiles.
-2. Why can `(Dog) someAnimal` compile yet throw `ClassCastException` at run time? What invariant makes the *upcast* direction always safe?
-3. Is `let x = 5;` (with inference) statically or dynamically typed? Defend your answer.
-4. Explain what Java generic *erasure* removes, and give one thing you therefore *cannot* do at run time.
-5. State Milner's soundness slogan and explain precisely what "go wrong" means — and one kind of bug soundness does *not* prevent.
-6. Why are "strong" and "weak" typing poor terms? Name three more precise axes to use instead.
-7. The 4 bytes `0x40490FDB` are `1078530011` as an `int32` and `3.1415927` as a `float32`. What does this tell you about the relationship between a type and memory?
-8. A TypeScript `x as number` assertion and a Java `(Integer) x` cast look similar. How do they differ at *run time*, and why?
+1. Find a real component where **What Is a Type** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
----
+## Verify your work
 
-## Cheat Sheet
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
 
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│            STATIC vs DYNAMIC TYPE  (the core distinction)        │
-├──────────────────────────────────────────────────────────────────┤
-│  STATIC type   → on the EXPRESSION,  known at COMPILE time        │
-│                  decides WHAT YOU MAY WRITE                       │
-│  DYNAMIC type  → on the VALUE,        carried at RUN time         │
-│                  decides WHICH CODE RUNS / if a cast succeeds     │
-│                                                                  │
-│  Invariant: dynamic type ⊆ static type (it's an upper bound)     │
-├──────────────────────────────────────────────────────────────────┤
-│  TYPE CHECKING = "does each operation's operands' static types   │
-│                   support the operation?"                        │
-│    static checker → at compile time, all paths (a PROOF)         │
-│    dynamic checker → at run time, exercised paths (a TEST)       │
-├──────────────────────────────────────────────────────────────────┤
-│  INFERENCE  = compiler reconstructs a type you didn't write      │
-│               (still 100% static — inferred ≠ dynamic)           │
-│  ERASURE    = types discarded after checking (Java generics, TS) │
-│               → can't inspect them at run time                   │
-├──────────────────────────────────────────────────────────────────┤
-│  SOUNDNESS = "well-typed programs don't go wrong" (Milner)       │
-│    "go wrong" = evaluation gets STUCK on a type-mismatched op    │
-│    rules out TYPE errors — NOT logic bugs, loops, or panics      │
-│    holes: null, casts, any, unsafe, reflection                   │
-├──────────────────────────────────────────────────────────────────┤
-│  Don't say strong/weak. Say:                                     │
-│    static vs dynamic | sound vs unsound                          │
-│    implicit vs explicit conversion | memory-safe vs unsafe       │
-├──────────────────────────────────────────────────────────────────┤
-│  A TYPE = also a LAYOUT: how many bytes + how to read them       │
-│    same bytes, different type → different value (the "lens")     │
-└──────────────────────────────────────────────────────────────────┘
-```
+## Review questions
 
----
-
-## Summary
-
-- A type can be attached to an **expression at compile time** (the **static type**) or to a **value at run time** (the **dynamic type**). They are different questions and most subtlety lives between them.
-- The static type **governs what you may write**; the dynamic type **governs which implementation runs** and whether a downcast succeeds. The dynamic type is always the static type or a **subtype** of it.
-- **Type checking** verifies each operation's operands support it. A **static checker** does this at compile time (a proof over all runs); a **dynamic checker** does it lazily at run time (a test of this run).
-- **Type inference** reconstructs unwritten types but is still fully static. **Type erasure** discards types after checking (Java generics, TypeScript), so they can't be inspected at run time.
-- **Type soundness** — "well-typed programs don't go wrong" (Milner) — is the payoff: a sound system *provably* rules out a class of runtime type errors. It does *not* rule out logic bugs, loops, or panics. Real languages punch holes in soundness (`null`, casts, `any`, `unsafe`) for flexibility.
-- **"Strong" and "weak" typing are vague.** Prefer static/dynamic, sound/unsound, implicit/explicit conversions, memory-safe/unsafe.
-- A type is also a **memory-layout decision**: it tells the compiler how many bytes a value takes and how to read them. The same bytes mean different things under different types — the "lens over bits."
-- **Type safety and memory safety are related but distinct** dials; a language can have either, both, or neither.
-
----
-
-## Further Reading
-
-- *Types and Programming Languages* — Benjamin C. Pierce. Chapters 1, 8, 9, 11; the canonical treatment of checking and soundness.
-- "A Theory of Type Polymorphism in Programming" — Robin Milner, 1978. The origin of "well-typed programs don't go wrong" and Hindley–Milner inference.
-- *The Java Language Specification* — sections on type erasure and casting. https://docs.oracle.com/javase/specs/
-- *The TypeScript Handbook* — "Type Compatibility" and "Narrowing." https://www.typescriptlang.org/docs/handbook/
-- *Programming in Scala* / *Programming Rust* — practical chapters contrasting nominal/structural and inference.
-- "What To Know Before Debating Type Systems" — Chris Smith. The classic essay on why "strong/weak" is misleading.
-- *Practical Foundations for Programming Languages* — Robert Harper. A rigorous, modern account of statics and dynamics.
-- "Parsing Gigabytes of JSON per Second" and similar — for how type/layout choices drive real performance (background reading).
+- Which boundary is most affected by What Is a Type?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

@@ -1,33 +1,12 @@
-# Tracing Garbage Collection — Middle Level
+# Tracing Garbage Collection — Middle
 
-> **Topic:** Tracing Garbage Collection
-> **Focus:** The core algorithms — mark-sweep, mark-compact, copying/semispace, and generational GC — plus the tri-color abstraction that makes concurrent collection possible.
+<!-- level-focus -->
+At middle level, focus on this question:
 
+> Where does **Tracing Garbage Collection** belong in a maintainable component, and which trade-off selects the design?
+
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
-
-## Introduction
-
-At the junior tier, "the GC" was a single algorithm: mark, then sweep. In reality there is a small family of tracing algorithms, each making a different trade among **pause time**, **throughput**, **memory overhead**, and **allocation speed**. This tier walks the four canonical algorithms — mark-sweep, mark-compact, copying, and generational — and then introduces the **tri-color abstraction**, the conceptual tool every modern concurrent collector is built on. Master these and you can read the design of *any* real collector.
-
-## Prerequisites
-
-- The junior-tier model: roots, reachability, mark, sweep, tracing vs reference counting.
-- Comfort reading pointer manipulation and basic asymptotic cost (`O(live)` vs `O(heap)`).
-- Awareness that "the heap" is a contiguous region the allocator carves objects out of.
-
-## Glossary
-
-- **Free list:** A linked structure of reclaimed gaps the allocator searches to satisfy new allocations.
-- **Fragmentation:** Free memory split into many small gaps, so a large allocation fails even though total free space is sufficient.
-- **Compaction:** Moving live objects together to eliminate gaps, restoring one big contiguous free region.
-- **Bump allocation:** Allocating by simply incrementing a pointer — the fastest possible allocator. Requires a contiguous free region.
-- **Semispace:** A heap split in two halves; only one is in use at a time.
-- **Forwarding pointer:** A note left in an object's old location saying "I moved to here", used while updating references after a move.
-- **Generation:** A region grouping objects by age (young/nursery vs old/tenured).
-- **Promotion / tenuring:** Moving an object that has survived enough collections into the old generation.
-- **Remembered set:** A record of pointers from the old generation into the young generation, so a young-only collection knows its extra roots.
-- **Write barrier:** A small snippet of code the compiler inserts on every pointer write, used to maintain GC invariants (e.g., to update the remembered set).
-- **Tri-color:** A classification of objects as white (untraced), grey (found, not scanned), or black (scanned).
 
 ## Core Concepts
 
@@ -118,14 +97,6 @@ Collectors maintain one of these with a **write barrier**:
 
 This is the single most important abstraction in modern GC. Every concurrent collector you will read about — Go's, ZGC, Shenandoah, G1 — is "tri-color marking plus a specific barrier".
 
-## Mental Models
-
-- **Mark-sweep = leave them in place, list the gaps. Mark-compact = slide everyone left. Copying = move survivors to the other room and burn this one down.** Same goal (reclaim the dead), three strategies with different fragmentation and memory trade-offs.
-
-- **Generational = sort by age and check the kids' table constantly.** The nursery is small and mostly garbage, so sweeping it is cheap and frequent; the adults' room is big and stable, so you tidy it rarely.
-
-- **Tri-color = a BFS with a colored worklist running next to a program that keeps moving the furniture.** The barriers are the rule that stops the mover from sneaking a live chair into the "already checked" pile without telling you.
-
 ## Code Examples
 
 Cheney's copying collector, core loop:
@@ -175,22 +146,6 @@ func writePointer(slot **Object, ptr *Object) {
 }
 ```
 
-## Pros & Cons
-
-| Algorithm | Pause | Throughput | Memory overhead | Fragmentation | Alloc speed |
-|---|---|---|---|---|---|
-| Mark-sweep | Medium | Good | Low | **Yes** | Slow (free list) |
-| Mark-compact | High | Lower (extra passes) | Low | No | Fast (bump) |
-| Copying | Low (`O(live)`) | Good | **2× heap** | No | Fast (bump) |
-| Generational | Low (minor), High (major) | Best in practice | Moderate | Depends on old-gen algo | Fast (bump nursery) |
-
-## Use Cases
-
-- **Mark-sweep:** when objects must not move (C interop, conservative scanning) and simplicity matters. Go's heap is a concurrent non-moving mark-sweep.
-- **Copying:** young generations, where most objects are dead and the wasted half is small.
-- **Mark-compact:** old generations and full-GC fallbacks, where fragmentation must be eliminated without doubling memory.
-- **Generational:** the default for throughput-oriented managed runtimes — HotSpot (Serial/Parallel/G1), V8's Orinoco, .NET.
-
 ## Coding Patterns
 
 - **Allocate temporaries freely, retain survivors deliberately.** Generational GC makes short-lived allocations cheap; the expensive thing is long-lived garbage you forgot to release.
@@ -210,6 +165,26 @@ func writePointer(slot **Object, ptr *Object) {
 - **Fragmentation in non-moving collectors:** long-running services on mark-sweep heaps can suffer fragmentation that looks like a slow memory leak.
 - **Conservative roots and moving collectors don't mix:** if you can't precisely identify pointers, you can't safely move objects (you'd have to rewrite a value that might not actually be a pointer). This is why moving GCs require *precise* root scanning.
 
-## Summary
+---
 
-The four canonical tracing algorithms trade the same four currencies — pause, throughput, memory, fragmentation. **Mark-sweep** is simple and non-moving but fragments. **Mark-compact** defragments by sliding live objects and fixing pointers. **Copying** evacuates survivors to a fresh half-heap, achieving `O(live)` cost and bump allocation at the price of doubling memory. **Generational** GC exploits the weak generational hypothesis — most objects die young — to concentrate cheap, frequent copying collection on a small nursery, using **write barriers** and **remembered sets** to track old→young pointers. The **tri-color abstraction** (white/grey/black) plus **insertion or deletion write barriers** is the framework every concurrent collector uses to trace safely while the program keeps mutating the heap.
+## Apply it
+
+1. Find a real component where **Tracing Garbage Collection** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
+
+## Verify your work
+
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
+
+## Review questions
+
+- Which boundary is most affected by Tracing Garbage Collection?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

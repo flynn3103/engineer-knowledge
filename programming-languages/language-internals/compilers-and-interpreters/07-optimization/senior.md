@@ -1,66 +1,11 @@
-# Optimization — Senior Level
+# Optimization — Senior
 
-> **Topic:** Optimization
-> **Focus:** The full optimizer as a *pipeline of cooperating passes* — the loop transforms, the SSA-based catalog, register allocation as optimization, escape analysis and devirtualization, the **phase-ordering** problem, and the **undefined-behavior** contract that gives the optimizer its license (and produces its most dangerous surprises).
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Optimization** under failure, load, and change?
 
-## Introduction
-
-> Focus: **How is a real optimizer organized, why is its pass order an unsolved problem, and how does undefined behavior turn from "latitude" into deleted code?**
-
-A production optimizer is not a single algorithm; it is a **pipeline** of dozens to hundreds of passes, each a small transformation built on the dataflow/SSA machinery from `middle.md`. The pipeline's design is dominated by one uncomfortable truth: **optimizations enable and disable each other, and there is no provably optimal order to run them in.** Inlining exposes constants that constant propagation can fold, which makes branches dead that DCE can delete, which shrinks a loop enough that LICM and vectorization can transform it — but vectorization might block a later optimization, and running inlining *too* early can bloat code that a later pass would have simplified. This is the **phase-ordering problem**, and every compiler answers it with a hand-tuned, partly-iterated fixed pipeline that is *good*, never optimal.
-
-The second pillar at this level is the **undefined-behavior contract**. The as-if rule (from `junior.md`) says the optimizer must preserve observable behavior *of a well-defined program*. The flip side: for programs that exhibit **undefined behavior** — signed overflow, out-of-bounds access, strict-aliasing violations, dereferencing null, data races — the standard imposes *no* requirements, so the optimizer is free to assume **UB never happens** and to optimize on that assumption. This is the source of the optimizer's most powerful inferences *and* its most infamous surprises: the deleted null check, the loop that "shouldn't" be infinite that gets removed, the security bug born from `-O2`. A senior engineer must understand both the latitude and the liability.
-
-In one sentence: **a real optimizer is a carefully ordered pipeline of SSA passes whose power comes from inlining and undefined-behavior assumptions, and whose correctness is a constant engineering battle (miscompiles, translation validation, UB exploitation).**
-
-> 🎓 **Why this matters for a senior engineer:** You own the build flags and the performance of hot code that compiles to surprising assembly. You'll debug a release-only crash that's actually UB the optimizer weaponized. You'll decide whether to ship `-O3`, enable LTO/PGO, or add `-fno-strict-aliasing` to make a legacy codebase safe. You need to reason about the pipeline as a system, not memorize pass names.
-
-This page covers: the optimization catalog organized by scope (peephole/local, global SSA, loop, interprocedural); loop transforms and auto-vectorization; register allocation, escape analysis, devirtualization, and bounds-check elimination as optimizations; the phase-ordering problem and the `-O` level pipelines; LTO and PGO in outline; and the undefined-behavior controversy with concrete weaponization examples. JIT-specific speculative optimization is referenced and lives fully in runtime-systems.
-
----
-
-## Prerequisites
-
-- **Required:** `middle.md` — dataflow analysis, the lattice/fixpoint framework, SSA form, phi nodes, SCCP/GVN.
-- **Required:** Comfort reading x86-64 or AArch64 assembly at a basic level (recognizing loads, stores, branches, SIMD ops).
-- **Required:** A working model of caches (i-cache vs d-cache), branch prediction, and out-of-order execution — optimization payoffs are about *hardware* behavior.
-- **Helpful but not required:** Having read disassembly on godbolt and compared `-O2` vs `-O3` on real code.
-- **Helpful but not required:** Exposure to the C/C++ memory model and the list of undefined behaviors in the standard.
-
-You do **not** need to know:
-
-- JIT/deoptimization internals — referenced here, owned by runtime-systems.
-- Whole build-system integration of LTO/PGO at scale — that's `professional.md`.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Pass** | One transformation or analysis run over the IR. The pipeline is an ordered list of passes. |
-| **Phase-ordering problem** | The fact that passes enable/disable each other and no provably optimal order exists. |
-| **Peephole optimization** | Pattern-matching small instruction windows and rewriting them (e.g. `mov`+`add` → `lea`). |
-| **LICM** | Loop-invariant code motion — hoisting loop-invariant computations out of the loop. |
-| **Induction variable** | A variable that changes by a constant amount each loop iteration (e.g. the loop counter). |
-| **IV strength reduction** | Replacing a multiply on an induction variable with an addition each iteration. |
-| **Loop unrolling / fusion / fission / interchange** | Body duplication / merging adjacent loops / splitting one loop / swapping nesting order. |
-| **Vectorization (SIMD)** | Transforming scalar loop iterations into operations on vectors (process N elements per instruction). |
-| **Software pipelining** | Overlapping iterations of a loop to keep the CPU's execution units busy. |
-| **Register allocation** | Mapping unbounded virtual registers to a finite physical register set (graph coloring, linear scan). |
-| **Escape analysis** | Proving an allocation does not "escape" its function, enabling stack allocation / scalar replacement. |
-| **Scalar replacement of aggregates (SROA)** | Splitting a struct into individual scalars that can live in registers. |
-| **Devirtualization** | Replacing a virtual/indirect call with a direct call when the target can be proven. |
-| **Bounds-check elimination** | Removing array-bounds checks the compiler proves can never fail. |
-| **Tail-call optimization (TCO)** | Reusing the caller's stack frame for a call in tail position, turning recursion into iteration. |
-| **Undefined behavior (UB)** | Constructs the standard places no requirements on; the optimizer may assume they never occur. |
-| **Strict aliasing** | The rule that pointers of incompatible types don't alias, which the optimizer exploits. |
-| **LTO** | Link-time optimization — optimizing across translation-unit (and library) boundaries at link time. |
-| **PGO** | Profile-guided optimization — using runtime profiles to guide inlining, layout, and branch hints. |
-| **Translation validation** | Proving an individual compilation's output is equivalent to its input (e.g. Alive2 for LLVM). |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -140,30 +85,6 @@ The liability is that the *same* inferences turn latent bugs into miscompiles an
 Two engineering responses: (1) **eliminate UB** — sanitizers (`-fsanitize=undefined,address`), warnings, and discipline; and (2) **constrain the optimizer** when porting UB-laden legacy code — `-fwrapv`, `-fno-strict-aliasing`, `-fno-delete-null-pointer-checks`. And because the optimizer itself can have bugs (**miscompiles**), serious toolchains lean on **translation validation** like **Alive2**, which proves (or refutes) that a specific LLVM transformation preserves semantics — catching optimizer bugs that fuzzing alone misses.
 
 A related foot-gun: **`-ffast-math`** lets the optimizer treat floating-point as associative and assume no NaNs/infinities, enabling vectorized reductions and reassociation — but *changing results*, breaking Kahan summation, `x != x` NaN checks, and anything depending on IEEE semantics. It's UB-adjacent latitude you opt into, and it bites silently.
-
----
-
-## Real-World Analogies
-
-**The assembly line with reorderable stations (phase ordering).** Imagine a factory where each station improves the product, but some stations only work if a *previous* station already did its job, and a few stations *undo* the prep a later station needs. There's no provably best ordering of stations for every possible product — so you hand-tune one good line, and for a few clusters you send the product around the loop twice. That's the optimization pipeline.
-
-**Vectorization as packing a shipping truck.** Doing one box per trip (scalar) wastes the truck. If the boxes are independent and identical, you load 8 at once (SIMD) and make one trip. But if box 5 must be packed *after* box 4 is sealed (a loop-carried dependency), you can't batch them — and if you can't prove the boxes won't collide (aliasing), you conservatively make single trips.
-
-**Undefined behavior as a contract loophole.** You sign a contract that says "I will never divide by zero." The optimizer, trusting the contract, builds fast machinery that *assumes* the divisor is nonzero — skipping the safety guard. If you *do* divide by zero, you've breached the contract, and the machinery does something arbitrary (maybe deletes your later safety check entirely). The optimizer didn't betray you; you broke the promise it optimized against.
-
-**PGO as paving the cow-paths.** Instead of guessing where people will walk, you watch the actual foot traffic for a week, then pave the busy routes wide and let the rare ones stay dirt. The hot path gets the straight, cache-friendly layout; cold code is shoved aside.
-
----
-
-## Mental Models
-
-**Model 1: Inlining is the lever; everything else is the load it lifts.** Nearly every interprocedural win is "inline, then re-run the intra-procedural pipeline on the bigger body." When you tune for performance, you're often really tuning *what gets inlined*. LTO and PGO are, in large part, "inline across files / inline the hot calls."
-
-**Model 2: The optimizer optimizes the program you *promised*, not the one you wrote.** Every UB is a promise ("no signed overflow," "these pointers don't alias," "this pointer isn't null here"). The optimizer takes you at your word. Break the promise and the output is *correct for some program*, just not yours. This reframes UB bugs from "compiler did something weird" to "I lied to the compiler."
-
-**Model 3: `-O3` and `-ffast-math` are not "max performance" — they're "different trade-offs."** Higher optimization trades code size, predictability, and (for fast-math) numerical correctness for *potential* speed. The senior move is to *measure the specific workload* and often discover `-O2` or even `-Os` wins.
-
-**Model 4: Correctness of the optimizer is not free either.** Optimizers have miscompile bugs; aggressive UB exploitation expands the blast radius of *your* bugs. Defensive posture: sanitizers in CI, conservative flags on legacy code, and awareness that translation-validation tools (Alive2) exist because "the optimizer is correct" is an assumption, not a fact.
 
 ---
 
@@ -260,34 +181,6 @@ The `-Rpass-missed`/`-Rpass-analysis` remarks are the senior engineer's best too
 
 ---
 
-## Pros & Cons
-
-**Pros**
-
-- **Order-of-magnitude wins are routine.** Inlining + vectorization + good register allocation can make optimized code many times faster than naive `-O0`.
-- **Safe languages get their cost back.** Bounds-check elimination, devirtualization, and escape analysis recover most of the overhead of memory safety and dynamic dispatch.
-- **Whole-program scope via LTO/PGO.** Cross-module inlining and profile-guided layout reach wins impossible at the single-file level.
-
-**Cons**
-
-- **No optimal pass order.** Phase ordering means every compiler leaves performance on the table for *some* programs and over-optimizes others.
-- **UB exploitation is a footgun.** The same assumptions that enable speed weaponize latent bugs into miscompiles and CVEs.
-- **`-O3`/`-ffast-math` aren't free wins.** Code bloat, i-cache pressure, and broken FP semantics mean they must be measured and chosen, not defaulted.
-- **Optimizers have bugs.** Miscompiles happen; aggressive transforms have a history of correctness issues, which is why translation validation exists.
-- **Cost.** Heavy optimization, LTO, and PGO add real build time and pipeline complexity.
-
----
-
-## Use Cases
-
-- **Tuning a hot kernel.** Read `-Rpass`/`-print-after-all`, fix the precondition (add `restrict`, remove an aliasing store, hoist a side-effecting call) so vectorization/LICM fires, and confirm in the assembly.
-- **Debugging a release-only crash.** Suspect UB first. Run `-fsanitize=undefined,address`, build at `-O1` to narrow the pass, and check for deleted-check patterns.
-- **Hardening legacy C.** Apply `-fwrapv -fno-strict-aliasing -fno-delete-null-pointer-checks` to neutralize the most dangerous UB exploitation while you fix the root causes.
-- **Shipping a perf-sensitive binary.** Evaluate `-O2` vs `-O3` vs `-Os` on the *actual* workload; enable ThinLTO and PGO if the build infrastructure supports it.
-- **Choosing FP flags.** Reach for `-ffast-math` (or finer `-ffp-contract`, `-fno-math-errno`) only with numerical tests in place, and never for code that inspects NaN/inf.
-
----
-
 ## Coding Patterns
 
 - **Feed the vectorizer.** Eliminate aliasing the compiler can't disprove (`restrict`, local copies, separate buffers), keep loop bodies branch-light and call-free, and use simple integer induction variables. Then *verify* with vectorization remarks.
@@ -321,12 +214,24 @@ The `-Rpass-missed`/`-Rpass-analysis` remarks are the senior engineer's best too
 
 ---
 
-## Summary
+## Apply it
 
-A production optimizer is a **pipeline of SSA-based passes** filed by scope: **peephole/local**, **global** (SCCP, GVN, DCE, LICM, jump threading), **loop** (IV strength reduction, unrolling, fusion/fission, interchange, **vectorization**, software pipelining), and **interprocedural** (inlining, devirtualization, escape analysis, IPCP). **Inlining is the keystone** — it converts interprocedural problems into intraprocedural ones and unlocks the cascade. **Register allocation**, **escape analysis** (→ stack allocation / SROA), **devirtualization**, and **bounds-check elimination** are themselves optimizations that recover the cost of abstraction and safety.
+1. State the system invariant that **Optimization** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
-The pipeline's central difficulty is **phase ordering**: passes enable and disable each other, no optimal order exists, so compilers use a hand-tuned, partly-iterated pipeline exposed as the `-O` presets — and **`-O3` is not reliably faster than `-O2`** (code bloat, i-cache). **LTO** widens optimization to whole-program scope; **PGO** replaces static heuristics with measured profiles; JITs push this to speculative, deopt-guarded optimization (runtime-systems).
+## Verify your work
 
-The deepest senior concept is the **undefined-behavior contract**: the as-if rule only binds the optimizer for well-defined executions, so it is licensed to **assume UB never happens** — the source of major wins (signed-overflow loop reasoning, strict aliasing) *and* of its most dangerous surprises (the deleted null check, the removed bounds test, the `-O2`-only CVE). The engineering response is sanitizers and discipline to *eliminate* UB, conservative flags (`-fwrapv`, `-fno-strict-aliasing`) to *constrain* it on legacy code, and **translation validation** (Alive2) because optimizers themselves can miscompile. `-ffast-math` is the same bargain for floating point: real speed, changed semantics.
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
 
-The next tier (`professional.md`) takes this to **production build engineering**: rolling out LTO/PGO at scale, optimization-driven build/CI design, BOLT-style post-link optimization, governing FP and UB flags across a large codebase, and the organizational discipline that keeps an aggressively optimized build correct.
+## Review questions
+
+- Which invariant must remain true when Optimization fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

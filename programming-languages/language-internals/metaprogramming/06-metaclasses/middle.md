@@ -1,71 +1,11 @@
-# Metaclasses — Middle Level
+# Metaclasses — Middle
 
-> **Topic:** Metaclasses
-> **Focus:** Actually writing a metaclass — `__new__`, `__init__`, `__call__`, `__prepare__` — and, crucially, the simpler tools (`__init_subclass__`, `__set_name__`, class decorators) that should usually replace it.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **Metaclasses** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-> Focus: **A metaclass is a class whose instances are classes. So you customize class creation by overriding the same special methods you already know — just one rung up.**
-
-At junior level you learned the ratio: *metaclass : class :: class : instance*, and that `type` is the default metaclass. Now we make it concrete. To write a metaclass you subclass `type`:
-
-```python
-class Meta(type):
-    ...
-
-class Thing(metaclass=Meta):
-    ...
-```
-
-`Thing` is now an *instance of* `Meta`. That sentence is the key to everything. Because a class is an instance of its metaclass, the special methods you already use on classes — `__new__`, `__init__`, `__call__` — gain a parallel meaning when you put them on a metaclass:
-
-- A metaclass's `__new__`/`__init__` run when the **class** is created (not when instances are).
-- A metaclass's `__call__` runs when you *instantiate* the class — `Thing()` calls `Meta.__call__(Thing)`.
-
-That's the symmetry. `__init__` on a normal class initializes an instance; `__init__` on a metaclass initializes a class. Same machinery, one level up.
-
-> 🎓 **Why this matters for a middle engineer:** You will hit a real need — "register every subclass automatically," "validate that every model defines `table_name`," "inject a method into a family of classes." Metaclasses *can* do all of these. But Python 3.6+ gave you `__init_subclass__` and `__set_name__` (PEP 487), which do the common cases far more simply. The mark of a competent engineer here is not "can write a metaclass" — it's "knows when *not* to, and reaches for the lighter tool."
-
-This page shows: the full lifecycle of class creation (`__prepare__` → namespace → `__new__` → `__init__`), the four override points and what each is for, the three classic use cases (registration, validation, instance-creation control), and a side-by-side of the metaclass solution versus the `__init_subclass__` / decorator solution so you can pick correctly.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** Everything in `junior.md` — that a class is an object, `type` is the default metaclass, and the `class` statement is sugar for `type(name, bases, namespace)`.
-- **Required:** `__new__` vs `__init__` on *ordinary* classes (`__new__` allocates/returns the object; `__init__` initializes it).
-- **Required:** Inheritance and method resolution basics, `super()`.
-- **Helpful:** Decorators (function and class), since they're an alternative we'll compare against.
-- **Helpful:** Descriptors at a basic level (an object with `__get__`/`__set__`), for `__set_name__`.
-
-You do **not** need (yet):
-
-- Metaclass conflicts in multiple inheritance, ABCMeta internals, or how ORMs wire this up end-to-end (that's `senior.md`).
-- Ruby eigenclasses, Smalltalk's parallel hierarchy, or JVM class objects (`professional.md`).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Metaclass** | A class that subclasses `type`. Its instances are classes. |
-| **`metaclass=` keyword** | The class-statement argument that selects which metaclass builds this class. |
-| **`__prepare__`** | Classmethod on the metaclass that returns the namespace object the class body will populate. Runs *first*. |
-| **`__new__` (metaclass)** | Creates and returns the new class object. Can mutate the namespace/bases before the class exists. Runs once at class creation. |
-| **`__init__` (metaclass)** | Initializes the already-created class object. Runs once at class creation, after `__new__`. |
-| **`__call__` (metaclass)** | Runs when you *instantiate the class* (`Thing()`). Controls instance creation. |
-| **`namespace` / `mcs`/`cls`** | The dict of class body contents; `mcs` (or `mcls`) is the metaclass itself by convention. |
-| **`__init_subclass__`** | A hook (PEP 487) on a *base class* that runs whenever a subclass is defined. The lighter alternative to a metaclass for most registration/validation. |
-| **`__set_name__`** | A hook (PEP 487) on a *descriptor/attribute* object; the owning class calls it at class-creation time, passing the attribute's name. |
-| **Class decorator** | A function applied with `@deco` above a class; receives the finished class and returns a (possibly modified) class. The other lightweight alternative. |
-| **Registry** | A dict/list collecting classes (often subclasses) so they can be looked up by name/key. |
-| **Declarative** | A style where you write structure (fields) and a framework derives behavior, typically via one of the above hooks. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -214,55 +154,6 @@ The competent move: reach for these three before a metaclass. A metaclass is jus
 
 ---
 
-## Real-World Analogies
-
-**The factory's quality-control station.** A class decorator is an inspector at the *end* of the assembly line: the class is already built; the inspector stamps it, logs it, maybe bolts on an extra part, and ships it. A metaclass `__new__` is a redesign of the *machine itself*: it can change how the class is assembled, mid-build, before it's finished. Use the inspector when you can; rebuild the machine only when end-of-line inspection isn't enough.
-
-**Birth certificate vs. genome editing.** `__init_subclass__` is the registrar who records every newborn class in the town ledger — observation after the fact. A metaclass `__new__` is editing the blueprint before the class is born. The registrar is enough for "keep a list of everyone." You only edit the blueprint when you must change the thing itself.
-
-**A class roster that signs itself in.** Auto-registration via `__init_subclass__` is like a class where each new student, simply by enrolling, automatically appears on the attendance sheet — no teacher action required. That's the magic frameworks sell, achievable without ever touching a metaclass.
-
----
-
-## Mental Models
-
-### Model 1: The Mirror Across the Rung
-
-Every special method you know on instances has a metaclass twin:
-
-```text
-ORDINARY CLASS (acts on instances)   METACLASS (acts on classes)
-  __new__   -> allocate instance       __new__   -> allocate class
-  __init__  -> init instance           __init__  -> init class
-  Class()   -> make an instance        Meta-instance is the class itself
-  (the class is called to make obj)    __call__  -> runs when the class is called
-```
-
-When in doubt, ask "one rung up, what does this method now operate on?" The answer is always "the class" instead of "the instance."
-
-### Model 2: Decision Ladder (climb only as far as you must)
-
-```text
-Need to react to subclass definition (register/validate)?  -> __init_subclass__
-Need an attribute to know its own name?                    -> __set_name__
-Need to post-process a single finished class?              -> class decorator
-Need to control how INSTANCES are made for a family?       -> metaclass __call__
-Need to change the namespace mapping / intercept body?     -> metaclass __prepare__
-Need to inject/rewrite members before the class exists?    -> metaclass __new__
-Need a shared metaclass-level interface across a hierarchy? -> metaclass
-```
-
-Stop at the first rung that does the job. Most tasks stop in the top three.
-
-### Model 3: Two Clocks, Two Hooks
-
-- **Class clock** (once, import): `__prepare__`, metaclass `__new__`/`__init__`, `__set_name__`, `__init_subclass__`.
-- **Instance clock** (each `Thing()`): metaclass `__call__`, then class `__new__`/`__init__`.
-
-If your customization should happen *per instance*, it belongs on the instance clock. If it should happen *per class*, it belongs on the class clock. Putting work on the wrong clock is the most common design error here.
-
----
-
 ## Code Examples
 
 ### Example 1: Auto-registration — metaclass vs the lighter way
@@ -384,35 +275,6 @@ class Demo(metaclass=Trace):
 
 ---
 
-## Pros & Cons
-
-**Pros of writing a metaclass:**
-
-- **One hook for an entire hierarchy.** Behavior applies to every class using that metaclass, including future ones, without each opting in.
-- **Can affect instance creation.** `__call__` lets you intercept `ClassName()` — singletons, instance caching, dependency injection at the type level.
-- **Can rewrite the class before it exists.** `__new__`/`__prepare__` can inject, rename, or forbid members during the build.
-
-**Cons:**
-
-- **Overpowered for most tasks.** Registration, validation, and naming are all solved more cheaply by PEP 487 hooks or decorators.
-- **Inheritance friction.** A subclass *inherits* its metaclass; mixing class hierarchies with different metaclasses causes conflicts (a `senior.md` topic).
-- **Cognitive cost.** Reviewers must understand a second object-model layer to follow your code.
-- **Tooling blind spots.** IDEs, type checkers, and static analyzers often can't "see" what a metaclass injects, hurting autocomplete and type safety.
-
-> Decision rule: write the *lighter* solution first. Only escalate to a metaclass when you specifically need `__call__`, `__prepare__`, or a hierarchy-wide metatype interface — and write down *why* in a comment.
-
----
-
-## Use Cases
-
-- **Singletons / instance caching** — `__call__` is the clean fit (Example 3).
-- **Declarative bases that must control instantiation** — when merely defining fields isn't enough and you need to intercept `Model()`.
-- **Enums / sentinel families** — controlling the namespace via `__prepare__` (how `enum` forbids duplicate members and assigns values).
-- **Framework-wide policy** — "every class of this kind gets feature X injected," where opting in via inheritance of a metaclass is desirable.
-- **Most "register subclasses / validate definition" needs** — these are listed here so you recognize them, but you should reach for `__init_subclass__` instead.
-
----
-
 ## Coding Patterns
 
 **Pattern: Prefer `__init_subclass__` for registration/validation.** It's discoverable (lives on the base class, reads top-to-bottom), composes via cooperative `super().__init_subclass__(**kwargs)`, and needs no metaclass.
@@ -452,44 +314,24 @@ class Demo(metaclass=Trace):
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```text
-WRITE A METACLASS:  class Meta(type): ...   then  class C(metaclass=Meta): ...
-  -> C is an INSTANCE of Meta.
+1. Find a real component where **Metaclasses** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
-LIFECYCLE (class-creation time, once at import):
-  __prepare__ -> body runs -> __new__ -> __set_name__ -> __init__ -> __init_subclass__
+## Verify your work
 
-METACLASS METHODS:
-  __new__(mcs, name, bases, ns, **kw)   shape the class (rare)
-  __init__(cls, name, bases, ns, **kw)  react to the class: register/validate (common)
-  __call__(cls, *a, **kw)               runs on C() -> controls INSTANCE creation
-  __prepare__ (classmethod)             returns the namespace mapping
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
 
-PREFER THESE (PEP 487 / decorators) FIRST:
-  __init_subclass__(cls, **kw)   on the base; fires per subclass (register/validate)
-  __set_name__(self, owner, nm)  on an attribute; learns its own name
-  @decorator                     post-process one finished class
+## Review questions
 
-ALWAYS: call super() in the creation chain. Forward **kwargs.
-ESCALATE TO METACLASS ONLY FOR: __call__, __prepare__, hierarchy-wide metatype.
-```
-
----
-
-## Summary
-
-A metaclass is a class that subclasses `type`; its instances are classes, so the special methods you already know gain a one-rung-up meaning. `__new__`/`__init__` on a metaclass run at **class-creation time** (`__new__` to reshape the class, `__init__` to react to it), `__prepare__` controls the namespace mapping, and `__call__` runs when you *instantiate* the class — making it the natural hook for singletons and instance caching.
-
-But the headline lesson for a middle engineer is restraint. Python 3.6+ gave you `__init_subclass__` (per-subclass hook for registration/validation) and `__set_name__` (attributes that learn their own name), plus class decorators for one-off post-processing. These cover the vast majority of historical metaclass use cases with code that's discoverable, composable, and friendlier to tooling. Climb the decision ladder and stop at the first rung that works; reserve a real metaclass for the genuinely type-level concerns. The senior level digs into where this gets hard: metaclass conflicts, ABCMeta, and how production ORMs actually combine these mechanisms.
-
----
-
-## Further Reading
-
-- PEP 487 — "Simpler customization of class creation" (`__init_subclass__`, `__set_name__`). The single most useful read for this level.
-- PEP 3115 — "Metaclasses in Python 3000" (`__prepare__` and the new metaclass syntax).
-- The Python "Data model" reference — sections on metaclasses, `__set_name__`, and `__init_subclass__`.
-- The Python `enum` module source — a production metaclass that uses `__prepare__` to forbid duplicate members.
-- The `descriptor` HOWTO in the Python docs — to understand `__set_name__` in context.
+- Which boundary is most affected by Metaclasses?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

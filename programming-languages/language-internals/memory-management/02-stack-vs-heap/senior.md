@@ -1,33 +1,12 @@
-# Stack vs Heap — Senior Level
-> **Topic:** Stack vs Heap
-> **Focus:** Cross-language design trade-offs, what each language's model buys and costs you, and how to architect for allocation.
+# Stack vs Heap — Senior
 
+<!-- level-focus -->
+At senior level, focus on this question:
+
+> Which system invariant is affected by **Stack vs Heap** under failure, load, and change?
+
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
-
-## Introduction
-
-A senior engineer does not ask "stack or heap?" in isolation; they ask "what does *this language's* allocation model commit me to, and how do I design around it?" Rust's borrow checker, Go's escape analysis, Java's everything-is-a-reference object model, and Python's everything-is-a-heap-object model are four very different answers to the same question, each with a coherent set of trade-offs.
-
-This level is about reading those trade-offs fluently: knowing why a Go API that returns `*Foo` generates GC pressure, why a Rust `Vec<T>` is a three-word stack value pointing at heap data, why Java can't put an `ArrayList<Integer>` on the stack, and why a goroutine can start with a 2 KB stack while a C thread needs megabytes.
-
-## Prerequisites
-
-- Middle-level mastery: frame anatomy, the alloc cost model, and escape analysis.
-- Working knowledge of at least two of: Go, C/C++, Rust, Java.
-- Familiarity with garbage collection at a conceptual level (mark/sweep, generations).
-- You have read an escape report and a heap profile before.
-
-## Glossary
-
-- **Value semantics:** assignment/passing copies the data itself.
-- **Reference semantics:** assignment/passing copies a reference; both names see the same object.
-- **Boxing:** wrapping a value type in a heap-allocated object so it can be treated as a reference (e.g., `int` → `Integer`).
-- **Scalar replacement:** a JIT optimization that decomposes a non-escaping object into register-resident fields, eliminating the allocation.
-- **Move semantics (Rust):** transferring ownership of a value without copying its heap backing.
-- **Stack copying / stack growth:** runtime relocation or extension of a thread/coroutine stack when it runs low.
-- **Internal fragmentation:** wasted space inside an allocated block (rounding to a size class).
-- **External fragmentation:** free memory exists but is split into chunks too small to satisfy a request.
-- **Arena / region allocation:** allocating many objects in one block and freeing them all at once.
 
 ## Core Concepts
 
@@ -91,12 +70,6 @@ The stack never fragments. Because it is strictly LIFO, freeing is always "move 
 
 Allocator and GC design is largely a war against fragmentation: size classes (limit internal frag, eliminate external frag within a class), compacting/copying collectors (move live objects together to defragment), and arena allocators (free everything at once, no per-object holes). None of this exists for the stack — its discipline is its superpower.
 
-## Mental Models
-
-- **The allocation model is a spectrum of who-decides.** C: you. Rust: you, but the compiler checks. Go/Java: the runtime, with hints from how you write code. Python: nobody decides; it's always the heap.
-- **Reference types pull data onto the heap.** When you see indirection (pointer, reference, interface, boxed value), assume heap until escape analysis proves otherwise.
-- **A growable stack is a heap-backed illusion of an unbounded stack** — the runtime trades pointer-rewriting work for the ability to start tasks cheaply.
-
 ## Code Examples
 
 ### Rust — stack by default, heap on request
@@ -155,23 +128,6 @@ for (int i = 0; i < 1_000_000; i++) boxed.add(i);
 - **Cheap tasks vs cheap calls:** Go's growable stacks make a million concurrent tasks cheap but add a per-call stack-check and require a precise runtime; C's fixed stacks make calls maximally cheap but make millions of threads infeasible.
 - **Throughput vs footprint:** boxing/heaping everything (Python, Java collections) is simple and uniform but burns memory and cache; value-type-heavy designs (Go structs, Rust) are leaner but demand more care about copying and escapes.
 
-## Pros & Cons
-
-**Designing toward the stack**
-
-- Pros: speed, locality, no GC pressure, deterministic cleanup.
-- Cons: lifetime constraints, copy costs for large values, API rigidity (can't freely return references).
-
-**Designing toward the heap**
-
-- Pros: flexible lifetimes and sharing, dynamic sizing, simpler APIs.
-- Cons: allocation/GC cost, fragmentation, cache-cold access, more failure modes.
-
-## Use Cases
-
-- **Stack-leaning design:** numeric kernels, hot loops, small value objects (coordinates, IDs), parsers building bounded temporaries.
-- **Heap-leaning design:** long-lived caches, graphs and trees with shared nodes, concurrent shared state, anything sized at runtime or returned across API boundaries.
-
 ## Coding Patterns
 
 - **Arena / region allocation** for batches with a common lifetime (parse a request, free the whole arena at the end) — sidesteps per-object free cost and fragmentation.
@@ -194,10 +150,26 @@ for (int i = 0; i < 1_000_000; i++) boxed.add(i);
 - **Goroutine stack thrash:** pathological recursion or alternating call depths can cause repeated grow/shrink copies; rare, but visible in profiles.
 - **RAII vs GC mental-model clash:** engineers moving from C++/Rust to Go/Java expect deterministic frees and are surprised by GC latency; the reverse direction surprises with manual lifetime obligations.
 
-## Summary
+---
 
-- Each language encodes a different point on the **control-vs-safety** spectrum: C (manual), C++ (manual + RAII), Rust (stack-default + compile-time ownership), Go (escape analysis + GC), Java (objects-on-heap + GC + EA), Python (everything-on-heap + refcount/cycle GC).
-- **Value vs reference semantics** drives where data lives; **boxing** is the trap where value types silently become per-element heap objects, devastating cache behavior for large collections.
-- **Growable stacks** (goroutines) make millions of concurrent tasks affordable by trading per-call checks and pointer-rewriting for tiny starting stacks — feasible only with a precise runtime.
-- **Fragmentation** is a heap-only problem; the stack's strict LIFO discipline makes it fragmentation-free, which is the root of much of its speed advantage.
-- Senior-level allocation design is API design: how you return, share, and abstract data determines your program's stack/heap balance, and therefore its speed, footprint, and GC behavior.
+## Apply it
+
+1. State the system invariant that **Stack vs Heap** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
+
+## Verify your work
+
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
+
+## Review questions
+
+- Which invariant must remain true when Stack vs Heap fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

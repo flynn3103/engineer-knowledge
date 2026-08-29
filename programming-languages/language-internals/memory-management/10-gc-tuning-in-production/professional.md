@@ -1,20 +1,12 @@
-# GC Tuning in Production — Professional Level
-> **Topic:** GC Tuning in Production
-> **Focus:** SLO-driven tuning under real load, incident war stories with root causes and fixes, and the container/k8s reality where most GC outages actually happen.
+# GC Tuning in Production — Professional
 
+<!-- level-focus -->
+At professional level, focus on this question:
+
+> How should teams adopt and operate **GC Tuning in Production** with measurable outcomes and limited coordination?
+
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
-
-## Introduction
-
-At this level GC tuning stops being about flags and starts being about **incidents, SLOs, and 3 a.m. pages.** The questions change: not "what does `MaxGCPauseMillis` do," but "our p999 jumped from 40 ms to 1.2 s at 14:03 and the on-call needs a root cause." Most real GC outages are not exotic collector internals — they're a container memory limit set wrong, an allocation regression from a deploy, or a slow leak that finally crossed the line under peak traffic.
-
-This tier is built around two things professionals actually live with: **deriving GC settings from an SLO budget**, and **a catalog of war stories** with the symptom, the misdiagnosis, the real root cause, and the fix. The container section gets its own treatment because, in the Kubernetes era, the heap-vs-cgroup interaction is the **single most common GC-related production failure.**
-
-## Prerequisites
-
-- Senior tier: collector selection framework, concurrent-compaction mechanics, the diagnosis-then-tune order, heap-after-GC as leak detector.
-- Operational fluency: dashboards, alerting, on-call, reading a heap dump, cgroups/k8s resource limits.
-- An SLO mindset: error budgets, p99/p999, "the tail is the product."
 
 ## SLO-Driven Tuning: Turning a Latency Target into GC Settings
 
@@ -71,38 +63,6 @@ env:
 
 **`GOMAXPROCS` and CPU limits.** A Go process not told its CPU limit may spawn 64 GC workers on a 2-CPU pod, causing throttling and *worse* pauses. Set `GOMAXPROCS` to the CPU limit (or use `automaxprocs`). The JVM analog: `ActiveProcessorCount` / cgroup CPU awareness sizing the GC thread pool.
 
-## War Stories
-
-Each is a real pattern. Symptom → misdiagnosis → root cause → fix.
-
-**War story 1 — "The deploy that doubled p999."**
-*Symptom:* right after a release, p999 latency doubled; GC% climbed from 3% to 11%. *Misdiagnosis:* "the GC is broken, switch to ZGC." *Root cause:* a new JSON-serialization path allocated a fresh 64 KB buffer per request — an **allocation regression**. GC frequency tripled because the heap filled three times faster. *Fix:* pooled the buffer (`sync.Pool` / reused `byte[]`); GC% and p999 returned to baseline. **Lesson:** a sudden GC% jump after a deploy is almost always an allocation regression, not a collector problem. Diff the allocation flame graph against the previous release.
-
-**War story 2 — "Healthy heap, dead pod."**
-*Symptom:* pods OOMKilled every few hours; heap dashboard showed heap comfortably under `-Xmx`. *Misdiagnosis:* "raise the memory limit." *Root cause:* a native library (compression) allocated **off-heap direct byte buffers** that don't count against `-Xmx` but do count against the cgroup; total RSS crossed the 4 Gi limit. *Fix:* capped `-XX:MaxDirectMemorySize`, lowered `MaxRAMPercentage` to leave headroom, and alerted on **container RSS**, not just heap. **Lesson:** the heap is not the process. Watch RSS vs. cgroup limit.
-
-**War story 3 — "The midnight Full GC cliff."**
-*Symptom:* nightly at peak, p999 spiked to 1.5 s for ~30 s, then recovered. *Misdiagnosis:* "network blip." *Root cause:* under the nightly batch overlay, G1 hit an **evacuation failure** — no room to promote survivors — and fell back to a serial **Full GC**. *Fix:* lowered `InitiatingHeapOccupancyPercent` from 70 to 40 (start concurrent marking earlier), added heap headroom, and shed batch load. Full GCs disappeared. **Lesson:** a periodic latency cliff that matches a load pattern smells like Full GC / promotion failure. Grep the GC log for `Full`.
-
-**War story 4 — "The leak that looked like a tuning problem."**
-*Symptom:* over ~36 hours GC frequency crept up and pauses lengthened; restarting "fixed" it. *Misdiagnosis:* "tune GOGC / MaxGCPauseMillis." *Root cause:* an unbounded in-memory cache (no eviction) — **heap-after-GC trended upward** the whole time. *Fix:* bounded the cache (LRU with a size cap); no GC flag involved. **Lesson:** rising *floor* of heap-after-GC = leak. Tuning a leak only postpones the OOM. The restart "fix" is the tell.
-
-**War story 5 — "ZGC stalled."**
-*Symptom:* moved a high-allocation service to ZGC for the sub-ms pauses; instead saw periodic multi-hundred-ms latency spikes. *Misdiagnosis:* "ZGC is buggy." *Root cause:* the service allocated faster than ZGC could reclaim; threads hit **allocation stalls** waiting for memory. *Fix:* reduced allocation rate and added headroom so the collector stayed ahead of the mutator; ZGC then delivered as advertised. **Lesson:** low-pause collectors must *win the race with allocation*. Give them headroom and don't feed them a firehose.
-
-**War story 6 — "Finalizer backlog."**
-*Symptom:* intermittent long pauses uncorrelated with allocation; a growing finalizer queue. *Root cause:* objects with `finalize()`/`Cleaner`s wrapping native resources piled up faster than the single finalizer thread could process, stalling reference processing. *Fix:* replaced finalizers with explicit `close()`/try-with-resources and `-XX:+ParallelRefProcEnabled`. **Lesson:** finalizers and weak/soft/phantom references add a GC phase that can stall independently of heap pressure.
-
-## Mental Models
-
-**Model 1: "The GC is a dependency with an SLO."** Treat its pause budget like a downstream service's latency budget — measured, alerted, capacity-planned.
-
-**Model 2: "RSS is the truth; heap is a subplot."** In containers, the kernel kills on total RSS vs. cgroup limit. Always know your non-heap budget.
-
-**Model 3: "A GC% jump is a deploy diff."** Sudden throughput cost after a release → bisect to the allocation regression, not the collector.
-
-**Model 4: "Restart-fixes-it = leak."** Any GC symptom cured by a restart and recurring on a schedule is a retention bug until proven otherwise.
-
 ## Code Examples
 
 **SLO-anchored G1 config (p999 < 200 ms, ~30 ms pause budget):**
@@ -158,6 +118,26 @@ env:
 - **Tuning on a quiet environment** that doesn't reproduce production allocation rates yields settings that collapse under real load. Tune against production-like load.
 - **Forgetting the bad day.** Settings validated at average QPS fail at peak; always tune and test at the load you're afraid of.
 
-## Summary
+---
 
-At the professional level, GC tuning is **SLO-driven and incident-shaped**. You turn a latency target (with a percentile *and* a load condition) into a **pause budget**, which picks your collector and heap size, then **validate under 2× peak load** and **wire it into alerting** — with GC pause p99 and heap-after-GC trend as leading indicators. The dominant real-world failure mode is the **container/cgroup mismatch**: heap is not RSS, so you size the heap *below* the limit (`MaxRAMPercentage` / `GOMEMLIMIT`), match `GOMAXPROCS` to the CPU limit, and alert on RSS. The war stories rhyme: a **GC% jump after a deploy is an allocation regression**, a **rising heap-after-GC floor is a leak** (restart-fixes-it is the tell), a **periodic latency cliff is a Full GC / promotion failure**, and a **low-pause collector that stalls is losing the race with allocation**. None of those are fixed by a clever flag — they're fixed by measuring the right signal and addressing the actual cause.
+## Apply it
+
+1. Define the user or business outcome that **GC Tuning in Production** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
+
+## Verify your work
+
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
+
+## Review questions
+
+- Which measurable outcome justifies investing in GC Tuning in Production?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

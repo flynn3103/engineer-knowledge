@@ -1,23 +1,11 @@
-# Dynamic Dispatch & Proxies — Professional Level
+# Dynamic Dispatch & Proxies — Professional
 
-> **Topic:** Dynamic Dispatch & Proxies
-> **Focus:** Proxies in production frameworks — AOP, lazy loading, mocking, reactivity — and the failure modes that bite real systems.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Dynamic Dispatch & Proxies** with measurable outcomes and limited coordination?
 
-## Introduction
-
-A proxy is a stand-in object that intercepts the operations performed on it and
-decides what to do — forward, augment, block, or synthesize. As metaprogramming, it
-is the mechanism by which a framework adds behavior to *your* objects without you
-writing that behavior into them: the transaction that begins before your method runs,
-the entity field that loads from the database the first time you touch it, the mock
-that records the calls your test makes, the reactive object that re-renders the UI
-when you assign to a property. At the professional tier the goal is to understand
-which proxy technology a framework uses, what it can and cannot intercept, and the
-handful of failure modes (self-invocation, broken identity, mangled stack traces)
-that turn the magic into a debugging session.
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Where Proxies Power Real Frameworks
@@ -154,29 +142,24 @@ Note `__getattr__` fires only when normal lookup fails; `__getattribute__` fires
 
 ---
 
-## War Stories
+## Apply it
 
-- **The silent `@Transactional`:** a service's `outer()` called `this.inner()` where
-  `inner()` was `@Transactional(REQUIRES_NEW)`; the new transaction never started, so
-  a failure that should have rolled back only the inner unit corrupted the outer one.
-  Root cause: self-invocation bypassing the proxy.
-- **Vue 2 → Vue 3 reactivity:** Vue 2 (`Object.defineProperty`) couldn't detect newly
-  added properties or direct array index assignment, forcing `Vue.set`; Vue 3's
-  `Proxy` traps fixed it by intercepting all property operations — a textbook proxy
-  upgrade.
-- **Mockito metaspace blowup:** a large suite mocking many distinct classes generated
-  thousands of ByteBuddy subclasses, inflating metaspace and slowing CI until mocks
-  were reused and scope-narrowed.
+1. Define the user or business outcome that **Dynamic Dispatch & Proxies** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
----
+## Verify your work
 
-## Summary
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
 
-Proxies are how frameworks bolt behavior onto your objects without touching their
-source — the engine of AOP, lazy loading, mocking, RPC stubs, and modern reactivity.
-The professional essentials: know which proxy mechanism a framework uses and what it
-can intercept (interface vs class, public vs `final`); internalize the self-invocation
-trap that silently disables annotation magic; pair JS `Proxy` with `Reflect`; avoid
-`__getattribute__` recursion; and remember that proxies cost per-call performance,
-break identity, and clutter stack traces. Used at coarse boundaries with eyes open,
-they're indispensable; used carelessly, they're a debugging tax.
+## Review questions
+
+- Which measurable outcome justifies investing in Dynamic Dispatch & Proxies?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

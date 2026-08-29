@@ -1,14 +1,11 @@
 # Interfaces — Professional
 
-> **Topic:** [Interfaces](../README.md)
-> **Focus:** Interface design as an API-governance concern across teams, deprecation strategy for public interfaces, and teaching consumer-driven interface design as a team norm.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Interfaces** with measurable outcomes and limited coordination?
 
-## Introduction
-
-Across an organization with many services and shared internal libraries, interface design decisions compound: a poorly designed shared interface gets copy-pasted into a dozen consumers before anyone notices it doesn't generalize. At this level, the job is establishing review norms and deprecation practices that keep interfaces evolvable across team boundaries.
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -65,16 +62,6 @@ staticcheck ./...
 
 ---
 
-## Pros & Cons
-
-| Approach | Pros | Cons |
-|---|---|---|
-| Written interface-change policy for shared libraries | Predictable, less ad hoc breakage | Requires discipline to actually follow under deadline pressure |
-| Lint-enforced deprecation (`staticcheck SA1019`) | Visible signal in CI/editor, not just documentation | Requires the lint to actually run in CI and be treated as a blocking signal |
-| Pre-publication interface review | Catches design issues while cheap to fix | Adds a process step; needs to stay lightweight to not become a bottleneck |
-
----
-
 ## Best Practices
 
 1. Write down an interface-change policy for every shared internal library, including a deprecation and migration process.
@@ -101,44 +88,24 @@ staticcheck ./...
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```
-Shared library interface checklist:
-  [ ] Has a documented change/deprecation policy
-  [ ] New capabilities added as new interfaces, not by widening
-  [ ] Deprecations use `// Deprecated:` + staticcheck SA1019 in CI
-  [ ] At least one lightweight review before first publication
-```
+1. Define the user or business outcome that **Interfaces** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
----
+## Verify your work
 
-## Summary
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
 
-- Shared internal libraries need an explicit, written interface-change and deprecation policy.
-- Consumer-driven interface design should be an explicit code-review norm, not individual taste.
-- Deprecations are only effective when lint-enforced (`staticcheck SA1019`), not just documented.
-- A lightweight pre-publication review catches expensive-to-fix interface design issues while they're still cheap.
+## Review questions
 
----
-
-## Further Reading
-
-- `staticcheck` deprecation checks: <https://staticcheck.dev/docs/checks/#SA1019>
-- Google's API design guide (interface stability principles transfer across languages): <https://google.github.io/styleguide/> (see API design sections)
-
----
-
-## Related Topics
-
-- [Error Handling — Professional](../04-error-handling/professional.md) — the same governance concerns apply to error-type contracts.
-
----
-
-## Check your understanding
-
-1. Explain Interfaces — Professional Level in your own words and name the problem it solves.
-2. How would you apply the ideas around Introduction, Core Concepts, Code Examples in a realistic engineering change?
-3. What failure mode or misuse should you look for, and what evidence would reveal it?
-4. How would you introduce and govern Interfaces — Professional Level across teams through reversible, measurable increments?
-5. What observable result would convince you that the approach improved the system?
+- Which measurable outcome justifies investing in Interfaces?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

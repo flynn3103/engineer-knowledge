@@ -1,32 +1,12 @@
-# GC Tuning in Production — Middle Level
-> **Topic:** GC Tuning in Production
-> **Focus:** The knobs and the mechanisms behind them — heap sizing, generations, the JVM and Go control levers, and reading a GC log.
+# GC Tuning in Production — Middle
 
+<!-- level-focus -->
+At middle level, focus on this question:
+
+> Where does **GC Tuning in Production** belong in a maintainable component, and which trade-off selects the design?
+
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
-
-## Introduction
-
-The junior tier established the trade-off triangle (latency / throughput / footprint) and the two big levers: reduce allocation, and size the heap. This tier turns those into concrete knobs you can set and logs you can read. We focus on the two runtimes you are most likely to operate: the **JVM** and **Go**. They sit at opposite ends of a philosophy spectrum — the JVM gives you dozens of knobs; Go deliberately gives you about two — and seeing both teaches the mechanism better than either alone.
-
-The goal here is not to memorize flags. It is to understand *what each knob moves* in the triangle, so that when you read "we set `-XX:MaxGCPauseMillis=50`," you know what it costs.
-
-## Prerequisites
-
-- The junior tier: the triangle, allocation rate, STW pauses, why bigger heaps collect less often, why averages lie.
-- Basic command-line comfort: setting environment variables, passing JVM flags.
-- A rough idea that objects have *lifetimes*: most die young, some live a long time. This "generational hypothesis" underpins everything below.
-
-## Glossary
-
-- **Generational GC** — a design that splits the heap by object age. New objects go in the **young generation**; survivors are promoted to the **old (tenured) generation**. Based on the empirical fact that *most objects die young*.
-- **Minor GC** — a collection of just the young generation. Cheap and frequent.
-- **Major / Full GC** — a collection that includes the old generation (and often everything). Expensive and rare; the thing you want to avoid.
-- **Promotion** — moving an object that survived enough minor GCs from young to old.
-- **Pacer** — the part of a concurrent collector that decides *when* to start a GC so it finishes before the heap runs out. Go's GC is paced by `GOGC`/`GOMEMLIMIT`.
-- **GC target / heap goal** — the heap size at which the next collection is triggered.
-- **Concurrent collector** — one that does most of its marking/sweeping while your app runs, minimizing STW.
-- **Humongous object (G1)** — an object so large it spans one or more whole G1 regions; handled specially.
-- **Metaspace (JVM)** — off-heap memory for class metadata; a separate pool from the object heap.
 
 ## Core Concepts
 
@@ -176,14 +156,6 @@ What to watch: the `%` creeping up (throughput problem), the goal climbing witho
 
 The skills: identify **minor vs full**, read **before→after** to judge how much was garbage, and read the **duration** against your pause budget.
 
-## Mental Models
-
-**Model 1: "Knobs move you *along* the triangle, code moves the triangle itself."** Flags rebalance who pays. Reducing allocation shrinks the whole problem. Reach for code first.
-
-**Model 2: "Frequency vs. cost-per-collection."** Almost every heap-sizing knob trades *how often* the GC runs against *how big* each run is. Bigger heap / higher `GOGC` → rarer but larger collections.
-
-**Model 3: "Young gen is a sieve."** Minor GCs filter out the flood of short-lived garbage cheaply; only survivors cost you (promotion + eventual old-gen GC). Keep objects dying in the young gen.
-
 ## Code Examples
 
 **A production JVM flag set for a latency service (G1):**
@@ -213,16 +185,6 @@ GOGC=200 GOMEMLIMIT=3500MiB GODEBUG=gctrace=1 ./server
 # Collect lazily (throughput) but never exceed ~3.5 GiB (OOM safety).
 ```
 
-## Pros & Cons
-
-**Many knobs (JVM):**
-- Pro: precise control; you can hit aggressive SLOs.
-- Con: easy to mis-tune; flag interactions are subtle; cargo-culting is rampant.
-
-**Few knobs (Go):**
-- Pro: hard to get badly wrong; the runtime self-tunes.
-- Con: when you *do* need fine control, the ceiling is lower; you fix problems in code instead.
-
 ## Coding Patterns
 
 - **Object pooling / buffer reuse** (`sync.Pool` in Go, reused `byte[]`/`ThreadLocal` buffers in Java) to cut allocation rate on hot paths.
@@ -247,6 +209,26 @@ GOGC=200 GOMEMLIMIT=3500MiB GODEBUG=gctrace=1 ./server
 - **`MaxGCPauseMillis` set too low** backfires: G1 collects ever-smaller slices ever more often, raising overhead and sometimes *missing* the target anyway.
 - **`GOGC` too high without `GOMEMLIMIT`** → the heap balloons until the container kills you. Always pair an aggressive `GOGC` with a memory limit.
 
-## Summary
+---
 
-Tuning knobs move you *along* the triangle; they don't escape it. On the **JVM**, the load-bearing knobs are heap sizing (`-Xms`=`-Xmx`), collector choice (`UseG1GC`/`UseParallelGC`/`UseZGC`), the G1 pause goal (`MaxGCPauseMillis`), generation sizing, and container-aware `MaxRAMPercentage` — all observable through `-Xlog:gc*`. On **Go**, you mostly set `GOGC` (heap-growth/frequency) and `GOMEMLIMIT` (the soft memory ceiling that retired the ballast hack), observed through `GODEBUG=gctrace=1`. The decisive skills at this tier are **reading a GC log** — minor vs full, before→after, pause duration, GC% — and remembering that **container memory is not the heap**, so always leave headroom.
+## Apply it
+
+1. Find a real component where **GC Tuning in Production** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
+
+## Verify your work
+
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
+
+## Review questions
+
+- Which boundary is most affected by GC Tuning in Production?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

@@ -1,61 +1,11 @@
-# Evaluation Strategies (call-by-x) — Senior Level
+# Evaluation Strategies (call-by-x) — Senior
 
-> **Topic:** Evaluation Strategies (call-by-x)
-> **Focus:** The unifying theory: parameter passing *is* a choice of reduction order in the lambda calculus. Normal-order vs applicative-order, the Church-Rosser guarantees, and the modern strategy the textbooks miss — call-by-move (C++ rvalue references, Rust ownership transfer).
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Evaluation Strategies (call-by-x)** under failure, load, and change?
 
-## Introduction
-
-> Focus: **Why is "call-by-x" a deep idea and not just a language quirk?** Because it is, precisely, the choice of *reduction order* in the lambda calculus — and that choice is what determines whether your program terminates.
-
-A senior engineer should be able to collapse the whole zoo of strategies into a small number of orthogonal decisions and connect them to the theory that explains *why* they behave as they do. The junior page gave you *what* a parameter aliases; the middle page gave you *when* it's evaluated. This page gives you the **single underlying framework**: evaluation strategy is a choice of **reduction order** for function application, and the lambda calculus tells us exactly what each choice buys and costs.
-
-The two foundational orders are **applicative order** (reduce the argument to a value *before* substituting it — this is call-by-value) and **normal order** (substitute the *unreduced* argument and reduce the body first — this is call-by-name). The **Church-Rosser theorem** guarantees that *if* a normal form exists, normal-order reduction *will* find it; applicative order may diverge on the very same term. That is the rigorous statement of "call-by-name terminates where call-by-value loops." Call-by-need is the graph-reduction optimization of normal order that shares subterms to avoid recomputation.
-
-Then there is the strategy the classic taxonomy predates: **call-by-move**. Modern systems languages added a way to pass an argument that *transfers ownership* of its resources — C++ rvalue references and `std::move`, Rust's move-by-default. It is neither copy (too expensive) nor shared reference (aliasing hazard); it is "you take it, I no longer have it." Treating move as a first-class member of the call-by-x family is what separates a 2010s-era understanding from a 1970s one.
-
-In one sentence: **call-by-value is applicative order, call-by-name is normal order, call-by-need is shared normal order, and call-by-move is a 21st-century strategy that passes ownership instead of a copy or an alias.** Hold those four mappings and you can derive the rest.
-
-> 🎓 **Why this matters at the senior level:** You design APIs and reason about correctness and performance simultaneously. "Should this take `T`, `const T&`, `T&&`, or `&mut T`?" is a daily question whose right answer comes from understanding copies vs aliasing vs ownership-transfer vs thunk-allocation. And when you debug "this terminates in test but hangs in prod," the reduction-order lens is often the one that explains it.
-
-This page covers the lambda-calculus grounding (normal vs applicative order, Church-Rosser, call-by-need as graph reduction), move semantics as call-by-move (C++ and Rust), how `&`/`ref`/`out`/`*` fake reference across languages, and the performance model (copy vs indirection vs thunk allocation vs move).
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** Call-by-value/reference/sharing (junior) and strict/non-strict, call-by-name/need, thunks (middle).
-- **Required:** Basic lambda-calculus notation: `λx. body`, application, and substitution `[x := arg]`.
-- **Required:** What "a value" vs "an expression" means, and what divergence (⊥) is.
-- **Helpful but not required:** Familiarity with C++ value categories (lvalue/rvalue) or Rust ownership.
-
-You do **not** need to know:
-
-- Denotational semantics or domain theory beyond the intuition of ⊥.
-- The full operational-semantics rules; we'll use them informally.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Redex** | A *reducible expression*: an application `(λx. body) arg` ready to be β-reduced. |
-| **β-reduction** | Substituting the argument for the bound variable: `(λx. body) arg → body[x := arg]`. |
-| **Normal form** | An expression with no remaining redexes — fully evaluated. |
-| **Applicative order** | Reduce arguments to normal form **first**, then apply. The reduction-order name for **call-by-value**. |
-| **Normal order** | Reduce the **leftmost-outermost** redex first — substitute the *unreduced* argument. The reduction-order name for **call-by-name**. |
-| **Church-Rosser (confluence)** | If a term reduces to two different terms, both can be further reduced to a common term. Implies normal form is **unique** if it exists. |
-| **Standardization theorem** | Normal-order reduction reaches the normal form whenever one exists. The basis of "call-by-name is maximally terminating." |
-| **Graph reduction** | Implementing reduction over a shared graph so a duplicated subterm is reduced once. The basis of **call-by-need**. |
-| **Call-by-move** | Passing an argument by transferring ownership of its resources, leaving the source in a valid-but-moved-from (or invalid) state. C++ `T&&` + `std::move`; Rust move-by-default. |
-| **Rvalue / lvalue** | An rvalue is a temporary/expiring value safe to plunder; an lvalue names a persistent object. C++ overloads on this distinction to enable moves. |
-| **Affine / linear type** | A type usable at most once (affine) or exactly once (linear). Rust's ownership is affine; it's what makes move-by-default sound. |
-| **Strictness analysis** | Compiler analysis (in lazy languages) proving an argument is always needed, so it can be evaluated eagerly without changing semantics — recovering call-by-value's efficiency. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -115,32 +65,6 @@ Move semantics is best understood as **call-by-value where the "value" being cop
 | **Call-by-move** | strict | none (ownership moved) | source invalidated | one handle transfer |
 
 Reading this grid fluently — and knowing which cell a given language's `f(x)` lands in — is the senior-level competency.
-
----
-
-## Real-World Analogies
-
-**Applicative vs normal order — packing for a trip vs packing on demand.** Applicative order packs *every* item the itinerary lists before leaving, even items for a cancelled leg (and if one item is impossible to obtain, you never leave). Normal order leaves immediately and acquires each item only when that leg of the trip actually starts — so a cancelled leg's impossible item never blocks you.
-
-**Call-by-need — graph reduction as a shared shopping list.** Three recipes all call for "stock." Normal order makes stock three times. Call-by-need makes one pot of stock the first time any recipe needs it and ladles from it thereafter — one node, shared.
-
-**Call-by-move — handing over the deed to a house, not a photo of it.** Call-by-value would build an identical house (copy everything). Call-by-reference would give you a key to *my* house (we both can enter; aliasing). Call-by-move signs the deed over: now it's *your* house, the locks are yours, and I no longer have a key — there's exactly one owner, and nothing was rebuilt.
-
-**Strictness analysis — the chef who notices an ingredient is always used.** If every version of the dish uses garlic, the chef preps garlic up front instead of "lazily" each time — same result, less ceremony.
-
----
-
-## Mental Models
-
-**Model 1: "Strategy = reduction order + memory model."** The pure-functional skeleton is reduction order (applicative/normal/need). Add memory and you get the reference/sharing/copy-restore/move distinctions. Two layers, cleanly separable.
-
-**Model 2: "Normal order is the upper bound on termination; need is its efficient implementation; value is the eager special case justified by strictness analysis."** One spectrum, three points.
-
-**Model 3: "Move is value-with-a-nulled-source."** Don't mystify it. It's call-by-value over a handle, plus the discipline that the source's handle is emptied to keep one owner.
-
-**Model 4: "Aliasing is the real axis of danger."** Reference and sharing alias (hazard). Value, copy-restore, and move do not (safe). Name/need alias the *thunk*. When debugging "spooky mutation," ask "what aliases what?" first.
-
-**Model 5: "The cost is copy vs indirection vs thunk vs handle."** Four price tags: copy a whole value, follow a pointer, allocate-and-force a thunk, transfer a handle. API design is choosing the right price for the call's frequency and the object's size.
 
 ---
 
@@ -230,39 +154,6 @@ call-by-need:    allocate a thunk, run once, memo    ← alloc + 1× the arg's c
 
 ---
 
-## Pros & Cons
-
-### Reduction-order choice (value/name/need)
-
-**Pros of normal/need:** maximally terminating; enables infinite structures; skips unneeded work.
-**Cons:** harder to reason about *when* effects fire; thunk allocation; space leaks; worse cache behavior than tight eager loops.
-**Pros of value (applicative):** predictable, cache-friendly, no thunk overhead.
-**Cons:** can diverge on a discarded argument; does unneeded work.
-
-### Call-by-move
-
-**Pros**
-- Value semantics (no aliasing, single owner) at reference cost.
-- Eliminates defensive deep copies; makes resource transfer explicit and cheap.
-- In Rust, statically prevents use-after-move and double-free.
-
-**Cons**
-- "Moved-from" state is a footgun in C++ (valid but unspecified — easy to misuse).
-- Adds cognitive load (value categories, `&&`, ownership) and API surface (overload sets).
-- Cannot share: if two callers need the object, move is the wrong tool.
-
----
-
-## Use Cases
-
-- **Call-by-value** for small, copy-cheap data and when you want guaranteed isolation.
-- **Const-reference / shared borrow** for large read-only inputs — the workhorse of high-performance APIs.
-- **Call-by-move** for sink functions that *take ownership*: pushing into a container, handing a buffer to an I/O layer, transferring a lock or socket. `std::vector::push_back(T&&)`, Rust `String::from`, builder patterns that consume `self`.
-- **Call-by-need / laziness** for streams, demand-driven pipelines, and discarding unneeded subcomputations.
-- **Strictness-analyzed eager evaluation** as the compiler's automatic optimization inside lazy languages.
-
----
-
 ## Coding Patterns
 
 **Pattern: Take by value, then move (the "sink" idiom).** In C++ a constructor that stores a parameter should take it by value and `std::move` it in — one overload handles both lvalues (copy) and rvalues (move) optimally.
@@ -329,72 +220,24 @@ impl Builder {
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. State the reduction-order names for call-by-value and call-by-name, and which one the Church-Rosser/standardization results favor for termination.
-2. Why does call-by-need exist if call-by-name already gives the right *value*?
-3. Explain call-by-move in terms of call-by-value. Why is it not call-by-reference?
-4. What does `std::move` actually do?
-5. How is "pass by reference" reconstructed in C, Go, and Python?
-6. What is strictness analysis and why doesn't it change program meaning?
+1. State the system invariant that **Evaluation Strategies (call-by-x)** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
-<details>
-<summary>Answers</summary>
+## Verify your work
 
-1. Call-by-value = **applicative order**; call-by-name = **normal order**. Normal order is favored: the standardization theorem says it reaches the (unique, by Church-Rosser) normal form whenever one exists; applicative order can diverge on the same term.
-2. Call-by-name re-evaluates the argument on **every** use (duplicated work, duplicated effects). Call-by-need implements normal order via **shared graph reduction** so each argument is reduced **at most once** — same value, far less work.
-3. Call-by-move is call-by-value over a **handle**, with the source's handle **nulled** to preserve single ownership. It's not call-by-reference because there is **no aliasing** and the source becomes unusable — there's exactly one owner, nothing shared.
-4. Nothing at runtime by itself — it's a `static_cast` to an rvalue reference that **enables** move overloads. The actual transfer happens in the move constructor/assignment operator.
-5. By **passing a pointer/box by value and mutating through it**: C `int* / *p`, Go `*int / *p`, Python a mutable container (`box[0] = ...`). C++ and C# have true reference (`&`, `ref`/`out`).
-6. A compiler analysis (in lazy languages) proving an argument is **always forced**, letting it be evaluated eagerly without a thunk. Meaning is unchanged because a *needed* argument's evaluation is observationally the same whether eager or deferred.
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
 
-</details>
+## Review questions
 
----
-
-## Cheat Sheet
-
-```text
-REDUCTION ORDER ↔ STRATEGY
-  applicative order (args→values first)  = call-by-value
-  normal order (outermost first)         = call-by-name      ← maximally terminating
-  shared normal order (graph reduction)  = call-by-need        (laziness)
-
-CHURCH-ROSSER: ≤1 normal form, order-independent RESULT
-STANDARDIZATION: normal order FINDS the normal form if it exists
-  → (λx.λy.x) A Ω : normal order = A ; applicative = ⊥ (loops)
-
-CALL-BY-MOVE (modern): value-semantics at reference-cost
-  C++  T&& + std::move (cast, enables move ctor; source = valid-but-unspecified)
-  Rust move-by-default, affine types → use-after-move is a COMPILE ERROR
-  NOT reference: no aliasing, single owner, source invalidated
-
-FAKING REFERENCE:  pass pointer/box BY VALUE, mutate through it
-  C/Go: *p   C++: T&   C#: ref/out   Python: box[0]=...
-
-COST: copy(size) | indirection(ptr+cache) | thunk(alloc+N or 1) | move(handle)
-STRICTNESS ANALYSIS: prove arg always needed → compile lazy as eager (free)
-RVO/NRVO can beat BOTH copy and move → prefer return-by-value
-```
-
----
-
-## Summary
-
-- Evaluation strategy is, at heart, a **choice of reduction order**: **applicative order = call-by-value**, **normal order = call-by-name**, **shared normal order (graph reduction) = call-by-need**.
-- **Church-Rosser** guarantees a unique normal form; **standardization** guarantees normal order finds it — the rigorous reason call-by-name terminates where call-by-value diverges.
-- **Call-by-need** is normal order made efficient by sharing; **strictness analysis** lets lazy compilers recover eager efficiency where an argument is provably needed.
-- **Call-by-move** is the modern strategy outside the classic taxonomy: value semantics (no aliasing, single owner) at reference cost, built on **affine/linear typing** (Rust enforces it; C++ leaves a moved-from hazard).
-- `std::move` is a **cast that enables** moves, not a move itself; **RVO/NRVO** can beat both copy and move.
-- Every "pass by reference" is reconstructible by **passing a pointer/box by value and mutating through it**.
-- API design reduces to choosing the right cost: **copy vs indirection vs thunk vs handle.**
-
----
-
-## Further Reading
-
-- Plotkin, "Call-by-name, call-by-value and the λ-calculus" — the foundational paper relating the two orders.
-- Barendregt, *The Lambda Calculus* — Church-Rosser, standardization, normal-order results.
-- Wadsworth's thesis / Peyton Jones, *The Implementation of Functional Programming Languages* — graph reduction and call-by-need.
-- The C++ standard's value-categories and move-semantics sections; the Rust ownership/borrowing chapters of *The Rust Programming Language*.
-- The `professional.md` page for production performance, ABI/calling-convention reality, and API design tradeoffs.
+- Which invariant must remain true when Evaluation Strategies (call-by-x) fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

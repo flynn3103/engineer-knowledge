@@ -1,48 +1,11 @@
-# Character & String Internals (Unicode) — Professional Level
+# Character & String Internals (Unicode) — Professional
 
-> **Topic:** Character & String Internals (Unicode)
-> **Focus:** How runtimes actually store strings in memory (JVM compact strings, Python PEP 393, SSO, ropes, interning), and how attackers weaponize Unicode (homoglyph/IDN spoofing, Trojan Source, overlong UTF-8, normalization-bypass) — with the real incidents that resulted.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Character & String Internals (Unicode)** with measurable outcomes and limited coordination?
 
-## Introduction
-
-> Focus: **What does a string cost in memory, why do runtimes have three or four internal representations, and how does Unicode turn into a security boundary?**
-
-Two professional concerns sit on top of everything from the earlier levels. First, **storage**: a `String` is one of the most allocated objects in any large program, and runtimes spend enormous engineering effort shrinking it — the JVM's compact strings (JEP 254) cut heap usage of many real applications by 10%+; Python's PEP 393 picks the narrowest representation per string; C++ and Rust use small-string optimization to avoid heap allocation entirely for short strings; text editors and version-control systems use ropes/cords because mutating a megabyte string by copying is unacceptable. Understanding these representations is essential when you profile memory, design a hot path that builds strings, or choose a data structure for large mutable text.
-
-Second, **security**: every Unicode subtlety from the senior level — multiple spellings, look-alike characters, lenient decoders, bidirectional text — is an attack surface. Homoglyphs let `аpple.com` (Cyrillic `а`) impersonate `apple.com`. The Trojan Source attack uses bidi override characters to make source code *display* differently from how it *compiles*, hiding backdoors from human review. Overlong UTF-8 smuggles forbidden bytes past naive filters. Normalization mismatches between a validator and the consumer let attackers bypass input filtering. A single unhandled character once crashed every iPhone that received it. A professional treats text as untrusted input that can be adversarially constructed.
-
-> 🎓 **Why this matters for a professional:** You will own the memory budget of a service that holds millions of strings, and you will own the security review of code that accepts names, URLs, filenames, and source from the outside world. The bugs here are not "the accent looks wrong" — they are heap blowups, account takeovers, supply-chain backdoors, and remote crashes. This is the level where text internals become a production reliability and security problem.
-
----
-
-## Prerequisites
-
-- **Required:** All earlier levels — byte mechanics, normalization, case folding, collation, grapheme segmentation.
-- **Required:** Familiarity with heap allocation, object headers, and pointer/length representations.
-- **Helpful:** Awareness of cache behavior and allocation cost in your runtime.
-- **Helpful:** A working model of how IDN/punycode and HTTP/URL parsing interact.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Compact strings (JEP 254)** | JVM feature (Java 9+) storing Latin-1-only strings as 1 byte/char, falling back to UTF-16 (2 bytes/char) otherwise. |
-| **PEP 393** | CPython's "flexible string representation": each `str` uses Latin-1 (1B), UCS-2 (2B), or UCS-4 (4B) per code point based on the widest character. |
-| **SSO** | Small-String Optimization: store short strings inline in the string object, avoiding heap allocation (C++ `std::string`, Rust `SmartString`, Swift). |
-| **Rope / Cord** | A tree of string fragments enabling O(log n) insert/concat/slice on huge text without copying. |
-| **String interning** | Deduplicating equal strings to a single canonical instance for identity comparison and memory savings. |
-| **Homoglyph** | A character visually identical or near-identical to another (Cyrillic `а` vs Latin `a`). |
-| **Confusable** | Unicode's formal term (UTS #39) for characters likely to be visually confused. |
-| **IDN / Punycode** | Internationalized Domain Names; non-ASCII domains encoded to ASCII (`xn--…`) via Punycode. |
-| **Bidi override** | Control characters (`U+202D` LRO, `U+202E` RLO, `U+2066`–`U+2069` isolates) that reorder displayed text. |
-| **Trojan Source** | An attack using bidi/homoglyph characters to make source code display differently from how it compiles. |
-| **Overlong encoding** | An illegal, longer-than-minimal UTF-8 sequence used to smuggle characters past filters. |
-| **U+FFFD** | The replacement character `�` substituted for undecodable input. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -90,32 +53,6 @@ Every semantic subtlety becomes a weapon:
 - **Decoder DoS / crashes:** maliciously crafted sequences (deeply nested combining marks, specific code-point combinations) have crashed renderers and parsers.
 
 The unifying rule: **canonicalize once, early, and validate the canonical form** — never validate one representation and consume another.
-
----
-
-## Real-World Analogies
-
-**The expandable suitcase (PEP 393 / compact strings).** The runtime packs your string in the smallest suitcase that fits. Throw in one oversized item (an emoji) and it upgrades the *whole* suitcase to the largest size, even if everything else was tiny. That is why one emoji can quadruple a string's footprint.
-
-**The forged signature (homoglyph).** A homoglyph attack is a forged signature where the forger uses a letter from another alphabet that looks identical. The bank teller (the user) cannot tell `а` (Cyrillic) from `a` (Latin); only the machine reading the bytes can.
-
-**Invisible stage directions (Trojan Source).** Bidi overrides are like invisible stage directions in a script that reorder the actors' lines for the audience (the human reading the code) while the actual recorded performance (the compiler) follows the original order. The audience and the recording diverge.
-
-**The smuggler's false-bottom crate (overlong UTF-8).** An overlong encoding is contraband hidden in a false bottom: the inspector checks the obvious compartment (the byte `0x2F`) and waves it through, while the same goods sit in a non-standard compartment (`0xC0 0xAF`) that the receiver still unpacks as the forbidden item.
-
----
-
-## Mental Models
-
-**Model 1: One wide character taxes the whole string.** Both the JVM and CPython use "widest character wins." Memory and performance characteristics of a string are dominated by its single widest code point, not its average. Profile accordingly.
-
-**Model 2: Short strings should not allocate.** SSO and interning exist because allocation dominates the cost of small strings. In hot paths, prefer representations and builders that avoid per-string heap churn.
-
-**Model 3: Text is untrusted input.** Treat every externally-sourced string as adversarially constructed. The question is never "is this valid?" but "what is the *worst* valid thing this could be, and what does my consumer do with it?"
-
-**Model 4: Validate the canonical form the consumer sees.** The classic security failure is a TOCTOU between representations: validator sees form A, consumer sees form B. Normalize first, then validate, then consume — same form throughout.
-
-**Model 5: Display ≠ semantics.** Homoglyphs and bidi attacks all exploit the gap between what a human *sees* and what the machine *processes*. Security decisions must be made on the bytes/code points, with the rendered appearance treated as untrusted.
 
 ---
 
@@ -198,52 +135,6 @@ print(normalized)                                # "<script>"  ← becomes dange
 
 ---
 
-## Pros & Cons
-
-**Compact/flexible representations (JEP 254, PEP 393)**
-
-| Pros | Cons |
-|------|------|
-| Large heap savings for ASCII-heavy data | "Widest char wins" — one char taxes the whole string |
-| Transparent to application code | Branch on coder in hot methods; promotion copies |
-| O(1) indexing preserved (CPython) | Mixed-content strings get no per-segment savings |
-
-**SSO / interning**
-
-| Pros | Cons |
-|------|------|
-| Zero allocation for short strings; identity `==` | Fatter string object; interning user input is a DoS risk |
-| Faster construction in hot paths | Interned pool may not be GC'd (historical Java) |
-
-**Ropes / cords**
-
-| Pros | Cons |
-|------|------|
-| O(log n) edit/concat on huge text | O(log n) index; worse locality than flat array |
-| No giant copies on mutation | More complex; overkill for small strings |
-
-**Strict vs lenient decoding (security)**
-
-| Strict | Lenient |
-|--------|---------|
-| Rejects overlong/surrogate/truncated — safe | Accepts more inputs; interoperable with junk |
-| Fewer bypass surfaces | Opens smuggling and normalization-mismatch holes |
-
-**The core trade-off:** memory optimizations (compact, SSO, interning) trade representational complexity for footprint, and their "widest wins" / "inline limit" rules create cliffs you must profile around. Security forces a tension between *lenient* (accept the messy real world) and *strict* (reject anything weird); for any input that crosses a trust boundary, strict + canonicalize-first wins.
-
----
-
-## Use Cases
-
-- **Memory profiling of string-heavy services:** know that one emoji/CJK char flips a string's per-char cost; segment or store such fields separately.
-- **High-throughput string building:** preallocate builders, use SSO-capable types for many small strings, avoid `+` in loops.
-- **Large mutable documents (editors, CRDTs, VCS):** use a rope/cord, not a flat array.
-- **Identity systems (usernames, domains, package names):** canonicalize (NFKC_Casefold) + confusable/single-script check before treating two strings as the same identity.
-- **Any parser/validator on untrusted text:** strict UTF-8 decoding, normalize-then-validate, reject bidi controls in source/config.
-- **URL/IDN handling:** compare in Punycode/ASCII form; display with confusable warnings.
-
----
-
 ## Coding Patterns
 
 **Pattern 1: Canonicalize-then-validate-then-consume, all in one representation.** Eliminate the gap attackers exploit by normalizing at the trust boundary, validating the normalized form, and consuming that same form.
@@ -306,12 +197,24 @@ print(normalized)                                # "<script>"  ← becomes dange
 
 ---
 
-## Summary
+## Apply it
 
-- Runtimes store strings in **multiple representations** to save memory: JVM **compact strings** (Latin-1/UTF-16), CPython **PEP 393** (Latin-1/UCS-2/UCS-4), **SSO** for short strings, **ropes/cords** for large mutable text, and **interning** for dedup. All "widest-char-wins" schemes have a promotion cliff: one wide character taxes the whole string.
-- **Immutability** enables sharing and interning but forces builders for hot loops; interning untrusted input is a DoS vector.
-- **Unicode is a security boundary.** Homoglyph/IDN spoofing, **Trojan Source** bidi attacks, **overlong UTF-8**, and **normalization/case-folding bypass** all exploit the gap between representation, display, and the canonical form a consumer sees.
-- The defensive discipline: **decode strictly, canonicalize once at the boundary, validate the canonical form, and make security decisions on bytes/code points — never on rendered appearance.**
-- Real incidents — the iOS "effective power" and Telugu crashes, the Spotify account takeover, Trojan Source, and the IIS worm — are all direct consequences of mishandling the internals covered in this topic.
+1. Define the user or business outcome that **Character & String Internals (Unicode)** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
-This is the deepest tier. See `interview.md` for question practice and `tasks.md` for hands-on exercises that exercise every layer from bytes to security.
+## Verify your work
+
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
+
+## Review questions
+
+- Which measurable outcome justifies investing in Character & String Internals (Unicode)?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

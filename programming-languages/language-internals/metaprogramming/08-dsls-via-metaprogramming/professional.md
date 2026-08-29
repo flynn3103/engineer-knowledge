@@ -1,23 +1,11 @@
-# DSLs via Metaprogramming — Professional Level
+# DSLs via Metaprogramming — Professional
 
-> **Topic:** DSLs via Metaprogramming
-> **Focus:** Shipping internal DSLs in production — error quality, IDE support, versioning, and knowing when a plain API is better.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **DSLs via Metaprogramming** with measurable outcomes and limited coordination?
 
-## Introduction
-
-An internal DSL is a library designed so that using it reads like a small language for
-its domain — `query.select().from(users).where(age > 21)`, `html { body { ... } }`,
-`describe "User" do ... end`. It is hosted inside a general-purpose language, so it
-reuses that language's parser, tooling, and type system; the metaprogramming
-(operator overloading, blocks, builders, macros, `method_missing`) is what makes the
-host syntax bend toward the domain. At the professional tier the design questions are
-not "can I make this fluent" but "will the error messages make sense, will the IDE
-help, can a new hire read it, and would a plain API have been better?" A DSL that
-reads beautifully but produces inscrutable errors and zero autocomplete is a net
-liability.
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## The Production DSL Families
@@ -132,29 +120,24 @@ html { body { p { text "Hello" } } }   # `p`, `text` resolved dynamically at run
 
 ---
 
-## War Stories
+## Apply it
 
-- **Gradle Groovy → Kotlin DSL:** Gradle's Groovy DSL was flexible but gave almost no IDE
-  help and failed at runtime; the Kotlin DSL traded some terseness for autocomplete,
-  type-checking, and jump-to-def — a deliberate move toward a compile-checked DSL for
-  exactly the survival reasons above.
-- **`sqlx::query!`:** compile-time-checking SQL against the live schema turned a whole class
-  of runtime query bugs into build errors — the high-water mark of a compile-checked
-  embedded DSL.
-- **The clever in-house DSL nobody could extend:** a team built an `instance_eval` DSL that
-  read wonderfully but produced opaque errors and no autocomplete; new hires couldn't
-  modify it, and it was eventually rewritten as a plain typed builder that everyone could
-  navigate.
+1. Define the user or business outcome that **DSLs via Metaprogramming** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
----
+## Verify your work
 
-## Summary
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
 
-Internal DSLs make code read like its domain by bending host syntax with metaprogramming
-— operator overloading and builders for queries, lambdas-with-receiver for Kotlin
-configuration, blocks/`instance_eval` for Ruby, macros for compile-checked Rust DSLs.
-What separates a DSL that thrives from one that's resented is not how fluent it reads but
-its **error quality, IDE support, debuggability, and whether the second language was worth
-it.** Prefer compile-checked builders/macros where you can, scope your receivers, keep an
-escape hatch to a plain API, and remember that the highest form of DSL judgment is
-sometimes choosing not to build one.
+## Review questions
+
+- Which measurable outcome justifies investing in DSLs via Metaprogramming?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

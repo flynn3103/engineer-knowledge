@@ -1,15 +1,11 @@
-# Memory Pressure & OOM — Middle Level
-> **Topic:** Memory Pressure & OOM
-> **Focus:** The kernel mechanisms behind memory pressure — overcommit, reclaim, swap, cgroups, and the OOM killer.
+# Memory Pressure & OOM — Middle
 
----
+<!-- level-focus -->
+At middle level, focus on this question:
 
-## Introduction
+> Where does **Memory Pressure & OOM** belong in a maintainable component, and which trade-off selects the design?
 
-"Memory pressure" is the state where demand for physical memory approaches or exceeds what is available, forcing the kernel to do work it would rather not: reclaim pages, swap, stall threads, and — as a last resort — kill a process. The frustrating part for engineers moving up from the junior level is that none of this is a clean `malloc returned NULL` boundary. Linux deliberately blurs the line between "you have memory" and "you don't," and the failure mode is usually a process getting `SIGKILL`'d with no stack trace, no exception, and a one-line message buried in `dmesg`.
-
-At this level you need a working model of the cascade: how memory is accounted, what the kernel does as it fills up, and why the OOM killer picks the victim it picks. Everything in the senior and professional tiers — graceful degradation, container limits, GC death spirals — is a reaction to the mechanisms described here.
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -108,26 +104,6 @@ This two-tier design (`high` to throttle, `max` to kill) is the kernel-level bas
 
 ---
 
-## Pros & Cons
-
-**Overcommit + lazy mapping**
-- ✅ Lets programs allocate sparse/optimistic and only pay for what they touch; enables cheap `fork`, sparse arrays, large reserved arenas.
-- ❌ Decouples allocation success from actual availability, so failures arrive as async kills mid-execution instead of clean `NULL` returns.
-
-**Swap**
-- ✅ Absorbs transient spikes, evicts genuinely cold pages, prevents kills for over-provisioned-but-idle workloads.
-- ❌ Thrashing livelock when the working set exceeds RAM; turns a fast failure into a slow node-wide meltdown.
-
-**OOM killer**
-- ✅ Keeps the machine alive instead of deadlocking the whole system on memory.
-- ❌ Picks by footprint not blame; uncatchable `SIGKILL` means no cleanup; often kills the wrong process.
-
-**cgroup limits**
-- ✅ Contain a leaking process to its own group; per-container accounting and isolation; `memory.high` enables soft throttling.
-- ❌ A too-low limit turns normal spikes into constant kills; off-heap/native allocations still count and surprise heap-focused monitoring.
-
----
-
 ## Best Practices
 
 - **Monitor RSS and `MemAvailable`, not VSZ.** Alert on available memory and on PSI (`some`/`full` from `/proc/pressure/memory`) rather than on raw free memory.
@@ -150,6 +126,24 @@ This two-tier design (`high` to throttle, `max` to kill) is the kernel-level bas
 
 ---
 
-## Summary
+## Apply it
 
-Memory pressure on Linux is a cascade, not a cliff. Allocation is decoupled from backing by overcommit, so failures surface at first-touch rather than at `malloc`. As RAM fills, the kernel reclaims page cache and swaps anonymous pages — first via background `kswapd`, then via latency-killing synchronous direct reclaim. Swap can absorb spikes or collapse into a thrashing livelock, which is why production teams disable it or move it into compressed RAM. PSI gives a direct early read on stall time. When reclaim finally fails, the OOM killer sends an uncatchable `SIGKILL` to a victim chosen by footprint, not fault. cgroups scope all of this per-container, with `memory.high` to throttle and `memory.max` to kill — the mechanism every higher-tier graceful-degradation strategy is built on.
+1. Find a real component where **Memory Pressure & OOM** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
+
+## Verify your work
+
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
+
+## Review questions
+
+- Which boundary is most affected by Memory Pressure & OOM?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

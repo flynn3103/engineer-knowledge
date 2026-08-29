@@ -1,45 +1,11 @@
-# Off-heap / Native Memory — Junior Level
+# Off-heap / Native Memory — Junior
 
-> **Topic:** Off-heap / Native Memory
-> **Focus:** What "off-heap" means, why a managed runtime would ever leave its own GC heap, and the foundational mental model of two memory worlds.
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **Off-heap / Native Memory** in one small example and prove the result?
 
-## Introduction
-
-When you write `new byte[1024]` in Java, `make([]byte, 1024)` in Go, or `new` anything in C#, the bytes live on the **managed heap**: a region of memory owned and controlled by the language runtime's **garbage collector (GC)**. The GC decides where those bytes sit, whether to move them around to fight fragmentation, and when to reclaim them once nothing points to them. You never call `free`. This is the whole selling point of a managed language.
-
-**Off-heap memory** (also called **native memory** or **direct memory**) is the opposite arrangement. It is memory you ask the *operating system* for directly — bypassing the runtime's allocator and its GC. The GC does not know this memory exists. It will not scan it, will not move it, and will not free it. That last part is the catch: **what the GC does not free, you must free yourself.**
-
-This topic is foundational because the moment you work with high-performance caches, network buffers, memory-mapped files, or any code that talks to C libraries, you cross out of the comfortable managed heap and into native memory. Understanding the boundary — and what changes when you cross it — is the entire game.
-
----
-
-## Prerequisites
-
-You should be comfortable with:
-
-- **What a heap is.** The runtime-managed region where your objects live after `new`/`make`. (As opposed to the *call stack*, which holds local variables and function frames.)
-- **What garbage collection does at a high level.** It finds objects that are still reachable from your program and reclaims everything else. You do not manually free managed objects.
-- **What a pointer / reference is.** A value that holds the address of some data rather than the data itself.
-- **Bytes and addresses.** Memory is a giant array of bytes; an address is an index into that array.
-
-You do **not** need to know how a GC algorithm works internally, nor how to write C. We build from the ground up.
-
----
-
-## Glossary
-
-- **Managed heap (GC heap):** Memory the runtime owns. Objects here are tracked, possibly moved, and automatically reclaimed by the GC.
-- **Off-heap / native memory:** Memory obtained straight from the OS, outside the GC's control. Not scanned, not moved, not auto-freed.
-- **RSS (Resident Set Size):** The total physical RAM a process is actually using *right now*, as the OS sees it. Includes heap **and** off-heap memory.
-- **Heap size (`-Xmx` in Java):** The cap on the *managed* heap only. Off-heap memory does not count against it.
-- **`malloc` / `free`:** The classic C functions to request and release raw memory from the OS allocator.
-- **`mmap`:** An OS call that maps a region of memory (often backed by a file) directly into your process's address space.
-- **DirectByteBuffer:** The JVM's standard way to hold a chunk of off-heap memory and read/write it like an array.
-- **Cleaner / finalizer:** A runtime mechanism that runs cleanup code (like freeing native memory) when a managed wrapper object is finally collected.
-- **OOM (Out Of Memory):** Running out of memory. Crucially, off-heap can OOM the *whole process at the OS level* without the GC ever noticing.
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -82,26 +48,6 @@ A garbage collector is wonderful, but it is not free. Three foundational reasons
 > **The GC will not free what it cannot see. Off-heap memory is invisible to the GC. Therefore off-heap memory must be freed by you.**
 
 This one sentence is the source of nearly every off-heap bug, every "my Java process is using 8 GB but the heap is only 2 GB" incident, and every container that gets killed by the kernel for reasons the application logs never explain.
-
----
-
-## Real-World Analogies
-
-**The company storage room vs. the rented warehouse.**
-Your managed heap is the office storage room. The office cleaning staff (the GC) walks through nightly, throws out anything nobody is using, and reorganizes shelves so things fit. You never think about it. Off-heap memory is a warehouse you personally rent across town. The cleaning staff never goes there — they don't even know it exists. If you stop using a warehouse but forget to cancel the lease, you keep paying rent forever (the leak), and it never shows up in the office's storage report (the heap dump).
-
-**The library vs. your personal bookshelf.**
-The library (managed heap) reclaims books automatically when they're overdue and reshelves them where it likes. Your personal bookshelf (off-heap) is yours: nobody reshelves it, nobody removes old books, and if you never throw a book out, the shelf overflows. Total clutter in your apartment (RSS) includes *both* the library books you borrowed *and* your own shelf.
-
----
-
-## Mental Models
-
-- **"GC-invisible" is the keyword.** Whenever you read "off-heap," translate it in your head to *"the garbage collector cannot see this and will never free it."* Everything else follows.
-
-- **Heap size and RSS are different numbers.** The heap cap (`-Xmx`) limits one territory. RSS is the sum of *all* territories the OS sees. A junior-level "aha" moment is realizing these can diverge dramatically: heap reads 2 GB, RSS reads 8 GB, and the missing 6 GB is off-heap that no heap tool will show you.
-
-- **Crossing the boundary changes the rules.** On the managed side, forgetting to free is impossible (the GC handles it). On the native side, forgetting to free is the *default failure mode*. Same process, opposite rules.
 
 ---
 
@@ -167,35 +113,6 @@ Notice the explicit `Munmap`. In normal Go you never free anything; here you mus
 
 ---
 
-## Pros & Cons
-
-**Pros**
-
-- **GC stays fast** even with huge data sets, because the GC never scans off-heap memory.
-- **No moving.** Memory at a fixed address is safe to give to the OS and native libraries.
-- **Precise lifetime.** Free exactly when you want.
-- **Can exceed normal limits.** Off-heap data is not bounded by the managed heap cap.
-
-**Cons**
-
-- **You must free it.** Forgetting leaks memory that no heap tool will reveal.
-- **Invisible to heap dumps / heap profilers.** Standard debugging shows nothing.
-- **Crashes are nastier.** A bad address read can crash the whole process, not throw a catchable exception.
-- **More code, more care.** You give up the safety net the runtime normally provides.
-
----
-
-## Use Cases
-
-- **Large in-memory caches** (gigabytes) where you do not want GC pause times to grow with the cache.
-- **Network and file I/O buffers**, because the OS wants stable, non-moving memory.
-- **Memory-mapped files**, letting you treat a file on disk as if it were a giant byte array.
-- **Interop with C / native libraries**, which expect plain memory blocks.
-
-For most everyday application code, you do **not** need off-heap. Reach for it only when you have a measured reason.
-
----
-
 ## Best Practices
 
 - **Default to the managed heap.** Off-heap is a specialized tool. Most code should never touch it. Use it when you have evidence (GC pauses, interop needs, sizes too big to manage on-heap).
@@ -214,10 +131,24 @@ For most everyday application code, you do **not** need off-heap. Reach for it o
 
 ---
 
-## Summary
+## Apply it
 
-- **Off-heap / native memory** is memory obtained directly from the OS, outside the garbage collector's control.
-- The GC **cannot see it**, so it never scans, moves, or frees it — which is exactly why people use it (no GC pressure, stable addresses, precise lifetime) and exactly why it is dangerous (**you must free it yourself**).
-- **Heap size** caps only the managed heap; **RSS** is the total RAM the OS sees, including off-heap. When these two numbers diverge, suspect off-heap.
-- Standard heap dumps and heap profilers are **blind** to off-heap memory, which makes off-heap leaks uniquely hard to spot.
-- Use off-heap deliberately — for big caches, I/O buffers, memory-mapped files, and native interop — and always pair every allocation with its matching free.
+1. Choose one small, known input for **Off-heap / Native Memory**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
+
+## Verify your work
+
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
+
+## Review questions
+
+- What problem does Off-heap / Native Memory solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

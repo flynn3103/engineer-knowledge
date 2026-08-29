@@ -1,59 +1,11 @@
-# Method Dispatch & Inline Caches — Senior Level
+# Method Dispatch & Inline Caches — Senior
 
-> **Topic:** Method Dispatch & Inline Caches
-> **Focus:** Polymorphic and megamorphic inline caches, hidden-class/shape guards, devirtualization (CHA + speculative), and the branch-predictor interaction that makes "unpredictable dispatch" a real performance cliff.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Method Dispatch & Inline Caches** under failure, load, and change?
 
-## Introduction
-
-> Focus: **What happens when a call site sees two, three, or twenty types?** And **how does the runtime turn "this is probably a Dog" into a direct, inlinable call — and what does it cost when it's wrong?**
-
-The middle level left a cliffhanger: one stray type at a call site forces the monomorphic inline cache to hold a second entry. This page is about that transition and everything past it. A cache with a handful of entries is a **polymorphic inline cache (PIC)** — a small linear list of `(shape → target)` guards, tried in order. Push enough distinct types through and the PIC overflows; the runtime gives up on per-site caching and marks the site **megamorphic**, falling back to a slower global lookup or vtable-style dispatch. The slope from monomorphic to megamorphic is the single most important performance gradient in dynamic-language runtimes, and understanding it is the difference between "my benchmark is fast" and "my benchmark is fast and I know why."
-
-The other half of this page is **devirtualization**: the runtime's ability to prove (or bet) that a dynamic call has exactly one possible target, and so replace the indirect dispatch with a direct call — which then becomes *inlinable*, unlocking constant folding, escape analysis, and the rest of the optimizer. Two flavors matter: **CHA (Class Hierarchy Analysis)**, which proves uniqueness from the loaded class hierarchy, and **speculative devirtualization**, which bets on the profiled hot type and protects the bet with a guard plus a deoptimization escape hatch.
-
-Underpinning all of it is the **CPU branch predictor**. An indirect call whose target keeps changing is a branch the predictor mispredicts, and a mispredict on a modern core costs on the order of a dozen-plus cycles of pipeline flush. This is *why* a megamorphic call site is slow at the hardware level — not just because the lookup is longer, but because the indirect jump itself becomes unpredictable.
-
-In one sentence: **this level connects type-stability at the source level to the optimizer's ability to devirtualize and inline, and to the branch predictor's ability to keep the pipeline full — three layers that all reward keeping a call site seeing one type.**
-
----
-
-## Prerequisites
-
-- **Required:** Middle-level material — vtable layout, thunks, itables/itabs, and the monomorphic inline cache with its guard.
-- **Required:** The hidden-class/shape concept (V8 Map, SpiderMonkey Shape, HotSpot klass) as the guard key.
-- **Required:** Comfort reading the idea of a guard as a pointer-compare-and-branch.
-- **Helpful but not required:** A rough mental model of a CPU pipeline and what a branch misprediction costs.
-- **Helpful but not required:** Awareness that JITs profile code and can recompile (covered fully in `professional.md`).
-
-You do **not** need to know:
-
-- The full JIT compilation pipeline and tiering policy (that's `professional.md`).
-- Exact V8/HotSpot source-level data structures down to field names.
-- Garbage-collection mechanics.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Monomorphic IC** | One cached (shape → target). One guard, then a direct call. The fast state. |
-| **Polymorphic IC (PIC)** | A small set (typically up to ~4) of cached (shape → target) entries, tried in order. |
-| **Megamorphic** | A call site that has seen more distinct shapes than the PIC can hold; per-site caching is abandoned for a global/generic lookup. |
-| **PIC overflow** | The event of exceeding the PIC capacity, transitioning a site to megamorphic. |
-| **Shape guard** | The pointer comparison against a hidden class/shape that protects a cached entry. |
-| **Devirtualization** | Replacing a dynamic/virtual call with a direct call when the target can be proven or speculated unique. |
-| **CHA (Class Hierarchy Analysis)** | Proving a virtual call has a single possible target by analyzing the currently loaded class hierarchy. |
-| **Speculative devirtualization** | Betting on the profiled hot receiver type, emitting a guarded direct call, with deopt on guard failure. |
-| **Guarded inlining** | Inlining the speculated target's body behind a type guard; the guard's failure path falls back to a generic call or deopt. |
-| **Deoptimization (deopt)** | Bailing out of optimized code back to a generic/interpreted version when a speculative assumption is violated. |
-| **Monomorphic-then-inline** | The payoff chain: stable type → devirtualize → inline → enable further optimization. |
-| **Indirect branch** | A call/jump whose target is in a register/memory, not a constant. The kind the predictor must guess. |
-| **BTB (Branch Target Buffer)** | The CPU structure that predicts the target of indirect branches based on history. |
-| **Misprediction penalty** | The cycles lost flushing the pipeline when the predicted branch target was wrong. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -119,36 +71,6 @@ Everything above applies to **property/field access**, not just method calls. `p
 ### 8. The Whole Chain, End to End
 
 The senior synthesis: **type stability at the source → fewer shapes at the call site → monomorphic IC → CHA/speculative devirtualization → guarded (or unguarded) inlining → constant folding/escape analysis across the call → a BTB-friendly or branch-free hot path.** Break the chain at the top (many types/shapes), and you lose every link below it. This is why "make the collection homogeneous" or "construct objects consistently" can yield order-of-magnitude speedups that look out of proportion to the change — you didn't just speed up a lookup, you re-enabled the entire optimization cascade.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Monomorphic IC** | A barista who's served you the same order for a month — they start it the moment you walk in. |
-| **Polymorphic IC** | A barista who knows your group's three usual orders and guesses from who walked in. |
-| **Megamorphic** | A convention center coffee stand serving thousands of strangers — they can't predict anyone, so everyone waits in the generic queue. |
-| **CHA devirtualization** | Proving "there's only one plumber in town," so any call to 'the plumber' goes straight to them — until a second plumber moves in (deopt). |
-| **Speculative devirtualization + guard** | Betting the caller is your usual plumber, prepping their van, but checking the name on the work order first. |
-| **Deoptimization** | The bet was wrong; abandon the prepped fast path and fall back to the slow, general process. |
-| **Branch misprediction** | The assembly line pre-built the wrong part because it guessed the next order wrong; now it scraps the work and restarts. |
-
----
-
-## Mental Models
-
-### The "Cache Pressure Gauge" Model
-
-Picture a gauge at each call site: needle at 1 (monomorphic), creeping up as new shapes arrive, redlining at megamorphic. Your job as a performance engineer is to keep hot-path gauges out of the red. Every "I'll just pass an `interface{}` / `Object` / base type here" decision nudges the relevant gauges up. Profiling tools that report IC state (V8's `--trace-ic`, JVM inlining logs) are reading these gauges for you.
-
-### The "Optimization Cascade" Model
-
-Devirtualization isn't a single optimization; it's the *gate* to a cascade. Open the gate (prove/speculate one target) and inlining, constant propagation, dead-code elimination, and escape analysis flow through. Keep it shut (megamorphic) and the call is a wall the optimizer can't see past. When you reason about the cost of a polymorphic call, count the optimizations it *blocks*, not just the cycles it *spends*.
-
-### The "Guard + Trapdoor" Model (speculation)
-
-Speculative devirtualization is a fast path with a trapdoor. The guard is the floor you stand on; as long as it holds (the type is what you bet), you run on the fast inlined path. The moment it fails, the trapdoor opens — deopt — and you fall to the slow but always-correct generic path. This "fast floor, safety trapdoor" structure is the universal shape of all JIT speculation, and dispatch is its most important instance.
 
 ---
 
@@ -255,27 +177,6 @@ The interface version is the right API; the concrete version is the right hot-pa
 
 ---
 
-## Pros & Cons
-
-| Aspect | Pros | Cons |
-|--------|------|------|
-| **Polymorphic IC** | Handles genuinely multi-type sites cheaply (a few guarded branches). | Capacity-limited; overflow → megamorphic cliff. |
-| **Megamorphic fallback** | Always correct; bounded memory (no per-site growth). | Slow lookup + mispredicted indirect branch + blocks inlining. |
-| **CHA devirtualization** | Turns virtual calls into direct, inlinable calls with no runtime guard. | Open-world fragility: requires deopt machinery when new classes load. |
-| **Speculative devirtualization** | Works in open worlds; near-static speed on the hot type. | Guard cost + deopt risk if the bet is wrong; cold path still slow. |
-| **Branch-predictor friendliness** | Monomorphic indirect calls predict perfectly; near-free. | Megamorphic calls mispredict, paying full pipeline-flush penalty. |
-
----
-
-## Use Cases
-
-- **Diagnosing a dynamic-language hot path.** When a JS/Python loop is slow despite "simple" code, the first hypotheses are: a call site or property access went megamorphic, or shapes are being accidentally fragmented. The IC/shape model directs the investigation.
-- **Tuning JVM/JS performance with type stability.** Refactoring a heterogeneous `List<Object>` or mixed-shape array into homogeneous data is often the highest-leverage change, precisely because it re-enables devirtualization and inlining.
-- **Designing hot interfaces in Go/Java.** Knowing that a hot interface call over many implementors is a cliff guides you to specialize the hot path or narrow the interface.
-- **Reasoning about deopt storms.** Repeated deoptimization (a guard that keeps failing because the bet was wrong) is its own pathology; the speculation model explains why and points to the fix (let the site go properly polymorphic instead of mis-speculating).
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Split a megamorphic site into several monomorphic ones
@@ -334,112 +235,24 @@ Offer the polymorphic/interface API for flexibility, but provide (or let the com
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│        POLYMORPHISM, DEVIRTUALIZATION, AND THE CLIFF             │
-├──────────────────────────────────────────────────────────────────┤
-│ IC states (per call site / per property access):                 │
-│   MONO  1 shape         guard + direct call/load      (fastest)  │
-│   POLY  ~2-4 shapes     small ordered guard list      (fine)     │
-│   MEGA  > cap           generic lookup + indirect call (CLIFF)   │
-├──────────────────────────────────────────────────────────────────┤
-│ Why MEGA is slow (3 compounding costs):                          │
-│   1. longer lookup (hash/table vs compare-branch)                │
-│   2. mispredicted indirect branch (~15-20 cyc pipeline flush)    │
-│   3. blocks devirtualization -> blocks inlining -> blocks rest   │
-├──────────────────────────────────────────────────────────────────┤
-│ DEVIRTUALIZATION                                                 │
-│   CHA          prove single target from loaded hierarchy;        │
-│                deopt if a new override is loaded                 │
-│   SPECULATIVE  bet on profiled hot type; guard + inline;         │
-│                deopt on guard failure                            │
-│   guarded inlining = the physical output of both                │
-├──────────────────────────────────────────────────────────────────┤
-│ The cascade:                                                     │
-│   type-stable -> mono IC -> devirtualize -> inline ->            │
-│   const-fold / escape-analysis / branch-free hot path           │
-├──────────────────────────────────────────────────────────────────┤
-│ Levers:                                                          │
-│   * keep hot sites monomorphic (homogeneous data)               │
-│   * shape count == logical type count (consistent construction) │
-│   * final/sealed/concrete to enable proof, not just guess       │
-│   * split a mega site into a switch + specialized callees       │
-│   * avoid `delete` (JS) on hot objects (dictionary mode)        │
-└──────────────────────────────────────────────────────────────────┘
-```
+1. State the system invariant that **Method Dispatch & Inline Caches** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
----
+## Verify your work
 
-## Summary
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
 
-- A monomorphic inline cache upgrades to a **polymorphic IC** (a small ordered list of shape guards) when a second type appears, and to **megamorphic** (generic global lookup) when the PIC overflows its small capacity.
-- **Megamorphic is a cliff** for three compounding reasons: the lookup is longer, the indirect branch becomes unpredictable (pipeline-flushing mispredicts), and — most importantly — the call can't be devirtualized, which **blocks inlining and the entire downstream optimization cascade**.
-- **Hidden classes/shapes are the currency** of all guards and entries. Accidental shape fragmentation (fields added in different orders, `delete`d properties) makes logically-single types appear as many, silently driving sites megamorphic.
-- **Devirtualization** turns a dynamic call into a direct (inlinable) one. **CHA** proves uniqueness from the loaded hierarchy (revoked by deopt when new classes load); **speculative devirtualization** bets on the profiled hot type behind a guard, with deopt as the safety net. Both produce **guarded inlining**.
-- The **branch predictor** is why this matters at the hardware level: a monomorphic indirect call predicts perfectly (near-free), while a megamorphic one mispredicts and flushes the pipeline.
-- The unifying chain runs from **source-level type stability → monomorphic IC → devirtualization → inlining → full optimization**. Breaking it at the top forfeits every benefit below, which is why small data-shape changes can produce outsized speedups.
+## Review questions
 
----
-
-## Diagrams & Visual Aids
-
-### The IC State Machine
-
-```text
-        new shape                new shape (overflow cap)
-  ┌──────────────┐  ──────►  ┌──────────────┐  ──────►  ┌──────────────┐
-  │  MONOMORPHIC │           │ POLYMORPHIC  │           │ MEGAMORPHIC  │
-  │  1 guard     │           │ 2..N guards  │           │ generic stub │
-  │  fast        │           │ ok           │           │ CLIFF        │
-  └──────────────┘           └──────────────┘           └──────────────┘
-        ▲                                                      │
-        └─────────── (rarely recovers without code/shape fix) ◄┘
-```
-
-### Cost Anatomy of a Megamorphic Call
-
-```text
-   monomorphic call cost:   [ guard ][ direct/inlined body ]           (cheap)
-
-   megamorphic call cost:   [ generic lookup (hash/table) ]
-                          + [ MISPREDICTED indirect branch ~15-20 cyc ]
-                          + [ inlining lost -> no const-fold/escape ]
-                            ───────────────────────────────────────────
-                            = much more than "just a longer lookup"
-```
-
-### CHA vs Speculative Devirtualization
-
-```text
-   CHA (proof, closed-for-now world):
-     only one impl loaded?  ──► direct call + inline
-                               └─ if new override loaded later -> DEOPT
-
-   SPECULATIVE (bet, open world):
-     profile says 97% Dog  ──► if klass==Dog { inlined Dog::speak }
-                                else          { generic call / DEOPT }
-```
-
-### Guarded Inlining Layout
-
-```text
-   loop body:
-      ┌─ guard: klass == HotType ? ───────────────┐
-      │  TRUE  -> [ inlined hot body ] (optimizable)│
-      │  FALSE -> [ generic call ] or [ deopt ]     │
-      └────────────────────────────────────────────┘
-   guard almost always falls through -> predictor happy -> straight-line hot path
-```
-
-### Branch Predictor and Indirect Calls
-
-```text
-   MONOMORPHIC indirect call:
-     target always T  ->  BTB predicts T  ->  pipeline stays full   (≈free)
-
-   MEGAMORPHIC indirect call:
-     target = T1,T2,T3,... varying  ->  BTB guesses wrong often
-                                    ->  flush + refetch (~15-20 cyc each)
-```
+- Which invariant must remain true when Method Dispatch & Inline Caches fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

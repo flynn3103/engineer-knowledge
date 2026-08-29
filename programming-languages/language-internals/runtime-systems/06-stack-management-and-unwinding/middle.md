@@ -1,61 +1,11 @@
-# Stack Management & Unwinding — Middle Level
+# Stack Management & Unwinding — Middle
 
-> **Topic:** Stack Management & Unwinding
-> **Focus:** Calling conventions and exact frame layout — the red zone, shadow space, caller/callee-saved registers, and why omitting the frame pointer means stack walking now needs a *table*.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **Stack Management & Unwinding** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-> Focus: **Exactly how is a stack frame laid out, who is responsible for saving which register, and what changes when the compiler drops the frame pointer?**
-
-At the junior level the frame was "a block with a return address, a saved frame pointer, and locals." That's the right shape, but the *details* are dictated by a contract called the **calling convention** (also: the *ABI*, application binary interface). The calling convention is the agreement between caller and callee about: which registers carry arguments, which carries the return value, which registers the callee must preserve, where the return address goes, and how the stack must be aligned. Two functions compiled by *different* compilers can call each other only because they both obey the same ABI.
-
-This level pulls the frame apart precisely. You'll meet two platform-specific oddities that trip up everyone: the **red zone** on the System V (Linux/macOS) ABI — 128 bytes *below* the stack pointer that a leaf function may scribble in without adjusting SP — and **shadow space** on the Windows x64 ABI — 32 bytes the caller must reserve for the callee. You'll see the split between **caller-saved** and **callee-saved** registers and why it exists. And you'll meet the single most consequential optimization in this whole topic: **frame-pointer omission** (`-fomit-frame-pointer`), which frees up `rbp` as a general register but *destroys the simple frame-pointer chain that stack walkers rely on* — setting up the need for unwind tables, the headline subject of `senior.md`.
-
-In one sentence: **the calling convention is the law that says where every byte of a frame goes, and frame-pointer omission is the optimization that makes obeying-the-law no longer enough to find your way home.**
-
-> 🎓 **Why this matters for a middle engineer:** When your profiler shows a flame graph that's all `[unknown]`, when your crash dump has a truncated backtrace, when FFI between two languages corrupts the stack — the cause is almost always an ABI mismatch or missing frame pointers. Understanding the convention turns these from mysteries into a checklist.
-
-This page covers: the SysV x86-64 and Win64 conventions, the precise frame layout, the red zone, shadow space, caller/callee-saved registers, stack alignment, leaf-function optimizations, and frame-pointer omission with its consequences for stack walking. `senior.md` then shows the *fix* for FP omission: DWARF CFI and Windows `.pdata`/`.xdata` unwind tables.
-
----
-
-## Prerequisites
-
-- **Required:** The junior file — what a frame, return address, SP, and FP are.
-- **Required:** Comfort reading a little x86-64 assembly (`push`, `mov`, `sub`, `call`, `ret`).
-- **Required:** What a CPU register is and that there are a fixed number of them.
-- **Helpful:** Having compiled C with `gcc -S` / `clang -S` and looked at the output.
-- **Helpful:** Awareness that 64-bit ABIs pass the first several arguments in *registers*, not on the stack.
-
-You do **not** yet need:
-
-- DWARF CFI / `.eh_frame` internals (that's `senior.md`).
-- Exception unwinding and personality routines (that's `senior.md`).
-- Growable stacks, guard pages, GC stack maps (that's `professional.md`).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Calling convention / ABI** | The binary contract for how functions call each other: argument registers, return register, who saves what, stack alignment, return-address placement. |
-| **System V AMD64 ABI** | The convention used on Linux, macOS, and most Unix on x86-64. |
-| **Windows x64 ABI** | Microsoft's convention on 64-bit Windows. Differs notably from SysV. |
-| **Caller-saved (volatile)** | Registers the *callee* may freely clobber. If the caller wants them preserved, the caller must save them before the call. |
-| **Callee-saved (non-volatile)** | Registers the *callee* must restore to their original value before returning. |
-| **Red zone** | (SysV) 128 bytes *below* `rsp` that a leaf function may use without moving `rsp`. Signal handlers must not clobber it. |
-| **Shadow space / home space** | (Win64) 32 bytes the *caller* allocates above the return address so the callee can spill its 4 register arguments. |
-| **Stack alignment** | The ABI requirement that `rsp` be 16-byte aligned at the point of a `call` (so it's 16-aligned + 8 on entry, after the return address is pushed). |
-| **Leaf function** | A function that calls no other function. Can skip frame setup and use the red zone. |
-| **Prologue / Epilogue** | The instructions that build / tear down a frame. |
-| **Register spill** | Storing a register's value to the stack because there aren't enough registers. |
-| **Frame-pointer omission (FPO)** | Compiling without a dedicated frame pointer (`rbp` becomes a general register). Speeds code up; breaks naive stack walking. |
-| **`-fomit-frame-pointer`** | The GCC/Clang flag that enables FPO. On by default at `-O1` and above for many targets. |
-| **CFA (Canonical Frame Address)** | A reference address for a frame used by unwind info; conceptually the value of `rsp` just before the `call` that entered this function. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -170,32 +120,6 @@ So how does anything walk an FPO stack? **Unwind tables**: side data, emitted by
 
 ---
 
-## Real-World Analogies
-
-- **The red zone is a "scratchpad you don't have to clock in for."** A leaf worker can scribble on the margin of their own desk without filing paperwork (moving `rsp`), because no one else will use that margin while they're working.
-
-- **Shadow space is "a reserved parking spot the visitor pays for."** Even though the visitor (callee) arrives by car (arguments in registers), the host (caller) must reserve 4 parking spots in case the visitor wants to park.
-
-- **Caller-saved vs callee-saved is a "who cleans the borrowed tool" rule.** Some tools you must return spotless (callee-saved); others you can use up and the owner re-sharpens them after lending (caller-saved). The contract avoids both of you cleaning the same tool.
-
-- **Frame-pointer omission is "removing the handrail to widen the stairs."** Faster to walk normally, but now anyone trying to feel their way down in the dark (a stack walker) needs a printed map (unwind tables) instead of the rail.
-
----
-
-## Mental Models
-
-- **"The ABI is the only reason separately-compiled code works."** Every register choice and stack slot is a clause in that contract.
-
-- **"`rbp` is a luxury, not a law."** A frame pointer is a *convention for walkability*, not a hardware requirement. The compiler will spend it on speed unless told otherwise.
-
-- **"Red zone = 'I'm a leaf, I can be lazy.' Shadow space = 'I'm a caller, I must be generous.'"** Two conventions, opposite philosophies about who reserves space.
-
-- **"Without a frame pointer, the stack has no inherent structure — only the unwind table knows the shape."** This is the bridge to the senior level.
-
-- **"Alignment bugs hide until SIMD shows up."** Misaligned `rsp` is invisible to scalar code and fatal to aligned vector loads.
-
----
-
 ## Code Examples
 
 ### Example 1: See the convention with your own compiler
@@ -268,36 +192,6 @@ void uses_simd(float *p) {
 
 ---
 
-## Pros & Cons
-
-**Keeping a frame pointer (`-fno-omit-frame-pointer`):**
-
-| Pro | Con |
-|-----|-----|
-| Trivial, reliable stack walking (profilers, debuggers, crash dumps). | One fewer general-purpose register. |
-| No unwind-table lookup needed at sample time → cheap, accurate `perf`. | A couple of extra instructions per call. |
-| Crash backtraces work even when unwind info is stripped. | Marginal code-size and speed cost (~1% on many workloads). |
-
-**Omitting the frame pointer (`-fomit-frame-pointer`):**
-
-| Pro | Con |
-|-----|-----|
-| Extra register → faster, smaller code. | Naive stack walking is impossible; needs unwind tables. |
-| The historical default at `-O1`+. | `perf` flame graphs become `[unknown]` without DWARF/LBR. |
-| | Harder, slower stack walks (DWARF interpretation) at profiling time. |
-
----
-
-## Use Cases
-
-- **FFI / interop** between languages — you must honor the ABI by hand (cgo, JNI, ctypes, Rust `extern "C"`).
-- **Hand-written assembly** — you are personally responsible for alignment, shadow space, and callee-saved registers.
-- **Tuning profilability** — choosing `-fno-omit-frame-pointer` (or relying on DWARF/LBR) to get usable flame graphs.
-- **Debugging stack corruption** — recognizing the symptoms of a blown convention (nonsense backtraces, args off by one register).
-- **Kernel / low-level code** — disabling the red zone (`-mno-red-zone`) where async contexts run on the stack.
-
----
-
 ## Coding Patterns
 
 **Pattern: Build with frame pointers in performance-critical, profiled services.** The whole industry (Linux distros, large server fleets) has been re-enabling `-fno-omit-frame-pointer` because reliable profiling is worth the ~1%. Make it your default for code you'll profile.
@@ -345,52 +239,24 @@ my_asm:
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```text
-SYSV AMD64 (Linux/macOS)
-  int args:   rdi rsi rdx rcx r8 r9   (then stack)
-  fp args:    xmm0..xmm7
-  return:     rax (rdx:rax for 128b), xmm0 for fp
-  callee-saved: rbx rbp r12 r13 r14 r15
-  caller-saved: rax rcx rdx rsi rdi r8 r9 r10 r11
-  RED ZONE:   128 bytes below rsp, leaf-only
-  align:      rsp 16-byte aligned at `call`
+1. Find a real component where **Stack Management & Unwinding** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
-WINDOWS x64
-  int args:   rcx rdx r8 r9            (by position; then stack)
-  fp args:    xmm0..xmm3
-  return:     rax / xmm0
-  callee-saved: rbx rbp rdi rsi r12-r15 rsp + xmm6-xmm15
-  SHADOW SPACE: caller reserves 32 bytes before the call
-  NO red zone
+## Verify your work
 
-FRAME POINTER
-  kept:   push rbp; mov rbp,rsp  -> walkable by chasing rbp
-  omitted (-fomit-frame-pointer): rbp is general; walking needs unwind tables
-  fix profilability: compile with -fno-omit-frame-pointer
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
 
-GOLDEN RULES
-  - honor the ABI exactly at FFI / asm boundaries
-  - keep rsp 16-aligned before every call (SIMD will punish you otherwise)
-  - save callee-saved regs you clobber
-  - no frame pointer => backtrace is a LOOKUP (DWARF/.pdata), not a chase
-```
+## Review questions
 
----
-
-## Summary
-
-The **calling convention (ABI)** is the binary contract that fixes every detail a frame's junior-level shape left open: which registers carry arguments (`rdi…r9` on SysV, `rcx…r9` on Win64), where the return value goes (`rax`/`xmm0`), the split between **caller-saved** and **callee-saved** registers, the 16-byte **stack alignment** at each call, the SysV **red zone** (128 bytes a leaf may use for free), and the Win64 **shadow space** (32 bytes the caller must reserve). Locals are addressed off `rbp` when a frame pointer is kept, or off a moving `rsp` when it isn't.
-
-The pivotal idea at this level is **frame-pointer omission**. Freeing `rbp` makes code faster but removes the linked chain that naive stack walking depends on — so finding a caller becomes a *table lookup* rather than a pointer-chase. That table is DWARF CFI on Unix and `.pdata`/`.xdata` on Windows, and reconstructing caller frames from it — for debuggers, profilers, and exception unwinding — is exactly what `senior.md` builds next.
-
----
-
-## Further Reading
-
-- *System V Application Binary Interface, AMD64 Architecture Processor Supplement* — the authoritative SysV spec (argument registers, red zone, alignment).
-- Microsoft's *x64 calling convention* and *x64 prolog and epilog* documentation (shadow space, unwind data).
-- Agner Fog, *Calling conventions for different C++ compilers and operating systems*.
-- The GCC/Clang manuals on `-fomit-frame-pointer` and `-mno-red-zone`.
-- The next files: `senior.md` (DWARF CFI / `.eh_frame`, exception unwinding) and `professional.md` (growable stacks, guard pages, profiling at scale).
+- Which boundary is most affected by Stack Management & Unwinding?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

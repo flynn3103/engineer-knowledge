@@ -1,66 +1,11 @@
-# Macros — Middle Level
+# Macros — Middle
 
-> **Topic:** Macros
-> **Focus:** Macros that understand *syntax*, not just text. Lisp's homoiconicity, `defmacro`, quasiquotation, and the leap from "paste tokens" to "transform an abstract syntax tree" — plus Scheme's automatically hygienic `syntax-rules`.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **Macros** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-> Focus: **The C preprocessor manipulates text. Lisp macros manipulate the program's tree.** That one difference is the whole reason Lisp macros are powerful enough to define new control structures, while C macros are powerful enough only to make subtle bugs.
-
-At junior level we saw the C preprocessor: blind textual substitution, full of foot-guns precisely because it understands *nothing* about the code it pastes. A natural question follows: what if a macro could operate on the *structure* of the program — the parsed tree — instead of raw characters? Then precedence bugs would be impossible (the structure is already determined), and the macro could reason about the code intelligently.
-
-This is exactly what **Lisp** macros do, and they are the gold standard of macro systems. The key enabling property is **homoiconicity**: in Lisp, *code is written in the same notation as data*. A Lisp program is a nested list, and a list is Lisp's fundamental data structure. So `(+ 1 2)` is simultaneously "a function call that adds 1 and 2" **and** "a three-element list containing the symbol `+`, the number `1`, and the number `2`." Because code *is* data, a macro is just an ordinary function that takes a list (your code) and returns a list (new code) — and the compiler substitutes the returned list in place of the macro call before evaluating it.
-
-This collapses metaprogramming into normal programming. You manipulate code with `car`, `cdr`, `cons`, `map` — the same tools you use on any list. There is no separate "macro language": the language for transforming programs is the language itself. That is why the saying goes, *"Lisp's macros let you grow the language toward your problem."*
-
-In one sentence: **a C macro splices text into your source; a Lisp macro is a function from syntax tree to syntax tree, run by the compiler.** This page builds that idea up — homoiconicity, `defmacro`, quasiquotation (the templating trick that makes writing macros bearable), `gensym` for safety in Common Lisp, and Scheme's `syntax-rules`, which gives you all of this with *automatic hygiene*.
-
-> 🎓 **Why this matters at middle level:** Once you understand AST-level macros, you understand what every modern macro system (Rust, Elixir, Julia, even C++ templates) is *trying* to approximate. You also understand why "macro" means something completely different to a C programmer than to a Lisp programmer, and why interview questions about hygiene and quasiquotation separate people who have *read* about macros from people who have *written* them.
-
-`junior.md` covered textual macros and their bugs. This page covers syntactic macros (Lisp/Scheme). `senior.md` covers Rust's `macro_rules!` and procedural macros and treats hygiene formally. `professional.md` covers shipping macro-heavy systems and the engineering trade-offs.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** The junior page — what a macro is, and why text substitution causes precedence and double-evaluation bugs.
-- **Required:** The idea of an **abstract syntax tree (AST)**: the tree a parser builds from source. `2 + 3 * 4` parses to a tree where `*` is below `+`.
-- **Required:** Basic recursion and list operations (build, traverse, transform a list).
-- **Helpful but not required:** Any exposure to Lisp/Scheme/Clojure syntax — prefix notation `(f a b)`. We will explain as we go.
-- **Helpful but not required:** The idea of *evaluation order* — that `(if c a b)` must *not* evaluate both `a` and `b`.
-
-You do **not** need to know:
-
-- Rust `macro_rules!` or procedural macros (`senior.md`).
-- The formal definition of hygiene via renaming algorithms (`senior.md` sketches it).
-- C++ templates as compile-time computation (`senior.md`).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **AST (abstract syntax tree)** | The tree representation of parsed source code. Operators and calls become nodes; operands become children. |
-| **Homoiconicity** | "Same representation." A property where a language's code is written in one of its own data structures — in Lisp, the list. Code is data. |
-| **S-expression** | "Symbolic expression." Lisp's parenthesized list notation, e.g. `(+ 1 (* 2 3))`. Both the syntax and the data structure. |
-| **Symbol** | A Lisp identifier as a first-class value — e.g. the symbol `x`, distinct from the *value* bound to `x`. |
-| **`defmacro`** | Common Lisp's macro definition form. Defines a function from un-evaluated code (an s-expression) to replacement code. |
-| **Macroexpansion** | The compile-time step where a macro call is replaced by the s-expression the macro returns. |
-| **Quote (`'` or `quote`)** | Stops evaluation: `'(+ 1 2)` is the *list* `(+ 1 2)`, not the number `3`. The bridge from code to data. |
-| **Quasiquote / backquote (`` ` ``)** | A template: like quote, but with "holes" you can fill. Most of the template is literal; marked parts are evaluated. |
-| **Unquote (`,`)** | Inside a quasiquote, evaluate this and splice the *single* result in. |
-| **Unquote-splicing (`,@`)** | Inside a quasiquote, evaluate this to a *list* and splice its elements in (no surrounding parentheses). |
-| **`gensym`** | "Generate symbol." Produces a fresh, guaranteed-unique symbol, used in Common Lisp macros to avoid variable capture. |
-| **Variable capture** | A bug where a name the macro introduces collides with a name from the caller (or vice versa). |
-| **Hygiene** | The property that macro-introduced names never accidentally collide with the caller's names. Scheme's `syntax-rules` is hygienic *automatically*; Common Lisp's `defmacro` is not (you use `gensym`). |
-| **`syntax-rules`** | Scheme's declarative, *hygienic* macro form: you write patterns and templates, and the system handles renaming for you. |
-| **`define-syntax`** | Scheme's form for binding a macro name to a transformer (often a `syntax-rules`). |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -198,26 +143,6 @@ Macros live entirely in step 2. By the time the program runs, every macro is gon
 
 ---
 
-## Real-World Analogies
-
-**LEGO instructions vs. a Xerox machine.** The C preprocessor is a Xerox machine: it copies shapes of ink without knowing what they depict. A Lisp macro is a LEGO instruction booklet that works on *assembled sub-models*: it can take the "wheel assembly" you handed it and snap it into a "car frame," because it understands the pieces are structured objects with connection points, not flat pictures. Structure-awareness is the whole difference.
-
-**A contractor reading blueprints vs. a stencil.** A textual macro is a stencil sprayed over a wall — it does not know if it is painting over a window. A syntactic macro is a contractor who reads the *blueprint* (the AST): "put a door in this wall" is understood in terms of walls and doors, so it never accidentally bricks up a window. Hygiene is the contractor labelling every new pipe with a unique serial number so it is never confused with the building's existing plumbing.
-
-**Mad Libs with type-checked blanks.** Quasiquotation is Mad Libs: most of the sentence is fixed (`` ` ``), and a few blanks (`,`) get filled with words you compute. `,@` is the blank that says "insert this whole *list* of words, no quotes around them." The fixed text shows you the shape of the result at a glance — which is why macros are written as quasiquoted templates, not assembled by hand.
-
----
-
-## Mental Models
-
-- **Code is data; a macro is a function over that data.** This single idea — homoiconicity — is what makes Lisp macros first-class and trivial to write. Everything else follows.
-- **Macros receive unevaluated forms.** That is *why* they can implement `if`, `and`, `while` — constructs that must control evaluation. A function evaluates all arguments first and so can never short-circuit.
-- **Quote turns code into data; quasiquote builds data that is code.** `'` freezes; `` ` `` templates. Write expansions as quasiquoted templates so the output is legible.
-- **Hygiene is "no accidental name collisions."** Scheme/Racket give it automatically; Common Lisp makes you earn it with `gensym`. Either way, *introducing a binding in a macro is the dangerous moment* — that is when capture happens.
-- **Macroexpansion is a separate compile phase.** Everything a macro does is finished before run time. Debug by *expanding*, not by stepping the runtime.
-
----
-
 ## Code Examples
 
 ### A `unless` macro (Common Lisp), with quasiquote
@@ -286,38 +211,6 @@ The `_` is a conventional placeholder for the macro's own name in the pattern. `
 
 ---
 
-## Pros & Cons
-
-**Pros**
-
-- **No precedence or double-evaluation surprises from text** — the macro works on structure that is already parsed.
-- **Macros are ordinary list-processing functions** (in Lisp) — no separate macro language to learn.
-- **Can define new control flow and whole DSLs** — `if`, `loop`, pattern matchers, embedded query languages — because they control evaluation.
-- **Quasiquotation makes the output readable**, so the macro source resembles the code it emits.
-- **Scheme `syntax-rules` gives hygiene for free**, eliminating the most common macro bug.
-
-**Cons**
-
-- **Common Lisp `defmacro` is unhygienic** — you must remember `gensym` for every introduced binding, and forgetting is a silent bug.
-- **Macros run at compile time**, so they cannot depend on run-time values, and mixing the two (the *phase distinction*) confuses newcomers.
-- **Heavy macro use can make code hard to follow** — a reader must know which forms are macros to understand evaluation order.
-- **Error messages can point at expanded code**, far from what you wrote (though Lisp tooling is better at this than C).
-- **`syntax-rules` is declarative but limited** — complex transformations need the more powerful `syntax-case` / procedural macros, which reintroduce complexity.
-
----
-
-## Use Cases
-
-- **New control structures** — `unless`, `when`, `with-open-file`, `with-lock-held`, `do-times` — any construct that must wrap or conditionally run a body. These *cannot* be functions.
-- **Resource-safety wrappers** — `with-X` macros that acquire a resource, run a body, and guarantee release, even on error. The body must be unevaluated so the macro can wrap it in cleanup.
-- **Embedded DSLs** — query languages, state machines, parser combinators expressed in friendly syntax that expands to efficient code.
-- **Boilerplate elimination** — generating accessor functions, struct definitions, or repetitive case dispatch from a compact description.
-- **Compile-time computation** — precomputing tables or constants so the run-time program does less work.
-
-Where a function is the right tool instead: anything that operates on *values* and does not need to control evaluation or see source structure. The discipline "use a function unless you genuinely need to control evaluation or transform syntax" is as true in Lisp as in C.
-
----
-
 ## Coding Patterns
 
 **Pattern: `with-X` resource wrapper (controls evaluation of a body).**
@@ -377,68 +270,24 @@ Where a function is the right tool instead: anything that operates on *values* a
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. What is homoiconicity, and why does it make Lisp macros easy to write?
-2. Why must `if`, `and`, and `or` be macros (or special forms) rather than functions?
-3. What is the difference between `'`, `` ` ``, `,`, and `,@`?
-4. What bug does `gensym` prevent, and why does Scheme's `syntax-rules` not need it?
-5. A macro template uses `,x` twice and `x` is `(pop stack)`. What goes wrong, and how do you fix it?
-6. What is the Lisp equivalent of `gcc -E`?
+1. Find a real component where **Macros** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
-<details>
-<summary>Answers</summary>
+## Verify your work
 
-1. Code is written in the language's own list data structure, so a macro is just a function that transforms lists with ordinary list operations — no separate template language.
-2. Functions evaluate all arguments before running; these constructs must *not* evaluate some arguments (short-circuit / branch). Controlling evaluation requires receiving unevaluated forms, which only macros/special forms do.
-3. `'` quotes (freezes code as data); `` ` `` quasiquotes (a template); `,` unquotes (evaluate and insert one value); `,@` unquote-splices (evaluate to a list and splice its elements without surrounding parens).
-4. Variable capture — a macro-introduced name colliding with the caller's. `syntax-rules` automatically renames introduced identifiers (hygiene), so capture cannot occur.
-5. `(pop stack)` runs twice — two elements popped instead of one. Fix: `` `(let ((g (gensym))) ...) `` then template `` `(let ((,g ,x)) ... ,g ... ,g) `` so the side effect runs once.
-6. `macroexpand-1` / `macroexpand` (Common Lisp); Racket's expansion/`syntax->datum` tools.
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
 
-</details>
+## Review questions
 
----
-
-## Cheat Sheet
-
-```text
-HOMOICONICITY = code IS data (a Lisp program is a list)
-MACRO         = a function: list (code) -> list (code), run at compile time
-WHY NOT A FN  = macros get UNEVALUATED forms → can control evaluation
-                (this is why if/and/or/while/with-X must be macros)
-
-QUOTING
-  'x      quote          -> the code as data, frozen
-  `(...)  quasiquote     -> a template; literal except marked holes
-  ,x      unquote        -> evaluate x, insert the single result
-  ,@xs    unquote-splice -> evaluate xs to a list, splice its elements
-
-HYGIENE (no name collisions)
-  Common Lisp defmacro  -> NOT hygienic; use (gensym) for every binding
-  Scheme  syntax-rules  -> AUTOMATICALLY hygienic; no gensym needed
-
-EXPAND TO DEBUG
-  (macroexpand-1 'form)   ; Common Lisp — the Lisp 'gcc -E'
-
-PATTERNS
-  with-X wrapper:  `(progn (acquire r) (unwind-protect (progn ,@body) (release r)))
-  eval-once:       `(let ((,g ,x)) ... ,g ... ,g)   ; g from gensym
-  syntax-rules repetition:  ((_ x ...) (list (f x) ...))
-```
-
----
-
-## Summary
-
-Syntactic macros operate on the program's **structure**, not its text — and in **Lisp** that structure is a list, because Lisp is **homoiconic**: code is data. A macro is therefore an ordinary function from code to code, run during a dedicated **macroexpansion** phase before evaluation. Because macros receive *unevaluated* forms, they can do what functions cannot: define new control flow (`if`, `unless`, `with-lock`) and embed entire DSLs. **Quasiquotation** (`` ` ``, `,`, `,@`) makes writing expansions tractable by letting the macro source mirror its output. The recurring hazard is **variable capture**; **Common Lisp** demands `gensym` discipline to avoid it, while **Scheme's `syntax-rules`** is *hygienic automatically*, renaming introduced identifiers so collisions cannot occur. Hygiene is the headline idea to carry into `senior.md`, where Rust's `macro_rules!` and procedural macros bring hygienic, structured macros into a statically typed systems language — and where we treat hygiene, expansion ordering, and the engineering trade-offs formally.
-
----
-
-## Further Reading
-
-- *On Lisp* (Paul Graham) — the definitive treatment of Common Lisp macros, `gensym`, and macro-driven design. Free online.
-- *Practical Common Lisp* (Peter Seibel), the macro chapters — a gentler, example-driven introduction.
-- *The Scheme Programming Language* (R. Kent Dybvig) — `syntax-rules`, hygiene, and `syntax-case`.
-- The Racket Guide's "Macros" section — modern, well-tooled hygienic macros with excellent expansion-debugging tools.
-- Try it: in any Common Lisp REPL, define `unless` and run `macroexpand-1` on a call; in Racket, write a `syntax-rules` `swap!` and confirm it survives a caller's `tmp`.
+- Which boundary is most affected by Macros?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

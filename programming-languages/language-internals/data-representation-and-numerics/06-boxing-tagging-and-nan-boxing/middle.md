@@ -1,60 +1,11 @@
-# Boxing, Tagging & NaN-Boxing — Middle Level
+# Boxing, Tagging & NaN-Boxing — Middle
 
-> **Topic:** Boxing, Tagging & NaN-Boxing
-> **Focus:** How runtimes encode "value or pointer" in one machine word — pointer tagging via alignment bits, the IEEE-754 NaN payload that NaN-boxing exploits, and the concrete bit layouts of V8 SMIs, OCaml ints, and Ruby Fixnums.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **Boxing, Tagging & NaN-Boxing** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-> Focus: **The bits.** How exactly do you cram "this is a small integer" or "this is a pointer" into a single 64-bit word, and what does each encoding cost?
-
-At the junior level, boxing was the obvious-but-slow answer: wrap every primitive in a heap object. This page is about the encodings that *avoid* that — the bit-level tricks that let a dynamic-language runtime keep a small integer, a pointer, and a handful of immediates (`true`, `false`, `null`) all in one uniform 64-bit slot, while still being able to tell them apart in a couple of instructions.
-
-Two facts of the machine make this possible. First, **alignment**: a heap pointer to an 8-byte-aligned object always has its three low bits zero, because the address is a multiple of 8. Those bits are dead weight in a pointer — so steal them for a **tag**. Second, **IEEE-754 redundancy**: a 64-bit `double` reserves a colossal range of bit patterns to mean "Not a Number," far more than any program ever needs. Those spare NaN patterns are unused payload — so hide non-float values in them. That's **NaN-boxing**.
-
-The payoff is real and measurable. A runtime that tags small integers turns `a + b` on two small ints into a few bit operations and an `add`, with zero allocation and zero pointer chasing. A NaN-boxing runtime makes *all* floating-point arithmetic native because every value already *is* a double. The cost is precision in the encoding: you lose a bit (or several) of integer range, and you sign a contract with the hardware about how many address bits a pointer really uses.
-
-In one sentence: **tagging and NaN-boxing trade a small, fixed amount of representable range for the elimination of boxing — and the whole game is how cleverly you spend the spare bits.**
-
-This page makes the encodings concrete. We'll derive why alignment gives free bits, lay out V8's SMI, OCaml's 63-bit int, and Ruby's Fixnum/immediate scheme, walk through the IEEE-754 NaN structure that NaN-boxing exploits, and show the tag-check and untag operations a runtime actually emits. `senior.md` then builds a full NaN-box value type and compares the three strategies as runtime design points.
-
----
-
-## Prerequisites
-
-- **Required:** The junior page — boxing, unboxing, the cost of boxing, the Java/Python caches.
-- **Required:** Comfort reading binary and hexadecimal, and bitwise operations (`&`, `|`, `^`, `<<`, `>>`).
-- **Required:** What a pointer is at the byte level and what "alignment" means (an address that is a multiple of N).
-- **Helpful:** A rough mental model of IEEE-754 doubles: 1 sign bit, 11 exponent bits, 52 fraction bits.
-- **Helpful:** Two's-complement integers, and the idea of arithmetic vs logical right shift.
-
-You do **not** yet need:
-
-- The full NaN-box value-type implementation with all immediate encodings (that's `senior.md`).
-- 5-level paging, pointer authentication (PAC), or top-byte-ignore (that's `professional.md`).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Alignment** | An object placed at an address that is a multiple of N (its alignment). 8-byte alignment ⇒ address ≡ 0 mod 8 ⇒ low 3 bits are 0. |
-| **Tag bits** | The low (or high) bits of a word repurposed to encode the value's kind. |
-| **Pointer tagging** | Encoding the type in a pointer's spare bits; a tag of (say) 1 means "small int in the upper bits," 0 means "real pointer." |
-| **SMI (Small Integer)** | V8's tagged 31-bit (32-bit builds) or 32-bit (64-bit builds) integer stored inline with a 1-bit tag. |
-| **HeapObject pointer** | In V8, a tagged pointer whose low bit is set, distinguishing it from an SMI. |
-| **Immediate** | A value encoded entirely in the word, with no heap object: small int, `true`, `false`, `null`, sometimes short symbols/chars. |
-| **IEEE-754 double** | 64-bit float: 1 sign bit, 11 exponent bits, 52 fraction bits. |
-| **NaN** | "Not a Number": exponent all ones (`0x7FF`) and a non-zero fraction. There are 2⁵² − 1 such bit patterns per sign. |
-| **Quiet NaN (qNaN)** | A NaN with the top fraction bit set; propagates through arithmetic without raising. The standard "canonical" NaN. |
-| **Signaling NaN (sNaN)** | A NaN with the top fraction bit clear; can raise an FP exception. NaN-boxing usually avoids these. |
-| **NaN-boxing** | Encoding non-double values inside the unused payload of NaN bit patterns, so every value is physically a double. |
-| **Payload** | The ~51 fraction bits of a NaN available to carry a pointer or integer. |
-| **Untag / unmask** | Recovering the real value (clearing tag bits, sign-extending an int, masking off NaN bits) before use. |
-| **Canonical address space** | On x86-64, only 48 bits of a virtual address are meaningful today; the top 16 bits are a sign-extension of bit 47. This is why a pointer fits in a NaN payload. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -176,36 +127,6 @@ The whole reason these schemes exist is that the check and untag are a handful o
 
 ---
 
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Alignment gives free bits** | Parking spaces numbered in multiples of 10 (10, 20, 30…). The ones digit is always 0, so you can scribble a one-digit note there without ambiguity. |
-| **Low-bit pointer tag** | A filing system where even-numbered cards are addresses and odd-numbered cards are literal values. One glance at the parity tells you which. |
-| **OCaml shift-and-tag** | Writing every number doubled-plus-one so it's always odd, reserving "even" for addresses. You halve to read it back. |
-| **NaN payload** | A huge stack of pre-voided checks. The bank ignores them as money, so you use their blank memo fields as scratch storage for secret notes. |
-| **Quiet vs signaling NaN** | Two kinds of "void" stamps — one silent, one that triggers an alarm at the teller. You only ever use the silent kind for notes. |
-| **48-bit pointer fits in payload** | A "64-character" address field where everyone knows the last 16 characters are always the same filler, so you really only write 48. |
-| **Tag check cost** | A bouncer who can tell members from guests by the color of a wristband — one glance, no paperwork. |
-
----
-
-## Mental Models
-
-### The "Spend the Spare Bits" Model
-
-Every encoding in this topic is an exercise in *budgeting bits you didn't think you had*. Alignment hands you 3 free low bits per pointer. IEEE-754 hands you ~51 free payload bits per NaN. The runtime designer's job is to spend that budget wisely: one bit to say "int vs pointer," a few more to enumerate immediates, the rest for the actual value. When you read about SMIs, OCaml ints, or NaN-boxing, ask: *what is the bit budget, and how is each bit spent?*
-
-### The "Tag Is a Cheap Question" Model
-
-Before a runtime can do *anything* with a value, it must ask "what are you?" Boxing answers by dereferencing a pointer to read a type field — a memory access. Tagging and NaN-boxing answer with arithmetic on bits *already in the register* — no memory access. The entire performance win is converting a memory-bound question into a register-bound one. Picture the tag check as a question you can answer without leaving your desk.
-
-### The "Two Number Worlds" Model (for SMIs)
-
-A JavaScript engine lives a double life. Spec says "all numbers are doubles." Reality says "most numbers in real programs are small integers — array indices, loop counters, lengths." So the engine keeps a fast lane (SMIs, inline, no allocation) and a slow lane (HeapNumber doubles, boxed). Values silently move between lanes when they overflow the SMI range or become non-integer. Holding this dual model explains nearly every JS numeric performance cliff.
-
----
-
 ## Code Examples
 
 ### C — Alignment really does zero the low bits
@@ -312,33 +233,6 @@ You can't see SMIs directly, but the performance cliff at large integers and the
 
 ---
 
-## Pros & Cons
-
-| Aspect | Pros | Cons |
-|--------|------|------|
-| **Pointer tagging — speed** | Tag check + untag is 1–2 register instructions; small ints need no allocation. | Every pointer use needs an untag; every arithmetic op needs tag-adjusting code. |
-| **Pointer tagging — range** | Keeps the common case (small ints, array indices) fast. | Integer range shrinks by 1+ bits (OCaml 63-bit, V8 31-/32-bit SMI). |
-| **NaN-boxing — speed** | All FP arithmetic is native; one uniform 64-bit value type; no separate type word. | Pointer/int access needs masking; encode/decode logic is intricate. |
-| **NaN-boxing — uniformity** | A value is *always* 8 bytes; arrays of values are dense and cache-friendly. | Hard dependency on a 48-bit pointer assumption. |
-| **Both vs boxing** | Eliminate the allocation + GC + cache-miss tax for common values. | More complex VM; harder to debug raw values; platform-specific. |
-| **Portability** | Tagging is portable (depends only on alignment). | NaN-boxing leans on architecture address-width facts that can change. |
-
----
-
-## Use Cases
-
-- **Dynamic-language VMs.** Any runtime whose values are "int or pointer or immediate" benefits: JS engines, Lua, Ruby, OCaml, Lisp implementations.
-- **Integer-heavy dynamic code** (array indexing, counters): pointer tagging keeps these allocation-free.
-- **Float-heavy dynamic code** (graphics, numeric scripting): NaN-boxing makes the common operation native.
-- **Memory-constrained interpreters:** a uniform single-word value avoids per-value boxing overhead across millions of values.
-
-Don't reach for these when:
-
-- **You control the static types** (Java primitives, C# generics, Rust enums) — the compiler already specializes and there's nothing to encode dynamically.
-- **You need full 64-bit integer range with no boxing fallback** — tagging sacrifices range; you'd need a different scheme.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Tag check before every use
@@ -425,142 +319,24 @@ Because floats are the no-op fast path in NaN-boxing, test for them first.
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. Why does an 8-byte-aligned pointer always have its low 3 bits zero? How many distinct tags can you encode in those bits?
-2. Write the OCaml-style tagged-int encoding for −7 and verify your untag (arithmetic shift) recovers −7, not a large positive number.
-3. Given two OCaml tagged ints `a` and `b`, derive why addition is `a + b - 1` and subtraction is `a - b + 1`.
-4. How many distinct NaN bit patterns does a 64-bit double have? Why is that "wasted" space the basis of NaN-boxing?
-5. Why does NaN-boxing need to distinguish quiet from signaling NaNs? Which does it use and why?
-6. Explain why a 64-bit pointer "fits" in a ~48-bit NaN payload. What architectural fact makes this true?
-7. In V8, how does a single instruction distinguish an SMI from a HeapObject pointer? What happens to an integer too large to be an SMI?
-8. Write the bit pattern for `+Infinity` and confirm your `is_double` test (exponent + fraction) classifies it as a double, not a boxed value.
+1. Find a real component where **Boxing, Tagging & NaN-Boxing** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
----
+## Verify your work
 
-## Cheat Sheet
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
 
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│           ENCODINGS: POINTER TAGGING & NaN-BOXING (MIDDLE)        │
-├──────────────────────────────────────────────────────────────────┤
-│ FREE BITS                                                         │
-│   8-byte alignment ⇒ low 3 bits of a pointer are 000 (free tag)   │
-│   IEEE-754 double  ⇒ ~2^53 NaN bit patterns, only 1 ever needed   │
-├──────────────────────────────────────────────────────────────────┤
-│ POINTER TAGGING                                                   │
-│   V8 SMI:    low bit 0 = int (upper bits), low bit 1 = HeapObject  │
-│   OCaml:     (n<<1)|1 = int (63-bit); low bit 0 = pointer          │
-│   Ruby:      Fixnum (n<<1)|1; nil/true/false/Symbol = immediates   │
-│   untag int: arithmetic (signed) shift  — NEVER logical            │
-│   add:       a + b - 1     sub: a - b + 1     mul: untag first      │
-├──────────────────────────────────────────────────────────────────┤
-│ IEEE-754 DOUBLE                                                   │
-│   [ sign 1 | exponent 11 | fraction 52 ]                          │
-│   NaN ⇔ exponent = 0x7FF AND fraction ≠ 0                         │
-│   Inf ⇔ exponent = 0x7FF AND fraction = 0  (check fraction!)      │
-│   quiet NaN: top fraction bit = 1 (use this); signaling: 0        │
-├──────────────────────────────────────────────────────────────────┤
-│ NaN-BOXING                                                        │
-│   is_double:  (bits & QNAN_MASK) != QNAN_MASK                     │
-│   box_ptr:    TAG | (ptr & 0x0000FFFFFFFFFFFF)   // 48-bit payload │
-│   unbox_ptr:  bits & 0x0000FFFFFFFFFFFF                           │
-│   works because userspace pointers are effectively 48 bits         │
-├──────────────────────────────────────────────────────────────────┤
-│ TRADE-OFFS                                                        │
-│   tagging   → lose integer range, gain allocation-free small ints │
-│   NaN-box   → native floats, but assumes 48-bit pointers          │
-└──────────────────────────────────────────────────────────────────┘
-```
+## Review questions
 
----
-
-## Summary
-
-- **Alignment** makes the low bits of an aligned pointer always zero, giving a free place to store a **tag**. **IEEE-754** reserves ~2⁵³ NaN bit patterns while a program needs only one, giving free **payload** to hide values in.
-- **Pointer tagging** encodes the value's kind in spare bits. V8's **SMI** uses the low bit to separate small integers from HeapObject pointers; **OCaml** and **Ruby** mark integers with `(n<<1)|1`, yielding 63-bit ints, and Ruby adds immediate patterns for `nil`, `true`, `false`, and symbols.
-- Tagged arithmetic adjusts for the tag: add is `a + b - 1`, subtract is `a - b + 1`, multiply must untag first. Untagging an integer **must** use an arithmetic (sign-preserving) shift.
-- A **double** is `sign | 11-bit exponent | 52-bit fraction`. It is **NaN** iff exponent is all ones *and* fraction is non-zero — Infinity has all-ones exponent but a zero fraction, so a correct `is_double` test must check the fraction.
-- **NaN-boxing** stuffs integers, pointers, and immediates into the ~51 spare payload bits of a quiet NaN, so every value is physically a double and float math is native. A pointer fits because userspace addresses are effectively **48 bits**.
-- The tradeoffs are precise: tagging costs integer range and an untag per use; NaN-boxing costs intricate bit logic and a hard 48-bit-pointer assumption. Both eliminate boxing's allocation/GC/cache-miss tax for common values.
-- The whole game is **spending spare bits wisely** and making the **tag check cheap and branch-predictable** — converting a memory-bound "what are you?" into a register-bound one.
-
----
-
-## Further Reading
-
-- *Crafting Interpreters* — Robert Nystrom, "Optimization" chapter: a complete, readable NaN-boxing implementation.
-- *Real World OCaml* — the chapter on memory representation and the 63-bit tagged int.
-- *Ruby Under a Microscope* — Pat Shaughnessy: the `VALUE` immediate encoding.
-- *V8 blog* — "Pointer Compression in V8" and the Small Integer (SMI) representation.
-- *What Every Computer Scientist Should Know About Floating-Point Arithmetic* — David Goldberg (for the IEEE-754 background).
-- *IEEE 754-2008 / 2019* standard — the authoritative NaN definition.
-- *NaN-boxing series* — Piotr Duperas / various blog write-ups on SpiderMonkey and LuaJIT encodings.
-
----
-
-## Related Topics
-
-- This folder: [`junior.md`](junior.md), [`senior.md`](senior.md), [`professional.md`](professional.md), [`interview.md`](interview.md), [`tasks.md`](tasks.md).
-- Sibling topics: IEEE-754 floating-point representation, integer representation and two's complement, and memory alignment live under `data-representation-and-numerics/`.
-- Cross-cutting: garbage collection, interpreter/VM design, and CPU cache behavior under `language-internals/`.
-
----
-
-## Diagrams & Visual Aids
-
-### Alignment Frees the Low Bits
-
-```text
-8-byte aligned address (binary, low bits shown):
-   ... 1 0 1 1 0 0 0 0   ← bottom 3 bits forced to 000
-                   ^^^
-                   tag space (free)
-
-tag = address & 0b111      → 0..7 distinct kinds
-ptr = address & ~0b111     → recover the real address
-```
-
-### IEEE-754 Double and the NaN Region
-
-```text
-┌──────┬──────────────┬──────────────────────────────────┐
-│ sign │ exponent(11) │ fraction(52)                     │
-└──────┴──────────────┴──────────────────────────────────┘
-  exp = 0x7FF & fraction = 0      →  ±Infinity
-  exp = 0x7FF & fraction ≠ 0      →  NaN   ← ~2^53 patterns, all spare
-  top fraction bit = 1            →  quiet NaN (used by NaN-boxing)
-```
-
-### NaN-Box Layout
-
-```text
-                quiet NaN marker            48-bit payload
-        ┌──────┬───────────────────────┬─┬──────────────────────────┐
-DOUBLE  │  any double bit pattern that is NOT an all-ones-exp NaN     │
-        ├──────┼───────────────────────┼─┼──────────────────────────┤
-POINTER │ 1    │ 1111111 1111          │1│ 0xC0DE.... (48-bit addr)  │
-INTEGER │ 0    │ 1111111 1111          │1│ tag + 32/48-bit int       │
-IMMED.  │ 0    │ 1111111 1111          │1│ small code: true/false/nil│
-        └──────┴───────────────────────┴─┴──────────────────────────┘
-```
-
-### V8 SMI vs HeapObject
-
-```text
-word & 1 == 0   →  SMI        : integer in upper bits, shift to read
-word & 1 == 1   →  HeapObject : clear low bit, follow pointer
-
-   SMI(5)        = 5 << 1     = ...000001010   (low bit 0)
-   HeapObject(p) = p | 1      = ...xxxxxxxx1   (low bit 1)
-```
-
-### OCaml Tagged-Int Arithmetic
-
-```text
-encode(n) = 2n + 1            (always odd ⇒ never an aligned pointer)
-
-  a = 2x+1,  b = 2y+1
-  a + b      = 2x + 2y + 2 = 2(x+y) + 2     ← too big by 1 tag
-  a + b - 1  = 2(x+y) + 1  = encode(x+y)    ✓
-```
+- Which boundary is most affected by Boxing, Tagging & NaN-Boxing?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

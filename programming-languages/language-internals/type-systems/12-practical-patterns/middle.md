@@ -1,55 +1,11 @@
-# Practical Type-System Patterns — Middle Level
+# Practical Type-System Patterns — Middle
 
-> **Focus:** Newtypes, branded types, smart constructors, builders, and discriminated unions — the working toolkit for encoding domain rules so a whole class of mix-ups and invalid values can't compile.
+<!-- level-focus -->
+At middle level, focus on this question:
 
-> **Topic:** Practical Type-System Patterns
+> Where does **Practical Type-System Patterns** belong in a maintainable component, and which trade-off selects the design?
 
----
-
-## Introduction
-
-> Focus: **How do you stop `UserId` and `OrderId` — both "just numbers" — from being passed in the wrong order? How do you guarantee a value satisfies its rules before any code touches it?**
-
-The junior page established three habits: make illegal states unrepresentable, parse don't validate, and make absence explicit. This page gives you the concrete *constructs* that implement those habits in real code: **newtypes**, **branded types**, **smart constructors**, **typed builders**, and **richly-tagged discriminated unions**.
-
-The unifying problem is that primitive types are too generous. A `string` could be a name, an email, a SQL fragment, a sanitized HTML chunk, or a session token — the type can't tell them apart, so the compiler can't stop you from using one where another belongs. An `int` could be a user id, an order id, a price in cents, or a quantity. The compiler happily lets you subtract a price from a quantity or look up an order by a user id. These mix-ups are real, they ship, and they're maddening to debug because *the types looked fine*.
-
-The cure is to **carve distinct types out of primitives**. A `UserId` is a number, but a *different* type from `OrderId`. An `Email` is a string, but a *different* type from a raw `string`. Once `UserId` and `OrderId` are distinct, passing one where the other is expected is a compile error. Once `Email` is distinct from `string`, you can only get one by parsing — so it's always valid.
-
-> 🎓 **Why this matters for a middle engineer:** You're now writing code other people depend on — shared functions, library APIs, service boundaries. The cost of a wrong-type-passed bug multiplies across every caller. Encoding domain distinctions in the type system is how you make your APIs *misuse-resistant*: a colleague who calls your function the wrong way gets a red squiggle, not a 3 a.m. page. This is the difference between code that's *correct if used carefully* and code that's *correct by construction*.
-
-This page is example-heavy across TypeScript, Rust, Haskell, Kotlin, and Swift.
-
----
-
-## Prerequisites
-
-- **Required:** The junior page's three habits (illegal states, parse-don't-validate, explicit absence).
-- **Required:** Comfort with generics in at least one language (`List<T>`, `Option<T>`, `function f<T>(x: T)`).
-- **Required:** Knowing what a constructor / factory function is, and what "private" means for a field or constructor.
-- **Helpful:** Familiarity with TypeScript's structural typing, or Rust/Haskell's nominal typing — we contrast them.
-- **Helpful:** Having debugged a "passed the arguments in the wrong order" bug.
-
-You do **not** yet need: the full typestate pattern, phantom *state* types, or type-driven development — those are `senior.md`.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Newtype** | A distinct type wrapping a single underlying value, with no runtime overhead in most languages. `newtype UserId = UserId Int`. Rust: `struct UserId(u64)`. |
-| **Branded type** | TypeScript's emulation of a newtype: an underlying type intersected with a unique "brand" marker, e.g. `string & { __brand: "Email" }`. |
-| **Nominal typing** | Two types are compatible only if they have the *same name/declaration*. Rust, Haskell, Java, Swift, Kotlin. Newtypes are distinct automatically. |
-| **Structural typing** | Two types are compatible if they have the *same shape*. TypeScript, Go (interfaces). Plain wrappers leak; you need branding to force distinction. |
-| **Smart constructor** | A factory function that validates and returns `Option`/`Result`/nullable, paired with a *private* raw constructor so the only way to build the type is through the validating factory. |
-| **Typed builder** | A builder whose *return type changes* as required fields are set, so `build()` only exists once all required fields are present. |
-| **Discriminated union** | A sum type with an explicit tag field used to distinguish cases and drive exhaustive handling. |
-| **Units of measure** | Distinct types for physical/domain units (`Meters`, `Feet`, `Cents`, `Seconds`) so you can't add incompatible quantities. |
-| **`Validated<T>` / `Unvalidated<T>`** | A pattern that tags whether a value has passed validation, so an API can require the validated flavor. |
-| **Type alias** | A *name* for an existing type (`type UserId = number`). **Not** a new type — provides documentation but no safety. The common trap. |
-| **Zero-cost abstraction** | A type-level distinction that compiles away to the underlying representation, costing nothing at runtime. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -184,37 +140,6 @@ type ApiResponse<T> =
   | { status: "notFound" }
   | { status: "error"; code: number; message: string };
 ```
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Newtype** | Different-shaped plugs for different voltages. A 120V plug physically won't fit a 240V socket, even though both carry "electricity." |
-| **Type alias (no safety)** | Writing "Order ID" on a sticky note attached to a plain number. Helpful label, but nothing stops you using it as a user ID. |
-| **Smart constructor** | A coin-operated turnstile: the *only* way onto the platform is through the gate that checks your ticket. No ticket, no entry, no exceptions. |
-| **Units of measure** | A recipe specifying "grams" vs "ounces" as different measuring cups that don't stack. You must convert deliberately. |
-| **`Sanitized<string>`** | Food labeled "washed and ready to eat" vs "wash before use." The kitchen only accepts the washed kind into the salad. |
-| **Typed builder** | A form that grays out the "Submit" button until every required field is filled. |
-| **Discriminated union** | A package label: "fragile / perishable / hazardous" — exactly one category, and each routes to different handling. |
-| **Branded type** | A hologram sticker on a product. The product *looks* identical to a counterfeit, but the brand mark proves provenance. |
-
----
-
-## Mental Models
-
-### The "primitives are too generous" model
-
-A `string` is a promiscuous type — it'll be anything. Every time you accept a `string` parameter that *means* something specific (an email, an id, a path), you're trusting every caller to pass the right kind of string, with no enforcement. The newtype/brand move is: take the meaning out of your head and put it in the type, so the compiler enforces it for you. Ask of every primitive parameter: *"is this really 'any string', or is it a specific kind of string?"* If specific, give it a type.
-
-### The "one door" model
-
-For a value with rules (`Email`, `PositiveInt`, `NonEmptyList`), picture a building with exactly one entrance — the smart constructor — staffed by a guard who checks credentials. Every other wall is solid (private constructor). Once someone's inside, you *know* they passed the guard; you never re-check IDs in the hallways. The privacy of the raw constructor is what seals the other walls.
-
-### The "type carries the proof" model
-
-After parsing, the *type itself* is evidence. `Email` means "this string passed email validation." `Validated<Form>` means "this form satisfied its rules." `Sanitized<string>` means "this string is safe to interpolate." When you see one of these types in a signature, you can read off what's already guaranteed — no need to trace back through the code to find out whether it was checked. The type is a certificate.
 
 ---
 
@@ -385,30 +310,6 @@ new ConfigBuilder().host("db").port(5432).build();   // ✅
 
 ---
 
-## Pros & Cons
-
-| Aspect | Pros | Cons |
-|--------|------|------|
-| **Mix-up safety** | `UserId` vs `OrderId`, `Meters` vs `Feet` — wrong-argument bugs become compile errors. | Requires defining the wrapper types and the boilerplate to wrap/unwrap. |
-| **Validity** | Smart constructors guarantee every value of the type is valid; downstream code drops defensive checks. | You must funnel construction through the factory; ad-hoc construction is disallowed (that's the point, but it's friction). |
-| **Runtime cost** | Rust/Kotlin/Haskell newtypes and TS brands are zero-cost — erased to the underlying value. | Swift/Java struct wrappers may add an allocation; measure if hot. |
-| **API clarity** | Signatures read like documentation: `charge(amount: Cents)`. | Over-newtyping (a type for every field) creates noise; needs judgment. |
-| **Structural langs** | Branding gives TS the nominal distinctions it lacks. | Brands rely on `as` casts at the mint site — a small unsafe spot you must keep controlled. |
-| **Builders** | Required fields enforced at compile time; no "forgot to set X" runtime errors. | Typed builders are more verbose and can confuse readers unfamiliar with the technique. |
-
----
-
-## Use Cases
-
-- **Identifiers:** `UserId`, `OrderId`, `TenantId` — anywhere two ids of the same primitive type coexist and could be swapped.
-- **Validated domain values:** `Email`, `PhoneNumber`, `Url`, `PositiveInt`, `NonEmptyList`, `Percentage` — parse once via a smart constructor.
-- **Units & money:** `Cents`/`Dollars`, `Meters`/`Feet`, `Seconds`/`Millis` — prevent dimension mix-ups and rounding disasters.
-- **Security-tagged data:** `Sanitized<string>` vs `Raw<string>`, `Trusted` vs `Untrusted`, `Encrypted` vs `Plaintext` — make the unsafe value untypeable where safety is required.
-- **Multi-field construction:** typed builders for HTTP requests, configs, query builders, where some fields are mandatory.
-- **Protocol messages / events / API responses:** discriminated unions with exhaustive handling.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: newtype-per-id
@@ -470,13 +371,24 @@ When you don't want a domain type per field, use `Validated<T>`/`Unvalidated<T>`
 
 ---
 
-## Summary
+## Apply it
 
-- **Primitives are too generous:** `string` and `int` can't distinguish an email from a name or a user id from an order id, so the compiler can't stop mix-ups. The fix is to carve **distinct types** out of primitives.
-- A **type alias** (`type UserId = number`) gives documentation but **no safety** — it's a synonym. A **newtype** (nominal languages) or **branded type** (structural languages like TS) gives a genuinely distinct type that prevents mix-ups, at zero runtime cost in most languages.
-- A **smart constructor** — private raw constructor plus a validating factory — guarantees every value of the type is valid. There's "one door," so downstream code never re-checks. This is "parse, don't validate" enforced by the type's construction.
-- **Units of measure** as newtypes (`Cents`/`Dollars`, `Meters`/`Feet`) prevent dimension disasters; provide explicit conversions only.
-- **`Validated<T>`/`Sanitized<string>`** tag a value's safety status in the type, so APIs can demand the safe flavor and make the unsafe one a compile error (e.g. XSS/SQLi prevention).
-- **Typed builders** enforce required fields at compile time by changing the return type as fields are set, so `build()` is unreachable until everything required is present.
-- **Discriminated unions** model "one of several kinds" (API responses, events) with exhaustive handling.
-- Judgment matters: **don't newtype everything.** Reserve the technique for values with rules or confusion risk. The senior page covers the full typestate pattern, phantom types, type-driven development, and when *not* to reach for cleverness.
+1. Find a real component where **Practical Type-System Patterns** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
+
+## Verify your work
+
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
+
+## Review questions
+
+- Which boundary is most affected by Practical Type-System Patterns?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

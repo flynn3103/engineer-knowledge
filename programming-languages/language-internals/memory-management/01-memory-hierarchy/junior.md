@@ -1,41 +1,11 @@
-# The Memory Hierarchy — Junior Level
+# The Memory Hierarchy — Junior
 
-> **Topic:** The Memory Hierarchy
-> **Focus:** Build a clear mental picture of the storage pyramid — registers, caches, RAM, disk — and why "where data lives" decides how fast your program runs.
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **The Memory Hierarchy** in one small example and prove the result?
 
-## Introduction
-
-When you write `x = arr[i]`, you imagine the CPU just "reading memory." In reality, the value might come from a tiny register inside the CPU, from a cache a few nanometers away, from a DRAM chip on a stick across the motherboard, or from an SSD a thousand times slower. These are not interchangeable. Reading the same byte can take **less than a nanosecond or tens of microseconds** depending on where it currently sits.
-
-The **memory hierarchy** is the layered arrangement of these storage levels, ordered from tiny-fast-expensive at the top to huge-slow-cheap at the bottom. Understanding it is the single most useful piece of hardware knowledge for writing fast software, because almost every performance problem in modern code is really a *data-movement* problem in disguise.
-
-This file gives you the foundations: what the levels are, how slow each one is, and the one idea — **locality** — that lets the fast levels do most of the work.
-
----
-
-## Prerequisites
-
-- You know what a variable and an array are.
-- You know roughly that a CPU executes instructions one after another.
-- You have seen the units: a **byte** (8 bits), **KB / MB / GB**, and the time units **ns** (nanosecond, one billionth of a second) and **µs** (microsecond, one millionth).
-
-That's it. No assembly, no operating-system theory.
-
----
-
-## Glossary
-
-- **CPU register** — a handful of named storage slots *inside* the processor core, each holding one word (e.g. 8 bytes). The fastest storage that exists.
-- **Cache** — small, fast memory built into the CPU that keeps recently/likely-used data close. Comes in levels: **L1**, **L2**, **L3**.
-- **RAM / DRAM / main memory** — the gigabytes of working memory on the memory sticks. Volatile (lost on power off).
-- **SSD / disk / storage** — persistent storage. Survives power off, but far slower than RAM.
-- **Latency** — how long *one* access takes (the wait).
-- **Bandwidth** — how much data you can move *per second* (the pipe width).
-- **Cache line** — the fixed-size chunk (typically **64 bytes**) the CPU actually transfers between RAM and cache. You never load just one byte.
-- **Locality** — the tendency of programs to reuse the same data (temporal) or nearby data (spatial) soon.
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -82,31 +52,6 @@ Network (LAN)    —                 ~0.1–1 ms       a week+
 ```
 
 The last column rescales time so one CPU cycle feels like one second. On that scale, going to RAM feels like waiting minutes, and going to SSD feels like waiting a *day*. This is why a single unnecessary trip to disk can dwarf millions of in-cache operations.
-
----
-
-## Real-World Analogies
-
-**The desk, the drawer, the basement.**
-
-- **Registers** = the few items in your hands right now.
-- **L1/L2 cache** = the things on your desk — instantly grabbable.
-- **L3 cache** = the desk drawer — one reach away.
-- **RAM** = the bookshelf across the room — you have to get up.
-- **SSD** = the storage boxes in the basement — a real trip.
-- **Network/disk** = ordering the item from another city.
-
-You don't move your whole library onto the desk; you keep the few things you're *using* there, and fetch from the basement only when you must. A good worker (and good code) arranges their work so most reaches are to the desk.
-
-**The cache line as a six-pack.** When you go to the fridge for one soda, you grab the whole six-pack on the shelf, not a single can. RAM works the same way: ask for one byte, get the surrounding 64. If you then drink the other five (use nearby data), the trip was cheap *per item*. If you take one sip and walk away, you wasted the trip.
-
----
-
-## Mental Models
-
-- **"RAM is the new disk."** To a modern CPU, main memory is *slow*. The caches are the real fast memory. Treating DRAM as "instant" is the beginner's mistake.
-- **You pay per cache line, not per byte.** Cost is dominated by how many *distinct 64-byte lines* you touch, not how many bytes. Touching 64 bytes packed in one line is roughly the cost of touching one byte.
-- **Sequential is cheap, scattered is expensive.** Walking through memory in order lets the hardware prefetch ahead and reuse lines. Jumping around defeats both.
 
 ---
 
@@ -166,14 +111,6 @@ Swap the loop order and Go suffers exactly the same slowdown. The hierarchy does
 
 ---
 
-## Use Cases
-
-- **Choosing a data structure.** An array of numbers you scan in order will fly through cache. A linked list with the same numbers scattered across the heap can be many times slower for the same scan, because each node may be a fresh cache miss.
-- **Sizing a hot working set.** If the data you touch in a tight loop fits in L2 (a megabyte or so), the loop runs near peak speed. Exceed it and you fall to DRAM speed.
-- **Understanding "why is this slow?"** When a profiler shows time vanishing into a simple-looking loop, the answer is usually cache misses, not the arithmetic.
-
----
-
 ## Best Practices
 
 1. **Prefer contiguous, sequential access.** Arrays scanned front-to-back are the gold standard.
@@ -192,12 +129,24 @@ Swap the loop order and Go suffers exactly the same slowdown. The hierarchy does
 
 ---
 
-## Summary
+## Apply it
 
-- Memory is a **pyramid**: registers → L1 → L2 → L3 → DRAM → SSD → network, getting bigger, cheaper, and *much* slower as you descend.
-- The hierarchy exists because no single memory is fast, huge, and cheap at once.
-- Hardware moves data between levels **automatically**, in **64-byte cache lines**, betting on **locality**.
-- Your performance is decided mostly by **how many distinct lines you touch and in what order**, not by raw operation counts.
-- The headline rule: **sequential access through contiguous memory is fast; scattered access is slow** — and the gap is often 5–100×.
+1. Choose one small, known input for **The Memory Hierarchy**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
-Everything else in memory management builds on this picture. Get it solid now.
+## Verify your work
+
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
+
+## Review questions
+
+- What problem does The Memory Hierarchy solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

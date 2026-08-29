@@ -1,54 +1,11 @@
-# Cross-Language Interop — Professional Level
+# Cross-Language Interop — Professional
 
-> **Topic:** Cross-Language Interop
-> **Focus:** Making the interop decision in production — the FFI vs polyglot-VM vs Wasm-component vs RPC framework, the engineering discipline that keeps each one alive (C++ shims, COM refcounting, schema evolution), and the failure modes that send a team back to redesign.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Cross-Language Interop** with measurable outcomes and limited coordination?
 
-## Introduction
-
-At the professional tier — Staff, Principal, Distinguished — cross-language interop stops being "how do I call this library from my language" and becomes "which boundary do I draw, and what will it cost the organization for the next five years." The senior tier gave you the full spectrum: in-process FFI, polyglot VMs, Wasm components, and RPC. This page is about choosing among them under real constraints — latency budgets, fault-isolation requirements, team boundaries, portability mandates, and the maintenance burden of whatever you pick — and then keeping that choice healthy in production.
-
-The recurring theme is that **interop is a coupling decision disguised as a technical one.** When you pick in-process FFI you are saying "these two languages will share a crash domain, a deployment, and a memory space forever." When you pick RPC you are saying "these two systems will evolve independently, fail independently, and pay a serialization tax on every call." Neither is right or wrong in the abstract; the professional skill is reading which constraint dominates and not defaulting to whatever the team used last time. A trading firm that picks gRPC for a sub-microsecond inner loop has made an architectural error; a platform team that picks a hand-written FFI shim for a multi-tenant plugin surface has made a security and reliability error. Both errors are common, both are expensive, and both are avoidable with a framework.
-
-This document assumes you can already flatten a C++ class to a C ABI, write a `.proto`, and explain the canonical ABI. What changes here is consequence and discipline. We will walk the decision framework explicitly, then go deep on the engineering that keeps each mechanism alive in production: the shim layer that wraps a C++ API, the refcount accounting that COM demands, the schema-evolution rules that let an IDL outlive a single deploy, and the precise reasoning that makes RPC the correct choice when fault isolation is the hard requirement.
-
-> 🎓 **Why this matters at this level:** The interop boundary is one of the hardest architectural decisions to reverse. Migrating from an in-process FFI to RPC is a multi-quarter project that touches build systems, deployment, observability, and on-call. Getting it right the first time is worth more than almost any micro-optimization you will make this year.
-
----
-
-## Prerequisites
-
-- Junior, middle, and senior tiers of this topic fully internalized.
-- Hands-on experience flattening at least one C++ or Rust API to a C ABI and binding it from a managed language.
-- Having defined and evolved at least one IDL-based service (Protobuf/gRPC, Thrift, or similar) in production.
-- Familiarity with at least one polyglot runtime (JVM-family or .NET-family) and one Wasm toolchain.
-- Operational experience: on-call for a service whose failures crossed a language boundary.
-- Comfort reasoning about crash domains, blast radius, and deployment coupling.
-
----
-
-## Glossary
-
-| Term | Meaning |
-|------|---------|
-| **Crash domain** | The set of components that die together when one of them faults. In-process FFI and polyglot VMs share one; RPC and sandboxed components do not. |
-| **Coupling axis** | The spectrum from tightly coupled (shared memory, shared deploy) to loosely coupled (independent processes, independent deploy). |
-| **`extern "C"` shim** | A C-linkage wrapper around C++ code that exposes a flat, name-mangling-free, exception-free C ABI surface. |
-| **Opaque pointer / handle** | A `void*` (or typed-but-opaque struct pointer) that represents a C++ object across the boundary without exposing its layout. |
-| **SWIG** | Simplified Wrapper and Interface Generator — generates binding code from an interface file for many target languages. |
-| **COM** | Component Object Model — Microsoft's binary standard for cross-language objects via vtable interfaces and `IUnknown` refcounting. |
-| **IUnknown** | The base COM interface: `QueryInterface`, `AddRef`, `Release`. Identity, discovery, and lifetime. |
-| **Refcount leak** | An object never freed because an `AddRef` was not matched by a `Release`. |
-| **Over-release** | An object freed early because `Release` was called more times than `AddRef`, causing use-after-free in remaining holders. |
-| **WIT** | WebAssembly Interface Types — the IDL of the Wasm Component Model. |
-| **Canonical ABI** | The Component Model's specified, stable layout of WIT types over core Wasm. |
-| **IDL** | Interface Definition Language — a language-neutral description of types and operations (`.proto`, `.thrift`, `.capnp`, WIT). |
-| **Wire compatibility** | Whether messages produced by one schema version can be read by another. |
-| **Field number / tag** | The stable integer identity of a field in Protobuf/Thrift; the contract, not the field name. |
-| **Zero-copy deserialization** | Reading structured data directly from the wire buffer without parsing into separate objects (Cap'n Proto, FlatBuffers). |
-| **Fault isolation** | The property that one component's failure cannot corrupt or crash another. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -184,33 +141,6 @@ The most important interop decision a professional makes is often choosing the *
 - **Blast-radius control.** A memory leak, a resource exhaustion, or a runaway loop in the remote component is contained; it does not consume your host's heap.
 
 The cost you pay — serialization, a network/IPC hop, operational complexity — is real and must be measured. But when the dominant requirement is "this failure must not take down that," RPC is not the slow compromise; it is the correct architecture, and FFI would be the bug.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **In-process FFI** | Sharing one apartment with a stranger: instant, intimate, and if they start a fire you both burn. |
-| **`extern "C"` shim** | An embassy translator who only passes simple, agreed phrases — no idioms, no exceptions — across the border. |
-| **Opaque handle** | A coat-check ticket: it identifies your coat without revealing or exposing the coat itself. |
-| **COM refcount** | A shared-cabin booking ledger: every guest who checks in must check out, or the cabin is never released. |
-| **Polyglot VM** | A bilingual household: everyone speaks the same house language, but they all live in one house that one fire can burn down. |
-| **Wasm component** | A soundproof recording booth with a standard intercom: isolated, but rich messages pass through the agreed panel. |
-| **RPC with an IDL** | Two companies trading via signed purchase orders: slower than a handshake, but each can fail, audit, and evolve on its own. |
-| **Schema evolution** | Tax forms that add new boxes each year while keeping the old box numbers stable so old software still files. |
-
----
-
-## Mental Models
-
-**The coupling dial.** Picture a single fader from "shared everything" to "shared nothing." FFI is full left (shared memory, shared crash, shared deploy); RPC is full right (shared nothing but a contract). Polyglot VMs and Wasm components sit in between. You are not choosing a technology; you are setting how tightly two pieces of software are bound together. Set the dial by the dominant constraint, not by habit.
-
-**Speed and isolation are a budget you cannot both max.** Every step toward isolation costs latency; every step toward speed costs a shared failure mode. The professional move is to spend that budget per boundary — a hot inner loop full-left, a third-party plugin in the Wasm middle, a cross-team edge full-right — rather than forcing one setting on the whole system.
-
-**The contract is the component.** From COM to WIT to Protobuf, cross-language interop always reduces to a stable contract of identity, lifetime, and operations. The implementation language is irrelevant; the contract is the thing you version, review, and defend. When you design any boundary, you are really designing a contract that must outlive both sides' current versions.
-
-**A boundary you cannot reverse cheaply must be chosen carefully.** FFI-to-RPC migrations are quarters-long. Treat the initial interop choice with the gravity of a schema choice in a database: easy to set, expensive to change.
 
 ---
 
@@ -352,29 +282,6 @@ The lesson the senior tier stated and the professional tier enforces in review: 
 
 ---
 
-## Pros & Cons
-
-| Mechanism | Pros | Cons |
-|-----------|------|------|
-| **In-process FFI** | Fastest possible call; zero-copy; full native speed | Shared crash domain; shared memory (security); ABI fragility; manual ownership; you own the binding layer |
-| **Polyglot VM** | Near-zero interop cost; shared types and GC; mature tooling | No fault isolation (one process); GC-interop edges; lock-in; same-runtime languages only |
-| **Wasm component** | Near-native speed *and* sandbox; portable; stable WIT ABI; capability security; many source languages | Young ecosystem; uneven toolchain support; lift/lower cost on large payloads; version skew |
-| **RPC / IPC (IDL)** | True fault isolation; independent deploy/scale; any language; disciplined evolution | Serialization + network/IPC latency on every call; operational complexity; schema-discipline burden |
-
----
-
-## Use Cases
-
-- **A hot numeric kernel called millions of times from a managed app** → in-process FFI through a flat C shim; the throughput justifies the coupling, and the code is trusted.
-- **A monolith where Kotlin, Scala, and Java already coexist** → shared-runtime interop; adding any other mechanism is self-inflicted complexity.
-- **A SaaS platform running customer-supplied plugins** → Wasm components with WASI capabilities; near-native speed with a real sandbox and per-plugin capability grants.
-- **A media pipeline calling a fragile, crash-prone third-party codec** → RPC/IPC; isolate the crash so a malformed file kills a worker, not the service.
-- **Two teams with separate SLAs, on-call rotations, and release trains** → RPC; the boundary is organizational as much as technical.
-- **Driving legacy Windows components from a modern app** → COM/.NET interop with RAII refcount wrappers.
-- **A latency-critical service where Protobuf decode is the bottleneck** → Cap'n Proto or FlatBuffers to eliminate the parse step.
-
----
-
 ## Coding Patterns
 
 - **Tiny boundary surface.** Whatever the mechanism, minimize the number of functions/types crossing. A small boundary is a small bug surface and a small thing to evolve.
@@ -418,22 +325,24 @@ The lesson the senior tier stated and the professional tier enforces in review: 
 
 ---
 
-## War Stories
+## Apply it
 
-**The plugin that took down the fleet.** A platform team shipped customer plugins as native shared libraries loaded via FFI for speed. It worked until a customer's plugin had a buffer overrun on a specific input; the overrun corrupted the host's heap and crashed not one request but the whole worker process, repeatedly, across the fleet as the bad input replayed. The post-mortem conclusion was not "fix the plugin" — it was "the architecture was wrong." They migrated the plugin surface to Wasm components: same near-native speed, but a guest fault now traps and returns an error instead of corrupting the host. The lesson: *for untrusted in-process code, isolation is a requirement, not an optimization, and FFI cannot provide it.*
+1. Define the user or business outcome that **Cross-Language Interop** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
-**The COM leak that took three weeks to find.** A long-running Windows service slowly grew its memory over weeks until it OOM-ed. The cause was a single code path that called `QueryInterface` to probe for an optional interface and, on the rare branch where the interface was present, forgot the matching `Release`. Because the branch was rare, the leak was slow; because it was slow, it survived testing. The fix was mechanical — wrap the pointer in `ComPtr` — but the search was painful. The lesson: *manual refcounting hides leaks in rare branches; RAII the lifetime so no branch can forget.*
+## Verify your work
 
-**The field number that corrupted payments.** A team removed a deprecated field from a Protobuf message and, in the same change, added a new field — reusing the now-free field number. Old producers still on the prior schema were writing the old field's bytes under that number; new consumers read them as the new field. The result was garbage amounts flowing through a payment path before a compatibility test (added afterward) would have caught it in seconds. The lesson: *field numbers are the contract; reserve retired numbers forever and gate schema changes with a round-trip compatibility test in CI.*
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
 
-**The gRPC inner loop.** A trading-adjacent team built a pricing engine and, by reflex, put gRPC between the matching core and the risk module — both in the same datacenter, both owned by the same team, with a sub-millisecond latency budget. Every price update paid a serialize-hop-deserialize tax that consumed most of the budget. The boundary needed no fault isolation (one team, one deploy, one crash domain was acceptable) and no language barrier. Collapsing it to an in-process call recovered the latency. The lesson: *RPC is the right tool for isolation and independent lifecycles; when you need neither, its latency is pure waste.*
+## Review questions
 
----
-
-## Summary
-
-At the professional tier, cross-language interop is a coupling decision you make deliberately and defend over years. The four mechanisms sit on one axis: in-process FFI (fastest, most dangerous, shared crash domain), polyglot VMs (near-free interop within a runtime, but no isolation), Wasm components (the emerging answer — near-native speed *and* a sandbox *and* portability via a stable WIT ABI), and RPC/IPC with an IDL (slowest, most decoupled, the only true fault and evolution boundary). You choose among them by the dominant constraint — latency, isolation, portability, team boundaries — and you refuse to default to the familiar.
-
-Each mechanism then demands its own discipline. FFI demands a tiny, flat `extern "C"` shim with opaque handles, caught exceptions, and explicit ownership — generated by SWIG at scale, but never understood less for being generated. COM demands RAII refcount wrappers because manual `AddRef`/`Release` is a leak factory. IDL boundaries demand schema-evolution rules — stable field numbers, optional everything, reserved retirements — enforced by a compatibility test in CI, not a code-review hope. And the single highest-leverage judgment is knowing when to choose the slower mechanism on purpose: when one component's failure must not take down another, RPC's isolation is worth its latency, and FFI would be the bug.
-
-The professional's superpower is not making the fastest call across a language boundary. It is drawing the boundary in the right place — tight where speed and trust allow, isolated where failure and team independence demand — so the system stays fast where it can and survives where it must.
+- Which measurable outcome justifies investing in Cross-Language Interop?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

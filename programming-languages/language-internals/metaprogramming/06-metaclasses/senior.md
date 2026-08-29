@@ -1,53 +1,11 @@
-# Metaclasses — Senior Level
+# Metaclasses — Senior
 
-> **Topic:** Metaclasses
-> **Focus:** Where metaclasses get hard and where they earn their keep: conflicts in multiple inheritance, `ABCMeta`, how real ORMs (Django, SQLAlchemy) use declarative metaclasses, the bottom of the metaclass ladder, and why `__init_subclass__` largely retired them.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Metaclasses** under failure, load, and change?
 
-## Introduction
-
-> Focus: **At middle level you could write a metaclass. At senior level you must decide whether one belongs in a codebase other people maintain — and survive the moment two libraries' metaclasses collide.**
-
-Metaclasses are the deepest layer of Python's object model that ordinary application code ever touches, and they have a property that nothing else in the language shares: **a class can have exactly one metaclass, and that metaclass is inherited.** That single rule — "one metaclass per class, derived from the most-derived metaclass of all bases" — is the source of every metaclass conflict, every framework integration headache, and the reason a thoughtful senior reaches for a metaclass only when nothing else fits.
-
-This level is about consequences and real systems. We will work through the **metaclass conflict** ("the metaclass of a derived class must be a (non-strict) subclass of the metaclasses of all its bases"), why mixing `abc.ABC` with another metaclass-based library breaks, how Django's `ModelBase` and SQLAlchemy's declarative machinery actually use metaclasses to turn `class User(Model)` into a mapped table, where the metaclass ladder terminates (`type` is its own type — and *why* that's not a paradox), and the broad industry shift in which **PEP 487's `__init_subclass__` made most metaclasses unnecessary**, leaving a smaller, sharper set of cases where they remain the right tool.
-
-> 🎓 At this level the question is rarely "how do metaclasses work" and almost always "should this be a metaclass, a class decorator, or `__init_subclass__` — and what breaks when a teammate subclasses it across two libraries?" The senior skill is judgment under composition.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** Everything in `middle.md` — the class-creation lifecycle, metaclass `__new__`/`__init__`/`__call__`/`__prepare__`, and the PEP 487 alternatives.
-- **Required:** Python's MRO (method resolution order) and C3 linearization at a working level.
-- **Required:** Abstract base classes (`abc.ABC`, `@abstractmethod`) and how `isinstance`/`issubclass` interact with them.
-- **Helpful:** Descriptors in depth (ORMs lean on them heavily alongside metaclasses).
-- **Helpful:** Having read framework source before — Django models or SQLAlchemy declarative.
-
-You do **not** need (it's `professional.md`):
-
-- Ruby eigenclasses, Smalltalk's parallel metaclass hierarchy, JVM/CLR/Objective-C class objects, or the cross-language comparison.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Metaclass conflict** | The `TypeError` raised when a class's bases have metaclasses that are not all subclasses of one common most-derived metaclass. |
-| **Most-derived metaclass** | Python's rule: a class's metaclass must be a (non-strict) subclass of the metaclass of every base; Python picks the most derived one automatically, or errors. |
-| **`ABCMeta`** | The metaclass behind `abc.ABC`; implements `__abstractmethods__`, virtual subclass registration (`register`), and `__subclasshook__`. |
-| **Declarative base** | An ORM base class whose metaclass converts subclass field declarations into a mapped table/schema at class-creation time. |
-| **`ModelBase`** | Django's metaclass for models; builds `_meta`, processes fields, registers the model with its app. |
-| **`DeclarativeMeta`** | SQLAlchemy's classic declarative metaclass (1.x); maps columns/relationships when a model class is defined. |
-| **Virtual subclass** | A class registered with `ABCMeta.register` so `issubclass`/`isinstance` succeed without real inheritance. |
-| **`__mro_entries__`** | Hook letting non-class objects (e.g. `Generic[T]`) participate in base lists; relevant to how typing composes with class creation. |
-| **Metaclass ladder bottom** | `type(type) is type`; the recursion terminates because `type` is its own metaclass. |
-| **Mixin metaclass** | A common subclass of two conflicting metaclasses, created to resolve a conflict by giving both libraries one compatible metatype. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -144,59 +102,6 @@ PEP 487 (Python 3.6) was explicitly motivated by the observation that *most* rea
 - **Cooperative by design.** `super().__init_subclass__(**kwargs)` chains cleanly through multiple bases.
 
 The metaclass cases that *remain* legitimate: controlling instance creation across a hierarchy (`__call__`), controlling the namespace mapping (`__prepare__`, as `enum` does), and imposing a shared metaclass-level interface (as `ABCMeta` does). If your need isn't one of those, `__init_subclass__` or a class decorator is the senior-grade choice.
-
----
-
-## Real-World Analogies
-
-**Citizenship and parentage rules.** The metaclass-conflict rule is like a law saying "a child's nationality must be compatible with both parents' nationalities." If the two parents come from incompatible legal systems with no shared framework, you can't register the child — until a treaty (a common metaclass subclassing both) reconciles them. Libraries that ship rigid, non-cooperative metaclasses are nations with no treaties; combining their citizens is impossible.
-
-**The standards body vs. the convention.** `ABCMeta` is a formal standards body — it issues certifications (abstract-method enforcement, virtual subclass registration) and everyone who wants the certificate must route through it. `__init_subclass__` is an informal convention you adopt without joining any body, so you can also hold any *other* certificate at the same time. That's exactly why the convention won for most use cases: no exclusive membership.
-
-**The factory retrofit.** Django/SQLAlchemy metaclasses are like a factory line that, the moment a new product blueprint (model class) is filed, automatically machines the tooling, files the paperwork with the regulator (app registry), and installs sensors (descriptors). It's powerful and load-bearing — and precisely because it's load-bearing, you keep the magic confined to the one place that truly needs it.
-
----
-
-## Mental Models
-
-### Model 1: Two Trees, One Apex Each
-
-```text
-INHERITANCE TREE (what you subclass)     METACLASS TREE (what creates classes)
-        object                                     type
-       /  |   \                                   /    \
-    int  str  Model ...                      ABCMeta  ModelBase ...
-   (bottom: object, base = None)            (bottom: type, type's class = type)
-```
-
-Every class sits in *both* trees. A metaclass conflict is a collision in the **metaclass tree** — two bases pointing at sibling metatypes with no common descendant. Most "why won't these classes combine?" puzzles dissolve once you draw the metaclass tree, not the inheritance tree.
-
-### Model 2: The Conflict Predicate
-
-Before combining classes from different libraries, run this check mentally:
-
-```text
-For class C(B1, B2, ..., metaclass=M_explicit):
-  candidates = {type(B1), type(B2), ..., M_explicit}
-  winner = the unique most-derived element of candidates
-  if no single element is a subclass of all others -> CONFLICT
-```
-
-If you can't name the single winning metaclass, you'll get a `TypeError`, and you'll need a mixin metaclass (and the libraries' cooperation) to proceed.
-
-### Model 3: The Escalation Gate
-
-```text
-Can __init_subclass__ / __set_name__ / a class decorator do it?
-   YES  -> use that. (no conflict tax, discoverable, composable)
-   NO, because I must:
-       - control C() instance creation across a hierarchy -> metaclass __call__
-       - control the class namespace mapping               -> metaclass __prepare__
-       - impose a metaclass-level interface (like ABCMeta)  -> metaclass
-   THEN -> metaclass, and document why, and make it cooperate via super().
-```
-
-At senior level this gate isn't optional; it's the design review you owe your teammates.
 
 ---
 
@@ -323,16 +228,6 @@ The senior summary: metaclasses trade composability and clarity for a narrow ban
 
 ---
 
-## Use Cases
-
-- **Frameworks that must control instantiation** — singletons, instance pooling, or per-type construction policy across a hierarchy (`__call__`).
-- **Enum-like families** — forbidding duplicate names and assigning values via `__prepare__`, as the stdlib `enum` does.
-- **ABC-style structural interfaces** — when you need `__subclasshook__`/virtual subclasses, you're in `ABCMeta` territory by necessity.
-- **Legacy ORM declarative bases** — Django models, SQLAlchemy 1.x; load-bearing, well-tested, kept confined.
-- **Everything else (registration, validation, field naming, plugin discovery)** — should be `__init_subclass__`/`__set_name__`/decorators; reaching for a metaclass here is a senior-level anti-pattern.
-
----
-
 ## Coding Patterns
 
 **Pattern: Mixin metaclass for forced integration.** When you *must* combine two metaclass-bearing hierarchies, define a common metaclass subclassing both and ensure cooperative `super()` calls. Confirm the third-party metaclass cooperates before promising it'll work.
@@ -372,46 +267,24 @@ The senior summary: metaclasses trade composability and clarity for a narrow ban
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```text
-THE RULE: a class's metaclass must be a (non-strict) subclass of EVERY base's metaclass.
-  Violated -> "TypeError: metaclass conflict".
-  Fix      -> class MixinMeta(MetaA, MetaB); use metaclass=MixinMeta (needs cooperative super()).
+1. State the system invariant that **Metaclasses** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
-TWO AXES (keep separate):
-  inheritance: ... -> object (object.__base__ is None)
-  metaclass:   ... -> type   (type(type) is type)
-  type IS-A object; object IS-AN-INSTANCE-OF type  (bootstrapped, not Python-expressible)
+## Verify your work
 
-ABCMeta: abstract-method enforcement + register() virtual subclasses + __subclasshook__.
-  register() = a CLAIM (issubclass true), NOT a contract (no method enforcement).
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
 
-REAL ORMs: Django ModelBase / SQLAlchemy DeclarativeMeta turn a declarative body
-  into a schema/mapping + registration at class-creation time. Confine the magic.
+## Review questions
 
-ESCALATION GATE (only these justify a metaclass):
-  __call__ (instance-creation control) | __prepare__ (namespace) | metatype interface
-  Everything else -> __init_subclass__ / __set_name__ / decorator (no conflict tax).
-
-PEP 487 retired most metaclasses because __init_subclass__ imposes NO metaclass on users.
-DEBUG: type(SomeFrameworkClass) == type?  -> not a metaclass; look at __init_subclass__/decorators.
-```
-
----
-
-## Summary
-
-The defining property of a metaclass is that a class has exactly one, derived from and inherited through its bases — which makes the **metaclass conflict** ("must be a subclass of all bases' metaclasses") the central senior-level hazard. Resolving it means building a cooperative mixin metaclass, which only works if every metaclass in play calls `super()`. `ABCMeta` is the metaclass you already depend on (abstract-method enforcement plus virtual subclassing), and real ORMs — Django's `ModelBase`, SQLAlchemy's declarative metaclass — use metaclasses to compile a declarative class body into a runtime schema and a registration side effect at class-creation time.
-
-The ladder terminates: `type` is its own metaclass and inherits from `object`, a bootstrapped fixed point, not infinite regress. And the industry has decisively shifted: PEP 487's `__init_subclass__`/`__set_name__` retired most metaclasses by covering registration, validation, and field naming without imposing a metaclass — and therefore without the conflict tax. The senior's job is judgment: run the escalation gate, reserve metaclasses for `__call__`/`__prepare__`/metatype-interface needs, confine the magic, and prefer the lighter hook in any code others will extend. The professional level widens the lens to Ruby, Smalltalk, and the JVM/CLR/Objective-C — where "the class is an object" plays out very differently.
-
----
-
-## Further Reading
-
-- The Python "Data model" reference — "Determining the appropriate metaclass" and "Creating the class object."
-- PEP 487 — its rationale section explicitly enumerates the metaclass use cases it set out to replace.
-- Django source — `django/db/models/base.py` (`ModelBase`) for a production declarative metaclass.
-- SQLAlchemy documentation — declarative mapping (1.x `DeclarativeMeta` vs. 2.0's lighter registry/`__init_subclass__` style).
-- The `abc` module reference and PEP 3119 — `ABCMeta`, `register`, and `__subclasshook__`.
+- Which invariant must remain true when Metaclasses fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

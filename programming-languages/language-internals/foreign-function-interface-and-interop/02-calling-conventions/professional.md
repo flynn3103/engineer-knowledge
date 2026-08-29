@@ -1,56 +1,11 @@
-# Calling Conventions — Professional Level
+# Calling Conventions — Professional
 
-> **Topic:** Calling Conventions
-> **Focus:** Owning the ABI boundary in production — variadic fragility, struct classification surprises, `sret`/RVO, save-discipline, alignment faults, red zone vs shadow space, convention mismatch corruption, and how FFI glue must encode the convention exactly.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Calling Conventions** with measurable outcomes and limited coordination?
 
-## Introduction
-
-> Focus: **At this tier the calling convention is a production liability you own, not a textbook curiosity.** The bugs that reach you do not crash at the call site; they corrupt a struct field, scramble a `double`, smash the stack two frames down, or fault on a SIMD store inside `memcpy` — and they reproduce only on one OS, one optimization level, or one core count.
-
-The senior tier taught you the *mechanism*: the SysV INTEGER/SSE/MEMORY classification, the 16-byte rule, `sret`, and the variadic `AL` register. The professional tier is about what happens when that mechanism meets a real codebase under real load: a binding generator that misclassifies one struct in ten thousand, a hand-written assembly trampoline that forgot to align the stack before a `call`, a plugin compiled by a different vendor's toolchain that disagrees about who saves `RBX`, a `printf`-style logging API wrapped through a `void(*)()` cast that drops the prototype.
-
-These failures share a signature: **the call returns, but the program is now wrong.** There is no segfault at the boundary. The damage shows up later — a metric reads garbage, a returned matrix has its second row shifted by eight bytes, a destructor runs on a pointer that was never a valid object, or a `movaps` deep inside an inlined `std::vector` copy faults with `SIGSEGV` on an address that is *almost* aligned. Diagnosing these requires you to read disassembly fluently, to know the exact register a hidden `sret` pointer occupies, and to understand why a 15-byte misalignment never crashes until the optimizer chooses an aligned SSE store.
-
-This document is the field manual for that work. It covers variadic ABI as it actually behaves in production (and why `printf`-family FFI is perennially fragile), the struct classification cases that surprise even experienced engineers, the `sret`/RVO contract and its argument-shift, caller/callee save-discipline as a corruption source, the 16-byte stack alignment invariant and the `movaps` faults that punish violations, the red zone versus Windows shadow space, what literally happens to the stack when you call a `stdcall` function through a `cdecl` declaration, the `__attribute__((ms_abi))` / `((sysv_abi))` escape hatches for mixing ABIs in one image, and the central professional lesson: **FFI glue is correct only if it encodes the callee's convention exactly — and the cheapest way to guarantee that is to let the C compiler do it.**
-
-> 🎓 **Why this matters at the professional level:** You own the interop layer, the JIT's call lowering, the plugin ABI policy, or the binding generator everyone else depends on. When a customer reports "works on Linux, garbage on Windows" or "fine at `-O0`, crashes at `-O2`," the root cause is almost always one of the items in this document. Your value is being the person who can name the failure mode from the symptom and the disassembly.
-
----
-
-## Prerequisites
-
-- **Required:** The senior tier — SysV eightbyte classification, the 16-byte rule, `sret`, the variadic `AL` rule, and the Windows by-reference-unless-1/2/4/8 model.
-- **Required:** Fluent reading of x86-64 and (ideally) AArch64 disassembly: register files, `call`/`ret`, `push`/`pop`, `movaps`/`movups`, `sub rsp`.
-- **Required:** C struct layout, `va_list`/`va_start`/`va_arg`, and how `<stdarg.h>` lowers.
-- **Helpful:** Having shipped or maintained FFI glue (cgo, `bindgen`, P/Invoke, JNA/JNI, ctypes, a JIT call site).
-- **Helpful:** Debugging weakly-ordered and optimization-sensitive corruption with `gdb`/`lldb`, `objdump`, and a sanitizer.
-
-You do **not** need here:
-
-- Symbol versioning, ABI compatibility policy across releases (separate topic).
-- Name decoration / mangling in depth (its own topic; touched on only where the symbol name encodes the convention).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Variadic prologue / register save area** | The block a variadic callee fills from the argument registers (and `AL`-selected XMMs) so `va_arg` can index it later. |
-| **`AL` rule** | SysV: the caller must set `AL` to the number of vector (XMM) registers used by variadic arguments. |
-| **Default argument promotions** | Variadic args are promoted: `float`→`double`, sub-`int` integers→`int`. `va_arg(ap, float)` is undefined. |
-| **`sret`** | Structure-return: caller-allocated storage whose pointer is passed implicitly (RDI on SysV, RCX on Win64), returned in RAX. |
-| **(N)RVO** | (Named) Return Value Optimization — constructing the return object directly in the caller's `sret` slot, eliminating a copy. |
-| **Caller-saved (volatile)** | Registers the *caller* must preserve across a call if it needs them (RAX, RCX, RDX, RSI, RDI, R8–R11 on SysV). |
-| **Callee-saved (non-volatile)** | Registers the *callee* must restore before returning (RBX, RBP, R12–R15, and RSP on SysV). |
-| **16-byte alignment invariant** | At a `call` instruction, `RSP % 16 == 0`; at function entry (after the return address is pushed) `RSP % 16 == 8`. |
-| **`movaps`/`movdqa`** | Aligned 16-byte SSE moves; fault (`#GP`/`SIGSEGV`) if the operand is not 16-byte aligned. |
-| **Red zone** | SysV: 128 bytes below RSP that leaf functions may use without adjusting RSP; signal handlers must respect it. |
-| **Shadow space (home space)** | Win64: 32 bytes the caller reserves above the return address for the callee to spill its four register parameters. |
-| **`ms_abi` / `sysv_abi`** | GCC/Clang function attributes forcing the Windows or SysV convention on a single function regardless of target. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Variadic ABI in Production
@@ -389,77 +344,24 @@ A type with a non-trivial copy/dtor is always passed/returned in memory by an in
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```text
-VARIADICS (production)
-  SysV:    caller sets AL = # of XMM regs used by varargs; callee spills save area
-  Win64:   float varargs in BOTH gp and xmm reg; no AL
-  AArch64: separate GP/FP save areas
-  RULE:    never FFI a variadic fn; use the va_list sibling or a C shim
-  va_arg:  promotions float->double, sub-int->int; va_arg(ap,float) is UB
+1. Define the user or business outcome that **Calling Conventions** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
-STRUCT-BY-VALUE TRAPS (SysV)
-  {float x,y}        -> ONE xmm (packed)        | {int a; float b} -> ONE gp (merged INTEGER)
-  {double a,b}       -> XMM0,XMM1               | {long a; double b}-> RDI + XMM0
-  add a field        -> may flip RAX -> sret    | packed/under-aligned -> MEMORY
-  Win64 {double a,b} -> BY REFERENCE (ptr RCX)  | C++ non-trivial type -> always in memory
+## Verify your work
 
-sret / RVO
-  >16B (SysV) return -> caller allocs, hidden ptr in RDI, echoed in RAX
-  shifts real INTEGER arg1 -> RSI (SSE arg1 stays in XMM0)
-  Win64 hidden ptr -> RCX ; AArch64 indirect result -> X8 (no arg shift)
-  == the mechanism behind guaranteed (N)RVO
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
 
-SAVE DISCIPLINE
-  SysV callee-saved : RBX RBP R12-R15 RSP
-  Win64 callee-saved: + RSI RDI + XMM6-XMM15
-  trampoline MUST push/restore the exact set; clobber -> caller-frame corruption
+## Review questions
 
-ALIGNMENT
-  at `call`: RSP % 16 == 0  (entry: RSP % 16 == 8)
-  violation faults on movaps/movdqa inside callee, often only at -O2
-  fix: even push count, or `sub rsp,8`
-
-RED ZONE vs SHADOW SPACE
-  SysV red zone : 128B below RSP, leaf scratch, no RSP adjust; async writers must skip it
-  Win64 shadow  : caller reserves 32B above return addr for callee param spills
-
-CONVENTION MISMATCH (x86 32-bit)
-  cdecl   : CALLER cleans args (`add esp,N`)  -> supports varargs
-  stdcall : CALLEE cleans args (`ret N`)      -> Win32 API
-  stdcall-as-cdecl: args cleaned twice -> ESP drifts +N -> later ret crashes
-  defense: name decoration _Name@N ; lost under GetProcAddress/dlsym -> pin convention
-
-MIXING ABIs
-  __attribute__((ms_abi))   -> force Win64 conv on one fn (regs, +nonvol, shadow space)
-  __attribute__((sysv_abi)) -> force SysV conv on one fn
-  apply at the boundary fn ONLY
-
-FFI GLUE RULE
-  glue must encode: arg register file, struct classification + arg shift,
-  return path (reg/pair/sret/X8), AL+va_list, callee-saved set, 16B align,
-  shadow space / red zone.  CHEAPEST CORRECT PATH: generate a C shim.
-```
-
----
-
-## Summary
-
-At the professional tier, the calling convention is a production contract you enforce, and its violations are silent: the call returns, but a struct field is shifted, a `double` is garbage, the stack is smashed two frames down, or a `movaps` faults inside inlined library code. **Variadics** are perennially fragile because the SysV `AL` obligation and the `va_arg` type rules live in the prototype, which FFI routinely erases through `void*` casts — so you wrap the `va_list` sibling or a C shim instead of calling `printf` directly, and you remember that SysV, Win64, and AArch64 implement the *same* `printf` three different ways.
-
-**Struct-by-value** is where the surprises cluster: two floats ride in one XMM, an int+float merges to one integer register, a 16-byte two-double struct travels in registers on SysV but by reference on Win64, and adding a single field can flip a function from register-return to `sret`. **`sret`** is the hidden out-pointer that makes large returns and guaranteed RVO work — and it shifts the real arguments down a register, a shift that hand-written callers and JITs forget. **Save-discipline** failures (clobbering `RBX` or Win64's `RSI`/`RDI`) corrupt the caller's frame; **alignment** failures (an odd push count) fault on aligned SIMD deep inside the callee, only at `-O2`. The **red zone** (SysV leaf scratch below `RSP`) and **shadow space** (Win64's 32 caller-reserved bytes) are opposite conventions that corrupt each other when crossed. The **stdcall-as-cdecl** mismatch double-cleans the 32-bit stack and drifts `ESP` until a later `ret` jumps into garbage. The `ms_abi`/`sysv_abi` attributes let one binary speak both conventions, but only at the exact boundary function.
-
-The throughline is that **FFI glue is correct only if it encodes the callee's convention exactly** — register file, classification, argument shift, return path, `AL`, save set, alignment, shadow/red zone — and the cheapest way to guarantee all of that is to stop reimplementing the ABI and let the C compiler do it: generate a C shim, prefer pointers over by-value aggregates, branch on OS for structs, and verify every boundary in the disassembler. The next tier addresses ABI *stability* across releases — versioning and the compatibility policy that keeps all of this from breaking under your customers.
-
----
-
-## Further Reading
-
-- *System V AMD64 ABI*, §3.2 (parameter passing, the variadic register-save area) and §3.2.3 (the classification algorithm, red zone).
-- Microsoft, "x64 calling convention" and "x64 stack usage" — shadow space, by-reference structs, the `RCX` return pointer.
-- Arm, *AAPCS64* — HFAs, the `X8` indirect result register, and SP alignment.
-- GCC/Clang documentation for `__attribute__((ms_abi))`, `((sysv_abi))`, and `-mno-red-zone`.
-- libffi internals and the per-platform `ffi_prep_cif`/`ffi_call` paths, including variadic CIF preparation.
-- ISO C `<stdarg.h>` semantics and the default argument promotions.
-- Agner Fog, *Calling Conventions for Different C++ Compilers and Operating Systems* — a cross-platform reference table.
+- Which measurable outcome justifies investing in Calling Conventions?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

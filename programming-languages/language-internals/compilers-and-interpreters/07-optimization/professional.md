@@ -1,61 +1,11 @@
-# Optimization — Professional Level
+# Optimization — Professional
 
-> **Topic:** Optimization
-> **Focus:** Optimization as a **production system** — rolling out LTO/PGO/BOLT across a large codebase, governing the `-O`/FP/UB flag surface, keeping an aggressively optimized build *provably* correct, and treating "how we build" as an engineering discipline with budgets, profiles, and regression gates.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Optimization** with measurable outcomes and limited coordination?
 
-## Introduction
-
-> Focus: **How do you run aggressive optimization as a fleet-wide build system without shipping a miscompile or a 2-hour link?**
-
-At senior level, optimization was a property of *a* compilation: pick flags, read remarks, feed the vectorizer, avoid UB. At professional level, optimization is a property of *the organization's build*: thousands of translation units, a multi-stage pipeline (instrument → profile → rebuild → post-link), a flag policy that hundreds of engineers must not break, and a correctness regime strong enough that turning on cross-module inlining doesn't take down production. The questions change from "is this loop vectorized?" to "what is our PGO profile freshness SLO?", "does ThinLTO fit our link-time budget?", "which UB flags are mandatory fleet-wide?", and "how do we detect an optimizer-induced regression *before* a customer does?"
-
-The highest-leverage techniques here — **ThinLTO**, **PGO**, **post-link optimization (BOLT/Propeller)** — each promise single- to low-double-digit performance percentages on large binaries, which at fleet scale is millions of dollars of compute. But each adds a *stage* to the build, a *profile artifact* to manage, and a *correctness surface* to defend. The professional skill is delivering those wins **sustainably**: reproducible builds, profile pipelines that don't go stale, flag governance that survives team turnover, and gates that catch both performance *and* correctness regressions automatically.
-
-In one sentence: **professional optimization is the engineering and governance of an aggressively optimized build pipeline — wins measured in fleet percentages, paid for in build complexity and correctness vigilance.**
-
-> 🎓 **Why this matters for a staff/principal engineer:** You own build flags as policy, not preference. You decide whether the org adopts PGO and how profiles flow from production back into builds. You're accountable when an optimizer assumption (UB, a stale profile, an LTO-exposed ODR bug) causes an outage. And you justify the compute/build-time cost of every optimization stage against measured, attributable wins.
-
-This page covers: the four-stage optimized build (front-end opt → LTO → PGO → post-link); ThinLTO at scale; PGO profile pipelines (instrumented vs sampled/AutoFDO, freshness, merging); post-link optimization with BOLT/Propeller; fleet-wide flag governance (`-O` level, FP semantics, UB hardening); correctness engineering for optimized builds (sanitizers in CI, differential testing, translation validation, miscompile triage); and the cost/benefit accounting that decides what's worth running.
-
----
-
-## Prerequisites
-
-- **Required:** `senior.md` — the pass pipeline, phase ordering, loop/IPO optimizations, LTO/PGO concepts, the UB contract.
-- **Required:** Working knowledge of a real build system (Bazel, CMake/Ninja, Buck) and a CI system, including caching and reproducibility concerns.
-- **Required:** Comfort with production profiling tooling (`perf`, sampling profilers, flame graphs) and reading fleet-level performance telemetry.
-- **Helpful but not required:** Experience operating a service at scale where a 3% CPU regression is a budget line item.
-- **Helpful but not required:** Familiarity with supply-chain/reproducible-build requirements (deterministic outputs, profile artifacts as build inputs).
-
-You do **not** need to know:
-
-- The internal algorithms of individual passes beyond `senior.md` — this tier is about *operating* them.
-- JIT/runtime speculative optimization internals — owned by runtime-systems.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **ThinLTO** | Scalable LTO: each module emits a summary; the linker decides cross-module imports and optimizes modules in parallel. |
-| **Full (monolithic) LTO** | LTO that merges all modules into one IR module before optimizing — maximal scope, poor scalability. |
-| **PGO** | Profile-guided optimization — using a runtime profile to drive inlining, layout, and branch prediction. |
-| **Instrumented PGO** | First build inserts counters; a training run produces an exact profile; second build consumes it. |
-| **Sampled PGO / AutoFDO / CSSPGO** | Profile gathered from production via hardware sampling (`perf`/LBR), no instrumented binary needed. |
-| **Profile freshness** | How well a profile matches the code/workload it's applied to; staleness degrades or reverses PGO gains. |
-| **Post-link optimization (PLO)** | Re-optimizing the *linked binary* using a profile — code layout, hot/cold splitting (BOLT, Propeller). |
-| **BOLT** | Binary Optimization and Layout Tool — rewrites an already-linked binary for better code layout. |
-| **Propeller** | A relinking-based PLO approach using basic-block labels and a profile. |
-| **Hot/cold splitting** | Moving cold code (error paths) out of hot functions to keep the i-cache dense with hot code. |
-| **Flag governance** | Org-wide policy controlling `-O` level, FP semantics, and UB hardening flags. |
-| **Differential testing** | Running the same inputs through differently-built binaries and comparing outputs to catch miscompiles. |
-| **Translation validation** | Per-compilation proof of input/output equivalence (e.g. Alive2 for LLVM IR transforms). |
-| **Reproducible build** | A build whose output is bit-identical given the same inputs (including profile artifacts). |
-| **Build-time budget** | The wall-clock/compute envelope an optimized build must fit (CI latency, link time, fleet rebuild cost). |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -113,30 +63,6 @@ The more aggressive the optimization, the larger the blast radius of any latent 
 ### 7. The Cost/Benefit Accounting
 
 Every stage costs build time, infrastructure, and correctness surface; the professional decision is *which to run* based on attributable wins. Frame it as: ThinLTO (moderate link cost, broad win, mostly safe) → PGO (profile pipeline cost, large win, freshness risk) → BOLT (extra release stage, i-cache win, binary-rewrite risk). For a latency-sensitive service at fleet scale a 10% CPU win is enormous and justifies all three; for a small internal tool, plain `-O2` is the right stopping point. The discipline is *measuring the win per stage on the real workload* and not paying for complexity that doesn't move the fleet number.
-
----
-
-## Real-World Analogies
-
-**The factory retooling (four-stage build).** Per-module `-O2` is each worker optimizing their station. LTO is redesigning the *whole line* now that you can see every station at once. PGO is rebuilding the line around a week of *measured* order data. BOLT is rearranging the warehouse *after* the line is built so the fast-moving goods sit by the door. Each captures savings the others structurally cannot — and each adds a stage you must operate and keep correct.
-
-**Profiles as weather forecasts (freshness).** PGO/BOLT decisions are bets on future traffic based on a past sample. A fresh forecast (recent production profile) is reliable; a month-old forecast applied to a changed city (new code, new workload) sends the plows to the wrong streets — you *pessimize* the routes that are actually busy. Hence freshness SLOs and automated refresh.
-
-**Flag governance as a building code.** You don't let every contractor pick their own wiring standard. `-ffast-math` is like skipping the grounding wire — fine in one isolated, inspected circuit, catastrophic as a building-wide default. The code (policy) plus inspections (sanitizers in CI) keep the whole structure safe even as crews rotate.
-
-**Differential testing as a control group.** Ship the change through two differently-built pipelines and compare. If the "aggressively optimized" binary disagrees with the "plain" one on the same input, you've caught either a miscompile or your own UB before a customer did — the same logic as an A/B safety control.
-
----
-
-## Mental Models
-
-**Model 1: Optimization at scale is a pipeline you operate, not a flag you set.** The unit of work is a multi-stage build with profile artifacts and gates, owned like any production system, with SLOs (build time, profile freshness) and incident response (miscompile triage). "Turn on `-O3`" is not a strategy.
-
-**Model 2: Every percent is a fleet line item — and every stage is a liability.** A 5% CPU win across a fleet pays for a lot of build complexity; but each stage (LTO, PGO, BOLT) adds correctness surface and operational cost. The job is maximizing *net* win, not gross.
-
-**Model 3: Aggressive optimization is a loan against your code's correctness.** UB exploitation, profile assumptions, and cross-module inlining all *borrow* against the assumption that your code and profiles are sound. Sanitizers, differential testing, and freshness pipelines are how you stay solvent. Skip them and the optimizer eventually calls the loan in production.
-
-**Model 4: The default ships everywhere; design defaults for the median, gate the exceptions.** A fleet flag default touches every binary. Make the safe, measured choice the default (`-O2`, fast-math off, sanitizers required) and require *justification + review* for the aggressive overrides (`-O3`, `-ffast-math`, UB exploitation in security code).
 
 ---
 
@@ -223,34 +149,6 @@ A divergence is the alarm; sanitizers classify it (your UB ~99% of the time, an 
 
 ---
 
-## Pros & Cons
-
-**Pros**
-
-- **Fleet-scale wins.** ThinLTO + PGO + BOLT stack to 20–40% CPU on large native services — millions in compute and latency budget.
-- **Production-driven.** Sampled PGO/AutoFDO turns real traffic into optimization signal, self-refreshing with releases.
-- **Recovered abstraction cost.** Whole-program inlining/devirtualization lets engineers write clean, layered code without paying for it at runtime.
-
-**Cons**
-
-- **Operational complexity.** Multi-stage builds, profile artifacts, and post-link steps are systems to own, with their own SLOs and failure modes.
-- **Correctness blast radius.** Aggressive optimization weaponizes latent UB and exposes whole-program bugs (ODR) — demanding sanitizers, differential testing, and triage discipline.
-- **Build-time and reproducibility cost.** LTO link time, instrumented training runs, profile management, and determinism-with-profiles all tax the pipeline.
-- **Profile fragility.** Stale or unrepresentative profiles can *regress* performance; PGO/BOLT need a maintained freshness pipeline, not a one-time setup.
-- **Governance overhead.** Flag policy needs ownership, review gates, and documentation to survive at organizational scale.
-
----
-
-## Use Cases
-
-- **A latency-critical fleet service.** Full stack: ThinLTO + AutoFDO + BOLT, with profile freshness tied to the release train and a sanitizer gate in CI.
-- **A binary-size- or i-cache-bound target.** `-Os`/`-Oz` plus BOLT hot/cold splitting; often *faster* than `-O3` and smaller.
-- **Hardening a legacy/security-sensitive codebase.** Org policy mandates `-fno-strict-aliasing -fno-delete-null-pointer-checks -fstack-protector` and a UBSan gate while teams pay down UB.
-- **Adopting LTO for the first time.** Treat it as a correctness event: enable in CI behind a differential-test/sanitizer gate, expect to find ODR/UB bugs it surfaces.
-- **Numerical kernels needing fast-math.** Isolate them in their own translation units with explicit fast-math flags and numerical regression tests; never enable fast-math globally.
-
----
-
 ## Coding Patterns
 
 - **Make the optimized build a versioned pipeline artifact.** Profiles, flag policy, and post-link steps are checked-in, reviewed inputs — not tribal knowledge in a release engineer's shell history.
@@ -285,10 +183,24 @@ A divergence is the alarm; sanitizers classify it (your UB ~99% of the time, an 
 
 ---
 
-## Summary
+## Apply it
 
-At professional scale, optimization is a **production pipeline**, not a flag. The maximally-optimized native build is four stages — **per-module `-O2`/`-O3`**, **ThinLTO** (scalable, parallel, cacheable cross-module inlining/devirtualization), **PGO** (production-sampled AutoFDO preferred over instrumented), and **post-link optimization** (BOLT/Propeller for i-cache/iTLB-friendly layout) — that stack to large fleet-level CPU and latency wins. Each stage captures gains the others structurally cannot, and each adds a profile artifact, a build-time cost, and a correctness surface to operate.
+1. Define the user or business outcome that **Optimization** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
-The professional disciplines are: **flag governance** (default `-O2`, fast-math **off** fleet-wide, UB hardening where security demands it, aggressive overrides gated by review and benchmarks); **profile pipelines** with **freshness SLOs** so PGO/BOLT don't regress on stale data; and **correctness engineering** — sanitizers as a CI gate backing any UB exploitation, **differential testing** and fuzzing to catch miscompiles-or-UB, **translation validation** (Alive2) upstream, a miscompile **runbook** (sanitize → bisect → `creduce` → report), and **reproducible builds** including the profile. The governing mindset: every percent is a fleet line item, every stage is a liability, aggressive optimization is a loan against your code's correctness — and the safe, measured choice must be the default that ships everywhere, with the dangerous knobs gated behind justification.
+## Verify your work
 
-The companion `interview.md` drills the conceptual, tool-specific (LLVM passes, `-O` levels, GCC, JIT, PGO/LTO), trap, and design questions; `tasks.md` puts all of it — from reading `-O2` assembly to staging an LTO+PGO+BOLT build and weaponizing/defusing a UB null check — into hands-on exercises.
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
+
+## Review questions
+
+- Which measurable outcome justifies investing in Optimization?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

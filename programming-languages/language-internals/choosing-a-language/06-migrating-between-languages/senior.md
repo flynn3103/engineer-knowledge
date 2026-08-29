@@ -1,8 +1,11 @@
 # Migrating Between Languages — Senior
 
-> **What?** The risk-management discipline of migration: deciding when *not* to migrate at all, de-risking the migrations you must do, and surviving the parts the pattern diagrams hide — data and state migration, the cost of running two systems for years, and the morale and velocity drain of a multi-year migration that never quite finishes.
-> **How?** Treat "don't migrate" as the default and force the migration to earn its existence. When it does, design so that value lands *incrementally* — every month produces a real, shippable improvement — rather than all-or-nothing at a cutover that may never arrive.
+<!-- level-focus -->
+At senior level, focus on this question:
 
+> Which system invariant is affected by **Migrating Between Languages** under failure, load, and change?
+
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## 1. The senior default: don't
@@ -12,8 +15,8 @@ The middle level taught you *how* to migrate well. The senior level's first job 
 | The stated problem | The actual fix (cheaper than migration) |
 |---|---|
 | "The code is an unmaintainable mess" | Refactor in place. A mess in Python is a mess in Rust too — bad design survives translation. |
-| "It's too slow" | Profile it. The hot path is usually one query or one N+1, not the language. (See [`02-performance-vs-productivity-tradeoffs`](../02-performance-vs-productivity-tradeoffs/).) |
-| "We want $LANGUAGE's features" | Add $LANGUAGE for *new* services at the seams; don't rewrite the working core. (See [`04-interop-and-polyglot-architectures`](../04-interop-and-polyglot-architectures/).) |
+| "It's too slow" | Profile it. The hot path is usually one query or one N+1, not the language. (See [`02-performance-vs-productivity-tradeoffs`](../02-performance-vs-productivity-tradeoffs/README.md).) |
+| "We want $LANGUAGE's features" | Add $LANGUAGE for *new* services at the seams; don't rewrite the working core. (See [`04-interop-and-polyglot-architectures`](../04-interop-and-polyglot-architectures/README.md).) |
 | "Nobody understands this code" | That's a documentation and onboarding gap, not a language problem. Rewriting destroys the knowledge instead of capturing it. |
 | "It's old" | Age is not a defect. Working, boring, old code is an *asset*. |
 
@@ -120,16 +123,24 @@ Stopping is not failure; **stopping a migration that no longer pays is the same 
 
 ---
 
-## 8. What's next
+## Apply it
 
-| Topic | File |
-|---|---|
-| The business case to leadership, multi-team programs, deprecation, case studies | `professional.md` |
-| Interview questions from "Python→Go" to "1M-line Perl monolith" | `interview.md` |
-| Design a strangler plan, build a kill case, sequence a cutover | `tasks.md` |
-| Related: hiring/maintenance economics that drive migrations | [`07-total-cost-of-ownership-and-team-skills`](../07-total-cost-of-ownership-and-team-skills/) |
-| Related: the lock-in and longevity risks that justify them | [`08-language-longevity-and-lock-in-risk`](../08-language-longevity-and-lock-in-risk/) |
+1. State the system invariant that **Migrating Between Languages** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
----
+## Verify your work
 
-**Memorize this:** the senior default is *don't migrate* — fix or wrap first, because a perfect rewrite only buys parity. When you must, stack every de-risking lever, plan the irreversible data migration first, budget the two-system tax, and protect feature velocity so the project never stalls. The decisive property is incremental value delivery: a migration that pays off every month can stop at any time with a working system; one that pays off only at a receding finish line usually dies before reaching it.
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
+
+## Review questions
+
+- Which invariant must remain true when Migrating Between Languages fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

@@ -1,67 +1,11 @@
-# Calling Conventions — Junior Level
+# Calling Conventions — Junior
 
-> **Topic:** Calling Conventions
-> **Focus:** When you call a function, where do the arguments actually go, and who gets the return value back? The answer is a contract written in registers and stack slots.
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **Calling Conventions** in one small example and prove the result?
 
-## Introduction
-
-> Focus: **What physically happens when one function calls another?** The arguments don't travel by magic. They are placed in agreed-upon CPU registers and stack slots, and the result comes back the same way.
-
-When you write `int z = add(3, 4);` you think of it as "pass 3 and 4 to `add`, get a number back." But the CPU has no idea what `add` or "argument" mean. It only knows registers (`RDI`, `RSI`, `RAX`, …), a stack (a region of memory the `RSP` register points at), and a `call` instruction that jumps to an address while remembering where to come back.
-
-So *something* must decide: **when I pass 3 and 4, which exact register or memory slot does each number go into?** And when `add` finishes, **where does it leave the answer so the caller can find it?** That set of rules is the **calling convention**.
-
-The crucial point: the caller and the callee are often compiled separately — your code in one `.c` file, the library function in another, maybe in a different language entirely. They never see each other's source. The *only* reason `add(3, 4)` works is that **both sides agreed on the same convention in advance**. The convention is a contract. Break it and you don't get a compiler error — you get a crash, or worse, silently wrong numbers.
-
-In one sentence: **a calling convention is the precise rulebook for "arguments in, result out" at the machine level, so that code compiled separately can still call each other correctly.**
-
-> 🎓 **Why this matters for a junior:** You will almost never write a calling convention by hand. But the moment you call C from Python, call an OS function, link against a `.dll`, read a stack trace in a debugger, or chase a mysterious crash on "release builds only," you are standing on top of one. Knowing that arguments live in specific registers turns "magic crash" into "oh, the convention is mismatched."
-
-This page covers: what the `call` instruction does, where the first few arguments go on the most common platform (Linux/macOS x86-64), where the return value comes from, the idea of "the caller cleans up its own mess," and your first look at a disassembly showing arguments being loaded into registers. Deeper material — the full SysV classification algorithm, Windows x64, AArch64, variadics, struct-by-value rules — lives in the higher tiers.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** How to write and run a small program with functions in C (or another compiled language you can disassemble).
-- **Required:** What a function parameter and a return value are.
-- **Helpful but not required:** A vague sense that a CPU has *registers* (tiny named storage slots, faster than RAM) and a *stack* (a region of memory that grows and shrinks as functions call each other).
-- **Helpful but not required:** Having once seen assembly output, even if it looked like noise.
-
-You do **not** need to know:
-
-- The full SysV AMD64 struct classification algorithm (that's `senior.md`).
-- Windows x64, AArch64, or x86 `stdcall`/`fastcall` details (that's `middle.md` and beyond).
-- How variadic functions like `printf` pass their arguments (that's `senior.md`).
-- Caller-saved vs callee-saved register tables (`middle.md`).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Calling convention** | The agreed rules for how arguments are passed, where the return value goes, stack alignment, and who cleans up. Also called an **ABI** (the calling convention is a big part of an ABI). |
-| **ABI** | Application Binary Interface. The broader contract for how compiled code interoperates: calling convention, struct layout, name mangling, and more. |
-| **Caller** | The function doing the calling. |
-| **Callee** | The function being called. |
-| **Register** | A tiny, named, very fast storage slot inside the CPU (e.g. `RAX`, `RDI`). There are only a handful. |
-| **Stack** | A region of memory used for local data and (when registers run out) arguments. `RSP` points at its top. Grows *downward* (toward lower addresses) on x86-64. |
-| **`RSP`** | The stack pointer register — points at the current top of the stack. |
-| **`call` instruction** | Pushes the return address onto the stack and jumps to the function's first instruction. |
-| **`ret` instruction** | Pops the return address off the stack and jumps back to it. |
-| **Return address** | The address the callee jumps back to when it's done — pushed by `call`, popped by `ret`. |
-| **Argument register** | A register the convention designates for passing a specific argument (e.g. first integer argument → `RDI` on Linux x86-64). |
-| **Return register** | The register the result comes back in (`RAX` for integers on x86-64). |
-| **SysV AMD64 ABI** | The calling convention used on Linux, macOS, and most Unix systems for 64-bit x86. |
-| **Stack alignment** | A rule that `RSP` must be a multiple of 16 at certain points. Violating it crashes some instructions. |
-| **Volatile / caller-saved register** | A register the callee may overwrite freely; if the caller needs its value, the caller must save it first. |
-| **Non-volatile / callee-saved register** | A register the callee must restore to its original value before returning. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -126,34 +70,6 @@ Imagine you put a value in `RBX`, then call a function. When the function return
 - **Callee-saved (non-volatile)** registers: the callee promises to restore them before returning. `RBX`, `RBP`, `R12`–`R15` are callee-saved on SysV.
 
 You don't usually manage this by hand — the compiler does — but it explains why a debugger can recover some of your variables across a call and not others.
-
----
-
-## Real-World Analogies
-
-**The drive-through window.** You pull up (the `call`). The convention says: order goes in lane 1, payment in lane 2, the bag comes back through the window slot. Both you and the restaurant know the layout in advance, so a stranger can serve you correctly. If the restaurant suddenly decided the bag comes through a different window, you'd drive off empty-handed — a convention mismatch.
-
-**A standardized shipping pallet.** Argument registers are the pallet slots. Everyone agrees "first box goes here, second there." A truck (the callee) loaded by one warehouse can be unloaded by another, because the slot assignment is standard. Change the standard on one side only and boxes go missing.
-
-**A relay race baton.** The return address is the baton handed over at the `call`. The callee holds it and, when finished, hands it right back (`ret`) so the race continues from exactly the right spot. Drop or corrupt the baton (overwrite the return address) and the runner sprints off in a random direction — that's a stack-smash crash.
-
-**A coat check.** Callee-saved registers are like a coat you check at the door: the establishment (callee) promises to give it back exactly as it was. Caller-saved registers are the loose change in your pocket — nobody promises it's untouched, so if it matters, you stash it yourself first.
-
----
-
-## Mental Models
-
-### Model 1: The convention is a contract between strangers
-
-The single most important idea: **the caller and callee are strangers who never met.** They were compiled at different times, possibly in different languages, by different teams. The only thing that makes the call work is that **both obey the same written rulebook.** When you "call a C function from Python," you are really saying "Python's runtime will place arguments exactly where the C function's convention expects them."
-
-### Model 2: Registers first, stack when you run out
-
-Picture a small set of numbered cubbies (the argument registers). You fill them in order. When you run out of cubbies, you start stacking the rest on the floor (the stack). The callee looks in the cubbies first, then on the floor, in the same order. Floats use a *separate* set of cubbies counted on their own.
-
-### Model 3: One door in, one door out
-
-Arguments go in through the argument registers; the result comes out through `RAX` (or `XMM0` for floats). For simple functions that's the whole picture: a small fixed set of doors. The complications in later tiers — big structs, variadics, different OSes — are all variations on "what if one door isn't enough?"
 
 ---
 
@@ -256,44 +172,6 @@ That final `add rsp, 16` is the caller removing the two 8-byte arguments it push
 
 ---
 
-## Pros & Cons
-
-Calling conventions are not something you choose to use — every compiled program has one. But the *design choices* inside a convention have trade-offs worth understanding.
-
-**Why pass arguments in registers (pros):**
-
-- **Fast.** Registers are the quickest storage the CPU has; no memory access for the first several arguments.
-- **Cache-friendly.** Fewer stack writes means fewer memory operations and better cache behavior.
-
-**Why the stack is still needed (cons / limits):**
-
-- There are only a handful of argument registers (six integer, eight float on SysV). Beyond that you *must* spill to the stack.
-- Large structs may not fit in registers and go to memory regardless.
-
-**Why a *standardized* convention is good:**
-
-- **Interoperability.** Separately compiled modules, libraries, and languages can call each other.
-- **Tooling.** Debuggers, profilers, and stack-unwinders can make sense of any binary that follows the standard.
-
-**The cost of standardization:**
-
-- **Rigidity.** Once an ABI ships, it's frozen essentially forever — you can't "improve" it without breaking every existing binary.
-- **Platform fragmentation.** Linux, Windows, and ARM each picked different rules, so cross-platform FFI tools must know all of them.
-
----
-
-## Use Cases
-
-You meet calling conventions whenever compiled code talks to *other* compiled code:
-
-- **Calling C from a higher-level language** (Python `ctypes`/`cffi`, Node N-API, Go `cgo`, Java JNI/Panama, Rust `extern "C"`). The runtime must place arguments per the C convention.
-- **Calling operating-system APIs.** A syscall wrapper or a Win32 function follows a specific convention; get it wrong and the call corrupts memory.
-- **Linking against a shared library** (`.so`, `.dll`, `.dylib`). The library was compiled assuming a convention; your code must match.
-- **Reading a stack trace or debugging a crash.** Knowing arguments live in `RDI`/`RSI`/… lets you recover a function's parameters from a core dump.
-- **Writing a tiny bit of assembly** that calls into C, or that C calls into.
-
----
-
 ## Coding Patterns
 
 As a junior you rarely touch the convention directly, but a few patterns keep you safe:
@@ -355,99 +233,24 @@ It isn't — it's a *choice*. Different OSes, architectures, and even special fu
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```text
-SYSV AMD64 (Linux / macOS), integer/pointer arguments, in order:
-    RDI, RSI, RDX, RCX, R8, R9   then the stack
+1. Choose one small, known input for **Calling Conventions**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
-Floating-point arguments:
-    XMM0 .. XMM7                 then the stack (separate count)
+## Verify your work
 
-Return value:
-    integer/pointer → RAX
-    floating-point  → XMM0
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
 
-Stack:
-    grows DOWNWARD; RSP points at the top
-    CALL pushes the return address; RET pops it
-    caller cleans up its own stack arguments (cdecl-style)
+## Review questions
 
-Register preservation (SysV):
-    caller-saved (clobberable): RAX RDI RSI RDX RCX R8 R9 R10 R11
-    callee-saved (preserved):   RBX RBP R12 R13 R14 R15  (and RSP)
-
-Mnemonic for integer order: "Diane's Silk Dress Cost $89"
-    DI  SI  DX  CX  8  9
-```
-
----
-
-## Summary
-
-A **calling convention** is the precise, agreed rulebook for how a function call happens at the machine level: which registers and stack slots carry the arguments, where the return value comes back, and who cleans up afterward. It exists so that code compiled separately — different files, libraries, even languages — can call each other correctly without ever seeing each other's source.
-
-On the most common platform you'll meet first (SysV AMD64, used by Linux and macOS), the first six integer/pointer arguments ride in `RDI`, `RSI`, `RDX`, `RCX`, `R8`, `R9`; floats ride in `XMM0`–`XMM7`; the result comes back in `RAX` (or `XMM0`). When arguments run out of registers they spill to the stack, and the caller cleans those up afterward. Some registers must survive a call (callee-saved) and some may not (caller-saved).
-
-You rarely write this by hand, but it underlies every FFI call, every OS API, every shared library, and every crash dump you'll ever read. When in doubt, disassemble — the registers don't lie. The next tier covers the other major conventions (Windows x64, AArch64), the caller-vs-callee cleanup distinction, and stack alignment in detail.
-
----
-
-## Further Reading
-
-- *System V Application Binary Interface, AMD64 Architecture Processor Supplement* — the authoritative SysV AMD64 spec (figures 3.x cover argument passing).
-- Agner Fog, *Calling Conventions for Different C++ Compilers and Operating Systems* — a famously clear cross-platform reference.
-- Eli Bendersky, "Stack frame layout on x86-64" — a readable walkthrough with diagrams.
-- The Intel and AMD architecture manuals — for `call`/`ret` and the register set.
-
----
-
-## Diagrams & Visual Aids
-
-### Where the first arguments go (SysV AMD64)
-
-```text
-   call  f(a, b, c, d, e, f7, g8)
-          │  │  │  │  │   │   │
-          ▼  ▼  ▼  ▼  ▼   ▼   ▼
-        RDI SI DX CX R8  R9  [stack]
-         a  b  c  d  e   f7   g8   ◄── 7th+ spill to stack
-```
-
-### The call/ret baton
-
-```text
-   caller:  ... mov edi,3 ; mov esi,4 ;  CALL f  ────────┐
-                                                          │ push return addr
-                                                          ▼
-   callee:  f:  read EDI, ESI ... put result in RAX ;  RET
-                                                          │ pop return addr
-   caller:  ◄───────────────────────────────────────────┘
-            read result from RAX
-```
-
-### Two independent lanes: integers and floats
-
-```text
-   f(int a, double b, int c, double d)
-
-   integer lane:  a → RDI     c → RSI
-   float   lane:  b → XMM0    d → XMM1
-                  (counted separately!)
-```
-
-### The stack after a call with two spilled arguments
-
-```text
-   higher addresses
-        ┌───────────────┐
-        │   8th arg (h) │
-        ├───────────────┤
-        │   7th arg (g) │
-        ├───────────────┤
-        │ return address│ ◄── pushed by CALL
-        ├───────────────┤
-RSP ──► │ callee frame  │
-        └───────────────┘
-   lower addresses  (stack grows down)
-```
+- What problem does Calling Conventions solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

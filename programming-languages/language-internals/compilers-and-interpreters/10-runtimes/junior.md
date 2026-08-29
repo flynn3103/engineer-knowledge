@@ -1,66 +1,11 @@
-# Runtimes (Language Runtime Support) — Junior Level
+# Runtimes (Language Runtime Support) — Junior
 
-> **Topic:** Runtimes (Language Runtime Support)
-> **Focus:** Your compiled program is never alone on the CPU. What is the *runtime* it always runs on top of, and why does even "hello world" drag a whole support library along with it?
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **Runtimes (Language Runtime Support)** in one small example and prove the result?
 
-## Introduction
-
-> Focus: **When the compiler turns your source code into a program, what *else* gets bundled in so that the program can actually run?**
-
-When you write a program in a high-level language, you write things like "allocate a list", "start a goroutine", "throw an exception", "print a string". None of those are CPU instructions. The CPU knows how to add registers, load and store bytes, jump, and compare. It does **not** know what a list is, what a goroutine is, or what "throw" means.
-
-So who fills the gap? A piece of code called the **runtime** (sometimes "runtime system", "runtime library", or "runtime support"). The runtime is a body of support code — written mostly by the language's authors — that ships *with your program* (or sits behind it) and provides the services your source code assumes exist. When the compiler sees `make([]int, 10)` in Go, it does not emit the machine code to find free memory itself; it emits a **call to the runtime's allocator**. When you write `try/catch` in Java or C++, the compiler emits metadata and calls that the runtime uses to **unwind the stack** and find your handler.
-
-In one sentence: **the runtime is the part of your running program that the compiler emitted *calls to* instead of *inlining*, because the work is too big, too shared, or too dynamic to bake into every line of code.**
-
-> 🎓 **Why this matters for a junior:** The first time you compile a tiny Go or Rust program and see the binary is **2 MB** for a five-line program, you will wonder where all the size came from. The answer is: the runtime. The first time your program "starts slowly" before your `main` even runs, that is the runtime bootstrapping. Knowing the runtime exists — and what it does — turns these mysteries into things you can reason about.
-
-This page covers: what a runtime *is*, the everyday services it provides (startup, memory, the standard library, error handling), the difference between a **"fat" runtime** (Go, Java) and a **"thin" runtime** (C, Rust), and what your compiler quietly emits to cooperate with it. Later tiers go deeper: `middle.md` covers the allocator, garbage collector cooperation, and the green-thread scheduler; `senior.md` covers safepoints, write barriers, async-to-state-machine lowering, and runtime startup; `professional.md` covers embedding runtimes, JIT hosting, and runtime cost in production.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** You have written and compiled a program in at least one language (C, Go, Java, Python, JavaScript, or Rust) and run the resulting binary or script.
-- **Required:** You know roughly what a **compiler** does — turns source code into machine code (or bytecode).
-- **Required:** You know that programs use **memory** and that `malloc`/`new`/`make` "gets memory."
-- **Helpful but not required:** A vague idea that there is an `OS` underneath your program that gives it memory and CPU time.
-- **Helpful but not required:** You have seen the word `main` as the entry point of a program.
-
-You do **not** need to know:
-
-- How a garbage collector actually traces objects (that's `middle.md` and the memory-management section).
-- How the Go scheduler multiplexes goroutines (that's `middle.md`/`senior.md`).
-- How `async/await` becomes a state machine (that's `senior.md`).
-- Anything about JIT compilation or embedding (that's `professional.md`).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Runtime (runtime system)** | The support code that runs alongside your program to provide services the language assumes — memory management, startup, error handling, threading, type info. |
-| **Runtime library** | The actual library of compiled functions that *is* the runtime — e.g. Go's `runtime` package, the C runtime (`libc` + `crt`), the JVM's native libraries. |
-| **C runtime / CRT** | The minimal startup + library code (`crt0.o`, `libc`) that sets up a C program before `main` and provides `malloc`, `printf`, etc. |
-| **`crt0` / `_start`** | The true entry point of a native program. It runs *before* `main`, sets up the stack and arguments, then calls `main`. |
-| **Static initializer** | Code that runs at startup, before `main`, to initialize global/static data (e.g. C++ global constructors, Go package `init` functions). |
-| **Allocator** | The runtime service that hands out heap memory. The compiler emits *calls* to it instead of inlining memory management. |
-| **Garbage collector (GC)** | A runtime service that automatically reclaims memory no longer reachable, so you don't call `free`. |
-| **Scheduler** | A runtime service that decides which lightweight task (goroutine, green thread, async task) runs on which OS thread, and when. |
-| **Green thread / goroutine** | A lightweight thread managed by the *runtime*, not the OS. Many of them are multiplexed onto few OS threads. |
-| **Standard library** | The batteries-included code that ships with the language (strings, collections, I/O). Partly "runtime", partly ordinary library. |
-| **Fat runtime** | A large runtime baked into every binary (Go, Java, Erlang): GC + scheduler + reflection + more. |
-| **Thin runtime** | A minimal runtime (C, Rust): startup glue and a small library, no GC, no scheduler. |
-| **Bounds check** | A runtime check the compiler inserts before an array/slice access to ensure the index is valid (and panic/throw if not). |
-| **Exception unwinding** | The runtime process of walking back up the call stack to find a handler for a thrown exception. |
-| **Reflection / RTTI** | Runtime Type Information — metadata the compiler emits so the program can ask, at runtime, "what type is this value?" |
-| **Bootstrap** | The runtime's own startup sequence: it initializes itself (heap, scheduler, GC) before your code runs. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -110,28 +55,6 @@ The slogan to remember: **"you pay for a runtime."** A fat runtime gives you sup
 ### 5. Why "Hello World" Is Big
 
 A C "hello world" is tiny because the runtime (`libc`) is usually *shared* — it's already on the machine, and your program just links to it dynamically. A Go "hello world" is a few **megabytes** because Go **statically** bundles its entire runtime — the GC, the scheduler, the reflection tables, the goroutine machinery — into the binary. You are not paying for your five lines; you are paying for the *services* those five lines could use. The binary is big because the runtime is big, and Go chose to staple it in for self-contained deployment.
-
----
-
-## Real-World Analogies
-
-**The restaurant kitchen.** You (the source code) write an order: "one pasta, allocate a table for four, handle the complaint at table 7." You never cook, find tables, or resolve complaints yourself. The **kitchen and staff** (the runtime) do that. The compiler is the *waiter* who translates your order into instructions the kitchen understands and passes them along. A fancy restaurant with a huge back-of-house (fat runtime) can do amazing things but costs a lot to run; a food truck (thin runtime) does less but is cheap and starts instantly.
-
-**The power grid behind the wall socket.** You plug in a device and it "just works." You don't generate electricity; the **grid** (runtime) does, invisibly. Your appliance (your code) only knows the socket interface (the runtime's API). A house wired to a full national grid (fat runtime) has endless power but huge infrastructure; a cabin with a small generator (thin runtime) is self-sufficient and minimal.
-
-**The building's facilities team.** When you (a tenant) need heating, water, or the elevator, you don't run the boiler — the **building services** (runtime) do, and they were running *before* you moved in (startup/bootstrap) and keep running in the background (GC, scheduler). You signed a lease that includes these services whether you use them or not — exactly "you pay for a runtime."
-
----
-
-## Mental Models
-
-**Model 1 — The runtime is a permanent co-resident.** Picture your process as a shared apartment. Your `main` function is one roommate. The runtime is the *other* roommate who moved in first (startup), keeps the place running (GC, scheduler), and is always there even when you ignore them. You are never alone in the address space.
-
-**Model 2 — The compiler is a diplomat between two worlds.** On one side: your high-level intentions. On the other: a runtime with a fixed set of services. The compiler's job is to translate your intentions into the right **calls** to the runtime, plus a little **cooperation glue** (bounds checks, type tags) so the two worlds agree. Most "magic" in a high-level language is just the compiler emitting the right runtime call.
-
-**Model 3 — Two columns of code.** Every running program is two columns side by side: **your code** (what you wrote) and **runtime code** (what was provided). Profilers show this directly: when you see time spent in `runtime.mallocgc` or `GC` or `gcWriteBarrier`, that is the *right* column — the runtime — doing work *on behalf of* the left column.
-
-**Model 4 — The "fat vs thin" dial.** Picture one dial labeled "how much does the runtime do for me?" Turn it up (Go, Java): more services, bigger binary, less control. Turn it down (C, Rust): fewer services, smaller binary, more control and responsibility. There is no free lunch; the dial just moves the work between you and the runtime.
 
 ---
 
@@ -229,45 +152,6 @@ The Go binary is large because the **entire runtime** (GC, scheduler, reflection
 
 ---
 
-## Pros & Cons
-
-### Pros of a (fat) runtime
-
-| Benefit | Why it helps |
-|---------|--------------|
-| **Automatic memory management** | The GC frees memory for you — fewer leaks, no use-after-free. |
-| **Cheap concurrency** | A scheduler gives you thousands of goroutines/green threads cheaply. |
-| **Memory safety** | Bounds checks, type tags, and unwinding catch errors at runtime instead of corrupting memory. |
-| **Reflection / dynamic features** | Runtime type info enables serialization, dependency injection, debuggers. |
-| **Self-contained deployment** | A statically-bundled runtime means "ship one binary, run anywhere" (Go). |
-| **Less boilerplate** | The compiler emits the plumbing; you write business logic. |
-
-### Cons of a (fat) runtime
-
-| Cost | Why it hurts |
-|------|--------------|
-| **Binary size** | The runtime ships in every binary (megabytes for "hello world" in Go). |
-| **Startup cost** | The runtime must bootstrap (init heap, GC, scheduler) before `main` — bad for short-lived/serverless functions. |
-| **Less control** | The GC may pause; the scheduler decides when things run. You can't always predict timing. |
-| **Runtime overhead** | Bounds checks, write barriers, and GC cost CPU cycles on every run. |
-| **Not embeddable everywhere** | A fat runtime can't run on tiny embedded chips or inside another language easily. |
-| **Hidden cost** | "You pay for a runtime" even for features you never use. |
-
-The thin-runtime side (C, Rust) flips this table: small binaries, fast startup, total control — but you manage memory yourself and write more plumbing.
-
----
-
-## Use Cases
-
-- **Choosing a language for a CLI tool that starts often:** A fat runtime's startup cost matters. Go is acceptable; a heavier JVM startup may not be.
-- **Writing firmware for a microcontroller:** You need a thin runtime (C, Rust `no_std`). There is no room for a GC or scheduler.
-- **Building a long-running web server:** A fat runtime pays off — the startup cost amortizes over days of uptime, and the scheduler + GC make concurrency easy.
-- **Serverless / FaaS functions:** Startup ("cold start") is dominated by runtime bootstrap. This is *why* people care about runtime startup cost in serverless.
-- **Understanding a big binary:** When a teammate asks "why is our Go binary 30 MB?", the answer starts with "the runtime."
-- **Reading a profiler:** Seeing `runtime.mallocgc` or `gc` at the top of a flame graph tells you the runtime — not your code — is the bottleneck, and points you at allocation pressure.
-
----
-
 ## Coding Patterns
 
 These are beginner-level habits that come directly from understanding the runtime.
@@ -354,75 +238,24 @@ free(p);   // no runtime will do this for you
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. In one sentence, what is a language runtime?
-2. Name three services a fat runtime typically provides.
-3. When you write `make([]int, 8)` in Go, what does the compiler actually emit, and who does the work?
-4. Why is a Go "hello world" binary much bigger than a C one?
-5. What runs *before* `main`, and what does it do?
-6. Give one reason Rust's "no runtime" is a *feature* for embedded systems.
-7. What is the difference between a "runtime error" and "the runtime system"?
-8. Why does runtime startup cost matter especially for serverless functions?
+1. Choose one small, known input for **Runtimes (Language Runtime Support)**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
-> Answers: (1) The support code that runs with your program to provide language services (memory, startup, concurrency, errors). (2) e.g. garbage collection, scheduling of green threads, reflection/RTTI. (3) A call to the runtime's allocator (`runtime.makeslice`); the runtime finds the memory. (4) Go statically bundles its whole runtime into the binary; C links a shared `libc`. (5) The runtime's `_start`/bootstrap: sets up the stack/args, initializes the heap/GC/scheduler, runs static initializers, then calls `main`. (6) No GC/scheduler to ship means it fits on tiny chips and gives predictable timing. (7) A runtime error happens *while running*; the runtime system is the *library/services* layer. (8) The function may run for milliseconds but pay tens of milliseconds to bootstrap the runtime on each cold start.
+## Verify your work
 
----
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
 
-## Cheat Sheet
+## Review questions
 
-```text
-RUNTIME = code that runs WITH your program to provide language services.
-         = what the compiler CALLS instead of INLINING.
-
-The compiler emits CALLS to the runtime for:
-  allocation (make/new)      -> runtime allocator (+ GC reclaims later)
-  array index a[i]           -> bounds check + panic helper
-  go f() / spawn task        -> scheduler
-  throw / panic              -> unwind metadata + runtime handler search
-  typeof / type assert       -> reflection / RTTI metadata
-
-Real entry point is NOT main:
-  _start / runtime bootstrap -> init heap/GC/scheduler -> static initializers -> main
-
-FAT runtime (Go, Java, C#, Erlang): GC + scheduler + reflection, big binary, slower start, less control
-THIN runtime (C, Rust):             minimal crt/libc, small binary, fast start, you manage memory
-
-"You pay for a runtime" — it ships in every binary and runs on every cycle.
-Big "hello world" binary = the statically-linked runtime, not your code.
-```
-
----
-
-## Summary
-
-A **language runtime** is the body of support code your program runs on top of — the part the compiler emits *calls to* rather than inlining, because the work (memory management, concurrency, error handling, type info) is too big, too shared, or too dynamic to bake into every line. Your program never runs alone: a runtime bootstraps *before* `main`, provides services *during* `main`, and cleans up *after*.
-
-Languages range from **fat runtimes** (Go, Java, C#, Erlang — GC, scheduler, reflection, all bundled in) to **thin runtimes** (C, Rust — minimal startup glue, no GC, no scheduler). The fat side buys convenience and safety at the cost of binary size, startup time, and control; the thin side buys smallness, speed, and control at the cost of doing the work yourself. The phrase to keep is **"you pay for a runtime"**: it explains why a five-line Go program is megabytes, why managed programs start slowly, and why Rust advertises "no runtime" as a feature for the smallest, most controlled environments. The next tiers open the box: the allocator and GC cooperation, the scheduler, and how the compiler lowers high-level features into runtime calls and state machines.
-
----
-
-## What You Can Build
-
-- **A "runtime spotter":** compile a tiny program in Go, C, and Rust, compare binary sizes, and write down *why* each differs.
-- **An allocation tracer:** in Go, run a small program with `GODEBUG=allocfreetrace=1` (on a tiny example) or use `go build -gcflags=-m` to see what escapes to the heap (i.e., what becomes a runtime allocation).
-- **A startup timer:** measure the time from process start to your first line of `main` versus total runtime, in two different languages, and explain the gap.
-- **A "before main" demo:** write a program with a global constructor / package `init` that prints, and confirm it runs before `main`.
-
----
-
-## Further Reading
-
-- Your language's own runtime documentation (e.g. Go's `runtime` package docs, the JVM specification's overview, the .NET CLR overview).
-- "What every programmer should know about the C runtime startup" — articles on `crt0`/`_start`.
-- Introductory material on garbage collection (then continue in the memory-management section).
-- Articles on "why is my Go binary so big" — they map directly onto runtime contents.
-
----
-
-## Related Topics
-
-- Runtimes (Language Runtime Support) — the hub for this topic.
-- The **runtime-systems** section covers the runtime in depth from the *runtime's own* perspective; this page frames it from the *compiler's* perspective.
-- The **memory-management** section covers the allocator and garbage collector that the compiler emits calls to.
-- The **foreign-function-interface-and-interop** section covers calling C from a managed runtime.
+- What problem does Runtimes (Language Runtime Support) solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

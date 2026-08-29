@@ -1,54 +1,11 @@
-# Cross-Language Interop — Middle Level
+# Cross-Language Interop — Middle
 
-> **Topic:** Cross-Language Interop
-> **Focus:** Why C++ specifically is hard to bind, the `extern "C"` flattening pattern, opaque-pointer wrappers, automated binding generators (SWIG, cppyy), and the first real RPC/IDL workflow with gRPC.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **Cross-Language Interop** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-> Focus: **You can call C from almost anything. Why is calling C++ so much harder — and what do you do about it?**
-
-At the junior level we drew the two big families: in-process (share memory, near-native call speed) and out-of-process (send messages). This level digs into the part that trips up almost every engineer the first time: **C++ is not C, and the difference makes C++ remarkably hard to bind to other languages.** Then we look at the two professional escape hatches: the manual `extern "C"` flattening pattern with opaque pointers, and the automated binding generators (SWIG, cppyy) that produce that glue for you. Finally we cross to the out-of-process side and do a real **IDL-driven RPC** workflow with gRPC and Protocol Buffers, so you see the message-passing model with industrial tooling rather than hand-rolled JSON.
-
-The unifying theme is **the boundary contract**. In-process, the contract is an ABI: a precise machine-level agreement about names, registers, layouts, and lifetimes. The reason C is everyone's interop language is that *its* contract is simple and **stable**, while C++'s is rich and **unstable** — it differs between compilers, compiler versions, and standard-library implementations. Out-of-process, the contract is an IDL: a precise message-level agreement, deliberately designed to evolve safely over time. Both are contracts; the skill is making them explicit, narrow, and durable.
-
-> 🎓 **Why this matters at this level:** You are now the person other teams ask "can we call your library from Python?" or "how should our two services talk?" The honest, senior-sounding answer requires knowing *why* C++ resists binding, *how* to flatten it safely, and *when* to abandon in-process entirely for an RPC boundary. This page makes you that person.
-
----
-
-## Prerequisites
-
-- **Required:** The junior page's two-family model (in-process vs out-of-process) and the idea of the C ABI as a lingua franca.
-- **Required:** Comfort reading C and basic C++ (classes, methods, `new`/`delete`).
-- **Required:** Understanding of pointers and that a pointer is just an address.
-- **Helpful:** Having compiled a shared library (`.so`/`.dll`/`.dylib`) and linked against it once.
-- **Helpful:** Having called at least one HTTP or RPC API.
-
-You do **not** yet need: the deep memory-model and polyglot-VM material (`senior.md`), or the large-scale binding-maintenance and format-selection material (`professional.md`).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Name mangling** | A C++ compiler encodes a function's full signature (namespace, class, parameter types) into its symbol name, e.g. `add(int,int)` → `_Z3addii`. Enables overloading; breaks naive linking. |
-| **Calling convention** | The exact rules for passing arguments and returns (registers vs stack, who cleans up). Part of the ABI. |
-| **Symbol** | The name a function or variable has in a compiled object file, used by the linker to wire calls together. |
-| **`extern "C"`** | A C++ directive that disables name mangling and C++-specific call machinery for the marked declarations, giving them the plain C ABI. |
-| **Opaque pointer / opaque handle** | A pointer the other language holds but never dereferences; the type's layout is hidden. Usually a `void*` or a forward-declared incomplete type. |
-| **vtable** | The table of function pointers a C++ object uses for virtual (polymorphic) method dispatch. Its layout is compiler-specific. |
-| **RTTI** | Run-Time Type Information — C++ metadata for `typeid`/`dynamic_cast`. Layout and presence vary by compiler. |
-| **ABI stability** | Whether two separately compiled pieces can call each other reliably. C: stable. C++: notoriously *not* stable across toolchains. |
-| **SWIG** | "Simplified Wrapper and Interface Generator" — reads C/C++ headers (plus an interface file) and generates bindings for Python, Java, Ruby, C#, and more. |
-| **cppyy** | A tool (from the ROOT/Cling project) that binds C++ to Python *automatically at runtime* using a C++ interpreter, no pre-generated wrappers. |
-| **IDL (Interface Definition Language)** | A language-neutral description of messages and operations; a generator produces matching code per language. |
-| **Protocol Buffers (protobuf)** | A compact binary serialization format plus an IDL, by Google; the default payload format for gRPC. |
-| **gRPC** | An RPC framework over HTTP/2 using protobuf messages, with generated client/server stubs in many languages. |
-| **Stub** | Generated client-side code that *looks* like a local function but actually performs an RPC. |
-| **Skeleton / servicer** | Generated server-side code you fill in with the real implementation. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -118,36 +75,6 @@ Both relieve you of hand-writing glue, but neither removes the underlying truths
 Sometimes the right move is to *stop sharing a process*. If the C++ code is crash-prone, or owned by another team, or you simply don't want a C++ memory bug to take down your Python service, you put it behind an **RPC boundary**. Now the contract isn't an ABI — it's an **IDL**. You describe the operations and messages in a `.proto` file, generate stubs, and call across a socket. You pay serialization + transport latency, and you gain **fault isolation**: the C++ process can segfault and your service just sees a failed request.
 
 This is a real and common decision: **trade speed for a crash firewall.** A senior engineer makes it deliberately, not by default.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Name mangling** | A warehouse that files every item under a barcode encoding its full spec; you can't find "bolt" by asking for "bolt." |
-| **`extern "C"` shim** | A reception desk that translates a complicated internal department's services into a few simple request forms the public can fill out. |
-| **Opaque handle** | A coat-check ticket: it lets you reclaim your coat, but tells you nothing about how the cloakroom is organized. |
-| **No stable C++ ABI** | Two factories that both make "the same" part but with incompatible internal tolerances — parts from one don't fit the other's assembly. |
-| **Exception caught at the wall** | A circuit breaker that trips inside the building so a fault never sends sparks out to the street. |
-| **SWIG / cppyy** | A professional translator service that auto-generates a phrasebook from your manual, instead of you translating each sentence by hand. |
-| **Moving to RPC for isolation** | Putting a volatile chemistry lab in a separate, blast-proof building and passing samples through an airlock. |
-
----
-
-## Mental Models
-
-### The "Flatten to C, Hide the C++ Behind a Handle" Model
-
-Whenever you must expose C++ in-process, picture a flat C **façade** in front of a rich C++ **interior**. The façade has only: `create`, a few `do` operations, and `destroy`. Each takes an opaque handle and plain arguments. The C++ — classes, templates, exceptions, `std::` types — stays entirely behind the wall. If you can keep that wall clean (no C++ type ever crosses it), interop becomes manageable. The instant a `std::string` or an exception leaks through the wall, you're in undefined-behavior territory.
-
-### The "Two Memory Managers, One Object" Model
-
-Across an FFI boundary, every allocation lives under one manager but might be touched by another. Tag every pointer that crosses with a sticky note: *who owns this, and who is responsible for freeing it?* If you can't answer instantly for a given pointer, you have a latent leak or crash. The handle pattern works because it makes the answer trivial: "the side that called `new` owns it; the matching `free` releases it."
-
-### The "ABI vs IDL" Model
-
-In-process, your contract is an **ABI** — low-level, fast, fragile, hard to evolve. Out-of-process, your contract is an **IDL** — higher-level, slower, robust, *designed* to evolve. Choosing your interop style is largely choosing *which kind of contract you want to maintain.* If you need raw speed and tight coupling, accept the ABI's fragility. If you need independence and longevity, accept the IDL's overhead.
 
 ---
 
@@ -303,29 +230,6 @@ Compare the two endings: in the FFI version, an error became a `-1` and you owne
 
 ---
 
-## Pros & Cons
-
-| Approach | Pros | Cons |
-|----------|------|------|
-| **Hand-written `extern "C"` shim** | Full control; minimal dependencies; smallest, fastest boundary | Tedious; error-prone for large APIs; you own every ownership/exception detail |
-| **SWIG** | Generates bindings for many languages from headers; mature; handles mangling | Steep learning curve for non-trivial APIs; generated code is opaque; `std::`/template/ownership edge cases need directives |
-| **cppyy** | Near-zero boilerplate; runtime binding; ergonomic in Python | Carries a C++ interpreter; runtime cost; Python-only; harder to ship as a static artifact |
-| **gRPC / RPC (out-of-process)** | Fault isolation; language-neutral; independent deploy/scale; designed-to-evolve schema | Per-call serialize + network latency; operational complexity; copies all data |
-
----
-
-## Use Cases
-
-- **Wrapping a mature C++ library for a Python data team** — flatten with `extern "C"` (small surface) or SWIG/cppyy (large surface). Classic for numerics, vision, simulation.
-- **Exposing a C++ engine to multiple languages at once** — SWIG shines because one interface file yields Python, Java, and C# bindings.
-- **Quick exploratory C++-from-Python work in a notebook** — cppyy, because there's no build/codegen step in the loop.
-- **Isolating a crash-prone or untrusted C++ component** — put it behind gRPC so its segfaults can't kill your service.
-- **Two teams, two languages, separate deploys** — gRPC/IDL, because the contract is explicit and each side ships independently.
-
-The decision usually comes down to one question: **do I need this in my process (speed, tight data sharing) or beside my process (safety, independence)?** If in-process, pick a binding tool sized to the API. If beside, pick an IDL/RPC stack.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: The handle lifecycle (`new` / `op` / `free`)
@@ -375,3 +279,27 @@ Wrap the foreign component in a tiny server with a `.proto` contract. Your code 
 - **Treating gRPC calls as free.** An RPC inside a tight loop multiplies serialization + network cost; designs that were "chatty" in-process become catastrophically slow out-of-process. Batch, or keep that path in-process.
 - **No schema-evolution plan for the IDL.** Renaming or renumbering a protobuf field, or changing its type, breaks old clients. (Field-numbering discipline and evolution rules are a `senior.md`/`professional.md` topic — but the trap starts here.)
 - **Callbacks that re-enter across the boundary.** A C++ callback that calls back into the managed language while the managed runtime holds locks (or its GC is running) can deadlock or corrupt state. Keep callbacks shallow and well-defined.
+
+---
+
+## Apply it
+
+1. Find a real component where **Cross-Language Interop** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
+
+## Verify your work
+
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
+
+## Review questions
+
+- Which boundary is most affected by Cross-Language Interop?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

@@ -1,49 +1,11 @@
-# Variance — Professional Level
+# Variance — Professional
 
-> **Topic:** Variance
-> **Focus:** The unsound holes shipped in real languages (Java/C# arrays, TypeScript bivariant method parameters), why they exist, and how a working engineer designs around them.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Variance** with measurable outcomes and limited coordination?
 
-## Introduction
-
-> Focus: **Real languages ship known unsoundness on purpose. Knowing *which* holes exist, *why* the designers chose them, and *how* to engineer safely around them is what separates a professional from someone who just knows the textbook rules.**
-
-The previous levels built the ideal: variance rules that, checked properly, give soundness. Production languages deviate from the ideal deliberately, trading soundness for ergonomics, backward compatibility, or developer productivity. A professional must know exactly where the deviations are because they manifest as production crashes, not compile errors:
-
-- **Java and C# arrays are covariant** — the original sin. `Object[] a = new String[1]; a[0] = 42;` compiles and throws at runtime. Chosen in 1995 (before generics existed) so that generic-ish code like `Arrays.sort(Object[])` could work on any array. The cost: every array store carries a runtime type check and can throw `ArrayStoreException` / `ArrayTypeMismatchException`.
-- **TypeScript method parameters are bivariant by default** — `strictFunctionTypes` makes standalone *function-typed* parameters contravariant (sound), but leaves *method* parameters bivariant for pragmatic reasons (mainly so that event-handler and array-method patterns type-check the way developers expect). This is a documented, intentional unsoundness.
-- **Covariant generics with mutation via casts.** Even invariant-by-default languages let you cast your way into the array bug.
-
-This page is the field guide: the exact reproductions, the design rationale, and the patterns professionals use — defensive immutability, read-only interfaces at boundaries, `strictFunctionTypes`, and treating arrays as a known hazard. We'll also walk concrete engineering signatures (`Collections.copy`, contravariant comparators, callback sinks) where getting variance right is the difference between an API that composes and one that fights its callers.
-
-> 🎓 **Why this matters for a professional:** You review APIs and diagnose production incidents. An `ArrayStoreException` in a logs aggregator, an `InvalidCastException` from a covariant interface misuse, a TypeScript callback that silently receives the wrong shape — these are variance failures wearing different masks. Recognizing the variance root cause turns a multi-hour debug into a one-line fix.
-
----
-
-## Prerequisites
-
-- **Required:** Declaration-site vs use-site variance and the positional check from `senior.md`.
-- **Required:** Function variance ("accept more, return less") and the array-covariance bug.
-- **Required:** Hands-on experience with at least two of: Java generics, C# variance, TypeScript, Scala/Kotlin.
-- **Helpful:** Having debugged a real `ArrayStoreException` or `ClassCastException` whose root cause was variance.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **`ArrayStoreException`** | JVM runtime exception thrown when storing an element whose type isn't assignable to the array's actual element type. The cost of covariant arrays. |
-| **`ArrayTypeMismatchException`** | The .NET equivalent of `ArrayStoreException`. |
-| **`strictFunctionTypes`** | TypeScript compiler flag that makes standalone function-typed parameters checked contravariantly (sound) instead of bivariantly. |
-| **Bivariant method parameters** | TypeScript's default for *method* (vs standalone function) parameters: assignable in both directions, intentionally unsound. |
-| **Defensive copy** | Returning/storing a copy so internal mutable state can't be aliased and mutated through a covariant view. |
-| **Read-only interface** | An interface exposing only producers (`IReadOnlyList<out T>`, `ReadonlyArray<T>`), safely covariant. |
-| **Soundness hole** | A place where a type-correct program can still fail with a type error at runtime. |
-| **Variance erasure** | The fact that the JVM/CLR don't carry generic variance at runtime; only arrays carry element type (enabling their runtime check). |
-| **`in`/`out` projection** | Use-site variance applied to borrow safe variance from an invariant type (Kotlin). |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -99,35 +61,6 @@ The professional's standard mitigation: when you want covariance, make the data 
 ### 7. Variance failures wear disguises in production
 
 The same root cause surfaces as different exceptions and bugs: `ArrayStoreException` (Java arrays), `ArrayTypeMismatchException` (.NET arrays), `ClassCastException` from a downcast that "shouldn't" fail, a TypeScript callback silently receiving the wrong runtime shape (no exception — just wrong behavior because TS types are erased). A professional learns to ask, on seeing these, "is something covariant being mutated, or is a contravariant slot being narrowed?"
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Covariant arrays** | A "fragile" sticker the shipper trusts but the loader ignores until a box breaks at the destination dock (runtime). The compiler is the shipper; the JVM is the dock. |
-| **Runtime store check** | A bouncer at the *exit* checking IDs you should have checked at the entrance. Every array write pays this tax. |
-| **TS bivariant methods** | A building code that's strict for new construction (function properties) but grandfathers in old wiring (methods) because rewiring the whole city would shut it down. |
-| **Defensive copy** | Handing visitors a photocopy of the ledger, not the ledger. They can read it; they can't alter your records. |
-| **Read-only interface** | A museum display case: you can look at the artifact (covariant read) but the glass stops you putting your own junk inside (no write). |
-| **Variance disguises** | The same disease presenting with different symptoms in different organs — you treat the cause, not each symptom. |
-
----
-
-## Mental Models
-
-### The "Where Does the Check Move?" Model
-
-Soundness must be enforced *somewhere*. Sound generics enforce it at **compile time** (the position check). Covariant arrays defer it to **runtime** (the store check). TypeScript's bivariant methods enforce it **nowhere** (types are erased; the wrong value just flows through). When you choose or use a construct, ask: where did the check go? If "runtime," expect exceptions. If "nowhere," expect silent corruption.
-
-### The "Immutability Buys Covariance" Model
-
-Every soundness hole in variance is ultimately about *writing* through a covariant alias. Remove the write — make it immutable — and covariance becomes free and safe. So the professional reflex when you crave covariance is: "can I make this read-only?" If yes, the problem dissolves.
-
-### The "Two TypeScripts" Model
-
-Treat TS as having two assignability rules living side by side: a sound one for function-typed properties (under `strictFunctionTypes`) and an unsound one for methods. Writing a callback type as `{ cb: (x: T) => void }` opts into the sound rule; writing it as `{ cb(x: T): void }` opts into the unsound one. Same intent, different safety — and you choose.
 
 ---
 
@@ -251,28 +184,6 @@ fun main() {
 
 ---
 
-## Pros & Cons
-
-| Aspect | Pros | Cons |
-|--------|------|------|
-| **Covariant arrays** | Pre-generics polymorphism (`sort(Object[])`); ergonomic legacy code. | Unsound; runtime store check on every write; latent `ArrayStoreException`. |
-| **TS bivariant methods** | Existing code (array methods, event handlers) type-checks as developers expect; smooth migration. | Documented unsoundness; callbacks can receive wrong types silently. |
-| **`strictFunctionTypes`** | Restores sound contravariant checking for function-typed parameters. | Doesn't cover methods; can surface errors in previously-"working" code. |
-| **Defensive immutability for covariance** | Makes covariance fully sound; eliminates the hole. | Copying cost; read-only APIs can feel restrictive to callers who want to mutate. |
-| **PECS / variant signatures** | APIs compose; callers pass natural types without casts. | Verbose; wildcard errors are hard to read; easy to get the direction wrong. |
-
----
-
-## Use Cases
-
-- **Designing public library APIs** where callers pass collections/comparators/callbacks of related types — use PECS / `in`/`out` so they don't fight your signatures.
-- **Hardening a service against array-store crashes** — replace `Object[]`/covariant-array parameters at boundaries with invariant `List`/`IReadOnlyList`.
-- **Migrating a TypeScript codebase to soundness** — enable `strictFunctionTypes`, convert callback methods to function-typed properties, fix the override errors it surfaces.
-- **Exposing read-only views of internal mutable state** — return `IReadOnlyList<out T>` / `ReadonlyArray<T>` / Kotlin `List` for safe covariance without leaking write access.
-- **Reviewing override hierarchies** — enforce covariant-return-only; flag attempts to narrow parameters.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Replace covariant arrays with invariant collections at boundaries
@@ -343,62 +254,24 @@ fun <T> topK(items: List<T>, k: Int, cmp: Comparator<in T>): List<T> =
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. Reproduce the array-covariance bug in Java and in C#. Name both runtime exceptions. Explain why generics (`List<T>`) don't have this problem.
-2. Why did Java/C# make arrays covariant in the first place, and why did they make generics invariant later? What changed in their reasoning?
-3. Write a TypeScript callback two ways — as a method and as a function-typed property — and show which one `strictFunctionTypes` checks soundly. Explain the one-character difference.
-4. Give the full `Collections.copy`-style signature and label which wildcard is the producer and which is the consumer. What breaks if you swap them?
-5. A teammate returns an internal `List<Cat>` from a getter typed as a covariant read view, then another team mutates the original list elsewhere and breaks an invariant. Diagnose this as a variance issue and give the fix.
-6. Explain why "an override may return a subtype but not accept a narrower parameter" is the only sound override flexibility mainstream OO actually gives you.
-7. Why do generic varargs reintroduce the array-covariance hazard, and what does `@SafeVarargs` assert?
+1. Define the user or business outcome that **Variance** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
----
+## Verify your work
 
-## Cheat Sheet
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
 
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│           VARIANCE IN THE REAL WORLD (the holes)                 │
-├──────────────────────────────────────────────────────────────────┤
-│ JAVA/C# ARRAYS = COVARIANT + MUTABLE = UNSOUND                   │
-│   Object[] a = new String[1]; a[0] = 42;                         │
-│   -> ArrayStoreException (Java) / ArrayTypeMismatchException (C#) │
-│   reason: shipped before generics; runtime store-check pays cost │
-│   FIX: use invariant List/IReadOnlyList at boundaries            │
-│                                                                   │
-│ GENERICS (List<T>) = INVARIANT = SOUND                          │
-│   designed after arrays, explicitly to NOT repeat the hole       │
-│                                                                   │
-│ TYPESCRIPT METHOD PARAMS = BIVARIANT (unsound, by design)       │
-│   strictFunctionTypes -> standalone FUNCTION params contravariant│
-│   but METHOD params stay bivariant (compat with array/events)    │
-│   FIX: write callbacks as function-typed properties              │
-│       { cb: (x: T) => void }   not   { cb(x: T): void }          │
-├──────────────────────────────────────────────────────────────────┤
-│ WHERE DID THE CHECK GO?                                          │
-│   sound generics    -> COMPILE time (position check)             │
-│   covariant arrays  -> RUNTIME (store check, can throw)          │
-│   TS bivariant      -> NOWHERE (erased, silent wrong value)      │
-├──────────────────────────────────────────────────────────────────┤
-│ ENGINEERING SIGNATURES                                          │
-│   copy(List<? super T> dest, List<? extends T> src)  // PECS     │
-│   sort(List<T>, Comparator<? super T>)               // contra   │
-│   override: Cat reproduce() over Animal reproduce()  // cov ret  │
-│   IReadOnlyList<out T> view over mutable internals   // safe cov │
-├──────────────────────────────────────────────────────────────────┤
-│ THE PRO REFLEX:  want covariance? make it IMMUTABLE.            │
-└──────────────────────────────────────────────────────────────────┘
-```
+## Review questions
 
----
-
-## Summary
-
-- Production languages ship **deliberate variance unsoundness**. The professional's job is to know exactly where, why, and how to work around it.
-- **Java and C# arrays are covariant and mutable**, which is unsound: `Object[] a = new String[1]; a[0] = 42;` compiles and throws `ArrayStoreException` (`ArrayTypeMismatchException` in .NET) at runtime. The choice predates generics and bought pre-generic polymorphism; the cost is a runtime store check on every reference-array write. When generics arrived, both languages made them **invariant** specifically to avoid repeating the hole.
-- **TypeScript method parameters are bivariant by default** — intentionally unsound for backward compatibility with array methods and event handlers. `strictFunctionTypes` restores sound **contravariant** checking, but only for **standalone function-typed** parameters, not methods. The practical lever: write callbacks as function-typed properties (`{ cb: (x: T) => void }`) to get the sound check.
-- A unifying question: **where did the soundness check go?** Sound generics check at compile time; covariant arrays defer to runtime (exceptions); TS bivariant methods check nowhere (silent wrong values, because TS types are erased).
-- The **engineering signatures** that depend on variance: `Collections.copy(List<? super T> dest, List<? extends T> src)` (PECS), `sort(..., Comparator<? super T>)` (contravariant comparator), `forEach(Consumer<? super T>)` (contravariant sink), and covariant-return overrides (`Cat reproduce()`). The only sound, portable override flexibility in mainstream OO is the **covariant return**.
-- The professional's standard mitigation is **defensive immutability**: when you want covariance, make the data read-only (`IReadOnlyList<out T>`, `ReadonlyArray<T>`, Kotlin `List`) so covariance is sound by construction. The reflex is "want covariance? make it immutable."
-- Variance failures **wear disguises** in production — `ArrayStoreException`, `ArrayTypeMismatchException`, `ClassCastException`, silently-wrong TS callbacks — but the root cause is always covariance-plus-mutation or a narrowed contravariant slot. Naming the cause turns a long debug into a one-line fix. The interview and tasks files drill these scenarios.
+- Which measurable outcome justifies investing in Variance?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

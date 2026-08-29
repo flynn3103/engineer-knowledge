@@ -1,43 +1,11 @@
 # Go Runtime — Junior
 
-> **Topic:** [Go Runtime](../README.md)
-> **Focus:** What the Go runtime actually does for you — the scheduler, the garbage collector, growable stacks — and why "simple" Go code isn't running directly on the CPU the way C does.
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **Go Runtime** in one small example and prove the result?
 
-## Introduction
-
-Every compiled Go binary embeds a **runtime**: a piece of software that ships inside your program and handles goroutine scheduling, memory allocation, garbage collection, and growing stacks. You never call it directly, but almost everything interesting about Go's performance and behavior under load comes from understanding what it's doing behind your back.
-
-Three runtime subsystems matter most day to day:
-
-1. The **scheduler** — decides which goroutine runs on which OS thread, when.
-2. The **garbage collector (GC)** — reclaims memory for values nothing references anymore.
-3. **Stack management** — each goroutine's stack starts tiny (2 KB) and grows automatically.
-
----
-
-## Prerequisites
-
-- Comfortable with goroutines (see [Goroutines and Concurrency](../01-goroutines-and-concurrency/junior.md)).
-- No prior runtime/GC knowledge required.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Runtime** | The Go support library, linked into every binary, providing scheduling, GC, memory allocation. |
-| **GMP model** | Goroutine / Machine (OS thread) / Processor — the scheduler's three core abstractions. |
-| **`GOMAXPROCS`** | Max number of OS threads simultaneously executing Go code. Defaults to CPU core count. |
-| **Garbage collector (GC)** | Automatically frees memory for objects no longer reachable from any live reference. |
-| **Stop-the-world (STW)** | A brief pause where all goroutines halt so the GC can do bookkeeping safely. Go's STW pauses are typically sub-millisecond. |
-| **Escape analysis** | Compile-time decision of whether a value can live on the stack or must be allocated on the heap. |
-| **Stack growth** | A goroutine's stack starts at 2 KB and the runtime copies it to a larger buffer automatically when it fills up. |
-| **`GOGC`** | Environment variable controlling how much the heap can grow between GC cycles before the next one triggers (default 100 = double). |
-| **Allocation** | Reserving memory for a value, either on the stack (cheap, automatic) or the heap (tracked by the GC). |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -106,26 +74,6 @@ Lowers the heap-growth threshold and sets a soft memory ceiling — useful in me
 
 ---
 
-## Pros & Cons
-
-| | Pros | Cons |
-|---|---|---|
-| **Automatic GC** | No manual `free()`, no use-after-free bugs | Uses CPU cycles you don't directly control; tuning is indirect (`GOGC`, `GOMEMLIMIT`) |
-| **Growable stacks** | Goroutines can start tiny and cheap | Stack-growth copies happen transparently and can show up in profiles as unexpected cost |
-| **M:N scheduler** | Massive goroutine counts on few OS threads | Scheduling decisions are mostly opaque; deep tuning needs `GODEBUG` and trace tools |
-
----
-
-## Use Cases
-
-| Situation | What to know |
-|---|---|
-| Service is CPU-bound and GC shows up in profiles | Consider raising `GOGC` if memory headroom allows |
-| Service runs in a memory-constrained container | Set `GOMEMLIMIT` to avoid OOM kills from GC lagging behind allocation |
-| Code allocates more than expected | Check escape analysis (`-gcflags="-m"`) for values unexpectedly moved to the heap |
-
----
-
 ## Best Practices
 
 1. Don't tune `GOGC`/`GOMEMLIMIT` without a profile showing GC is actually the bottleneck.
@@ -153,45 +101,24 @@ Lowers the heap-growth threshold and sets a soft memory ceiling — useful in me
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```
-GOMAXPROCS   — max OS threads running Go code concurrently (default: CPU count)
-GOGC         — heap growth % before next GC (default 100 = double)
-GOMEMLIMIT   — soft memory ceiling (Go 1.19+)
-go build -gcflags="-m"   — show escape analysis decisions
-```
+1. Choose one small, known input for **Go Runtime**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
----
+## Verify your work
 
-## Summary
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
 
-- The Go runtime schedules goroutines onto OS threads (GMP model), manages a concurrent garbage collector, and grows goroutine stacks automatically.
-- The GC runs mostly concurrently with very short stop-the-world pauses, but still consumes CPU.
-- Escape analysis decides stack vs. heap allocation at compile time — visible via `-gcflags="-m"`.
-- `GOGC` and `GOMEMLIMIT` are the main levers for trading memory against CPU spent on GC.
-- Set `GOMAXPROCS` deliberately in containers.
+## Review questions
 
----
-
-## Further Reading
-
-- The Go Blog — *Getting to Go: The Journey of Go's Garbage Collector*: <https://go.dev/blog/ismmkeynote>
-- A Guide to the Go Garbage Collector (official docs): <https://go.dev/doc/gc-guide>
-
----
-
-## Related Topics
-
-- [Goroutines and Concurrency](../01-goroutines-and-concurrency/junior.md) — what the scheduler is scheduling.
-- [Production Debugging](../07-production-debugging/junior.md) — profiling GC and allocation with `pprof`.
-
----
-
-## Check your understanding
-
-1. Explain Go Runtime — Junior Level in your own words and name the problem it solves.
-2. How would you apply the ideas around Introduction, Prerequisites, Glossary in a realistic engineering change?
-3. What failure mode or misuse should you look for, and what evidence would reveal it?
-4. What small example would prove that you can apply Go Runtime — Junior Level correctly?
-5. What observable result would convince you that the approach improved the system?
+- What problem does Go Runtime solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

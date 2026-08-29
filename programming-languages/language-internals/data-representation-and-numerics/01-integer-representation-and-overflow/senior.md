@@ -1,53 +1,11 @@
-# Integer Representation & Overflow — Senior Level
+# Integer Representation & Overflow — Senior
 
-> **Topic:** Integer Representation & Overflow
-> **Focus:** The internals and the cross-language design space — why two's complement won, the `INT_MIN` asymmetry and its traps, what "undefined behavior" actually licenses the optimizer to do, and how each language's memory/overflow model trades safety against speed.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Integer Representation & Overflow** under failure, load, and change?
 
-## Introduction
-
-> Focus: **At the senior level, "it overflows" is not an answer — the question is *what the specification permits the compiler to assume*, and *what the hardware actually does*.** Those two layers diverge most sharply in C/C++, where signed overflow is undefined behavior, and the gap between "what you wrote" and "what runs" is wide enough to hide both performance wins and security holes.
-
-A senior engineer must hold three things in their head simultaneously:
-
-1. **The hardware reality.** Essentially every CPU since the early 1970s uses two's complement, has a single adder that serves signed and unsigned, and exposes overflow/carry flags. Wraparound is *physically* what the silicon does. Understanding *why* two's complement won — one zero, identical add/subtract circuitry, free sign extension, monotonic modular arithmetic — explains why higher layers are shaped the way they are.
-
-2. **The language specification.** What the *standard* says may differ from what the hardware does. C/C++ declare signed overflow *undefined* even though the chip would happily wrap. That declaration is not pedantry: it licenses the optimizer to assume `x + 1 > x`, to promote loop counters, to delete "impossible" branches. The same physical operation is "defined wrap" in Java/Go, "panic-or-wrap" in Rust, "impossible" in Python.
-
-3. **The asymmetry and its consequences.** Two's complement has one more negative than positive value. `INT_MIN` has no positive twin. Therefore `−INT_MIN`, `abs(INT_MIN)`, and `INT_MIN / −1` are all broken — and the last one *traps* (SIGFPE) on x86, a fact most engineers never learn until production crashes.
-
-This page is about those three layers and how they interact. The recurring theme: **the bug is rarely in the arithmetic you see; it's in the assumption — yours or the compiler's — about what the arithmetic is allowed to do.**
-
----
-
-## Prerequisites
-
-- **Required:** Junior and middle pages — representation, promotion, conversions, detection techniques.
-- **Required:** Reading assembly comfortably enough to follow an x86-64 `add`/`idiv`/`movsx` snippet.
-- **Helpful:** Familiarity with the notion of undefined behavior and compiler optimization passes.
-- **Helpful:** Having debugged at least one "works at -O0, breaks at -O2" issue.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Two's complement** | Signed encoding where the value of an n-bit pattern is `−bₙ₋₁·2ⁿ⁻¹ + Σ bᵢ·2ⁱ`. |
-| **Modular arithmetic (mod 2ⁿ)** | The ring unsigned arithmetic lives in; addition/multiplication wrap exactly mod 2ⁿ. |
-| **Undefined behavior (UB)** | A program construct the standard imposes *no requirements* on; the compiler may assume it never happens. |
-| **Implementation-defined** | Behavior the standard leaves to the implementation but requires it to *document* (e.g., `int` width). |
-| **`INT_MIN`** | The most negative value of a signed type; `−2ⁿ⁻¹`. Has no positive counterpart. |
-| **Overflow flag (OF)** | x86 status bit set when a *signed* operation overflows. |
-| **Carry flag (CF)** | x86 status bit set when an *unsigned* operation produces a carry/borrow out. |
-| **Sign extension** | Widening a signed value by replicating its sign bit (`movsx`/`cdqe`). |
-| **Strength reduction** | Optimizer replacing a costly op with a cheaper one, sometimes assuming no overflow. |
-| **`-ftrapv` / `-fwrapv`** | GCC/Clang flags: trap on signed overflow / define signed overflow to wrap (disable UB). |
-| **UBSan** | UndefinedBehaviorSanitizer; instruments code to detect overflow/UB at runtime. |
-| **Saturating** | Overflow clamps to MAX/MIN (hardware `paddsb`, Rust `saturating_*`). |
-| **Wrapping** | Overflow defined as mod 2ⁿ (Rust `Wrapping<T>`, Java/Go default). |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -133,36 +91,6 @@ Two observations a senior should internalize. First, **safety-by-default and spe
 ### 6. Why Java Has No Unsigned Types (and How It Copes)
 
 Java deliberately omitted unsigned integers (Gosling's stated reason: they confuse more than they help, given the conversion traps you saw in `middle.md`). The cost: bytes are signed (`byte` is `[−128,127]`), so reading raw bytes needs `b & 0xFF`. Java 8 added a *functional* unsigned layer — `Integer.toUnsignedLong`, `Integer.divideUnsigned`, `Integer.compareUnsigned`, `Long.parseUnsignedLong` — that operate on the same `int`/`long` bit patterns with unsigned semantics. The pattern is "signed storage, unsigned operations on demand," which is exactly how you should think about Java's `int` when it holds a hash, a color, or a raw byte run.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Two's complement single adder** | A cash register that handles both deposits and withdrawals with the same add mechanism — subtraction is just "add a negative." |
-| **`INT_MIN` asymmetry** | A see-saw with one extra seat on the negative side; you can't mirror the most-negative person to the positive side — there's no seat there. |
-| **`INT_MIN / −1` trap** | Asking "what's the opposite of the lowest possible floor?" in a building whose floors are numbered to a hard minimum — there's no such floor, and the elevator faults. |
-| **Undefined behavior** | A contract clause that says "if you ever do X, all bets are off" — and the contractor (compiler) then *builds the house assuming you never will*, removing the railing you put up "in case." |
-| **`-fwrapv`** | Adding back the railing by contract amendment: now overflow is defined, and your safety check survives. |
-| **OF vs CF flags** | A dashboard with two warning lights — one for "signed limit exceeded," one for "unsigned limit exceeded" — both wired to the same engine. |
-| **Sign extension** | Re-printing a negative temperature on a bigger sign: you must repaint the minus across the new space, not leave it blank. |
-
----
-
-## Mental Models
-
-### The "Two Layers" Model
-
-Always separate **what the hardware does** from **what the standard permits**. The hardware *wraps* signed overflow. The C standard *forbids* it (UB). When you reason about a C program, reason at the standard's layer — the compiler does — because the optimizer's view is what actually runs. When you reason about Go/Java, the layers coincide (defined wrap). The senior error is reasoning about C as if it were Go: "it'll just wrap" — no, the compiler may have deleted your code.
-
-### The "UB Is a Promise You Made" Model
-
-Undefined behavior isn't the compiler being mean; it's the compiler taking you at your word. By the standard, *you promised* signed overflow never happens. The optimizer builds on that promise. So an overflow check placed *after* the overflow is self-contradictory: you both promised it can't happen and tried to detect it happening. The compiler resolves the contradiction by believing your promise and deleting the check. Detect *before*.
-
-### The "Ring with a Seam" Model (refined)
-
-Unsigned integers are a clean ring `ℤ/2ⁿℤ`; arithmetic is exact modular arithmetic with no exceptions — that's *defined and correct*, just possibly surprising. Signed integers are the *same ring* with a different labeling of the elements (the top half labeled negative), and the seam between `INT_MAX` and `INT_MIN` is where every signed-overflow trap, every UB, and every `INT_MIN` asymmetry lives. Know exactly where the seam is.
 
 ---
 
@@ -297,29 +225,6 @@ public class Unsigned {
 
 ---
 
-## Pros & Cons
-
-| Design choice | Pros | Cons |
-|---------------|------|------|
-| **Signed overflow = UB (C/C++)** | Enables loop/vectorization/strength-reduction optimizations; small, fast code. | Silently deletes overflow checks; security-critical bugs; non-portable surprises. |
-| **Defined wrap (Java/Go)** | Portable, no UB, predictable; correct for hashing/modular code. | Silent wrong answers when wrap wasn't intended. |
-| **Trap by default (Swift, Rust-debug)** | Bugs surface at the exact point of overflow; safest. | Runtime cost; release builds disable it (Rust), so prod safety needs explicit checked ops. |
-| **Arbitrary precision (Python, Java BigInteger)** | Never overflows; correctness by construction. | Slow, allocates, unpredictable performance; no constant-time guarantees (crypto risk). |
-| **Two's complement (universal)** | One zero, one adder, free negation/sign-extension, hardware overflow flags. | The `INT_MIN` asymmetry and its trap family. |
-| **Unsigned types** | Correct modular semantics, full positive range, right for sizes/masks. | Underflow-to-huge, signed/unsigned comparison traps, no `INT_MIN`-style asymmetry but `0-1`=MAX. |
-
----
-
-## Use Cases
-
-- **Systems / kernel code:** compile with `-fno-strict-overflow`/`-fwrapv` and audit every size calculation; the kernel does exactly this after years of UB-driven CVEs.
-- **Cryptography:** use constant-time fixed-width arithmetic; *avoid* bignums on the hot path (their timing leaks key bits) and *avoid* branches on secret-dependent overflow.
-- **Numeric/DSP code:** use saturating arithmetic (hardware `padds*`, Rust `saturating_*`) so signal peaks clip rather than wrap into noise.
-- **Hashing / checksums / PRNGs:** use wrapping arithmetic deliberately (`Wrapping<T>`, Go/Java natural wrap) — overflow is the algorithm.
-- **Financial / safety systems:** checked arithmetic everywhere; an overflow is an error to surface, never to swallow. Or fixed-point with explicit overflow handling.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: The complete signed-division guard
@@ -424,125 +329,24 @@ if (__builtin_add_overflow(a, b, &r)) handle_overflow();   // compiles to add+jo
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. Prove from the two's-complement value formula that `−x = ~x + 1`, and show where the proof breaks for `x = INT_MIN`.
-2. Write the complete `safe_div` for `int32_t` and explain *both* failure cases, including which one raises SIGFPE on x86 and why.
-3. Compile `if (a + 100 < a) return -1;` at `-O0` and `-O2 -fstrict-overflow`. Explain what the optimizer does and why, then show two fixes.
-4. Why does `abs(INT_MIN)` return `INT_MIN` in Java? Trace it through the two's-complement representation. What's the correct API?
-5. Explain the difference between `-ftrapv`, `-fwrapv`, and `-fsanitize=signed-integer-overflow`. When would you ship each?
-6. Show why `1 << 31` is UB for `int` but defined for `unsigned`, in terms of the sign bit and the standard's rule on shifting.
-7. Why does Go define `MinInt32 / -1` while C leaves it undefined? What surprise does Go's choice prevent?
-8. Demonstrate (conceptually) how using `BigInteger` to "fix" a modular-exponentiation overflow can leak timing information about the operands.
+1. State the system invariant that **Integer Representation & Overflow** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
----
+## Verify your work
 
-## Tricky Questions
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
 
-**Q1: If the hardware wraps signed overflow, why does C call it undefined?**
+## Review questions
 
-Because the *standard* (not the hardware) defines the abstract machine, and leaving signed overflow undefined lets the optimizer assume `a + 1 > a`, that loops with `int` counters terminate, and that arithmetic identities hold — enabling vectorization, strength reduction, and loop transformations. The hardware would wrap, but the compiler is allowed to generate code that *doesn't reach* the wrapping case because it assumed it impossible. The dial between speed (UB) and safety (defined/trap) is exactly this assumption.
-
-**Q2: Why is `INT_MIN / −1` a hardware trap and not just a wrong number?**
-
-The true quotient is `INT_MAX + 1`, which doesn't fit in the result register. x86's `idiv` raises `#DE` (divide error) when the quotient overflows the destination — the same vector as divide-by-zero. So the CPU *faults* rather than silently truncating. Go sidesteps this by specifying the result (wrap to `INT_MIN`); C leaves it UB; a correct C guard must special-case it.
-
-**Q3: Is two's complement guaranteed by the C standard?**
-
-It is now. C23 *mandates* two's complement for signed integers (removing the historical allowance for sign-magnitude and ones' complement, which no real platform used). Before C23 it was implementation-defined, though every mainstream implementation used two's complement. Note: even in C23, signed *overflow* remains UB — two's-complement representation does not imply defined overflow.
-
-**Q4: Does `-fwrapv` make my C program safe?**
-
-Safer, not safe. It removes the UB (signed overflow becomes defined wrap, like Java), so the optimizer can no longer delete your overflow checks, and `INT_MIN/-1`-style reasoning is well-defined. But you can still produce *wrong answers* via silent wrap — `-fwrapv` defines the behavior, it doesn't detect or prevent logical overflow. For detection you still want pre-checks/builtins or UBSan.
-
-**Q5: Why did Java omit unsigned integers, and how do you read a raw byte?**
-
-The designers judged that unsigned types cause more confusion than they solve, largely because of the signed/unsigned conversion traps (the `-1 < 1u` family). The cost is that `byte` is signed; to get the unsigned value of a raw byte you write `b & 0xFF` (which promotes to `int` and masks the sign extension). Java 8's `Integer/Long.*Unsigned` methods give unsigned *operations* over signed storage when you need them.
-
-**Q6: When is wrapping arithmetic the *correct* implementation, not a bug?**
-
-When the algorithm is defined over `ℤ/2ⁿℤ`: hashing (`h = h*31 + c`), CRC/checksums, linear-congruential and xorshift PRNGs, ring-buffer index advance, and sequence numbers (TCP). For these, `Wrapping<T>`/`wrapping_*` or Java/Go's natural wrap is exactly right, and a *checked* version would be wrong (it would reject valid inputs). The skill is signaling that the wrap is intentional.
-
-**Q7: How do you detect 64-bit multiplication overflow with no 128-bit type?**
-
-Three portable-ish routes: `__builtin_mul_overflow` (GCC/Clang, one `mul` + flag read); the high/low split (`unsigned __int128`, `_umul128` on MSVC, `math/bits.Mul64` in Go) and check the high word is zero; or the division pre-check `a != 0 && b > MAX/a`. C23 adds `ckd_mul` as the standard answer.
-
----
-
-## Cheat Sheet
-
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│             INTERNALS, INT_MIN TRAPS & UB SEMANTICS             │
-├──────────────────────────────────────────────────────────────────┤
-│ Two's complement value:  -b[n-1]·2^(n-1) + Σ b[i]·2^i           │
-│   one zero · one adder for signed+unsigned · -x = ~x + 1         │
-│   signed overflow iff: operands same sign, result opposite sign  │
-├──────────────────────────────────────────────────────────────────┤
-│ THE INT_MIN ASYMMETRY (one more negative than positive):         │
-│   -INT_MIN       → overflow (== INT_MAX + 1)                     │
-│   abs(INT_MIN)   → INT_MIN (still negative) / UB                 │
-│   INT_MIN / -1   → UB in C; TRAPS (SIGFPE) on x86; wraps in Go   │
-│   guard division for BOTH b==0 AND (a==MIN && b==-1)             │
-├──────────────────────────────────────────────────────────────────┤
-│ UB LICENSES THE OPTIMIZER to assume overflow never happens:      │
-│   - assumes a+1 > a, loops terminate, deletes post-checks        │
-│   - so DETECT BEFORE, never after, for signed                    │
-│ Flags: -fwrapv (define wrap) · -ftrapv (trap) · UBSan (detect)   │
-├──────────────────────────────────────────────────────────────────┤
-│ HARDWARE: one `add` sets OF (signed) AND CF (unsigned)           │
-│   movsx = sign-extend · movzx = zero-extend                     │
-│   checked ops = add + read-flag (cheap)                         │
-├──────────────────────────────────────────────────────────────────┤
-│ CROSS-LANGUAGE signed overflow:                                  │
-│   C/C++ UB · Rust panic(dbg)/wrap(rel) · Go wrap · Java wrap     │
-│   Swift TRAP · Python impossible · JS f64 precision-loss         │
-│ C23: two's complement MANDATED; overflow STILL UB; ckd_* added   │
-└──────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## Summary
-
-- Two's complement won on **hardware merit**: one zero, a single adder serving both signednesses, trivial negation (`~x + 1`), free sign extension, and overflow detectable from sign bits. C23 finally *mandates* it.
-- The representation is **asymmetric** — one extra negative — so `−INT_MIN`, `abs(INT_MIN)`, and `INT_MIN / −1` are all broken; the division case **traps (SIGFPE) on x86**, so a correct guard checks both `b==0` and `INT_MIN/-1`.
-- **Undefined behavior is a promise, not a wrap.** C/C++ signed overflow being UB *licenses the optimizer* to assume it never happens — which silently deletes overflow checks written after the fact. Detect *before*.
-- The escape hatches differ in kind: **`-fwrapv` defines** (wrap), **`-ftrapv` traps**, **UBSan detects**. Defining is not detecting.
-- The cross-language model is a deliberate **safety↔speed dial**: C/Rust-release wrap-or-UB (speed), Java/Go define wrap (predictable, still silent), Swift/Rust-debug trap (safe-by-default), Python uses bignums (never overflows, but slow and timing-leaky).
-- Hardware exposes **OF and CF** on every add, which is why checked/overflowing/carry APIs are cheap — one instruction plus a flag read.
-- Senior judgment: reason at the **standard's layer** for C, guard the **`INT_MIN` family**, pick overflow **semantics explicitly**, and keep **bignums off constant-time paths**.
-
----
-
-## What You Can Build
-
-- **An `INT_MIN`-safe arithmetic kit** (`safe_neg`, `safe_abs`, `safe_div`, `safe_mul`) for `int32_t`/`int64_t`, with a test suite hitting every boundary and the SIGFPE case.
-- **A UB-demonstration harness**: the same overflow-check function compiled at `-O0`, `-O2`, `-O2 -fwrapv`, and under UBSan, side-by-side, showing the optimizer deleting the check.
-- **A typed overflow-policy library** in Rust: `Checked<T>`, `Saturating<T>`, `Wrapping<T>` newtypes with operator overloads and clear panics/results.
-- **A cross-language overflow table generator**: run identical max/min/`INT_MIN` operations in C, Go, Java, Rust, Python and emit the comparison matrix.
-- **A flag-reading micro-benchmark**: compare `__builtin_add_overflow` (add+jo) against a manual pre-check and a wider-type check at the instruction level.
-- **A constant-time vs bignum timing demo** for modular exponentiation, showing the side channel bignums introduce.
-
----
-
-## Further Reading
-
-- *Hacker's Delight* — Henry S. Warren. The definitive bit-and-overflow algebra (negation, overflow detection, saturating ops).
-- "What Every C Programmer Should Know About Undefined Behavior" — Chris Lattner (LLVM blog), 3 parts. Why UB lets the optimizer rewrite your code.
-- *Computer Systems: A Programmer's Perspective* (Bryant & O'Hallaron), Ch. 2.2–2.4 — two's complement, overflow, and the asymmetry proven.
-- CERT C: INT32-C (signed overflow is UB), INT33-C (division/remainder traps, the `INT_MIN/-1` case).
-- *Secure Coding in C and C++* — Robert Seacord. Overflow as a vulnerability class.
-- C23 standard / WG14 papers on mandating two's complement (N2412) and `<stdckdint.h>`.
-- The Linux kernel's adoption of `-fno-strict-overflow` (LWN articles) — UB in production at scale.
-- Intel SDM Vol. 2 — `IDIV`/`#DE` semantics (the `INT_MIN/-1` trap at the ISA level).
-
----
-
-## Related Topics
-
-- This folder: [`junior.md`](junior.md), [`middle.md`](middle.md), [`professional.md`](professional.md) (CVEs & war stories), [`interview.md`](interview.md), [`tasks.md`](tasks.md).
-- Sibling numerics:
-  - [Floating-Point Representation](../02-floating-point-ieee-754/senior.md) — the *other* asymmetry (signed zero, NaN, denormals).
-- Hardware: `../../cpu-architecture/01-alu/senior.md` — OF/CF flags, `idiv` `#DE`, sign-extension instructions.
-- Compiler internals: `../../../code-craft/../compilers/optimization/senior.md` — how UB drives transformations.
+- Which invariant must remain true when Integer Representation & Overflow fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

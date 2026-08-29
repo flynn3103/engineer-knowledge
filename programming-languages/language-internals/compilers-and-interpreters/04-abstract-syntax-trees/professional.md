@@ -1,44 +1,12 @@
-# Abstract Syntax Trees — Professional Level
+# Abstract Syntax Trees — Professional
 
-> **Topic:** Abstract Syntax Trees
-> **Focus:** AST memory layout as a first-order design decision — pointer trees vs arena/flat index-based (data-oriented) representations, red-green trees for incremental reuse, and how rustc, Zig, Carbon, and Roslyn make these choices to hit performance and incrementality targets.
+<!-- level-focus -->
+At professional level, focus on this question:
 
+> How should teams adopt and operate **Abstract Syntax Trees** with measurable outcomes and limited coordination?
+
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
-
-## Introduction
-
-> 🎓 At senior level the AST was a *pipeline of trees* and a *phase interface*. At professional level the question is about the bytes: **how is the tree laid out in memory, and what does that layout cost?** For a hobby interpreter the answer is "who cares — `Box<Expr>` everywhere." For a compiler that must parse a million-line crate, or an IDE that must re-analyze on every keystroke, the layout *is* the architecture. The difference between a pointer-chasing tree and a flat, index-addressed arena is the difference between a tool that feels instant and one that doesn't.
-
-This level is data-oriented. A classic AST — `Box<Expr>` / `unique_ptr<Node>` / one heap object per node, children reached by pointer — is the obvious, teachable representation, and it is fine until it isn't. At scale it has three problems: each node is a separate allocation (slow to build, slow to free), pointer-chasing destroys cache locality (each child is a likely cache miss), and the pointers themselves are fat (8 bytes each, plus allocator headers). The professional alternative is the **flat / arena / index-based AST**: store all nodes in one contiguous array (or a few), and let "children" be small integer indices into that array. This is the **data-oriented design** turn, and it is why modern performance-focused compilers — **rustc** (arena-allocated, interned), **Zig** (a struct-of-arrays AST and a flat MultiArrayList), and **Carbon** (explicitly data-oriented, parse-tree-as-array) — abandoned the textbook pointer tree.
-
-The second half is **incrementality**. An IDE cannot reparse and re-type-check the whole file on every keystroke; it must *reuse* the unchanged 99%. The canonical answer is **Roslyn's red-green tree**: an immutable, position-free, shareable "green" tree that survives edits intact, wrapped by a cheap, lazily-built "red" tree that supplies parent links and absolute positions. Edit one character, and a green tree's unchanged subtrees are *reused by reference* while only the spine to the edit is rebuilt. We will dissect both the flat-arena and the red-green designs, because together they are how professional ASTs hit their performance and latency budgets.
-
-## Prerequisites
-
-- The [senior](senior.md) level: the AST as a phase interface, lowering staircases (HIR/MIR), typed/annotated ASTs, span propagation, and the real ASTs (Python, Babel, Clang, Roslyn, rustc).
-- The [middle](middle.md) level: representation, the visitor pattern, transformers, immutable vs in-place.
-- Comfort with memory-level reasoning: cache lines, allocation cost, pointer size, structure padding. The shared-memory concurrency material on cache locality is the right mental background.
-- Familiarity with the idea of *interning* (deduplicating identical values into a single shared instance).
-
-You do **not** need to have written a production compiler — but this level assumes you care about *why* the production ones are built the way they are.
-
-## Glossary
-
-| Term | Meaning |
-| --- | --- |
-| **Pointer tree** | The classic AST: one heap allocation per node, children reached via pointers (`Box`, `unique_ptr`, object references). |
-| **Arena** | A single large allocation from which all nodes are bump-allocated; freed all at once. No per-node `free`. |
-| **Flat / index-based AST** | Nodes stored in a contiguous array; "children" are integer indices (`u32`) into that array, not pointers. |
-| **Data-oriented design (DOD)** | Organizing data by how it is *accessed* (contiguous, cache-friendly) rather than by object identity. |
-| **Struct-of-arrays (SoA)** | Storing each field of a node type in its own parallel array (all tags together, all spans together) instead of array-of-structs. |
-| **Interning** | Deduplicating equal values (identifiers, types, literals) so each unique value is stored once and referenced by a small id. |
-| **Node id / handle** | A small integer that names a node in a flat AST; the index-based analogue of a pointer. |
-| **Red-green tree** | Roslyn's two-layer design: immutable position-free "green" nodes + lazy parent/position-aware "red" wrappers. |
-| **Green node** | Immutable, width-only (no absolute position), parent-less, fully shareable; the reusable substance of the tree. |
-| **Red node** | Lazily created facade over a green node that adds parent pointer and absolute offset; recomputed per tree version. |
-| **Structural sharing** | Reusing unchanged subtrees by reference across versions; the basis of cheap incremental edits. |
-| **Cache miss** | A memory access not served by cache; pointer-chasing a scattered tree triggers many. The thing flat ASTs minimize. |
-| **Bump allocation** | Allocate by incrementing a pointer; the arena's near-free allocation strategy. |
 
 ## Core Concepts
 
@@ -151,37 +119,6 @@ A real toolchain may use *several*: a flat arena AST for the batch compiler path
 ### 7. Memory reclamation and lifetime
 
 The layout dictates the lifetime model. A pointer tree is reclaimed node-by-node (GC, refcount, or recursive drop). An **arena** is reclaimed *all at once*: the entire AST lives as long as the arena, and freeing the arena frees every node in one operation — perfect for a compiler where the AST has a clear phase lifetime and individual nodes are never freed early. This is why arenas pair so naturally with compilers: there is no "free this one node" use case; you build the tree, use it for a phase or the whole run, then drop it wholesale. The flip side: you cannot cheaply free part of the tree, and a long-lived arena can hold memory you are "done" with. For incremental/IDE workloads the red-green tree's *persistent* model (old versions garbage-collected when no longer referenced) is the better fit. Match the reclamation strategy to whether the AST's lifetime is *batch* (arena) or *evolving* (persistent).
-
-## Real-World Analogies
-
-| Concept | Analogy |
-| --- | --- |
-| Pointer tree | A scavenger hunt: each clue is at a random address you can only find by reading the previous clue. The CPU prefetcher can't help. |
-| Flat/arena AST | A spreadsheet: every row adjacent, addressed by row number, scanned top to bottom at memory speed. |
-| Struct-of-arrays | A library shelved by attribute: all the spines in one row, all the call-numbers in another — grab exactly the column you need. |
-| Interning | Coat check: hand in your identical coat, get a numbered tag; everyone with the same coat shares one stored copy and compares tags, not coats. |
-| Green tree | A printed book's content — fixed, identical in every copy, reusable. |
-| Red tree | Your bookmark and the page number — specific to *your* reading, recomputed, thrown away. |
-| Structural sharing | Editing a shared doc: only the changed paragraph is new; the rest is the same stored text referenced again. |
-| Arena reclamation | A whiteboard: write all over it during the meeting, erase the whole thing at once when done. |
-
-## Mental Models
-
-### "A child is an index, not an address."
-
-In a flat AST the relationship "this is my left operand" is a small integer into a shared array. This single substitution — pointer → index — is what unlocks one allocation, cache locality, cheap serialization, and trivial parallel hand-off. Think in row numbers, not addresses.
-
-### "Pay for the fields you touch."
-
-Struct-of-arrays makes a pass's cost proportional to the *columns* it reads, not the *width of the node*. A tag-counting pass should never load a single span byte. Layout is how you make that true.
-
-### "Green is the substance; red is the view."
-
-The immutable, position-free green tree is the program. The red tree is a temporary lens you hold over it to ask "where am I and who is my parent." Edits create new substance only where they must; the view is always cheap and disposable.
-
-### "Match reclamation to lifetime."
-
-A batch AST wants an arena (build, use, drop wholesale). An evolving AST wants persistence (old versions die when unreferenced). Choosing the wrong one — refcounting a batch arena, or arena-allocating an IDE's ever-changing tree — fights the workload.
 
 ## Code Examples
 
@@ -311,14 +248,6 @@ Once `counter` is `Symbol(n)`, every name comparison in name resolution is a `u3
 | Arena reclamation: free the whole AST in one op | Cannot cheaply free part of the tree; may hold memory you're "done" with |
 | Pointer tree: simplest, borrow-checker-friendly, looks like grammar | Slow at scale: N allocations, cache misses, fat nodes |
 
-## Use Cases
-
-- **Batch compilers needing throughput** (rustc, Zig, Carbon, Clang at scale) → flat/arena, interned, sometimes SoA.
-- **IDEs and language servers** (Roslyn, rust-analyzer's rowan, SwiftSyntax) → red-green / persistent trees for keystroke-latency incremental reuse.
-- **Serializable / mmap-able ASTs** (precompiled headers, save-analysis, distributed builds) → flat POD layouts that need no pointer fix-up.
-- **Parallel front ends** → flat arenas hand off to worker threads without pointer-graph hazards.
-- **Memory-constrained tooling** → interning + flat layout to fit a large program's tree in cache-friendly, deduplicated form.
-
 ## Coding Patterns
 
 ### 1. Index newtypes, not raw integers
@@ -382,84 +311,26 @@ Allocate the AST in an arena scoped to the phase (or run) that needs it; drop th
 - **Red-green is a persistent data structure**, so old tree versions remain valid and are GC'd only when nothing references them — multiple analyses can hold different versions concurrently.
 - **Width-only nodes make "absolute position" an O(depth) computation**, not O(1); usually fine, but a reason red nodes cache their offset.
 
-## Test Yourself
+---
 
-1. List the four costs of a pointer-tree AST at scale, and which the flat AST fixes.
-2. Why is a child represented as a `u32` index instead of a pointer in rustc/Zig/Carbon? Name three wins.
-3. What does struct-of-arrays buy, and when does it *not* pay off?
-4. Explain interning and why it makes type/name equality O(1).
-5. In a red-green tree, what data lives on green nodes and what lives on red — and why is the split exactly there?
-6. After a one-character edit to a 100k-node file, roughly how many green nodes are rebuilt? Why?
-7. Why do arenas pair naturally with batch compilers but not with IDEs?
-8. Give a way an index-based AST can corrupt that a pointer-based one cannot, and how to mitigate it.
-9. Why must green nodes store relative width rather than absolute position to be shareable?
+## Apply it
 
-## Cheat Sheet
+1. Define the user or business outcome that **Abstract Syntax Trees** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
-```text
-┌──────────────────────────────────────────────────────────────────────┐
-│  PROFESSIONAL AST LAYOUT CHEAT SHEET                                   │
-├──────────────────────────────────────────────────────────────────────┤
-│ POINTER TREE   Box<Expr>/unique_ptr. Simple, grammar-shaped.          │
-│   cost: N allocs, N frees, cache misses, fat nodes. Prototype-only.   │
-├──────────────────────────────────────────────────────────────────────┤
-│ FLAT / ARENA   nodes: Vec<Node>; child = u32 INDEX, not pointer.      │
-│   win: 1 alloc, locality, small handles, serializable, parallel.      │
-│   used by: rustc (arena+intern), Zig, Carbon.                         │
-├──────────────────────────────────────────────────────────────────────┤
-│ STRUCT-OF-ARRAYS  tags[], lhs[], rhs[], spans[] (parallel columns).   │
-│   pay only for fields a pass touches. Zig MultiArrayList.             │
-│   caveat: hurts non-field-selective passes.                          │
-├──────────────────────────────────────────────────────────────────────┤
-│ INTERNING   unique value -> small id. O(1) equality, dedup memory.    │
-│   identifiers, types (rustc: Ty equality = pointer equality).        │
-├──────────────────────────────────────────────────────────────────────┤
-│ RED-GREEN TREE  (Roslyn, SwiftSyntax, rust-analyzer/rowan)            │
-│   GREEN: immutable, WIDTH-only, no parent, fully shared = substance.  │
-│   RED:   lazy facade adds parent + ABSOLUTE position = view.          │
-│   edit 1 token -> rebuild only the spine to root; reuse the rest.     │
-│   volatile data (pos, parent) lives in throwaway red layer.          │
-├──────────────────────────────────────────────────────────────────────┤
-│ RECLAMATION   batch AST -> arena (free wholesale).                    │
-│               evolving AST -> persistent (GC old versions).          │
-├──────────────────────────────────────────────────────────────────────┤
-│ PICK BY WORKLOAD: batch compiler -> flat/arena/intern.                │
-│                   IDE/keystroke    -> red-green/persistent.           │
-└──────────────────────────────────────────────────────────────────────┘
-```
+## Verify your work
 
-## Summary
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
 
-- The **pointer tree** (`Box`/`unique_ptr`, one heap object per node) is simple and grammar-shaped but pays N allocations, cache misses, and fat nodes — fine for prototypes, wrong for compilers.
-- The **flat / arena / index-based AST** stores all nodes in one contiguous array and makes children small `u32` indices: one allocation, cache locality, small handles, cheap serialization and parallel hand-off. This is the **data-oriented** turn that rustc, Zig, and Carbon took.
-- **Struct-of-arrays** pushes locality further by columnizing fields so each pass touches only the data it needs — a win specifically for field-selective passes.
-- **Interning** deduplicates identifiers/types/literals into small ids, turning equality into O(1) integer comparison and slashing memory; it is the natural companion to a flat AST.
-- **Red-green trees** (Roslyn, SwiftSyntax, rowan) solve incrementality: an immutable, width-only, parent-less **green** tree is infinitely shareable, while a lazy **red** facade supplies parent and absolute position. A one-character edit rebuilds only the spine to the root and reuses every other subtree by reference.
-- **Reclamation follows lifetime:** batch ASTs want an arena (free wholesale); evolving IDE ASTs want a persistent model (old versions GC'd when unreferenced).
-- There is no universally best layout — there is a best layout *for a workload*, and the professional move is to choose it deliberately rather than defaulting to the textbook pointer tree.
+## Review questions
 
-## What You Can Build
-
-- A **flat, index-based AST** for a small language, benchmarked against a `Box`-based version on a large generated program — measure build time, traversal time, and peak memory.
-- A **struct-of-arrays variant** with a tag-only pass and a full pass, demonstrating SoA's win on the selective one and its cost on the full one.
-- An **interner** plus a name-resolution pass that compares `Symbol` ids, with a benchmark against string comparison.
-- A **toy red-green tree** that supports a single-token replacement and proves (by pointer identity) that unchanged subtrees are reused.
-- An **mmap-able serialized AST**: write the flat node array to disk and re-load it with zero pointer fix-up.
-
-## Further Reading
-
-- The rustc dev guide: "Memory management in rustc" and "Interning" — arenas, `TyCtxt`, and interned types.
-- Andrew Kelley's talks/notes on Zig's data-oriented compiler and `MultiArrayList` (struct-of-arrays AST).
-- The Carbon language design docs and toolchain talks on the data-oriented, array-based parse tree.
-- Eric Lippert's "Persistence, Facades and Roslyn's Red-Green Trees" — the canonical explanation of the red-green design.
-- The `rowan` crate documentation (rust-analyzer's red-green library) and the rust-analyzer architecture doc.
-- Chris Okasaki, *Purely Functional Data Structures* — the persistence theory underneath structural sharing.
-- Mike Acton, "Data-Oriented Design and C++" (CppCon 2014) — the locality-first mindset that motivates flat ASTs.
-
-## Related Topics
-
-- [Junior level](junior.md) — what an AST is and how to walk it.
-- [Middle level](middle.md) — representation, the visitor pattern, transformers, and spans.
-- [Senior level](senior.md) — the AST as a phase interface, lowering staircases, and typed ASTs.
-- [Interview questions](interview.md) — layout, red-green, interning, and data-oriented questions.
-- [Hands-on tasks](tasks.md) — build flat, SoA, interned, and red-green ASTs and benchmark them.
+- Which measurable outcome justifies investing in Abstract Syntax Trees?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

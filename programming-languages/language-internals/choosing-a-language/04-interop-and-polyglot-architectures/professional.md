@@ -1,8 +1,11 @@
 # Interop & Polyglot Architectures — Professional
 
-> **What?** Polyglot as an *organizational* phenomenon — the Conway's-law forces that produce it, the governance that keeps it from metastasizing, the platform-team investment that makes it survivable, the hiring and on-call economics that decide whether it's affordable, and the strategic question of when interop overhead has grown large enough to justify *consolidating* back.
-> **How?** By treating "how many languages do we allow, and where" as a deliberate, governed decision with an owner — not an emergent accident — and by building the shared infrastructure (schemas, observability, CI templates) that turns a polyglot estate from a liability into a capability.
+<!-- level-focus -->
+At professional level, focus on this question:
 
+> How should teams adopt and operate **Interop & Polyglot Architectures** with measurable outcomes and limited coordination?
+
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## 1. Polyglot is usually a Conway's-law outcome, not a design
@@ -34,7 +37,7 @@ The discipline that makes this *governance* rather than *bureaucracy*:
 - **Adding to "supported" is expensive and deliberate** — it commits the platform team to building shared libraries, CI, and observability for that language *forever*. A language isn't "supported" because someone shipped it; it's supported when the org has funded its toolchain tax.
 - **Exceptions are allowed but *visible*.** A team that wants Rust for a latency-critical path files an ADR, gets it reviewed, and accepts ownership of the gaps (they maintain their own libs until/unless it graduates to supported). The goal is not to say no — it's to make the *cost* explicit and *owned*, so the decision is honest.
 
-The anti-pattern is the unwritten list, where the "policy" lives in the heads of whoever's been around longest, and every new language is litigated from scratch. Write it down, give it an owner, and the conversation shifts from "is Rust good?" (a religious war) to "is this component's need worth us owning a Rust toolchain?" (an economic question). This is the org-level expression of [`../05-when-to-introduce-a-new-language/`](../05-when-to-introduce-a-new-language/).
+The anti-pattern is the unwritten list, where the "policy" lives in the heads of whoever's been around longest, and every new language is litigated from scratch. Write it down, give it an owner, and the conversation shifts from "is Rust good?" (a religious war) to "is this component's need worth us owning a Rust toolchain?" (an economic question). This is the org-level expression of [`../05-when-to-introduce-a-new-language/`](../05-when-to-introduce-a-new-language/README.md).
 
 ---
 
@@ -56,7 +59,7 @@ The strategic point: **the platform team's existence is what converts "supported
 
 ## 4. The hiring and on-call economics
 
-Languages are a *labor-market* decision as much as a technical one, and this is where the polyglot bill is largest over a multi-year horizon (the full treatment is [`../07-total-cost-of-ownership-and-team-skills/`](../07-total-cost-of-ownership-and-team-skills/)).
+Languages are a *labor-market* decision as much as a technical one, and this is where the polyglot bill is largest over a multi-year horizon (the full treatment is [`../07-total-cost-of-ownership-and-team-skills/`](../07-total-cost-of-ownership-and-team-skills/README.md)).
 
 **Hiring.** Every distinct language narrows or shifts your candidate pool:
 - A Go + Python + TypeScript shop hires from large, overlapping pools — most full-stack and backend engineers cover at least two.
@@ -113,7 +116,7 @@ The thesis: today, cross-language interop forces a choice between the *network* 
 - **Edge and plugin runtimes** (Wasmtime, WasmEdge, Fastly/Cloudflare edge) already run polyglot WASM modules in production, and plugin ecosystems (Envoy filters, Shopify Functions) use WASM precisely so users can write extensions in *any* language that compiles to it.
 - **The realistic professional stance:** WASM is production-ready for *constrained* use cases (edge functions, plugins, sandboxed untrusted code) and *not yet* a general replacement for service boundaries or the JVM-style shared runtime. Watch the Component Model's maturation; pilot it for plugin/extension surfaces; don't bet the core on it yet.
 
-The reason it matters strategically: if WASM delivers on the Component Model, "the right tool per component" could finally stop carrying a heavy interop tax — and the math on polyglot would genuinely shift. That's a multi-year horizon, but it's the most important thing to be *literate* about when reasoning about polyglot's future. (See also [`../08-language-longevity-and-lock-in-risk/`](../08-language-longevity-and-lock-in-risk/) for betting on emerging targets.)
+The reason it matters strategically: if WASM delivers on the Component Model, "the right tool per component" could finally stop carrying a heavy interop tax — and the math on polyglot would genuinely shift. That's a multi-year horizon, but it's the most important thing to be *literate* about when reasoning about polyglot's future. (See also [`../08-language-longevity-and-lock-in-risk/`](../08-language-longevity-and-lock-in-risk/README.md) for betting on emerging targets.)
 
 ---
 
@@ -126,7 +129,7 @@ Polyglot governance isn't only about *adding* languages — the harder professio
 - **On-call can't keep up.** Incident MTTR is dominated by "finding someone who knows language X," and the bus factor on a niche-language service is 1 or 2.
 - **A language has lost its justification.** The Scala service from the acquisition now does what a Go service could do; the only thing keeping it is inertia. (This is the *sprawl* diagnosis from [`senior.md`](senior.md) §7.)
 
-When these accumulate, the move is a *deliberate consolidation* — picking the lowest-value, least-justified language and migrating its services into a supported one. This is not a rewrite-everything crusade; it's a targeted retirement of a language whose tax exceeds its value. The *how* — strangler-fig, parallel runs, incremental migration — is [`../06-migrating-between-languages/`](../06-migrating-between-languages/). The *when* is a professional judgment: consolidate when the interop and toolchain tax on a language clearly and durably exceeds the capability it provides, and not before (premature consolidation strands a working system to chase tidiness).
+When these accumulate, the move is a *deliberate consolidation* — picking the lowest-value, least-justified language and migrating its services into a supported one. This is not a rewrite-everything crusade; it's a targeted retirement of a language whose tax exceeds its value. The *how* — strangler-fig, parallel runs, incremental migration — is [`../06-migrating-between-languages/`](../06-migrating-between-languages/README.md). The *when* is a professional judgment: consolidate when the interop and toolchain tax on a language clearly and durably exceeds the capability it provides, and not before (premature consolidation strands a working system to chase tidiness).
 
 The decision framework, in one line: **add a language when its capability is irreplaceable and worth a forever-tax; remove one when its tax is no longer buying irreplaceable capability.**
 
@@ -145,16 +148,24 @@ The decision framework, in one line: **add a language when its capability is irr
 
 ---
 
-## 9. What's next
+## Apply it
 
-| Topic | File |
-|---|---|
-| Interview Q&A from "what is polyglot?" to staff-level interop strategy | [`interview.md`](interview.md) |
-| Design exercises: governance, contracts, costing a 4th language, critiquing sprawl | [`tasks.md`](tasks.md) |
-| The decision to introduce a new language, and the N+1 tax | [`../05-when-to-introduce-a-new-language/`](../05-when-to-introduce-a-new-language/) |
-| Migrating/consolidating languages without a death-march rewrite | [`../06-migrating-between-languages/`](../06-migrating-between-languages/) |
-| The full TCO and team-skills economics of a polyglot estate | [`../07-total-cost-of-ownership-and-team-skills/`](../07-total-cost-of-ownership-and-team-skills/) |
+1. Define the user or business outcome that **Interop & Polyglot Architectures** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
----
+## Verify your work
 
-**Memorize this:** polyglot is a Conway's-law accident until you govern it — with a short, owned, tiered supported-languages list and a platform team that pays the cross-cutting tax once so product teams don't pay it N times. Default to monoglot core, polyglot edges; treat each language as a compounding perpetuity in hiring and on-call; add one only when its capability is irreplaceable, and consolidate one out when its tax stops buying that capability. Watch WASM — it may be the thing that finally makes "right tool per component" cheap.
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
+
+## Review questions
+
+- Which measurable outcome justifies investing in Interop & Polyglot Architectures?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

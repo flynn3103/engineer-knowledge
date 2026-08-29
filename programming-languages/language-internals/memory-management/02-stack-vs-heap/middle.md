@@ -1,33 +1,12 @@
-# Stack vs Heap — Middle Level
-> **Topic:** Stack vs Heap
-> **Focus:** The machine-level mechanics of frames and allocation, and a quantitative cost model for choosing between them.
+# Stack vs Heap — Middle
 
+<!-- level-focus -->
+At middle level, focus on this question:
+
+> Where does **Stack vs Heap** belong in a maintainable component, and which trade-off selects the design?
+
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
-
-## Introduction
-
-At the junior level "stack vs heap" is a story about lifetime. At the middle level it becomes a story about *machine instructions and cost*. You now need to know what a frame actually contains byte-for-byte, why bumping the stack pointer costs roughly one cycle while a heap allocation can cost dozens to thousands, and how a modern compiler can quietly turn a heap allocation into a stack allocation behind your back.
-
-This is the level where you start reading allocation profiles and asking "why is this on the heap?" — and getting answers from tools instead of guessing.
-
-## Prerequisites
-
-- Junior-level grasp: stack = call frames, heap = arbitrary-lifetime data, lifetime is the deciding factor.
-- Comfort reading a little pseudo-assembly (`push`, `pop`, register names).
-- You know what a CPU **register** and a **cache line** are, at least roughly.
-- You can run a compiler with flags (e.g., `go build -gcflags=-m`, `gcc -O2 -S`).
-
-## Glossary
-
-- **Frame pointer (FP / RBP):** A register pointing at a fixed spot in the current frame, used as a stable base to address locals and parameters.
-- **Stack pointer (SP / RSP):** Points at the current top of the stack.
-- **Return address:** The instruction address to resume at after the callee returns. Pushed by the `call` instruction.
-- **Calling convention (ABI):** The agreed rules for how arguments are passed, who saves which registers, and how results are returned.
-- **Prologue / epilogue:** The instructions at a function's start/end that set up and tear down its frame.
-- **Bump allocation:** Allocating by simply advancing a pointer past the requested size.
-- **Free list:** A data structure tracking reusable freed heap blocks, grouped by size.
-- **Escape analysis:** A compiler pass that decides whether a value can stay on the stack or must move ("escape") to the heap.
-- **Size class:** A bucket of allocation sizes (e.g., 16, 32, 48 bytes) used by modern allocators to avoid per-request bookkeeping.
 
 ## Core Concepts
 
@@ -118,12 +97,6 @@ A value **escapes** when:
 
 In Go, `go build -gcflags=-m` prints these decisions. In the JVM, escape analysis enables **scalar replacement** (exploding an object into its fields, held in registers — no allocation at all) and lock elision. Escape analysis is *conservative*: if it cannot prove safety, it heap-allocates. So the way you write code (returning pointers, using interfaces) directly changes where data lands.
 
-## Mental Models
-
-- **The stack pointer is a high-water mark.** Allocation lowers it; deallocation raises it. The "freed" memory is not zeroed — it is simply abandoned and overwritten by the next call. This is why uninitialized locals contain garbage.
-- **Heap allocation is a transaction; stack allocation is a register write.** One involves a bookkeeper (the allocator); the other does not.
-- **Escape analysis is the compiler doing your lifetime reasoning for you.** When you "shouldn't" allocate but can't prove it, the compiler can — or can't, and then you pay.
-
 ## Code Examples
 
 ### Go — seeing escape analysis decisions
@@ -212,23 +185,6 @@ Rough orders of magnitude on a modern x86-64 core (your mileage varies):
 
 The practical takeaway: a tight loop that heap-allocates per iteration can be 10–100× slower than one that doesn't — not because the *allocation* is huge, but because of allocation *plus* cache misses *plus* the GC pressure it creates downstream.
 
-## Pros & Cons
-
-**Stack**
-
-- Pros: ~1-cycle alloc/free; automatic, leak-proof cleanup; cache-hot; no fragmentation; lock-free (thread-private).
-- Cons: bounded size; scope-bound lifetime; cannot return references to locals (in unmanaged languages); large locals risk overflow.
-
-**Heap**
-
-- Pros: arbitrary lifetime and sharing; large objects; dynamically sized structures.
-- Cons: alloc/free cost; allocator metadata and contention; fragmentation; GC pressure or manual-free bugs; cache-cold access.
-
-## Use Cases
-
-- **Stack:** hot-loop temporaries, small fixed structs, function parameters, recursion state of bounded depth.
-- **Heap:** returned objects, runtime-sized buffers and collections, shared state across goroutines/threads, anything large enough to threaten the stack limit.
-
 ## Coding Patterns
 
 - **Pre-allocate and reuse** heap buffers outside hot loops instead of allocating per iteration (e.g., a reused `[]byte` or a `sync.Pool` in Go).
@@ -250,10 +206,26 @@ The practical takeaway: a tight loop that heap-allocates per iteration can be 10
 - **Frame-pointer omission breaks naive stack walkers:** profilers may need `-fno-omit-frame-pointer` or DWARF unwinding to produce correct stacks.
 - **Misreading "new" as always-heap:** with escape analysis, `new`/`make` may allocate nothing. The source is not the final word; the compiler is.
 
-## Summary
+---
 
-- A **stack frame** holds a call's return address, saved frame pointer, saved registers, and locals; the prologue's `sub rsp, N` allocates them all in one instruction.
-- **Calling conventions** dictate register usage, caller/callee-saved registers, and stack alignment — the contract that lets separately compiled code interoperate.
-- **Stack allocation is ~1 cycle** and cache-hot; **heap allocation** costs tens of cycles on the fast path, thousands on the slow path, plus cache-miss and GC costs downstream.
-- **Escape analysis** lets compilers stack-allocate values you wrote as heap objects (and JVM **scalar replacement** can eliminate the allocation entirely). The way you write code — returning pointers, using interfaces, capturing in closures — determines what escapes.
-- Profile allocations; never optimize stack-vs-heap from intuition alone.
+## Apply it
+
+1. Find a real component where **Stack vs Heap** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
+
+## Verify your work
+
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
+
+## Review questions
+
+- Which boundary is most affected by Stack vs Heap?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

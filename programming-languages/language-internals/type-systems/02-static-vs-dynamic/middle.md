@@ -1,71 +1,11 @@
-# Static vs Dynamic Typing — Middle Level
+# Static vs Dynamic Typing — Middle
 
-> **Topic:** Static vs Dynamic Typing
-> **Focus:** The middle grounds — gradual typing, optional typing, duck typing vs structural typing, and the escape hatch (`any`/`Any`) that quietly erodes every guarantee.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **Static vs Dynamic Typing** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-> Focus: **The world is not actually "static OR dynamic."** Most real-world systems today live in a *middle ground*: a dynamic language with optional static checking grafted on. What does that hybrid actually guarantee — and where does it leak?
-
-The junior view — static checks before running, dynamic checks while running — is correct but binary. The industry has spent the last decade building the *space between* those poles, because each pole has a cost the other doesn't, and large teams wanted both: dynamic's flexibility for the messy 20% of code, static's safety for the well-understood 80%.
-
-The result is **gradual typing**: you take a dynamic language and add *optional* type annotations that a separate checker verifies, while leaving the runtime untouched. The flagship examples are everywhere you look:
-
-- **TypeScript** — static types over JavaScript. The checker runs at build time; the types are erased and you ship plain JS.
-- **Python type hints + mypy / Pyright** — annotations (`def f(x: int) -> str:`) checked by a tool; the interpreter mostly ignores them at runtime.
-- **Sorbet** — gradual static typing for Ruby (built by Stripe for a multi-million-line codebase).
-- **Hack** — Facebook/Meta's gradually-typed dialect of PHP.
-
-These systems all share a defining feature and a defining weakness. The feature: you can annotate *some* of the code and leave the rest dynamic, mixing freely. The weakness: there's an **escape hatch** — `any` in TypeScript, `Any` in Python, `T.untyped` in Sorbet — a type that means "stop checking, trust me." Every `any` is a hole in the dam, and one hole can flood the room downstream. Understanding *exactly* what `any` does and where guarantees survive or evaporate is the core skill of this level.
-
-Alongside gradual typing, this level untangles two often-confused ideas that are really the *static and dynamic versions of the same intuition*:
-
-- **Duck typing** (dynamic): "if it has a `.quack()` method, it's a duck" — checked at runtime, at the call site.
-- **Structural typing** (static): "any type with a `quack(): void` method *is* a Duck" — the same idea, but verified at compile time by *shape*, not by declared name. TypeScript and Go interfaces are structural. Java and C# interfaces are *nominal* (you must explicitly declare you implement them).
-
-> 🎓 **Why this matters for a mid-level engineer:** You will almost certainly work in a TypeScript or typed-Python codebase, and you will be the one deciding whether to reach for `any` to make an error go away. That one decision — `any` vs doing the work to type it properly — is the difference between a type system that protects the team and a type system that's theater. Knowing what gradual typing guarantees (and the precise shape of the "gradual guarantee") makes you the person who can hold the line.
-
-This page covers: gradual typing and its formal promise (the **gradual guarantee**), optional/erased typing, the `any` escape hatch and how unsoundness propagates from it, duck typing vs structural vs nominal typing, and a forward look at how type inference makes static typing *feel* dynamic. `senior.md` formalizes soundness and covers erasure vs reification in depth; `professional.md` covers the performance and migration story.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** Everything in `junior.md` — the static/dynamic distinction (when checks happen), strong vs weak as an orthogonal axis, and where the type lives (variable vs value).
-- **Required:** Working familiarity with at least one of TypeScript, typed Python, or Go — enough to read annotations.
-- **Required:** What an interface (or protocol) is — a set of methods a type promises to provide.
-- **Helpful:** Having seen a `type: ignore` or `as any` cast in real code, and wondered what it actually does.
-
-You do **not** need to know:
-
-- The formal type-soundness proof or the meaning of "progress and preservation" (that's `senior.md`).
-- How Hindley–Milner inference works mechanically (forward-referenced, deep-dived later).
-- JIT internals, hidden classes, or monomorphization (that's `professional.md`).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Gradual typing** | A type system where parts of a program are statically typed and parts are dynamically typed, and the two interoperate freely. |
-| **Optional typing** | Annotations that the checker uses but the **runtime ignores** — they have no effect on execution (Python hints by default, TypeScript). |
-| **`any` / `Any`** | The "dynamic" type within a gradual system. It's compatible with *everything* in both directions and turns off checking wherever it flows. |
-| **The gradual guarantee** | The formal promise that adding (correct) type annotations to a working program never changes its runtime behavior, only adds checks; and removing them never introduces a static error. |
-| **Erased / erasure** | Types exist only at compile time and are removed before running; no type information survives to runtime (Java generics, TypeScript). |
-| **Reified** | Types survive to runtime and can be inspected (`isinstance`, reflection, `.GetType()`) — C#, Go, Python values. |
-| **Nominal typing** | Two types are compatible only if they share a *declared name/relationship* (you must write `implements Duck`). Java, C#, Rust traits. |
-| **Structural typing** | Two types are compatible if they have the same *shape* (same fields/methods), regardless of name. TypeScript, Go interfaces. |
-| **Duck typing** | The dynamic-runtime analogue of structural typing: an operation succeeds if the value happens to support it at runtime, no declaration required. |
-| **Protocol (Python) / interface (Go/TS)** | A description of required methods/fields used for structural checking. |
-| **Type inference** | The checker deducing types you didn't annotate, letting statically-typed code read as tersely as dynamic code. |
-| **Monkeypatching** | Replacing or adding methods on a class/object at runtime — a dynamic-typing power that static checking struggles to model. |
-| **Soundness (informal)** | A type system is sound if a program that type-checks can never have a type error at runtime. Gradual systems with `any` are deliberately **unsound**. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -196,38 +136,6 @@ Languages with **Hindley–Milner** inference (Haskell, OCaml, ML, and Rust's lo
 
 ---
 
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Gradual typing** | Renovating a house room by room while living in it — some rooms are finished (typed), some are still bare studs (dynamic), and you can walk between them. |
-| **`any` escape hatch** | A "staff only" door that's propped open — convenient, but now anyone can wander into the secure area, and you won't notice until something's missing. |
-| **The gradual guarantee** | A promise that putting up new walls (annotations) never changes where the furniture sits (runtime behavior) — only adds doors that check ID. |
-| **Optional typing (erased)** | Blueprints used during construction then thrown away — they shaped the build but aren't part of the finished house. |
-| **Reified types** | A serial-number plate riveted to every appliance — you can always read what it is, even years later. |
-| **Duck typing** | Auditioning actors by having them perform the scene — if they can do it, they're cast, no résumé required. |
-| **Structural typing** | A casting director reading résumés and confirming each candidate *lists* the required skills before the audition — same idea, checked up front. |
-| **Nominal typing** | A union card: you can only do the job if you're a *card-carrying member*, regardless of whether you can do the work. |
-| **Monkeypatching** | Rewiring a building's electrics while the lights are on — possible, powerful, and terrifying to anyone relying on the original wiring diagram. |
-
----
-
-## Mental Models
-
-### The "Sieve with Holes" Model for `any`
-
-Picture the type checker as a sieve catching type errors before they reach runtime. Every `any` is a **hole punched in the sieve**. A program that's 95% typed but routes its core data through one `any` has a hole right where the water flows — most errors still pass straight through. Type-safety is not "did I add types?" but "what fraction of the *actual data flow* is non-`any`?" One well-placed `any` can neutralize a thousand annotations.
-
-### The "Two Languages Sharing a Runtime" Model
-
-A gradually typed program is really two languages braided together: a static one and a dynamic one, sharing one runtime. The annotations mark which language each region is written in. The `any` boundary is the *border crossing*. In an erased system (TS, mypy), there are **no guards at the border** — values cross unchecked, and a smuggled wrong type detonates somewhere downstream. Keeping the border small and well-guarded (few `any`s, validated at the edge) is the whole game.
-
-### The "Duck Audition vs Duck Résumé" Model
-
-Duck typing auditions every value at runtime: call `.quack()` and see what happens. Structural typing reads the résumé at compile time: does this shape *list* `quack()`? Nominal typing checks the union card: are you a *declared* Duck? Moving left-to-right trades flexibility for earlier, stronger guarantees. Structural typing is the sweet spot many modern languages (Go, TypeScript) chose: the audition's flexibility with the résumé's up-front check.
-
----
-
 ## Code Examples
 
 ### Gradual migration in Python: from dynamic to checked
@@ -327,41 +235,6 @@ Python's `Protocol` (PEP 544) is literally "structural typing for Python" — th
 
 ---
 
-## Pros & Cons
-
-| Aspect | Gradual / Optional Typing | Pure Static | Pure Dynamic |
-|--------|---------------------------|-------------|--------------|
-| **Adoption cost** | Low — type incrementally, file by file. | High — must type everything up front. | Zero. |
-| **Strength of guarantee** | Only as strong as the *least*-typed path; `any` voids it. | Strong (modulo casts). | None at compile time. |
-| **Flexibility** | High — keep dynamic where you need it. | Lower — conservative checker. | Highest. |
-| **Runtime cost** | Zero if erased (TS, mypy). | Zero/low. | Pays runtime type checks. |
-| **Migration story** | Excellent — the gradual guarantee makes piecemeal safe. | N/A — born static. | N/A — born dynamic. |
-| **Failure mode** | Silent: a wrong `any` crashes at runtime as if untyped. | Loud at build. | Loud at run, on executed paths. |
-| **Tooling** | Improves as coverage rises; great IDE help on typed regions. | Excellent. | Limited. |
-
----
-
-## Use Cases
-
-**Gradual / optional typing shines when:**
-
-- You have a **large existing dynamic codebase** (Python, JS, Ruby, PHP) and can't stop the world to rewrite — type the hot, bug-prone modules first.
-- Different parts of the system have **different correctness needs** — type the payment logic strictly, leave the one-off migration script dynamic.
-- You're building a **library** whose users want autocomplete and signatures (publish type stubs / `.d.ts`).
-- You ingest **genuinely dynamic data** (JSON, config, plugin output) — use `unknown`/validation at the edge, typed everywhere inside.
-
-**Structural typing shines when:**
-
-- You want **duck typing's flexibility with compile-time safety** — interfaces satisfied by shape (Go, TS).
-- You're integrating types you **don't own** — a third-party object can satisfy your interface without modifying it.
-
-**Nominal typing shines when:**
-
-- You want **explicit, intentional contracts** — "this is a `Celsius`, not just any `float`" — and to prevent accidental structural matches.
-- **Domain modeling** where two types share a shape but mean different things (a `UserId` and an `OrderId` are both ints but must not mix).
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: `unknown` at boundaries, never `any`
@@ -411,71 +284,24 @@ Wrap primitives in distinct nominal types (`type UserId = ...` branded types in 
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. Define gradual typing and state the gradual guarantee in your own words. Why does the guarantee make piecemeal migration *safe*?
-2. What exactly does `any` do that `unknown` does not? Rewrite an `any`-using boundary to use `unknown` plus validation.
-3. Explain why a TypeScript program that "fully type-checks" can still throw `Cannot read properties of undefined` at runtime. Trace the `any`.
-4. Distinguish duck typing, structural typing, and nominal typing. Which is "compile-time duck typing," and which language gives you each?
-5. Give an example where structural typing's *accidental* match is a bug, and show how a nominal/branded type fixes it.
-6. Python type hints are "optional/erased." What does that mean for `def f(x: int)` when someone calls `f("hello")` at runtime? Why?
-7. Show, in code, how a single `any` at the top of a data-flow chain silently disables checking for five lines downstream.
-8. Why is "no annotations" not the same as "dynamic"? Use Go's `:=` and Hindley–Milner inference in your answer.
+1. Find a real component where **Static vs Dynamic Typing** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
----
+## Verify your work
 
-## Cheat Sheet
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
 
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│              GRADUAL / OPTIONAL / STRUCTURAL TYPING               │
-├──────────────────────────────────────────────────────────────────┤
-│ GRADUAL TYPING                                                   │
-│   static + dynamic mixed in one program, interoperating          │
-│   TypeScript, Python+mypy, Sorbet(Ruby), Hack(PHP)               │
-│   the gradual guarantee: adding correct types only ADDS checks,  │
-│     never changes runtime behavior -> safe piecemeal migration   │
-├──────────────────────────────────────────────────────────────────┤
-│ THE ESCAPE HATCH                                                 │
-│   any / Any  = "stop checking here"; assignable to/from ALL      │
-│   VIRAL: anything derived from any is unchecked downstream       │
-│   unknown   = any's safe sibling; demands a check before use     │
-│   type:ignore / @ts-ignore = a localized any                    │
-│   safety ~= 1 - (fraction of data flow that is `any`)            │
-├──────────────────────────────────────────────────────────────────┤
-│ OPTIONAL / ERASED                                                │
-│   annotations checked at build, IGNORED at runtime               │
-│   TS erases to JS; Python ignores hints; Java erases generics    │
-│   => external input still needs explicit runtime validation      │
-├──────────────────────────────────────────────────────────────────┤
-│ WHEN IS X OK WHERE Y IS EXPECTED?                                │
-│   duck typing (dynamic)  : has the method at runtime  -> Python  │
-│   structural (static)    : shape matches at compile   -> Go, TS  │
-│   nominal (static)       : declared relationship      -> Java    │
-│   structural = compile-time duck typing                          │
-├──────────────────────────────────────────────────────────────────┤
-│ INFERENCE                                                        │
-│   no annotation != dynamic.  x := 5 is static int.               │
-│   Hindley-Milner: full static checking, zero annotations         │
-└──────────────────────────────────────────────────────────────────┘
-```
+## Review questions
 
----
-
-## Summary
-
-- The real world isn't static-OR-dynamic; most large systems are **gradually typed** — a dynamic language (JS, Python, Ruby, PHP) with *optional* static checking added (TypeScript, mypy/Pyright, Sorbet, Hack). You can turn the type dial per file, per function.
-- The **gradual guarantee** is what makes incremental migration safe: adding *correct* annotations only adds checks and never changes runtime behavior. You can type one module at a time without fear of silently breaking others.
-- The **`any`/`Any` escape hatch** is the defining feature *and* the defining weakness. It's assignable to and from everything and **disables checking wherever it flows** — virally, downstream. A typed codebase's real safety is roughly the fraction of its data flow that *isn't* `any`. Prefer **`unknown`** (which forces a check) and validate at boundaries.
-- **Optional typing** means the annotations are **erased** — the runtime ignores them (Python hints, TypeScript compile to plain JS). They guarantee nothing at runtime, so external input still needs explicit validation. This connects to **erasure vs reification**: erased types are cheap and silent on failure; reified types (Python values, Go reflection, C# generics) survive to runtime.
-- **Duck typing** (dynamic, runtime), **structural typing** (static, by shape), and **nominal typing** (static, by declared name) answer "when is X usable as Y?" with increasing earliness and explicitness. **Structural typing is compile-time duck typing** — Go and TypeScript give you the flexibility of duck typing with a compiler checking it; Java/Rust are nominal.
-- **Type inference** (Go's `:=`, TypeScript's `const`, and full Hindley–Milner in Haskell/OCaml/ML) makes static typing read as tersely as dynamic code — so "no annotations" must never be confused with "dynamic." This undercuts the main ergonomic argument for dynamic typing.
-
----
-
-## What's Next
-
-- `senior.md` — **type soundness** formalized, **erasure vs reification** in depth, and how **inference** reconstructs types.
-- `professional.md` — the **performance** consequences (monomorphization, JIT inline caches, hidden classes), the **empirical bug-rate** research, and migrating a large Python/JS codebase.
-- `interview.md` — graded questions including the language-specific gradual-typing traps.
-- `tasks.md` — exercises on `any` leaks, structural vs nominal, and boundary validation.
+- Which boundary is most affected by Static vs Dynamic Typing?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

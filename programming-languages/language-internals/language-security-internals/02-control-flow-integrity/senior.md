@@ -1,62 +1,11 @@
-# Control-Flow Integrity — Senior Level
+# Control-Flow Integrity — Senior
 
-> **Topic:** Control-Flow Integrity
-> **Focus:** The backward edge done right — shadow stacks (software and Intel CET) — plus hardware-assisted CFI: Intel CET IBT, ARM Pointer Authentication (PAC), and Branch Target Identification (BTI).
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Control-Flow Integrity** under failure, load, and change?
 
-## Introduction
-
-> Focus: **Canaries are a tripwire, not integrity. How do we make the *return address* tamper-proof, and how does the silicon enforce CFI cheaply enough to ship by default?**
-
-The middle level closed the forward edge with type-based CFI. This level closes the **backward edge** the right way and explains why the industry moved CFI *into hardware*. The headline ideas: a **shadow stack** keeps a second, protected copy of every return address so a corrupted on-stack return is detected on `ret`; **Intel CET** implements that shadow stack in silicon and adds **IBT** (indirect-branch tracking via `endbranch` landing pads) for the forward edge; **ARM Pointer Authentication (PAC)** cryptographically *signs* pointers using a key and spare virtual-address bits so a forged pointer fails verification; and **ARM BTI** mirrors Intel IBT with landing-pad enforcement.
-
-The senior framing: software CFI (canaries, LLVM CFI, CFG) is *policy enforced by inserted checks*, and inserted checks cost cycles and can be bypassed if the attacker controls enough state. Hardware CFI changes the economics — the CPU enforces the invariant with negligible overhead and stores secrets (the shadow stack pointer, the PAC key) in places software-level corruption can't reach. That is what made CFI cheap enough to enable platform-wide on modern Windows, Linux, iOS, and macOS.
-
-> 🎓 **Why this matters for a senior:** You're now the person who decides *which* mitigations a product ships, owns the threat model, and explains to leadership why a binary needs CET or why an ARM64 build should sign return addresses. You need to reason precisely about what each hardware feature guarantees, what it *doesn't* (none of these stop data-only attacks), the residual bypasses (signing gadgets, PAC oracle leaks), and the deployment realities (CPU support, ABI, library participation). This is also the layer interviewers probe to separate "I've heard of CFI" from "I understand the guarantee."
-
-This page covers: software vs hardware **shadow stacks**, **Intel CET** (shadow stack + IBT `endbranch`), **ARM PAC** (signing with `PAC*`/`AUT*`, the key in spare VA bits, `-mbranch-protection`), **ARM BTI**, how kernels use these (**kCFI/FineIBT**), and the precise guarantees and residual gaps. The next level (`professional.md`) covers CFI *bypass classes* (COOP, data-only attacks), performance/adoption, and program-wide strategy.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** Everything in `junior.md` and `middle.md` — stack smashing, NX, canaries, ROP/JOP/COP, forward vs backward edge, LLVM CFI, CFG/XFG.
-- **Required:** A clear picture of how `call` pushes and `ret` pops the return address.
-- **Helpful but not required:** Familiarity with 64-bit virtual addressing — that real addresses use far fewer than 64 bits, leaving spare high bits (this is where PAC lives).
-- **Helpful but not required:** Awareness of CPU privilege levels and that some registers/state are inaccessible to user-mode corruption.
-
-You do **not** need to know:
-
-- The exact CET MSR/XSAVE state encodings or PAC's QARMA cipher internals (we explain the *guarantee*, not the silicon spec).
-- The detailed kCFI/FineIBT kernel patch history (we cover the concept).
-- The CFI bypass research frontier — that's `professional.md`.
-
-> ⚠️ **Defensive scope.** Mechanisms and guarantee/residual-gap analysis only. No working signing-gadget chains or oracle constructions.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Shadow stack** | A second, protected stack holding *only* return addresses; checked against the regular stack on `ret`. |
-| **Backward-edge CFI** | Protecting returns: ensuring `ret` goes back to the real caller. |
-| **Intel CET** | "Control-flow Enforcement Technology" — Intel's hardware CFI: shadow stack + IBT. |
-| **IBT (Indirect Branch Tracking)** | CET's forward-edge feature: indirect branches must land on an `endbranch` instruction. |
-| **`endbranch` / `ENDBR64`** | A no-op-like landing-pad instruction marking a legal indirect-branch target. |
-| **PAC (Pointer Authentication)** | ARMv8.3 feature that signs a pointer with a secret key into its unused high bits; verified before use. |
-| **PAC signing / authing** | `PAC*` instructions add a signature; `AUT*` instructions verify and strip it (faulting/poisoning on mismatch). |
-| **PAC key** | A secret held in privileged registers, not readable by user code; per-process/per-context. |
-| **BTI (Branch Target Identification)** | ARMv8.5 forward-edge feature: indirect branches must land on a `BTI` landing-pad instruction. |
-| **Landing pad** | An instruction (`endbranch`/`BTI`) that marks a valid indirect-branch entry point; landing elsewhere faults. |
-| **kCFI** | Kernel CFI — CFI applied inside the OS kernel (e.g., Clang's KCFI scheme). |
-| **FineIBT** | A scheme combining Intel IBT landing pads with a fine-grained software type check for tight kernel CFI. |
-| **Signing oracle** | A bug that lets an attacker get the CPU to sign a pointer of their choosing, undermining PAC. |
-| **Shadow stack pointer (SSP)** | The CPU register pointing at the current top of the shadow stack; managed in hardware. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -112,30 +61,6 @@ The kernel is the prize target, so CFI inside the kernel matters most. Two notab
 ### 7. The Honest Boundary: What None of This Stops
 
 Every mechanism here protects *control data* — return addresses and code pointers. **None of them stops a data-only attack**, where the attacker corrupts *non-control* data (a privilege flag, a length, a file path, an `is_admin` boolean) to change behavior without ever redirecting a branch. Shadow stacks, CET, PAC, and BTI all see a perfectly legal control flow in that case. That residual is the subject of `professional.md`, and it's the senior engineer's job never to overclaim: "CET + PAC enabled" means "control-flow hijacking is hard," not "the process is secure."
-
----
-
-## Real-World Analogies
-
-**Shadow stack as a coat-check ticket.** When you enter (a `call`), you check your coat and get a numbered ticket — a copy of "where you came from." When you leave (a `ret`), the attendant matches your ticket against the coat's tag. Tamper with the tag on the coat (corrupt the on-stack return address) and it no longer matches your ticket (the shadow copy) — you're stopped at the door. The ticket stub lives behind the counter where you can't reach it (hardware-protected shadow region).
-
-**IBT/BTI landing pads as designated helicopter pads.** A helicopter (indirect branch) may only touch down on a marked **H** pad (`endbranch`/`BTI`). It can't land in the middle of a field (the middle of a gadget). It still doesn't say *which* helipad — that's the coarseness — but it eliminates landing anywhere you please.
-
-**PAC as a tamper-evident signature on a check.** A bank check (pointer) carries a signature the bank can verify with a secret key. You can write any amount on a forged check (overwrite the return address), but without the key you can't produce a valid signature, and the teller (`AUT*`) rejects it. The signature even rides in the check's existing margin (the spare VA bits) — no extra paper needed.
-
-**FineIBT as "land on the helipad, then show your badge."** IBT says you may only land on an **H** pad; the FineIBT software check at the pad then verifies your badge says you belong on *this specific* pad. Coarse hardware filter plus fine software identity.
-
----
-
-## Mental Models
-
-**Model 1: Tripwire vs integrity.** Canary = tripwire (detects a crossing). Shadow stack/PAC = integrity (a forged value won't verify). Seniors must articulate this difference; it's the core of "why CET, not just `-fstack-protector`."
-
-**Model 2: Two enforcement strategies — *separate copy* vs *sign in place*.** Shadow stacks keep a protected *duplicate* (Intel's approach for returns). PAC *signs the value itself* using spare bits and a hidden key (ARM's approach). Same goal — backward-edge integrity — two engineering philosophies, with different residual risks (shadow-region protection vs signing oracles).
-
-**Model 3: Landing pads make the forward edge coarse-but-bounded; type checks make it fine.** IBT/BTI alone bound indirect branches to marked entries (coarse). Layering a type check (FineIBT, KCFI, XFG, LLVM CFI) makes it precise. Hardware filter + software identity is the modern recipe.
-
-**Model 4: The data-only floor.** All control-flow defenses sit *above* a floor they cannot reach: corrupting non-control data. As you push control-flow attacks toward impossible, attackers descend to that floor. Knowing where the floor is keeps your threat model honest.
 
 ---
 
@@ -250,15 +175,6 @@ CONFIG_FINEIBT=y     # (selected with X86_KERNEL_IBT + CFI_CLANG)
 
 ---
 
-## Use Cases
-
-- **Modern Windows** ships hardware shadow stacks (CET) for user-mode processes that opt in; kernel uses additional CFI.
-- **Linux** uses **FineIBT** on CET CPUs and **KCFI** for kernel forward-edge CFI; user-space shadow stacks are rolling out.
-- **iOS / macOS on Apple Silicon** use **PAC** pervasively — signed return addresses, signed function pointers, signed vtable/Objective-C pointers — as a primary exploit-mitigation pillar.
-- **High-value C/C++ targets** (browsers, hypervisors, baseband, secure enclaves) layer hardware CFI on top of LLVM CFI/CFG/XFG.
-
----
-
 ## Coding Patterns
 
 **Pattern: Build with full protection and verify it landed.** `-fcf-protection=full` (x86) / `-mbranch-protection=standard` (ARM), then check GNU property notes (`readelf -n`). A binary missing the notes silently runs without CET/PAC even on capable hardware.
@@ -314,49 +230,24 @@ CONFIG_FINEIBT=y     # (selected with X86_KERNEL_IBT + CFI_CLANG)
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. Why is a stack canary a "tripwire" and a shadow stack "integrity"? Give a concrete case the canary misses but the shadow stack catches.
-2. Describe the shadow-stack contract on `call` and `ret`. Why must the shadow region be unwritable by ordinary stores?
-3. What does Intel **IBT** enforce, and why is it called *coarse*? What does **FineIBT** add?
-4. How does **PAC** protect a return address without a second memory region? Where does the key live?
-5. What is a **signing oracle**, and why does it undermine PAC?
-6. How do **BTI** and **PAC** complement each other on the forward edge?
-7. What is **KCFI**, and why does kernel CFI favor a per-call type hash?
-8. Name one class of attack that *all* of CET, PAC, BTI, and shadow stacks fail to stop, and explain why.
+1. State the system invariant that **Control-Flow Integrity** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
-> If you can answer 1–5 and 8 cleanly, you're ready for `professional.md` (bypass classes, data-only attacks, COOP, performance, and adoption).
+## Verify your work
 
----
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
 
-## Cheat Sheet
+## Review questions
 
-| Concept | One-liner |
-|---------|-----------|
-| **Shadow stack** | Protected duplicate of return addresses; mismatch on `ret` faults. |
-| **Canary vs shadow stack** | Tripwire vs integrity. |
-| **Intel CET** | Hardware shadow stack (backward) + IBT (forward). |
-| **IBT / `endbranch`** | Indirect branches must land on a marked entry; coarse alone. |
-| **FineIBT** | IBT landing pad + software type check (fine). |
-| **PAC** | Sign pointers into spare VA bits with a hidden key; verify before use. |
-| **PAC residual** | Signing oracles; short-MAC brute force with an auth oracle. |
-| **BTI** | ARM landing-pad enforcement; pairs with PAC. |
-| **KCFI** | Kernel forward-edge CFI via per-call type hash. |
-| **Floor** | None of these stop **data-only** attacks. |
-
----
-
-## Summary
-
-Canaries detect a contiguous overwrite near the return address; they are a *tripwire*, not *integrity*. The backward edge done right means the program will not *use* a forged return address even if the attacker can write it — achieved two ways. **Shadow stacks** keep a protected duplicate of every return address and fault on mismatch at `ret`; in **Intel CET** the shadow stack is hardware-managed (its pages unwritable by ordinary stores) and is paired with **IBT**, which forces indirect branches to land on `endbranch` pads — a coarse forward-edge filter made fine by **FineIBT** (landing pad + type check). **ARM PAC** instead *signs the pointer itself* into spare virtual-address bits using a key held in privileged registers, so a forged return address or function pointer fails authentication; **BTI** adds ARM landing pads, complementing PAC. Kernels use **KCFI** and **FineIBT** for tight, low-cost forward-edge CFI. The unifying senior insight: hardware changes the economics, giving cheap, tamper-resistant integrity on both edges — but **none of it stops data-only attacks**, and PAC has its own residual surface (**signing oracles**). Overclaiming is the mistake; precise guarantees are the job. `professional.md` takes on the bypass classes and deployment strategy.
-
----
-
-## Further Reading
-
-- Intel, "Control-flow Enforcement Technology" specification and developer overview (shadow stack + IBT).
-- ARM, "Pointer Authentication" and "BTI" sections of the ARMv8 architecture reference; Qualcomm's PAC whitepaper.
-- Apple Platform Security guide — Pointer Authentication on Apple Silicon.
-- "FineIBT" paper and the Linux kernel KCFI/FineIBT documentation.
-- "Pointer Authentication on ARMv8.3" (Azad et al., PAC analysis) and PAC-oracle research — read for residual risks.
-- Continue to `professional.md` for CFI bypass classes and program-wide deployment.
+- Which invariant must remain true when Control-Flow Integrity fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

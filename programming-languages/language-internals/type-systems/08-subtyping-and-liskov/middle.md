@@ -1,70 +1,11 @@
-# Subtyping & Liskov Substitution — Middle Level
+# Subtyping & Liskov Substitution — Middle
 
-> **Topic:** Subtyping & Liskov Substitution
-> **Focus:** The four precise LSP rules (preconditions, postconditions, invariants, history), subtyping on records and function types, and Design-by-Contract as the formalization that turns "be careful" into checkable rules.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **Subtyping & Liskov Substitution** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-> Focus: **What exactly are the rules a sound subtype must obey?** And **how do records and function types get their own subtyping rules — including the one (function parameters) that surprises everyone?**
-
-At the junior level, LSP was a slogan: "a subtype must be substitutable for its base." That slogan is correct but operationally useless until you can answer the next question — *substitutable with respect to what, and under which exact constraints?* This level makes the rules precise.
-
-Barbara Liskov and Jeannette Wing's 1994 formalization ("A Behavioral Notion of Subtyping") gives four obligations a subtype `S` must meet relative to its supertype `T`:
-
-1. **Preconditions may not be strengthened** in the subtype.
-2. **Postconditions may not be weakened** in the subtype.
-3. **Invariants of the supertype must be preserved** by the subtype.
-4. The **history constraint**: the subtype must not permit state changes that the supertype's contract forbids.
-
-These are not folklore; they are the actual definition. Two of them — the precondition and postcondition rules — line up exactly with a *type-system* phenomenon you'll meet in the same breath: when you override a method, the relationship between the override's parameter and return types and the base method's is governed by **variance**. Parameters behave **contravariantly** (you may accept *more*, not less); return values behave **covariantly** (you may return *more specific*, not less). That correspondence — behavioral rule ↔ type rule — is the single most clarifying insight at this level.
-
-We'll also generalize subtyping beyond classes. **Records** have *width* and *depth* subtyping. **Function types** have their own rule, and it's the one that catches people: a function subtype may take **wider (super) parameters** and return **narrower (sub) results**. Once you see why, the method-override variance rules stop being arbitrary and become inevitable.
-
-> 🎓 **Why this matters at the middle level:** This is the level where you stop *reacting* to LSP bugs and start *predicting* them. Given a proposed override, you'll be able to say "that strengthens the precondition, so it will break callers" before a single test runs. That predictive power is what separates a mid-level engineer from a junior who only recognizes the textbook examples.
-
-This page covers: the four rules with worked examples, width/depth record subtyping, function-type subtyping and its variance, the variance of method signatures (Java covariant returns, why parameters can't widen), and Design-by-Contract (Eiffel) as the framework that names all of this. `senior.md` takes variance to the full type-theory; `professional.md` applies it to library and API design at scale.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** Everything in `junior.md` — subtyping as substitutability, subsumption, nominal vs structural, the Square/Rectangle break.
-- **Required:** Comfort reading method overrides in a statically-typed language (Java, C#, Scala, or TypeScript).
-- **Required:** What a generic/parameterized type is (`List<T>`), at least to read it.
-- **Helpful but not required:** Some exposure to the words "covariant" and "contravariant," even if fuzzy.
-- **Helpful but not required:** Any prior contact with assertions or `assert` in code.
-
-You do **not** need to know:
-
-- The formal subtyping judgment rules (`Γ ⊢ S <: T`) — that's `senior.md`.
-- Declaration-site vs use-site variance annotations in depth — `senior.md`.
-- Bounded quantification or F-bounded polymorphism — `senior.md`.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Behavioral subtyping** | Liskov & Wing's notion: subtyping that preserves the supertype's *behavior*, not just its signatures. |
-| **Precondition** | The condition a method requires of its caller before it runs. Strengthening it = demanding more. |
-| **Postcondition** | The condition a method guarantees on return. Weakening it = delivering less. |
-| **Class invariant** | A property true of every instance between public method calls (e.g. `0 <= size <= capacity`). |
-| **History constraint** | The rule that a subtype may not allow state transitions the supertype forbids (e.g. mutating an "immutable" base). |
-| **Design-by-Contract (DbC)** | Bertrand Meyer's methodology (Eiffel) that bakes pre/postconditions and invariants into the language as `require`/`ensure`/`invariant`. |
-| **Width subtyping** | A record with *more* fields is a subtype of one with *fewer* (extra fields are harmless to a caller expecting fewer). |
-| **Depth subtyping** | A record is a subtype if a field's type is replaced by a subtype of the original field type. |
-| **Covariant** | Varies *the same direction* as the subtype relation. Return types are covariant: `S <: T ⟹ () -> S <: () -> T`. |
-| **Contravariant** | Varies *the opposite direction*. Parameter types are contravariant: `S <: T ⟹ (T -> R) <: (S -> R)`. |
-| **Invariant (variance sense)** | Neither co- nor contravariant: the types must match exactly for the subtype relation to hold. |
-| **Variance** | The rule describing how subtyping of components (params, returns, element types) lifts to subtyping of the compound. |
-| **Covariant return type** | A language feature (Java 5+, C++) letting an override return a subtype of the base method's return type. |
-| **Method override** | Replacing a base method's implementation in a subtype; its signature must respect variance to stay sound. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -166,32 +107,6 @@ feature withdraw (amount: INTEGER)
 ```
 
 This is the *formal* version of everything in this file. Even in languages without DbC, the mental discipline — "what does this method require, ensure, and keep invariant?" — is what makes LSP operational. Some ecosystems approximate it: Java's `assert`, code-contracts libraries, Kotlin's `require`/`check`, runtime invariant checks in constructors.
-
----
-
-## Real-World Analogies
-
-**The subcontractor and the master contract.** A general contractor signs a contract: "I require the site cleared (precondition), I guarantee a finished wall (postcondition)." A subcontractor who takes over may demand *less* (also works on an uncleared site — weakened precondition, fine) and deliver *more* (a finished, painted wall — strengthened postcondition, fine). They may *not* demand more (require a permit you didn't agree to) or deliver less (an unfinished wall). That's the precondition/postcondition asymmetry exactly.
-
-**The universal remote.** A specific TV remote handles one TV (`(MyTV) → Signal`). A universal remote handles *any* TV (`(AnyTV) → Signal`). Anywhere the specific remote was expected, the universal one substitutes — it accepts a wider range of inputs. That's parameter contravariance: the more general accepter is the subtype.
-
-**Russian dolls of guarantees.** Postconditions are like nested dolls: a subtype's promise must *contain* the base's promise and may wrap *more* around it. Preconditions are the opposite — the base's demand is the outer doll, and the subtype's demand must fit *inside* it (be weaker). Swap which one nests which and you've broken substitutability.
-
-**The form with extra fields.** A government form expects `{ name, dob }`. You hand in a form with `{ name, dob, phone, email }`. The clerk reads the two fields they need and ignores the rest — your richer form substitutes perfectly. That's width subtyping: more fields, still a valid subtype.
-
----
-
-## Mental Models
-
-**Model 1 — "Behavioral rules and type rules are the same rules."** Don't memorize "preconditions can't strengthen" *and* "parameters are contravariant" as two facts. They are one fact viewed twice. The precondition is what the parameter *means*; contravariance is what the type system *encodes*. Likewise postcondition ↔ covariant return.
-
-**Model 2 — "Funnel in, funnel out."** A safe override is a funnel: *wide* at the input end (accepts everything the base did, maybe more) and producing output that's *at least as specific* as promised. Wide-in, narrow-out. Reverse either funnel and you have a leak.
-
-**Model 3 — "Invariants accumulate; they never shed."** Going down a hierarchy, the set of invariants only grows. A subtype can *add* guarantees ("and the balance is always even") but can never *drop* one the base made. If your subtype needs to drop an invariant to work, it isn't a subtype.
-
-**Model 4 — "History is a property of the whole lifetime, not one call."** Rules 1–3 check individual methods. Rule 4 checks the *trajectory* of an object's state. A subtype can pass all per-method checks and still introduce a forbidden trajectory (mutating an immutable). When evaluating a subtype, also ask: "what *sequences* of states does the base forbid, and do I still forbid them?"
-
-**Model 5 — "Width vs depth are orthogonal."** A record can be a subtype by having more fields (width) *and* by specializing a field's type (depth), independently. Keeping the two axes separate in your head prevents the classic confusion when reasoning about structural types.
 
 ---
 
@@ -324,34 +239,6 @@ Even without `require`/`ensure`, encoding pre/postconditions as guards and asser
 
 ---
 
-## Pros & Cons
-
-**Pros of reasoning with the four rules:**
-
-- **Predictive, not reactive.** You can audit a proposed override on paper and declare it sound or broken before writing a test.
-- **Unifies behavior and types.** Seeing precondition↔contravariance and postcondition↔covariance collapses two topics into one mental model.
-- **Maps to real language features.** Covariant returns, function-type variance, and DbC are all direct applications.
-- **Catches the silent breaks.** The invariant and history rules find the violations that *don't* throw (Square/Rectangle), which tests easily miss.
-
-**Cons / costs:**
-
-- **Most languages don't enforce it.** Outside Eiffel (and partial tooling), the four rules are discipline, not compilation. The compiler still only checks signatures.
-- **History constraint is easy to overlook.** It's about lifetimes and trajectories, which are harder to see than single-method signatures.
-- **Variance has language-specific exceptions.** Java method parameters are invariant despite contravariance being sound; arrays are covariant despite it being *un*sound. The theory and the language don't always agree.
-- **Contracts cost effort to write.** Pre/postconditions and invariants are documentation that must be kept accurate, or they mislead.
-
----
-
-## Use Cases
-
-- **Reviewing an override in code review.** Walk the four rules: did the precondition get tighter? Did the postcondition get looser? Did an invariant drop? Did new mutation appear? Four questions, fast verdict.
-- **Designing a generic API surface.** Function-type variance tells you which callbacks are safe to substitute — essential for plugin and event systems.
-- **Modeling read-only vs mutable.** Depth subtyping's read-only caveat directly informs whether to expose a covariant interface (read) separate from the mutable one.
-- **Specifying domain invariants.** DbC-style thinking forces invariants like "order total equals sum of line items" to be explicit and inherited correctly by subtypes.
-- **Avoiding override-vs-overload traps.** Knowing that Java parameters are invariant explains why your "override" with a wider parameter is silently never called.
-
----
-
 ## Coding Patterns
 
 **Pattern 1 — Audit overrides against the four rules.** Make it a checklist applied to every overriding method:
@@ -399,14 +286,24 @@ interface MutableBox<T> extends ReadonlyBox<T> { set(v: T): void; }  // invarian
 
 ---
 
-## Summary
+## Apply it
 
-- Behavioral subtyping has **four precise rules**: preconditions may not be **strengthened**, postconditions may not be **weakened**, invariants must be **preserved**, and the **history constraint** forbids state transitions the base disallowed (e.g. adding mutation under an immutable base).
-- **Records** subtype two ways: **width** (more fields = subtype) and **depth** (a field replaced by a subtype = subtype, for read-only access).
-- **Function types** subtype with **contravariant parameters** (accept wider/more general inputs) and **covariant returns** (produce narrower/more specific outputs): `(A→B) <: (C→D)` iff `C <: A` and `B <: D`.
-- The **precondition rule *is* parameter contravariance**, and the **postcondition rule *is* return covariance** — behavioral and type-level statements of the same constraint.
-- **Method overrides** follow the function rule: Java/C++ allow **covariant return types**; most languages keep **parameters invariant** (so a widened parameter becomes an overload, not an override).
-- **Design-by-Contract** (Eiffel) formalizes all of this with `require`/`ensure`/`invariant`, weakening preconditions and strengthening postconditions automatically down the hierarchy. Even without DbC, encoding contracts as guards and asserts makes the rules checkable.
-- Watch the language-specific exceptions: **covariant arrays** (unsound), **checked-exception widening** (forbidden for LSP reasons), and **override-vs-overload** confusion.
+1. Find a real component where **Subtyping & Liskov Substitution** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
-Move on to `senior.md` for the full type-theory of subtyping — the subsumption judgment, declaration-site vs use-site variance, where arrays and generics fit, and why variance is the deepest expression of LSP.
+## Verify your work
+
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
+
+## Review questions
+
+- Which boundary is most affected by Subtyping & Liskov Substitution?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

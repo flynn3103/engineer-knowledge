@@ -1,8 +1,11 @@
 # When to Introduce a New Language — Professional
 
-> **What?** The organizational machinery that turns "should we add a language?" from a hallway argument into a governed decision: a written adoption process (RFC), a tiered supported-languages list, paved-road incentives, exception handling, sunset processes, and the politics of telling an excited senior engineer "no" without losing them. This is the topic where language restraint stops being a personal discipline and becomes culture and policy.
-> **How?** You are the person — staff engineer, principal, head of platform, or the language-strategy working group — who owns the *count*. Your job isn't to make every call yourself; it's to build a process that makes good calls without you, and to defend the cultural signal that discipline, not sprawl, is how this org operates.
+<!-- level-focus -->
+At professional level, focus on this question:
 
+> How should teams adopt and operate **When to Introduce a New Language** with measurable outcomes and limited coordination?
+
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## 1. The org-level reframe: language count is a platform-team budget
@@ -114,13 +117,13 @@ The engineer you say "no" to today is one you need to *keep*. A respectful, reas
 
 ## 7. Sunsetting a language: the part everyone skips
 
-Adoption processes are common; **removal** processes are rare, which is exactly why orgs accumulate dead languages. A language reaches Tier 4 when: the team that owned it left, the trigger that justified it is gone, the ecosystem is dying ([`08-language-longevity-and-lock-in-risk`](../08-language-longevity-and-lock-in-risk/)), or the carry cost stopped being worth it.
+Adoption processes are common; **removal** processes are rare, which is exactly why orgs accumulate dead languages. A language reaches Tier 4 when: the team that owned it left, the trigger that justified it is gone, the ecosystem is dying ([`08-language-longevity-and-lock-in-risk`](../08-language-longevity-and-lock-in-risk/README.md)), or the carry cost stopped being worth it.
 
 A real sunset process:
 
 1. **Declare it deprecated, with a date.** Move it to Tier 4 publicly. No new services in it, effective immediately.
 2. **Inventory the existing code.** What's written in it, who owns it, what depends on it. You usually find more than you expected.
-3. **Fund the migration explicitly.** Sunsetting is a project with headcount, not a hope. (Use the patterns in [`06-migrating-between-languages`](../06-migrating-between-languages/) — strangler fig, not big-bang rewrite.)
+3. **Fund the migration explicitly.** Sunsetting is a project with headcount, not a hope. (Use the patterns in [`06-migrating-between-languages`](../06-migrating-between-languages/README.md) — strangler fig, not big-bang rewrite.)
 4. **Set a hard end-of-support date** and enforce it — after it, the platform team stops patching the runtime, which makes the remaining holdouts a security problem they can no longer ignore.
 5. **Remove it from the list** once the last service is gone.
 
@@ -166,16 +169,24 @@ Neither is purely good. Too much restraint calcifies into "we still use the 2009
 
 ---
 
-## 11. What's next
+## Apply it
 
-| Topic | File |
-|---|---|
-| The individual decision framework underneath the governance | `senior.md` |
-| Practice — design an adoption RFC, a tiered list, a sunset plan, handle the "no" conversation | `tasks.md` |
-| Interview questions including "design your org's adoption process" | `interview.md` |
-| Executing the migrations a sunset process requires | [`06-migrating-between-languages`](../06-migrating-between-languages/) |
-| The TCO and team-skills math behind the paved-road budget | [`07-total-cost-of-ownership-and-team-skills`](../07-total-cost-of-ownership-and-team-skills/) |
+1. Define the user or business outcome that **When to Introduce a New Language** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
----
+## Verify your work
 
-**Memorize this:** at org scale, a language is a perpetual claim on the platform team's budget, so govern it like one — a tiered list, an RFC that demands the "why not a library?" answer, approval from whoever carries the cost, paved-road incentives that make discipline the lazy choice, and a funded sunset process so "deprecated" means *gone*. Say no by showing the cost sheet and offering a contained yes, never by pulling rank. Keep the list deliberately short — and deliberately alive.
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
+
+## Review questions
+
+- Which measurable outcome justifies investing in When to Introduce a New Language?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

@@ -1,58 +1,11 @@
 # Goroutines and Concurrency — Junior
 
-> **Topic:** [Goroutines and Concurrency](../README.md)
-> **Focus:** Starting goroutines, waiting for them correctly, the two channel flavors, a first worker pool, and the loop-variable bug everyone hits once.
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **Goroutines and Concurrency** in one small example and prove the result?
 
-## Introduction
-
-A **goroutine** is a function running independently of the code that started it. You get one by writing `go` in front of a function call:
-
-```go
-go doWork()
-```
-
-The Go runtime multiplexes many goroutines (thousands, even millions) onto a small pool of OS threads. Goroutines start cheap — about 2 KB of stack — and grow only if they need to. That cheapness is what makes Go's "just spawn a goroutine" style practical where other languages need thread pools and careful budgeting.
-
-A **channel** is how goroutines talk to each other safely, without touching the same memory directly:
-
-```go
-ch := make(chan int)
-go func() { ch <- 42 }()
-fmt.Println(<-ch) // 42
-```
-
-This page covers the minimum you need to write correct, non-leaking concurrent code: spawning and joining goroutines, buffered vs. unbuffered channels, a basic worker pool, and the classic first-week bugs (unwaited goroutines, captured loop variables, deadlocks).
-
----
-
-## Prerequisites
-
-- Comfortable writing and running a Go program (`go run`, functions, closures).
-- Know what a function literal (`func() { ... }`) is.
-- No prior concurrency experience required — this is the starting point.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Goroutine** | A function executing concurrently with others, scheduled by the Go runtime, started with `go`. |
-| **Channel** | A typed pipe for sending and receiving values between goroutines. |
-| **Unbuffered channel** | A channel with capacity 0. A send blocks until a receiver is ready, and vice versa. |
-| **Buffered channel** | A channel with capacity N. A send only blocks once N unreceived values are queued. |
-| **`select`** | A statement that waits on multiple channel operations, proceeding with whichever is ready first. |
-| **`sync.WaitGroup`** | A counter with `Add`/`Done`/`Wait`, used to wait for a group of goroutines to finish. |
-| **Worker pool** | A fixed number of goroutines pulling work off a shared channel, bounding concurrency. |
-| **Fan-out** | Distributing units of work across multiple goroutines. |
-| **Fan-in** | Merging results from multiple goroutines into a single channel. |
-| **Race condition** | Two goroutines accessing the same memory concurrently, at least one a write, without synchronization. |
-| **Deadlock** | All goroutines are blocked waiting on each other; nothing can make progress. |
-| **Goroutine leak** | A goroutine that never exits, holding memory/resources forever. |
-| **`context.Context`** | A carrier for cancellation signals and deadlines, passed down a call chain. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -196,28 +149,6 @@ The runtime detects "all goroutines are asleep" and panics rather than hanging s
 
 ---
 
-## Pros & Cons
-
-| | Pros | Cons |
-|---|---|---|
-| **Goroutines** | Cheap (~2 KB), simple `go f()` syntax, scale to hundreds of thousands | Easy to leak; an unrecovered panic kills the whole process |
-| **Channels** | Safe communication without manual locking; compose naturally with `select` | Easy to deadlock; unbuffered channels need a careful sender/receiver dance |
-| **Worker pools** | Bound memory and CPU under bursty load | Adds complexity versus a plain loop; sizing the pool is a judgment call |
-
----
-
-## Use Cases
-
-| Situation | Approach |
-|---|---|
-| Fetch N independent things in parallel | Spawn N goroutines, join with `WaitGroup` or `errgroup` |
-| Unbounded stream of work items | Worker pool reading from a channel |
-| "Whichever finishes first wins" | `select` across multiple channels |
-| Must stop working when the caller gives up | `context.Context`, checked in every loop iteration |
-| A single value, computed once, needed everywhere | Plain function call — no concurrency needed |
-
----
-
 ## Best Practices
 
 1. Know how every goroutine you start will exit, before you start it.
@@ -250,63 +181,24 @@ The runtime detects "all goroutines are asleep" and panics rather than hanging s
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```go
-// Spawn + wait
-var wg sync.WaitGroup
-wg.Add(1)
-go func() { defer wg.Done(); work() }()
-wg.Wait()
+1. Choose one small, known input for **Goroutines and Concurrency**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
-// Worker pool
-jobs := make(chan Job, 100)
-for i := 0; i < N; i++ {
-    go func() { for j := range jobs { handle(j) } }()
-}
-close(jobs) // after all sends
+## Verify your work
 
-// Select with timeout
-select {
-case v := <-ch:
-    use(v)
-case <-time.After(2 * time.Second):
-    // timed out
-}
-```
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
 
----
+## Review questions
 
-## Summary
-
-- A goroutine is `go f()`; it runs independently and `main` will not wait for it automatically.
-- `sync.WaitGroup` is the simplest way to wait for a group of goroutines.
-- Unbuffered channels synchronize; buffered channels queue up to a limit.
-- `select` lets one goroutine react to whichever of several channels is ready first.
-- Worker pools bound concurrency; always `close()` the job channel once, from the sender.
-- The two beginner bugs to internalize: the captured loop variable, and forgetting to wait/close.
-
----
-
-## Further Reading
-
-- Effective Go — *Goroutines* and *Channels*: <https://go.dev/doc/effective_go>
-- The Go Blog — *Share Memory By Communicating*: <https://go.dev/blog/codelab-share>
-- *Go Concurrency Patterns* (Rob Pike): <https://www.youtube.com/watch?v=f6kdp27TYZs>
-
----
-
-## Related Topics
-
-- [Go Runtime](../02-go-runtime/junior.md) — what the scheduler is actually doing with all these goroutines.
-- [Production Debugging](../07-production-debugging/junior.md) — finding goroutine leaks with `pprof`.
-
----
-
-## Check your understanding
-
-1. Explain Goroutines and Concurrency — Junior Level in your own words and name the problem it solves.
-2. How would you apply the ideas around Introduction, Prerequisites, Glossary in a realistic engineering change?
-3. What failure mode or misuse should you look for, and what evidence would reveal it?
-4. What small example would prove that you can apply Goroutines and Concurrency — Junior Level correctly?
-5. What observable result would convince you that the approach improved the system?
+- What problem does Goroutines and Concurrency solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

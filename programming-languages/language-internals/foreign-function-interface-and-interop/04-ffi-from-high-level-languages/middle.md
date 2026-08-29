@@ -1,62 +1,11 @@
-# FFI from High-Level Languages — Middle Level
+# FFI from High-Level Languages — Middle
 
-> **Topic:** FFI from High-Level Languages
-> **Focus:** What actually happens in the machine when you cross the boundary — calling conventions, marshalling cost, the GIL, and reference counting across FFI.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **FFI from High-Level Languages** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-> Focus: **Move from "I can call a C function" to "I understand what the machine and runtime are doing when I do."**
-
-At the junior level, FFI is a recipe: load the library, declare the signature, call the function. At the middle level, you need to understand the machinery underneath, because that machinery is exactly where the subtle bugs and performance problems come from. Three things matter most:
-
-1. **The calling convention** — the precise, CPU-level contract for passing arguments and returning values. The C ABI defines it; everything that crosses the boundary obeys it.
-2. **Marshalling cost** — converting values between representations is not free. A `str` → `char*` conversion allocates, copies, and encodes. Do it in a loop and it dominates your runtime.
-3. **The runtime's invariants** — your high-level language has rules its native extensions must respect: CPython's **GIL** and **reference counting**, Java's **local/global references**, Go's GC pointer rules. Break them and you get crashes that look like cosmic-ray bugs.
-
-In one sentence: **at this level, FFI stops being a function call and becomes a negotiation between two memory-and-execution models that don't trust each other.** This page makes that negotiation explicit.
-
-> 🎓 **Why this matters at the middle level:** The bugs you'll be assigned to fix are no longer "I forgot `restype`." They're "this binding leaks 4 KB per request," "the app deadlocks under load," "it's fast on my machine but slow in production." All three are middle-level FFI problems: ownership, the GIL, and marshalling cost. You can't fix them from the recipe; you need the model underneath.
-
-This page covers: the C calling convention in enough detail to reason about it, the real cost of marshalling each common type, the **GIL** and when native code must release it, reference counting across the CPython boundary, and the difference between `ctypes` (dynamic) and `cffi`/Cython (compiled) and *why* you'd choose each.
-
----
-
-## Prerequisites
-
-- **Required:** The junior FFI material — dynamic vs. native extensions, `argtypes`/`restype`, shared libraries, the no-safety-net boundary.
-- **Required:** Comfort with pointers conceptually: an address, dereferencing, that a pointer is a fixed-size integer.
-- **Required:** Basic threading awareness — that multiple threads can run concurrently.
-- **Helpful:** Having seen a stack frame and the idea that arguments live in registers or on the stack.
-- **Helpful:** Knowing what a heap allocation (`malloc`) costs roughly.
-
-You do **not** need:
-
-- Lock-free programming or memory-ordering theory (that's `senior.md`).
-- The internals of JNI critical regions or Project Panama linkers (that's `senior.md`/`professional.md`).
-- How to build distributable wheels (that's `professional.md`).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Calling convention** | The exact rules for a function call: which registers hold which arguments, where the return value goes, who saves what, how the stack is aligned. |
-| **System V AMD64 ABI** | The calling convention on Linux/macOS x86-64. First six integer args go in `rdi, rsi, rdx, rcx, r8, r9`; floats in `xmm0–7`; integer return in `rax`. |
-| **Marshalling** | Converting a value between two languages' in-memory representations at the boundary. |
-| **Boxing/unboxing** | Wrapping a primitive in a heap object (boxing) or extracting it (unboxing). Common marshalling cost in Java/JS. |
-| **GIL** | CPython's Global Interpreter Lock — only one thread executes Python bytecode at a time. Native code may release it. |
-| **`Py_BEGIN_ALLOW_THREADS`** | The CPython C-API macro pair that releases the GIL around a long native call and reacquires it after. |
-| **Reference count** | CPython tracks how many references point at each object; at zero it's freed. C extensions must `Py_INCREF`/`Py_DECREF` correctly. |
-| **Borrowed reference** | A pointer to a Python object you may use but do **not** own — you must not `DECREF` it. |
-| **Owned/new reference** | A reference you own and are responsible for `DECREF`-ing. |
-| **`cffi`** | A Python FFI library that parses C declarations and can compile small wrappers — closer to the metal than `ctypes`, often faster and safer. |
-| **Cython** | A Python-like language compiled to a C extension; generates C-API code for you. |
-| **Trampoline / thunk** | A small generated piece of code that adapts one calling convention or signature to another, often used for callbacks. |
-| **Boundary crossing cost** | The fixed overhead of one FFI call: argument marshalling, possible GIL release/acquire, stack setup. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -110,28 +59,6 @@ Getting this wrong is the canonical native-extension bug. `Py_INCREF` one too fe
 - **Cython**: you write Python-ish code, it generates a full C extension. Best when you're writing *new* glue/algorithms, not just wrapping an existing library.
 
 The choice is: how much speed and safety do you need versus how much build complexity can you accept?
-
----
-
-## Real-World Analogies
-
-**The shipping container (ABI).** A standardized container fits every crane, truck, and ship in the world regardless of who built them. The C ABI is that container: any language that can pack arguments into it can call any function expecting it. The standardization is the whole value.
-
-**Currency exchange at the airport (marshalling).** Every time you cross a border you change money, and the exchange takes a cut. Crossing FFI repeatedly with strings is like exchanging currency on every purchase — the fees (copies) dominate if you do it constantly. Smart travelers exchange once, in bulk (pass one big buffer, not many small ones).
-
-**The single key to the workshop (GIL).** Only one worker can hold the key to the Python workshop at a time. If a worker takes the key, then goes off to do a long errand outside (a blocking C call), everyone else is locked out for no reason. The polite worker hangs the key back up (`Py_BEGIN_ALLOW_THREADS`) before leaving on the errand.
-
-**Library books (reference counting).** A book is reshelved (freed) only when every borrower returns it. A *new reference* is you checking out a book — you owe a return. A *borrowed reference* is reading over someone's shoulder — not your book to return. Returning a book you didn't check out (DECREF a borrowed ref) corrupts the records.
-
----
-
-## Mental Models
-
-**Model 1: The boundary is a toll booth with a fixed fee plus a per-byte fee.** Every crossing pays a fixed cost (set up the call, maybe touch the GIL) and a variable cost (copy the data). Optimizing FFI is minimizing *number of crossings* (fixed cost) and *bytes copied per crossing* (variable cost).
-
-**Model 2: The GIL is a baton in a relay.** Only the runner with the baton runs Python. A well-behaved C call that will be slow *passes the baton* while it works and *grabs it back* before touching anything Python.
-
-**Model 3: Every object reference is a debt or a loan.** "New reference" = a debt you must repay (DECREF). "Borrowed reference" = a loan you must not repay (someone else will). The whole CPython C-API is bookkeeping these debts.
 
 ---
 
@@ -229,32 +156,6 @@ Note the `defer C.free`: `C.CString` allocates with C's `malloc`, so the Go GC w
 
 ---
 
-## Pros & Cons
-
-**Pros**
-
-- **Predictable cost model.** Once you understand crossing cost = fixed + per-byte, you can optimize bindings deliberately.
-- **GIL release unlocks parallelism.** Native code that drops the GIL lets Python use multiple cores for the native portion.
-- **Compiled FFI (cffi API mode, Cython) gets near-C speed** while keeping a Python-friendly surface.
-
-**Cons**
-
-- **Marshalling can erase the speed win** if you cross the boundary too often with large values.
-- **Reference-counting bugs are subtle and non-local** — a leak or crash can surface far from the mistake.
-- **GIL discipline is easy to violate.** Touching a Python object after releasing the GIL is a latent crash.
-- **Type-size portability bugs** (`int` vs `long`) hide until you run on a different platform.
-
----
-
-## Use Cases
-
-- **Wrapping a blocking C library for a threaded server** — you *must* release the GIL or you serialize all requests.
-- **High-throughput numeric kernels** — pass a NumPy buffer pointer once, do all the work in C, return once. One crossing, zero copies.
-- **Choosing `cffi` over `ctypes`** for a binding that will be called often or maintained long-term, to cut per-call cost and type mistakes.
-- **Writing a Cython extension** when the hot path is *new* code, not a wrapper around an existing `.so`.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Marshal once, cross once
@@ -304,26 +205,24 @@ When a C function allocates and returns a buffer, immediately arrange to free it
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-| Topic | Key fact |
-|-------|----------|
-| Argument passing (x86-64 SysV) | Ints in `rdi, rsi, rdx, rcx, r8, r9`; floats in `xmm0–7`; int return in `rax`. |
-| What `ctypes` uses to make calls | **libffi**, which knows each platform's ABI. |
-| Cheapest things to marshal | `int`, `float` (machine word). |
-| Most expensive common marshalling | strings (encode + alloc + copy) and copied arrays. |
-| GIL release idiom | `Py_BEGIN_ALLOW_THREADS` … `Py_END_ALLOW_THREADS`. |
-| Rule while GIL released | Touch **no** Python objects. |
-| New vs borrowed reference | New = you DECREF; borrowed = you must not. |
-| `ctypes` vs `cffi` vs Cython | Quick / serious-binding / new-hot-code. |
-| Biggest speed lever | Zero-copy buffers + fewer crossings. |
+1. Find a real component where **FFI from High-Level Languages** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
----
+## Verify your work
 
-## Summary
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
 
-At the middle level, FFI is a **negotiation between two memory-and-execution models**. The C **calling convention** (e.g. System V AMD64) dictates exactly where arguments live; `ctypes` realizes it dynamically through libffi, while compiled extensions emit the call directly and run faster. **Marshalling** — converting representations at the boundary — is usually where the time goes; ints and floats are cheap, strings and copied arrays are not, and the winning move is fewer crossings with zero-copy buffers.
+## Review questions
 
-Inside CPython native extensions, two invariants rule everything: the **GIL** (release it around blocking native work, touch no Python objects while released) and **reference counting** (own-it-then-DECREF, never DECREF a borrowed reference). These are the source of the leaks, deadlocks, and use-after-free crashes you'll be asked to fix. The tool choice — `ctypes`, `cffi`, or Cython — trades build complexity against speed and safety.
-
-`senior.md` goes further: garbage collectors versus raw native pointers, JNI's reference model versus Project Panama, Go's cgo performance cliff and goroutine-stack switch, and Rust's safe-wrapper-over-unsafe-core discipline.
+- Which boundary is most affected by FFI from High-Level Languages?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

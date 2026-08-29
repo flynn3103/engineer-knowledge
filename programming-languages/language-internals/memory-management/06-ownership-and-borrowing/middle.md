@@ -1,33 +1,12 @@
-# Ownership & Borrowing — Middle Level
+# Ownership & Borrowing — Middle
 
-> **Topic:** Ownership & Borrowing
-> **Focus:** How the borrow checker actually works — lifetimes, the aliasing-XOR-mutability rule, non-lexical lifetimes, and the escape hatches for when the static rules are too strict.
+<!-- level-focus -->
+At middle level, focus on this question:
 
+> Where does **Ownership & Borrowing** belong in a maintainable component, and which trade-off selects the design?
+
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
-
-## Introduction
-
-At the junior level, ownership is "who frees the memory." At this level we open the hood. The borrow checker is a static analysis that proves, before your program runs, that **every reference is valid for exactly as long as it is used and no longer**. To do that it reasons about *lifetimes* — regions of code over which a reference stays alive — and enforces *aliasing XOR mutability*. This page explains those mechanisms, how the compiler infers most of them for you (elision, NLL), when you must write them down (explicit lifetime annotations), and the standard library tools that let you opt out of the static rules when they're genuinely too restrictive (`Box`, `Rc`/`Arc`, `RefCell`/`Cell`/`Mutex`).
-
-The goal is that borrow-checker errors stop feeling random and start feeling like the compiler pointing at a real bug — or a real design decision you haven't made yet.
-
-## Prerequisites
-
-- The junior-level model: one owner, move semantics, drop on scope exit, `&T` vs `&mut T`.
-- Comfort reading Rust function signatures.
-- A working understanding of stack frames: why a value created inside a function is gone when the function returns.
-
-## Glossary
-
-- **Lifetime** — a region of the program for which a reference is valid. Written `'a`, `'b`, etc. Lifetimes are a *compile-time* concept; they do not exist at runtime.
-- **Lifetime elision** — rules that let the compiler infer lifetimes so you don't have to write them in common cases.
-- **Borrow checker** — the compiler pass that verifies references obey the rules.
-- **NLL (non-lexical lifetimes)** — the modern borrow checker, where a borrow lasts only until its *last use*, not until the end of the lexical scope.
-- **Dangling reference** — a reference to memory that has already been freed. The borrow checker makes these impossible in safe Rust.
-- **Interior mutability** — mutating data through a shared (`&`) reference, made safe by moving the aliasing check to runtime (`RefCell`, `Cell`, `Mutex`).
-- **`Box<T>`** — a pointer to a single heap allocation with single ownership.
-- **`Rc<T>` / `Arc<T>`** — reference-counted shared ownership (`Rc` single-threaded, `Arc` atomic/thread-safe).
-- **`Weak<T>`** — a non-owning reference-counted handle, used to break cycles.
 
 ## Core Concepts
 
@@ -83,14 +62,6 @@ v.push(4);              // OK under NLL: the shared borrow already ended
 ```
 
 Under the old rules this was an error because `first` was "alive" until the end of the block. Under NLL the borrow is dead after the `println!`, so the `&mut` from `push` is fine.
-
-## Mental Models
-
-**The borrow checker is a theorem prover for "no dangling references."** It doesn't run your code; it proves a property about all possible runs. If it can't prove safety, it rejects — even if your particular execution would have been fine. That's why some valid programs are rejected: the checker is *sound* (never accepts unsafe code) but not *complete* (sometimes rejects safe code).
-
-**Lifetimes flow like constraints in a system of inequalities.** Each `'a: 'b` ("`'a` outlives `'b`") is an inequality. The compiler solves the system; if there's no solution, you get a lifetime error. Writing annotations is supplying constraints the compiler couldn't infer.
-
-**Interior mutability moves the proof from compile time to run time.** When you genuinely need shared-and-mutable, you don't break the rule — you *defer the check*. `RefCell` enforces aliasing XOR mutability at runtime and panics if you violate it, paying a small cost for flexibility the static checker can't give.
 
 ## Code Examples
 
@@ -173,28 +144,6 @@ let _a = cell.borrow_mut();
 - **`Rc<RefCell<T>>` for shared-mutable single-threaded graphs; `Arc<Mutex<T>>` across threads.** This is the standard recipe when the static checker can't express your sharing.
 - **`Weak<T>` for back-pointers.** In a parent→child tree where children also point to parents, make the child→parent edge a `Weak` so the `Rc` cycle can't leak.
 
-## Pros & Cons
-
-**Pros**
-
-- Lifetimes make dangling references a *compile error*, with no runtime cost.
-- Elision and NLL mean you write annotations rarely; the ergonomics are far better than the rules suggest.
-- Escape hatches exist for every legitimate pattern — you are never truly stuck, you just pay a known cost.
-
-**Cons**
-
-- Lifetime annotations on complex APIs are genuinely hard to read and write.
-- The checker rejects some safe programs (incompleteness), which can be frustrating.
-- `RefCell` trades compile-time errors for *runtime panics* — you can ship a borrow bug that only fails in production.
-- `Rc`/`Arc` cycles **leak** (covered below) because reference counting can't collect cycles.
-
-## Use Cases
-
-- **Parsers and zero-copy data structures** lean on lifetimes to hold references into a source buffer without copying it.
-- **Tree and graph structures** use `Rc`/`Arc` + `RefCell`/`Mutex` + `Weak`.
-- **Recursive enums** (linked lists, ASTs) require `Box` to have a finite, known size.
-- **Concurrent shared state** uses `Arc<Mutex<T>>` as the default building block.
-
 ## Best Practices
 
 - **Don't add lifetime annotations until the compiler asks.** Let elision work; reach for `'a` only when you get a "missing lifetime specifier" error, and read it as "tell me which input the output borrows from."
@@ -210,6 +159,26 @@ let _a = cell.borrow_mut();
 - **Self-referential structs.** A struct that holds a reference into *its own* field cannot be expressed with normal lifetimes (if it moves, the reference dangles). This is a real wall — the senior/professional pages cover `Pin` and why linked lists are hard.
 - **`Cell` vs `RefCell`.** `Cell<T>` gives interior mutability by *replacing* the whole value (`get`/`set`, `T: Copy`), with no runtime borrow tracking and no panic risk; `RefCell<T>` hands out references and tracks borrows at runtime. Use `Cell` for small `Copy` values, `RefCell` when you need a reference to the inner data.
 
-## Summary
+---
 
-The borrow checker proves, at compile time, that no reference outlives its referent and that aliasing XOR mutability holds everywhere. **Lifetimes** are the regions it reasons about; **elision** and **NLL** make most code annotation-free and accept far more correct programs than a naive scope-based rule would. When the static rules are too strict for a legitimate design, the standard library provides escape hatches with explicit costs: `Box` for heap single ownership, `Rc`/`Arc` for shared ownership (with `Weak` to break cycles), and `RefCell`/`Cell`/`Mutex` for interior mutability that moves the aliasing check to runtime. Knowing *which* tool to reach for — and what each one costs — is the core skill of an intermediate Rust engineer.
+## Apply it
+
+1. Find a real component where **Ownership & Borrowing** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
+
+## Verify your work
+
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
+
+## Review questions
+
+- Which boundary is most affected by Ownership & Borrowing?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

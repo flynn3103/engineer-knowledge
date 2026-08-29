@@ -1,58 +1,11 @@
-# Memory-Safety Mechanisms — Professional Level
+# Memory-Safety Mechanisms — Professional
 
-> **Topic:** Memory-Safety Mechanisms
-> **Focus:** Hardware-enforced memory safety (ARM MTE memory tagging, CHERI capabilities, fat pointers), the economics of spatial vs temporal protection at silicon scale, bounds-check elimination by optimizers, and the industry-wide migration to memory-safe languages — the data, the strategy, and how to lead it.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Memory-Safety Mechanisms** with measurable outcomes and limited coordination?
 
-## Introduction
-
-> Focus: **When you have *billions* of lines of C/C++ you can't rewrite, and software discipline plus sanitizers still leak ~70% of severe CVEs, what do you do?** The professional answer has two prongs: **move the enforcement into the hardware** (MTE, CHERI) and **migrate to memory-safe languages where you can** — and lead both with evidence.
-
-By this level you understand the bug taxonomy, the detection/mitigation tooling, and the language designs. The remaining problem is *scale and economics*. Sanitizers are too slow for production. Hardened allocators only raise exploit cost. Rust rewrites are expensive and can't touch the entire existing C/C++ estate at once. The two frontiers that change the cost curve are:
-
-1. **Hardware-enforced safety.** If the *silicon* checks every memory access against a tag or a capability, you get safety (or near-safety) at production-affordable cost, *without recompiling to a new language*. Two designs lead: **ARM MTE** (Memory Tagging Extension — a probabilistic, low-overhead lock-and-key on every allocation, shipping in production phones) and **CHERI** (capabilities — fat pointers carrying hardware-enforced bounds and permissions, deterministic spatial+temporal safety, in research/early-product silicon like Arm Morello).
-
-2. **The industry migration.** Backed by hard data — **Microsoft's ~70%**, **Chromium's ~70%**, and Google's finding that **the vast majority of memory bugs are in *new or recently-modified* code** — the strategy that actually moves the needle is *"safe by default for new code"*: stop adding C/C++ where you can, write new code in Rust/safe languages, and watch the memory-bug rate fall. **Android did exactly this and saw memory-safety vulnerabilities drop from ~76% of total (2019) toward ~24% (2024)** as the fraction of new memory-safe code rose — with essentially *zero* memory-safety CVEs in the new Rust code.
-
-> 🎓 **Why this matters at professional level:** You are now the person who sets the org's memory-safety strategy: which mitigations to enable in the production toolchain, whether to adopt MTE, how to phase a Rust migration, how to argue the ROI to leadership, and how to measure success. This requires understanding the *mechanisms* well enough to know their guarantees and costs, and the *data* well enough to make the economic case. This page is that toolkit.
-
-This page covers MTE and CHERI in mechanism detail, fat pointers, the deep reason temporal safety resists cheap hardware enforcement, bounds-check elimination, and the migration playbook with its evidence base. It is the capstone of the topic's mechanisms; `interview.md` and `tasks.md` exercise all four tiers.
-
----
-
-## Prerequisites
-
-- **Required (senior level):** Rust ownership/borrowing, managed-runtime GC safety and its leaks (Unsafe/cgo/data races), ARC.
-- **Required (middle level):** shadow memory, redzones, quarantine, guard pages, hardened allocators, spatial-cheap/temporal-expensive.
-- **Helpful:** virtual memory, MMU, TLB, cache lines, pointer representation (64-bit pointers don't use all 64 bits — top-byte-ignore).
-- **Helpful:** familiarity with security-mitigation history (ASLR, DEP/NX, stack canaries, CFI) and the attacker-defender cost dynamic.
-- **Helpful:** experience leading a migration or toolchain rollout across a large codebase.
-
-You do **not** need: microarchitecture/silicon design depth; this is the systems-software view of hardware features.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **MTE (Memory Tagging Extension)** | ARMv8.5+ feature: every 16-byte memory granule and every pointer carry a 4-bit *tag*; a mismatch on access faults. Probabilistic lock-and-key. |
-| **Memory tagging / lock-and-key** | Tag the allocation (lock) and the pointer (key); the hardware checks key==lock on every access. Catches OOB and UAF when tags differ. |
-| **Granule** | The unit of tagged memory in MTE: 16 bytes share one tag. |
-| **Top-Byte-Ignore (TBI)** | ARM feature where the top byte of a 64-bit pointer is ignored for addressing — MTE stores its 4-bit key there. |
-| **CHERI** | Capability Hardware Enhanced RISC Instructions: pointers become unforgeable 128-bit **capabilities** carrying base, length, permissions, and a validity tag. |
-| **Capability** | A hardware-protected fat pointer: address + bounds + permissions + a 1-bit *validity tag* (kept out-of-band) that the CPU checks; can't be forged or widened. |
-| **Provenance** | The lineage of a pointer/capability — where its authority came from. CHERI enforces that you can only *narrow* authority, never invent it. |
-| **Fat pointer** | A pointer that carries bounds (base+length) alongside the address, enabling per-access spatial checks. CHERI capabilities are hardware fat pointers. |
-| **Monotonic non-increase of authority** | CHERI rule: derived capabilities can only have ≤ the authority of their parent — you can shrink bounds/permissions, never grow them. |
-| **Bounds-check elimination (BCE)** | Compiler optimization that removes a bounds check when it can prove the index is always in range. |
-| **ASLR / DEP(NX) / CFI** | Classic exploit mitigations: randomize layout / make data non-executable / restrict indirect branches. Probabilistic or partial; not memory safety. |
-| **Memory-safe language (MSL)** | A language that guarantees memory safety by default (Rust, Go, Java, C#, Swift, Python, JS, …). |
-| **"Safe by default for new code"** | The migration strategy: write new/changed code in MSLs while leaving stable old code in place, since bugs concentrate in new code. |
-| **Vulnerability density** | Memory-safety bugs per unit of code per unit of age — empirically highest in new/recently-changed code. |
-| **Sync-tag / async-tag mode** | MTE checking modes: synchronous (precise fault at the access, higher cost) vs asynchronous (cheaper, imprecise — fault reported later). |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -145,32 +98,6 @@ Communicating this distinction — "we have many mitigations, but the only thing
 
 ---
 
-## Real-World Analogies
-
-- **MTE = colored wristbands at a festival.** Each zone (allocation) is one of 16 colors; your wristband (pointer) must match the zone you enter. Wander into the wrong zone and security stops you — *unless* you happen to be wearing that zone's color (1/16). Cheap to run at the gate, catches most gate-crashers, not foolproof.
-
-- **CHERI capability = a tamper-proof access pass with the exact rooms printed on it.** Your pass literally encodes "rooms 100–110, read-only," hardware-verified, and you physically cannot edit it to add rooms (unforgeable, narrow-only). Walk one door too far and the reader denies you — deterministically, every time.
-
-- **Temporal safety = the hard part of badge revocation.** Issuing a correct badge (spatial) is easy. Making *absolutely sure* every copy of an old badge stops working the instant an employee leaves (temporal) requires sweeping the whole building to collect them (CHERI revocation) — the expensive part, in any building.
-
-- **"Safe by default for new code" = stop digging.** You're in a hole (legacy C). You don't have to fill the whole hole tomorrow — but *stop digging it deeper*. New code in safe languages stops adding to the problem, and that alone bends the curve, because most new bugs are in new dirt.
-
-- **Mitigation vs safety = a better lock vs no door.** A pick-resistant lock (ASLR/canary/MTE) slows burglars but can be picked. A wall where the door used to be (memory-safe language) can't be picked because there's no door. Mitigations buy time; safety removes the opening.
-
----
-
-## Mental Models
-
-**Model 1: Hardware safety moves the check from instrumentation to silicon.** Sanitizers pay ~2× because *software* checks shadow memory. MTE/CHERI make the *CPU* do the tag/bounds check as part of the load/store pipeline — single-digit-% or moderate cost. Same idea (check every access), radically cheaper enforcer. That cost collapse is what makes production safety feasible.
-
-**Model 2: Probabilistic vs deterministic is the central hardware trade.** MTE (probabilistic, cheap, shipping) and CHERI (deterministic, costlier, emerging) are two points on one curve. Choose by threat model and timeline: MTE *now* to bend the curve; CHERI as the eventual deterministic floor.
-
-**Model 3: Strategy follows the bug-age data.** Because bugs concentrate in *new* code, "new code must be safe" captures most of the benefit for a fraction of the cost of a full rewrite. Lead with this; it's the difference between an affordable plan and an impossible one.
-
-**Model 4: Two prongs, not one.** No single lever solves an industry-scale C/C++ estate. You *simultaneously* harden legacy (mitigations + MTE) and prevent new bugs (MSLs), and you *measure the trend* to prove it's working. Anyone selling a single silver bullet (just Rust / just MTE / just sanitizers) is wrong.
-
----
-
 ## Code Examples
 
 > Conceptual/defensive. These illustrate *mechanisms and tooling*, not exploits.
@@ -235,34 +162,6 @@ METRIC dashboards:
   - memory-safety CVE fraction over time     (target: down)
   - bug density by code age                  (validates "new code" hypothesis)
 ```
-
----
-
-## Pros & Cons
-
-**Hardware safety (MTE / CHERI):**
-
-- ✅ Production-affordable enforcement of safety *without a language rewrite* — protects the existing C/C++ estate.
-- ✅ MTE gives *temporal* protection cheaply (the historically hard part) and ships today; CHERI gives *deterministic* spatial safety.
-- ❌ MTE is probabilistic (1/16 miss); CHERI isn't mainstream yet and roughly doubles pointer size.
-- ❌ Both need toolchain/OS/allocator support and ARM-class (or CHERI) hardware.
-
-**Migration to memory-safe languages:**
-
-- ✅ Removes whole bug classes from *new* code, where most bugs are born; proven to bend the CVE curve (Android).
-- ✅ Incremental and risk-ranked — no big-bang rewrite required.
-- ❌ FFI boundary becomes the new attack surface; interop is subtle.
-- ❌ Rewriting hot legacy is costly; org-wide language adoption needs investment in skills and tooling.
-
----
-
-## Use Cases
-
-- **Mobile/consumer fleets on modern ARM** → enable MTE in production (async) and testing (sync); single biggest cheap win for legacy native code today.
-- **Security-critical legacy C/C++ you must keep** → harden (`_FORTIFY_SOURCE`, hardened allocator, CFI, MTE) *and* rewrite the highest-exposure components in Rust.
-- **Greenfield systems software** → start in Rust (or an MSL); you skip the migration entirely.
-- **Research / future-proofing / highest-assurance** → track and pilot CHERI/Morello for deterministic safety on legacy semantics.
-- **Org strategy / leadership** → adopt CISA/NSA "memory-safe roadmap" framing; instrument the metrics that prove progress.
 
 ---
 
@@ -332,140 +231,24 @@ GOVERNANCE:
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. Explain MTE's lock-and-key mechanism and how it catches *both* OOB and use-after-free. Why is it probabilistic?
-2. What three rules does a CHERI capability enforce in hardware, and how do they give deterministic spatial safety?
-3. Why does temporal safety remain the expensive part even in hardware (for both MTE and CHERI)?
-4. Contrast MTE and CHERI across guarantee, cost, pointer size, and deployment status.
-5. What does bounds-check elimination do, and why is "safe languages are slow because of bounds checks" largely false today?
-6. State the bug-age finding and how it justifies "safe by default for new code."
-7. Cite the Android migration numbers and what they demonstrate about strategy.
-8. Articulate the difference between an exploit *mitigation* and *memory safety*, with examples.
+1. Define the user or business outcome that **Memory-Safety Mechanisms** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
----
+## Verify your work
 
-## Cheat Sheet
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
 
-```text
-HARDWARE SAFETY
-  MTE   : 16B granule + 4-bit tag (lock) vs pointer tag (key); retag on free
-          -> catches OOB + UAF, PROBABILISTIC (1/16 miss), ~single-digit % cost
-          -> SHIPS TODAY (ARMv8.5+, Pixel 8+); async(prod)/sync(debug) modes
-  CHERI : 128-bit capability = addr + bounds + perms + validity tag
-          -> DETERMINISTIC spatial; unforgeable; authority only narrows
-          -> temporal needs revocation sweep; ~2x pointer size; Morello (early)
+## Review questions
 
-  spatial = local/cheap (tags, bounds)   temporal = global/costly (retag, revoke)
-
-BOUNDS-CHECK ELIMINATION
-  compiler proves index in range -> removes check; "safe = slow" mostly obsolete
-  real cost of safety today = GC pauses/footprint + Rust authoring, not BCE
-
-MIGRATION (the DATA)
-  ~70% severe CVEs = memory safety (Microsoft, Chromium)
-  bugs concentrate in NEW/recent code -> "safe by default for new code"
-  Android: memory-safety CVEs ~76% (2019) -> ~24% (2024) as new code went safe
-
-PLAYBOOK
-  1. new + high-risk code -> memory-safe language (merge gate)
-  2. harden legacy: _FORTIFY_SOURCE, hardened alloc, canaries, CFI, MTE
-  3. rewrite highest-exposure legacy in Rust; audit the FFI seam
-  4. MEASURE: %MSL new code, CVE fraction, bug density by age
-
-MITIGATION != SAFETY
-  ASLR/DEP/canary/CFI/MTE = harder/probabilistic (bypassable)
-  MSL / CHERI = bug class removed (nothing to bypass)
-```
-
----
-
-## Summary
-
-At industry scale, software discipline and sanitizers don't close the ~70%-of-severe-CVEs memory-safety gap, so the professional answer is two simultaneous prongs. **Hardware enforcement** moves the per-access check into silicon: **ARM MTE** tags every 16-byte granule and every pointer with a 4-bit value and faults on mismatch — catching both out-of-bounds (neighbors get different tags) and use-after-free (regions are re-tagged on free), at production-affordable single-digit-% overhead, but *probabilistically* (1/16 miss). **CHERI** makes pointers into unforgeable 128-bit **capabilities** carrying hardware-checked bounds and permissions that can only narrow — giving *deterministic* spatial safety to recompiled C/C++, with temporal safety via a capability-revocation sweep (possible only because capabilities are findable in memory). The recurring truth holds in hardware too: **spatial safety is local and cheap; temporal safety is global and costly.** Meanwhile **bounds-check elimination** means the classic "safe languages are slow" objection is largely obsolete — optimizers remove the provable checks.
-
-The **migration strategy** is data-driven: because ~70% of severe CVEs are memory-safety bugs and they *concentrate in new/recently-changed code*, "safe by default for new code" captures most of the benefit affordably — exactly what **Android** demonstrated, with its memory-safety CVE fraction falling from **~76% (2019) to ~24% (2024)** as new code shifted to memory-safe languages, *without* rewriting the legacy. The professional leads both prongs at once — harden legacy (mitigations + MTE) and prevent new bugs (memory-safe languages, risk-ranked rewrites, audited FFI) — while keeping the crucial distinction sharp: **exploit mitigations make bugs harder to exploit; memory safety removes the bug class.** And the way you prove it worked is the trend line: memory-safety CVE fraction over time, down and to the right.
-
----
-
-## What You Can Build
-
-- A hardened native build of a sample C service: `_FORTIFY_SOURCE=3`, stack protector, CFI, a hardened allocator, and MTE (where hardware permits), with a before/after on which classes of injected bugs now abort cleanly.
-- A migration dashboard prototype that tracks % of new LOC in memory-safe languages, memory-safety CVE fraction over time, and bug density by code age — the three metrics that make the ROI case.
-- A small Rust component replacing a high-exposure C parser, with a deliberately-narrow, sanitizer-and-Miri-audited FFI boundary, documented as the new critical surface.
-
----
-
-## Further Reading
-
-- *Armv8.5-A Memory Tagging Extension* — Arm white paper. https://developer.arm.com/documentation/108035/latest/
-- *Android — "MTE comes to the Pixel 8"* and the Android memory-safety blog series (the 76%→24% data). https://security.googleblog.com/
-- *CHERI: A Hybrid Capability-System Architecture* — Watson, Neumann, Woodruff et al., University of Cambridge / SRI. https://www.cl.cam.ac.uk/research/security/ctsrd/cheri/
-- *An Introduction to CHERI* — Cambridge technical report (the capability model, provenance, monotonicity).
-- *Cornucopia / CHERIvoke* — efficient temporal safety via capability revocation.
-- *Microsoft — "We need a safer systems programming language"* and the ~70% data. https://msrc.microsoft.com/blog/
-- *CISA/NSA — "The Case for Memory Safe Roadmaps"* and *ONCD — "Back to the Building Blocks: A Path Toward Secure and Measurable Software."*
-- *Google Security — "Eliminating Memory Safety Vulnerabilities at the Source"* (the new-code / bug-age strategy).
-
----
-
-## Related Topics
-
-This is the professional capstone of Memory-Safety Mechanisms; it builds on `junior.md` (the bug taxonomy and the ~70% statistic), `middle.md` (sanitizers, hardened allocators, guard pages), and `senior.md` (Rust/managed/ARC language designs). The `interview.md` file drills hardware mechanisms, the migration data, and the mitigation-vs-safety distinction; `tasks.md` provides hands-on reasoning exercises across all tiers. Adjacent roadmap areas — exploit mitigations and CPU security (ASLR/DEP/CFI, speculative-execution side channels), the compilation pipeline and undefined behavior, garbage-collection internals, and FFI/interop — are covered in their own folders within language-internals and security.
-
----
-
-## Diagrams & Visual Aids
-
-### MTE: Lock-and-Key Tagging
-
-```text
-  ALLOC A (tag 5)        ALLOC B (tag 9)
-  ┌────────────────┐    ┌────────────────┐
-  │ granules: 5 5 5│    │ granules: 9 9 9│   <- tag memory ("locks")
-  └────────────────┘    └────────────────┘
-   ptr_A carries key=5    ptr_B carries key=9
-   overflow A->B: load via ptr_A(key 5) hits granule(tag 9) -> MISMATCH -> fault
-   free(A) re-tags A's granules to 12; old ptr_A(key 5) now mismatches -> UAF caught
-   (1/16 chance the new tag collides with the key -> missed: PROBABILISTIC)
-```
-
-### CHERI Capability (hardware fat pointer)
-
-```text
-  128-bit capability  +  1 out-of-band validity tag (in tagged memory)
-  ┌───────────────────────────────────────────────────────┐ ┌───┐
-  │  address  │  base  │  length  │  permissions (r/w/x)   │ │ 1 │ valid?
-  └───────────────────────────────────────────────────────┘ └───┘
-  RULES (hardware-enforced):
-    deref outside [base, base+length) -> FAULT  (deterministic spatial safety)
-    integer-forge a capability         -> validity tag cleared (unforgeable)
-    derive child                       -> authority only <= parent (narrow-only)
-```
-
-### Spatial vs Temporal Cost — Software to Silicon
-
-```text
-                 SPATIAL (local, cheap)        TEMPORAL (global, costly)
-  software       bounds check (BCE-elided)     GC / quarantine
-  hardware       MTE neighbor tags             MTE retag (1/16 gap) /
-                 CHERI per-ptr bounds (det.)   CHERI revocation sweep
-  ───────────────────────────────────────────────────────────────────
-  pattern: heavy machinery ALWAYS buys temporal safety; spatial is cheap everywhere
-```
-
-### The Two-Prong Strategy
-
-```text
-   LEGACY C/C++ ESTATE                      NEW CODE
-   (can't rewrite all)                      (where bugs are born)
-   ──────────────────                       ────────────────────
-   harden in place:                         safe by default:
-   _FORTIFY_SOURCE, canaries,               Rust / Go / Java / Swift...
-   hardened alloc, CFI, MTE                 risk-ranked rewrites of hot legacy
-        │                                          │
-        └──────────────┬───────────────────────────┘
-                       ▼
-              MEASURE the trend:
-        memory-safety CVE fraction ↓  (Android: 76% -> 24%)
-```
+- Which measurable outcome justifies investing in Memory-Safety Mechanisms?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

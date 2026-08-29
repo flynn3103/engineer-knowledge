@@ -1,57 +1,11 @@
-# Bytecode & Virtual Machines — Professional Level
+# Bytecode & Virtual Machines — Professional
 
-> **Topic:** Bytecode & Virtual Machines
-> **Focus:** Designing a production bytecode, WebAssembly as a modern deliberate design, BEAM/CPython case studies, format evolution, and the security of running untrusted bytecode at scale.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Bytecode & Virtual Machines** with measurable outcomes and limited coordination?
 
-## Introduction
-
-> Focus: **Engineering decisions when you own the bytecode — opcode budget, stack effects, format evolution, deopt, and the safety guarantees that let you run code you didn't write.**
-
-By this level the mechanics are known: stack vs register, dispatch, verification, linking, JIT handoff. The professional question is *design and operation*: if you were responsible for a language runtime, a plugin sandbox, a smart-contract VM, or an embedded scripting engine, **how would you design and evolve the bytecode, and how would you safely run untrusted code on it at scale?**
-
-This page covers five things:
-
-1. **Designing your own bytecode** — the opcode budget (you have 256 single-byte slots; spend them well), stack-effect discipline, encoding regularity, and how to leave room to grow.
-2. **WebAssembly as a master class** — a bytecode designed *from scratch* in the 2010s with explicit goals (fast validation, fast JIT, safe sandboxing, language-neutral, compact). Studying *why* it's shaped the way it is teaches every design lesson at once.
-3. **Case studies** — the BEAM (concurrency and fault-tolerance as VM design constraints) and CPython internals (a dynamically-typed stack VM, its `.pyc` caching, and its slow march toward specialization and a JIT).
-4. **Format evolution** — bytecode outlives hardware and language versions. How do you version, migrate, and maintain compatibility for decades? (Why JVM bytecode from 1997 still runs.)
-5. **Security at scale** — running *untrusted* bytecode (blockchain contracts, edge functions, browser code, plugin marketplaces): the threat model, the guarantees you need, gas/fuel metering, and where it goes wrong.
-
-In one sentence: **this page is the architect's view — owning a bytecode as a long-lived, safe, evolvable platform.**
-
-> 🎓 **Why this matters at this level:** Plenty of senior engineers will, at some point, design a small VM — for a rules engine, a query/expression evaluator, a game-scripting layer, an edge-compute sandbox, or a smart-contract platform. The difference between a toy that paints you into a corner and a format that survives ten years of growth is the set of decisions on this page. And running untrusted code is now mainstream (Wasm at the edge, plugins everywhere), so the security model is no longer academic.
-
----
-
-## Prerequisites
-
-- **Required:** `junior.md`, `middle.md`, `senior.md` — the full mechanics, including dispatch, verification, lazy linking, and the JIT handoff.
-- **Required:** Experience reading at least one real bytecode (JVM, CPython, or Wasm) and a mental model of how a runtime starts, links, and executes.
-- **Helpful:** Exposure to sandboxing/threat-modeling, capability-based security, and resource metering.
-- **Helpful:** Familiarity with how compilers and runtimes are versioned and shipped (the operational reality of a platform).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Opcode budget** | The fixed number of distinct opcodes a single-byte opcode field allows (256). A scarce design resource. |
-| **Prefix / multi-byte opcode** | An escape mechanism (e.g. a reserved byte that means "the *real* opcode follows") to extend past 256. |
-| **Stack-effect signature** | The (pops, pushes) contract of an opcode; the verifier and codegen depend on it being fixed. |
-| **Linear memory** | Wasm's flat, byte-addressable, bounds-checked sandboxed memory — a resizable `ArrayBuffer`, the only memory a module can touch. |
-| **Capability-based safety** | A module can do *only* what it's explicitly given (imported functions, a memory, a table) — no ambient authority. |
-| **Trap** | Wasm's safe runtime failure (out-of-bounds, division by zero): aborts cleanly without corrupting the host. |
-| **Fuel / gas metering** | Counting executed operations to bound CPU; used to make untrusted code interruptible and billable (EVM gas, BEAM reductions, Wasm fuel). |
-| **Reduction** | The BEAM's unit of work; each process runs ~2000 reductions then is preempted — the basis of fair, soft-real-time scheduling. |
-| **Deoptimization (deopt)** | Reverting from specialized/compiled code back to a safe generic form when a speculative assumption fails. |
-| **AOT vs JIT vs interpret** | Compile bytecode ahead of time, at runtime, or just execute it. Most platforms mix these. |
-| **Bytecode evolution** | Versioning the format so new producers and old/new consumers stay compatible over years. |
-| **Code cache / `.pyc` / Wasm cache** | Persisted compiled artifacts to avoid recompiling on every start. |
-| **Hostcall / import** | A function the VM exposes to the bytecode (syscall analog) — the controlled boundary to the outside world. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -134,34 +88,6 @@ The takeaway: **safe execution of untrusted bytecode = isolation (verified) + co
 
 ---
 
-## Real-World Analogies
-
-**1. Opcode budget = a 256-character keyboard.** You have 256 keys. Put the letters you type constantly under your fingers (1-byte hot opcodes); banish rare symbols to a chord/shift layer (multi-byte prefix). Waste the home row on rarely-used keys and you'll regret it for the life of the keyboard.
-
-**2. Wasm's capability model = a hotel keycard.** Your card opens *only* your room and the gym — nothing else in the building. The room (linear memory) is yours to trash, but you can't reach the lobby safe or other rooms. The hotel (host) decides exactly which doors your card encodes (imports).
-
-**3. Gas/fuel metering = a taxi meter.** Memory safety is the driver not stealing your wallet; metering is the meter that stops the ride when the fare (your budget) runs out. Without it, an "honest" but runaway trip bills you forever.
-
-**4. Bytecode evolution = building codes that grandfather old buildings.** New code adds requirements for new construction; existing buildings keep their certificate of occupancy. You never retroactively make 1997's bricks illegal — you only add rules for new floors. (`invokedynamic` = a deliberately empty conduit you can run new wiring through later.)
-
-**5. BEAM reductions = a teacher calling on students in turn.** No matter how much one student wants to keep talking, after a fixed number of words the teacher moves on — so 10,000 students each get a fair turn and one loudmouth can't monopolize the room.
-
----
-
-## Mental Models
-
-**Model 1: Bytecode is a *platform contract*, not an implementation detail.** Once external producers target it (other compilers, other teams, the public), it's an API you must version and keep promises about. Treat it with the seriousness of a public API.
-
-**Model 2: Non-functional requirements drive the design.** "Validate before download finishes" produced structured control flow. "Fair scheduling of millions of processes" produced reductions. "Identical across nodes" produced determinism constraints. Start from the *required properties*, then derive the format — that's how Wasm and the BEAM were designed.
-
-**Model 3: Safety = isolation + confinement + metering.** Three independent legs. Memory safety alone (isolation) lets untrusted code still DoS you; you need confinement (capabilities) *and* metering (gas/fuel) to be production-safe. Many homegrown "sandboxes" implement one and ship.
-
-**Model 4: Stability is a promise you pick, not a default you discover.** JVM = "old bytecode runs forever" (additive, never remove). CPython = "we'll change bytecode every minor release." Both are fine; an *accidental* policy is the bug.
-
-**Model 5: The validator is the trust boundary; keep it small.** Every line of validator/verifier is attack surface. Wasm's by-design simplicity isn't elegance for its own sake — it shrinks the boundary you must defend.
-
----
-
 ## Code Examples
 
 ### Example 1: Spending an opcode budget (a design sketch)
@@ -229,44 +155,6 @@ print(importlib.util.MAGIC_NUMBER.hex())  # bytes identifying THIS interpreter's
 # a 3.12 interpreter sees a mismatch and RECOMPILES from source instead of
 # loading incompatible bytecode. The version key is the safety interlock.
 ```
-
----
-
-## Pros & Cons
-
-**Owning your own bytecode**
-
-| Pros | Cons |
-|------|------|
-| Full control: design for your JIT, your safety model, your language | You now maintain a *platform contract* forever |
-| Can meter, sandbox, and evolve on your terms | Verifier/validator is security-critical surface you must defend |
-| Portable artifact across your targets | Tooling (disassembler, debugger, profiler) is on you |
-
-**Targeting an existing bytecode (JVM/Wasm/CLR) instead**
-
-| Pros | Cons |
-|------|------|
-| Free world-class JIT, GC, verifier, tooling, ecosystem | You inherit the host's object model and constraints |
-| Instant portability and a security model that's been hardened | Impedance mismatch if your semantics differ (e.g. tail calls on JVM) |
-| No format to maintain | Less control over low-level performance |
-
-**Running untrusted bytecode**
-
-| Pros | Cons |
-|------|------|
-| Extensibility: plugins, edge functions, contracts, user logic | Must get isolation + confinement + metering all right |
-| Strong, checkable guarantees (vs. native code) | Validator bugs = sandbox escapes; metering bugs = DoS |
-| Language-neutral extension surface | Determinism/perf trade-offs (esp. for consensus VMs) |
-
----
-
-## Use Cases
-
-- **Designing a small VM:** rules/expression engines, query evaluators, game scripting (Lua-like), feature-flag/condition languages, ETL transforms — anywhere you need safe, embeddable, evolvable user logic.
-- **WebAssembly:** browser compute, **edge/serverless** (Fastly, Cloudflare Workers, Fermyon), plugin systems (Envoy, Shopify Functions, Figma plugins), and as a *universal sandbox* via WASI.
-- **BEAM:** telecom, messaging (WhatsApp), and any system whose primary requirements are massive concurrency, fault isolation, and uptime.
-- **Smart-contract VMs (EVM, others):** deterministic, gas-metered execution of fully untrusted code across thousands of mutually-distrusting nodes — the most adversarial bytecode environment that exists.
-- **Embedding an existing VM** (JVM, V8, Wasm runtime) inside your product to run user extensions safely, instead of rolling your own.
 
 ---
 
@@ -348,67 +236,24 @@ Generic opcode → observe → quicken to a guarded specialized opcode → on gu
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. You have a single-byte opcode field. List three concrete strategies for not running out of opcodes, and what each costs.
-2. Pick three WebAssembly design decisions and trace each back to the non-functional requirement that motivated it.
-3. What are the three independent legs of safely running untrusted bytecode? Give a failure mode for omitting each.
-4. Why won't a 3.11 `.pyc` load in 3.12, and why did CPython choose *not* to keep bytecode stable across minor versions?
-5. What problem does `invokedynamic` solve, and how does it enable additive evolution?
-6. What is a "reduction" in the BEAM, and what system property does reduction-counting deliver?
-7. A consensus (blockchain) VM has an extra constraint ordinary VMs don't. Name it and give two opcode-level consequences.
-8. Why is the verifier/validator described as "the crown jewel," and what design choice does Wasm make to shrink it?
-9. When should you target an existing VM (JVM/Wasm/V8) instead of designing your own bytecode?
+1. Define the user or business outcome that **Bytecode & Virtual Machines** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
----
+## Verify your work
 
-## Cheat Sheet
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
 
-```
-DESIGNING BYTECODE
-  opcode budget = 256/byte → hot ops = 1 byte; rare behind PREFIX; RESERVE headroom
-  stack effect = fixed (pops,pushes) contract; verifier + max_stack depend on it
-  fixed-width (JIT/decode-friendly) vs variable-width (dense)
-  typed (static src) vs untyped+specialize (dynamic src)
-  ALWAYS: magic number + explicit version; deopt-safe generic form of specializable ops
+## Review questions
 
-WASM (design-by-requirements)
-  validate-before-download → structured control flow + explicit types → linear, total, 1-pass
-  sandbox → linear memory (bounds-checked), capabilities (imports only), TRAPS not UB
-  language-neutral, compact (LEB128, sections)
-
-CASE STUDIES
-  BEAM   register VM; REDUCTIONS → fair preemptive scheduling; no shared mem; hot reload
-  CPython untyped stack VM; .pyc cache (version+hash); adaptive specialize (PEP659)→JIT
-
-EVOLUTION  additive only (never remove/repurpose opcodes); unknown sections SKIPPABLE
-  JVM = "old bytecode runs forever" (invokedynamic = open-ended hook)
-  CPython = "bytecode changes each minor release" — both valid, pick on purpose
-
-UNTRUSTED CODE = ISOLATION (verified) + CONFINEMENT (capabilities) + METERING (gas/fuel/reductions)
-  + DETERMINISM for consensus VMs (no clock/float surprises/iteration-order leaks)
-  validator = trust boundary → keep small, fuzz forever
-```
-
----
-
-## Summary
-
-- **Designing your own bytecode** is a long-term platform commitment: budget your 256 opcodes by frequency with a reserved escape prefix, fix and document every opcode's stack effect, choose fixed vs variable width and typed vs untyped *on purpose*, and design for profiling/deopt and an explicit version + magic number from day one.
-- **WebAssembly** is the modern master class: structured control flow and explicit types make validation linear/total/single-pass; linear memory + capabilities + traps make it safe for untrusted code; it's language-neutral and compact — every choice traceable to a stated requirement.
-- **The BEAM** (reductions → fair preemptive scheduling, isolation, hot reload) and **CPython** (untyped stack VM, `.pyc` caching, adaptive specialization → JIT) show how requirements at opposite ends of the design space produce very different bytecode/VMs.
-- **Bytecode outlives hardware and language versions.** Decide a stability promise (JVM's "forever" vs CPython's "every release"), evolve *additively*, make unknown data skippable, and use open-ended hooks like `invokedynamic`.
-- **Running untrusted bytecode safely** needs three legs — **isolation** (verified memory safety), **confinement** (capabilities, no ambient authority), and **metering** (gas/fuel/reductions to bound CPU/memory) — plus **determinism** for consensus VMs, with the **validator as the crown-jewel trust boundary** to keep small and fuzz relentlessly.
-
-This is the full arc of the topic: from "what is a `.pyc`" to "how would I design and safely operate a long-lived bytecode platform." The natural next step is the JIT-compilation topic, which consumes the bytecode this page taught you to design.
-
----
-
-## Further Reading
-
-- Haas et al., "Bringing the Web up to Speed with WebAssembly" (PLDI 2017) — the design rationale paper; read it for the requirements-driven method.
-- *The Java Virtual Machine Specification* — the class-file evolution story and `invokedynamic` (JSR-292).
-- "The BEAM Book" (open source) — reductions, scheduling, and the BEAM instruction set.
-- PEP 659 and the CPython 3.13 JIT (copy-and-patch) write-ups for the dynamic-VM specialization arc.
-- The Ethereum Yellow Paper (EVM) and post-mortems of gas-repricing hard forks — metering and determinism under maximal adversity.
-- *Crafting Interpreters* (Nystrom) — still the best hands-on grounding; everything here builds on the VM it teaches you to write.
+- Which measurable outcome justifies investing in Bytecode & Virtual Machines?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

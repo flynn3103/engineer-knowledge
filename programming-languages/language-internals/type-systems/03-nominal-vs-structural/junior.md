@@ -1,62 +1,11 @@
-# Nominal vs Structural Typing — Junior Level
+# Nominal vs Structural Typing — Junior
 
-> **Topic:** Nominal vs Structural Typing
-> **Focus:** Two ways a compiler decides "does this value fit here?" — by the type's *name*, or by its *shape*. And why Go and TypeScript answer that question completely differently from Java and C#.
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **Nominal vs Structural Typing** in one small example and prove the result?
 
-## Introduction
-
-> Focus: **When you write `x = y` or `f(y)`, how does the compiler decide whether `y` is allowed?** Two whole language families answer this differently.
-
-Every statically typed language has to answer one question over and over: *is this value compatible with the type that's expected here?* When you assign a value to a variable, pass an argument to a function, or return a value from a method, the compiler checks compatibility. There are two fundamentally different ways to decide it.
-
-**Nominal typing** decides by **name and declared relationships**. A value of type `Dog` fits where a `Animal` is expected *only because someone wrote `class Dog extends Animal`* (or `implements`). If two types have exactly the same fields and methods but different names — and no declared `extends`/`implements` link — they are **incompatible**. The name is the identity. Java, C#, C++, Rust, and Swift work this way.
-
-**Structural typing** decides by **shape**. A value fits wherever its *members* (fields, methods) match what's required — regardless of what the type is called or what it declares it inherits from. "If it has a `.Read()` method with the right signature, it *is* a `Reader`." Nobody has to declare the relationship. TypeScript, Go's interfaces, OCaml objects, and Scala's structural types work this way.
-
-In one sentence: **nominal typing trusts the label on the box; structural typing opens the box and checks the contents.**
-
-> 🎓 **Why this matters for a junior:** The first time you write Go, you'll define an interface and a struct that "magically" satisfies it without any keyword linking them — that's structural typing, and it surprises everyone coming from Java. The first time you write TypeScript, you'll pass an object literal that happens to have the right fields and it "just works" — also structural. Knowing which model your language uses tells you what errors to expect, why some refactors are safe, and why a certain class of bug (mixing up two IDs that are both strings) is so easy to write.
-
-This page covers: what "by name" versus "by shape" really means, the canonical Go and TypeScript examples, the famous "I have a string for both `userId` and `productId` and I passed them in the wrong order" bug and how nominal typing prevents it, and the same idea shown across Java, C#, Go, TypeScript, and Rust.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** What a *type* is — `int`, `string`, a class, a struct.
-- **Required:** What an *interface* (or abstract type / trait) is at a basic level: a list of methods a type can promise to provide.
-- **Required:** How to assign a variable and call a function with arguments in at least one language.
-- **Helpful but not required:** Having written a class with `implements`/`extends` in Java or C#.
-- **Helpful but not required:** Having seen a Go interface or a TypeScript interface.
-
-You do **not** need to know:
-
-- The formal subtyping rules or variance (that's `middle.md` and `senior.md`).
-- How the compiler implements the check internally (that's `senior.md` and `professional.md`).
-- Branded types, the newtype pattern, or coherence rules in detail (those build up across the higher tiers).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Type compatibility** | The compiler's yes/no answer to "can a value of type A be used where type B is expected?" |
-| **Nominal typing** | Compatibility decided by the type's **name** and explicitly **declared** relationships (`extends`, `implements`). Same shape + different name + no declaration = incompatible. |
-| **Structural typing** | Compatibility decided by the type's **structure/shape** (its members). Same shape = compatible, regardless of name. |
-| **Shape** | The set of a type's members — field names and types, method names and signatures — that a structural check compares. |
-| **Interface** | A named set of method (and sometimes field) requirements. How a value *satisfies* it differs between nominal and structural languages. |
-| **Implicit interface satisfaction** | Go's rule: a type satisfies an interface just by having the right methods. No `implements` keyword exists. |
-| **Subtype** | A type usable wherever its supertype is expected. Nominal: declared. Structural: shape-implied. |
-| **Duck typing** | The *dynamic* cousin of structural typing: "if it walks like a duck and quacks like a duck, treat it as a duck" — checked at runtime, not compile time. |
-| **Newtype** | A distinct type wrapping an existing one (e.g. `UserId` wrapping `int`) so the compiler treats it as separate even though the representation is identical. |
-| **Branded type** | TypeScript's trick to *fake* nominal typing inside a structural language by adding a fake marker property. |
-| **Retroactive conformance** | A type satisfying an interface that was written *after* the type, without modifying the type. Structural typing gives this for free. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -151,30 +100,6 @@ def make_it_speak(thing):
 ```
 
 If `thing` has `.speak()`, it works; if not, you get a runtime error. This is **duck typing**: compatibility is checked at *runtime* by trying the operation. Structural typing is essentially "duck typing checked at compile time" — same shape-based philosophy, but the compiler verifies it ahead of time so failures are caught before the program runs.
-
----
-
-## Real-World Analogies
-
-**The job application.** *Nominal* hiring: "We only hire people with a diploma from this specific university." You could be the best engineer alive, but without the named credential, you're rejected. *Structural* hiring: "Can you actually do the five tasks in the job description? Show us." The credential's name doesn't matter; your demonstrated abilities (your shape) do.
-
-**Power plugs.** A *structural* world: any plug that physically fits the socket works. A *nominal* world: even if the plug fits perfectly, it only works if it's stamped "Approved Brand X" — the label, not the shape, decides.
-
-**Passports vs. behavior.** Nominal typing is the border guard checking your *passport* (your declared nationality — a name). Structural typing is checking whether you can *speak the language and follow the customs* (your behavior — your shape). One asks "who are you declared to be?", the other asks "what can you actually do?".
-
-**Twins with different names.** Two physically identical twins. A nominal system treats them as completely different people because their names differ. A structural system can't tell them apart — same shape, same person, as far as it's concerned. The newtype pattern is deliberately *labeling* the twins so you never confuse them.
-
----
-
-## Mental Models
-
-**Model 1 — "Label vs. contents."** Nominal: trust the label on the box; only open boxes whose label says the right word. Structural: ignore the label, open the box, check the contents fit.
-
-**Model 2 — "Opt-in vs. automatic."** Nominal conformance is *opt-in*: a type must explicitly declare `implements X` to count. Structural conformance is *automatic*: the moment your type has the right shape, it counts — whether you intended it or not.
-
-**Model 3 — "Compile-time duck typing."** If you already understand Python's "just call the method" style, structural typing is that same instinct, but the compiler proves the method exists before you run the program.
-
-**Model 4 — "Names as guardrails."** In nominal systems, names are guardrails that stop you from mixing up same-shaped-but-different-meaning values (a `Meters` and a `Seconds` that are both `float64`). In structural systems, those guardrails don't exist by default — you have to build them (newtypes / branded types).
 
 ---
 
@@ -290,38 +215,6 @@ Rust is nominal, so `UserId` and `ModeratorId` are different types even though b
 
 ---
 
-## Pros & Cons
-
-### Nominal typing
-
-| Pros | Cons |
-|------|------|
-| **Intentionality**: you can't accidentally satisfy an interface — conformance is deliberate. | **Boilerplate**: every relationship must be declared (`implements`, `impl ... for`). |
-| **Distinct types for same shapes**: `UserId` vs `OrderId`, `Meters` vs `Seconds` — prevents mix-up bugs. | **No retroactive conformance** (usually): you can't make a type from a library satisfy your interface without wrappers. |
-| **Clearer error messages**: "Robot does not implement Greeter" names the missing contract directly. | **Harder mocking/testing**: a test double must explicitly declare it implements the interface. |
-| **Controlled API evolution**: adding a method to an interface forces implementers to update *explicitly*. | More rigid; small one-off shapes feel heavyweight. |
-
-### Structural typing
-
-| Pros | Cons |
-|------|------|
-| **Flexibility & less boilerplate**: types fit interfaces with no declaration. | **Accidental conformance**: a type can satisfy an interface you never meant it to — silent surprises. |
-| **Retroactive conformance**: a type written before the interface can still satisfy it. | **Same-shape confusion**: two `string` IDs are interchangeable; mix-up bugs slip through. |
-| **Easy mocking**: any object with the right shape works as a test double. | **Murkier errors**: "missing property `greet`" rather than "does not implement Greeter". |
-| **Great for ad-hoc / data-shaped code** (JSON, config). | Refactors that rename/remove a member silently change who conforms. |
-
----
-
-## Use Cases
-
-- **Nominal — domain modeling.** When `EmailAddress`, `UserId`, and `Password` are all "just strings" but must never be confused, distinct named types catch swaps at compile time.
-- **Nominal — controlled libraries.** When you publish an interface and need every implementer to *opt in* explicitly so you can evolve the contract deliberately.
-- **Structural — glue and plumbing.** Go's `io.Reader`/`io.Writer` work because *anything* with a `Read`/`Write` method fits, so files, network sockets, buffers, and your own types all interoperate without coordination.
-- **Structural — working with data shapes.** TypeScript describing the shape of a JSON response: you don't want to declare a class, you just want "an object with these fields."
-- **Structural — testing.** Pass a hand-rolled object with the right methods as a mock; no need to declare conformance.
-
----
-
 ## Coding Patterns
 
 **Pattern: small interfaces (structural).** In Go, define interfaces with one or two methods (`Reader`, `Stringer`). Small shapes are easy to satisfy and maximize the benefit of implicit conformance.
@@ -381,14 +274,24 @@ This trips up beginners constantly. The literal-vs-variable distinction is real.
 
 ---
 
-## Summary
+## Apply it
 
-- **Nominal typing** decides compatibility by **name and declared relationships**. Same shape, different name, no `implements`/`extends` ⇒ incompatible. (Java, C#, C++, Rust, Swift.)
-- **Structural typing** decides by **shape**: have the right members ⇒ compatible, no declaration needed. (TypeScript, Go interfaces, OCaml objects, Scala structural types.)
-- **Go's implicit interface satisfaction** is the canonical structural example: a type satisfies an interface just by having the methods.
-- **Nominal gives intentionality** (no accidental conformance, distinct types for same shapes, clearer errors, controlled evolution). **Structural gives flexibility** (less boilerplate, retroactive conformance, easy mocking).
-- The **newtype pattern** wraps a primitive in a distinct named type so the compiler stops you mixing up same-shaped values like `UserId` and `ProductId`.
-- **Duck typing** is the dynamic, runtime-checked cousin of structural typing.
-- TypeScript can *fake* nominal typing with **branded types**; Rust/Haskell get it naturally because they're nominal.
+1. Choose one small, known input for **Nominal vs Structural Typing**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
-The higher tiers go deeper: the formal subtyping rules, how the compiler implements each check, branded types and the newtype pattern in detail, Rust trait coherence/orphan rules, and how real codebases choose between the two.
+## Verify your work
+
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
+
+## Review questions
+
+- What problem does Nominal vs Structural Typing solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

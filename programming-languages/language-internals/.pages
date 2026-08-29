@@ -1,0 +1,13 @@
+title: Language Internals
+nav:
+  - Overview: README.md
+  - Evaluation and Execution Models: evaluation-and-execution-models
+  - Type Systems: type-systems
+  - Data Representation and Numerics: data-representation-and-numerics
+  - Memory Management: memory-management
+  - Compilers and Interpreters: compilers-and-interpreters
+  - Runtime Systems: runtime-systems
+  - Metaprogramming: metaprogramming
+  - Foreign Functions and Interoperability: foreign-function-interface-and-interop
+  - Language Security Internals: language-security-internals
+  - Choosing a Language: choosing-a-language

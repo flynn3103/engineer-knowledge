@@ -1,64 +1,11 @@
-# Sandboxing & Isolation — Senior Level
+# Sandboxing & Isolation — Senior
 
-> **Topic:** Sandboxing & Isolation
-> **Focus:** The strength-vs-cost spectrum as an engineering decision; escape *classes* (syscall surface, kernel bugs, side channels); the shared-kernel problem; microVMs (Firecracker), userspace kernels (gVisor); the confused-deputy / ambient-authority root cause; and threat modeling the boundary itself.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Sandboxing & Isolation** under failure, load, and change?
 
-## Introduction
-
-> Focus: **Given a threat, which isolation strength do you actually buy, and what can still get out?** A senior doesn't pick a sandbox by habit; they pick it by attack surface, blast radius, and cost.
-
-By now you know the primitives. The senior question is harder and more uncomfortable: **every sandbox can be escaped; you are choosing how hard the escape is and how much you'll pay to make it harder.** "Is it secure?" is the wrong question. The right questions are: *What is the attack surface the guest can reach? What is the blast radius if it escapes? How much performance and operational cost does the next rung of isolation cost, and is the marginal safety worth it for this threat?*
-
-The central tension is the **shared component**. A plain container's guest reaches the host's **shared kernel** through hundreds of syscalls — a vast, monolithic, memory-unsafe C codebase. A single exploitable kernel bug reachable from the container is a full escape, and the kernel is too big to ever be bug-free. This is precisely why "containers are not a security boundary" for hostile multi-tenant workloads: the boundary is the kernel, and the kernel's attack surface is enormous. The industry's answer is to **shrink or move the shared component**:
-
-- **gVisor** interposes a **userspace kernel** (Sentry) that handles most guest syscalls itself, so the guest almost never touches the host kernel directly — it trades performance for a far smaller host-kernel surface.
-- **Firecracker** (and Kata) give each guest its own real kernel inside a **microVM**, separated from the host by hardware virtualization — the boundary becomes the hypervisor (a much smaller, more defensible surface than the kernel) plus the virtual hardware emulation.
-
-Layer onto this the escapes that don't go through *any* of these explicit boundaries — **side channels** (cache timing, Spectre-class speculation) that leak information across an isolation boundary without ever "breaking" it — and you have the full senior picture: defense in depth, because no single wall is sufficient, and threat modeling, because you must know *what you're defending against* to choose well.
-
-> 🎓 **Why this matters at this level:** You will be the person who decides whether anonymous user code runs in a container, a gVisor sandbox, or a Firecracker microVM — a decision with real money and real latency attached, and real breach consequences if you under-isolate. You'll also be the one explaining to leadership why "we use containers, so it's isolated" is not the same as "tenants are securely isolated from each other." Getting the strength-vs-cost call right, and articulating the residual risk honestly, is a senior security responsibility.
-
-This page covers the spectrum as a decision framework, the major **escape classes** conceptually and defensively, the shared-kernel attack surface, gVisor and Firecracker as two opposite answers, the **confused-deputy problem** and **ambient authority** as the root cause that motivates capability security, and how to threat-model the boundary including **TOCTOU** at the boundary. `professional.md` takes this into production architectures (browsers, serverless, operating at scale).
-
----
-
-## Prerequisites
-
-- **Required:** Middle-level command of the OS primitives — seccomp, namespaces, cgroups, capabilities, MAC — and the language sandboxes (V8 isolates, Wasm/WASI).
-- **Required:** A working model of what a kernel, a syscall, a process address space, and virtual memory are.
-- **Required:** Comfort reasoning about "what's inside vs outside the boundary" and least privilege.
-- **Helpful but not required:** Awareness of CPU caches and speculative execution (for side channels), and a rough idea of how a hypervisor virtualizes hardware.
-- **Helpful but not required:** Having operated containers or VMs in production.
-
-You do **not** need to write exploits or hypervisors. The treatment here is conceptual and defensive: we name *classes* of escape to design against them, not to perform them.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Attack surface** | The set of interfaces (syscalls, host functions, emulated devices) the guest can reach and thus potentially exploit. Smaller = safer. |
-| **Trusted Computing Base (TCB)** | The set of components whose correctness the security guarantee depends on. A smaller TCB is easier to defend. |
-| **Blast radius** | How much is compromised if the guest escapes — one tenant, the whole host, the whole fleet. |
-| **Shared kernel** | The single host kernel that all containers on a machine call into; the common boundary and common point of failure. |
-| **Hypervisor / VMM** | Software (with CPU support) that runs guest VMs, mediating their access to real hardware. The boundary for VM-based isolation. |
-| **microVM** | A minimal, fast-booting VM with a stripped-down device model (e.g., Firecracker), used for per-workload hardware isolation. |
-| **gVisor** | A sandbox that runs a **userspace kernel** ("Sentry") intercepting guest syscalls, so the guest rarely touches the host kernel. |
-| **Sentry / Gofer** | gVisor components: Sentry implements the syscall surface in user space; Gofer mediates filesystem access. |
-| **Kata Containers** | Containers backed by lightweight VMs — OCI-compatible packaging with VM-strength isolation. |
-| **Syscall surface** | The portion of the host kernel reachable via permitted syscalls — a primary escape vector for containers. |
-| **Side channel** | An information leak through a shared physical resource (cache, timing, power) rather than through the intended interface. |
-| **Spectre / Meltdown** | Speculative-execution attacks that leak memory across isolation boundaries via microarchitectural side channels. |
-| **Confused deputy** | A privileged component tricked by a less-privileged one into misusing its authority on the latter's behalf. |
-| **Ambient authority** | Power available implicitly by context (e.g., a process's identity) rather than via an explicit, unforgeable token. The root enabler of confused-deputy attacks. |
-| **Capability (security)** | An unforgeable token that *both* designates a resource *and* authorizes access to it — eliminating ambient authority. |
-| **TOCTOU** | Time-Of-Check-To-Time-Of-Use: a gap between validating something and acting on it, during which it can change. |
-| **Defense in depth** | Multiple independent isolation layers, so breaching one does not breach the system. |
-| **Noisy neighbor** | A tenant whose resource use degrades others — an availability side effect of imperfect isolation. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -141,44 +88,6 @@ Because every single wall has a class of escape it doesn't cover — kernel bugs
 
 ---
 
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Shared kernel** | An apartment block where every unit shares one structural wall with the building's core — one breach in that core reaches everyone. |
-| **gVisor (userspace kernel)** | Hiring a private concierge who handles all your requests, so you almost never deal with the building's (vulnerable) front desk directly. |
-| **microVM (Firecracker)** | Giving each tenant a separate prefab house with its own foundation, instead of separate rooms in one building. |
-| **Hypervisor as boundary** | A small, hardened airlock between buildings — far easier to inspect than the whole building's wiring. |
-| **Side channel** | Figuring out what your neighbor is cooking by the smell and the timing of the kitchen fan — you never entered their house. |
-| **Confused deputy** | Tricking the building's locksmith (who can open any door) into opening a door you're not allowed through, by phrasing your request just right. |
-| **Ambient authority** | The locksmith acting on "I'm the locksmith, I can open anything" instead of "show me the specific key-authorization for this door." |
-| **Capability** | A signed work order naming exactly one door — the locksmith acts only on what the order authorizes. |
-| **TOCTOU** | Showing a guard a valid ticket, then swapping it for a forged one in the half-second before they scan it. |
-| **Blast radius** | Whether a fire is contained to one prefab house or spreads through a shared attic to the whole block. |
-| **Defense in depth** | A vault behind a guarded door behind a fenced perimeter, monitored by cameras — no single failure is fatal. |
-
----
-
-## Mental Models
-
-### The "What's the Residual TCB?" Model
-
-For any sandbox, ask: **whose correctness am I betting on?** For a container, it's the entire host kernel reachable via allowed syscalls — huge, memory-unsafe. For gVisor, it's the Sentry (memory-safe, smaller) plus a tiny host-kernel filter. For Firecracker, it's the hypervisor plus a minimal device model. For an in-process isolate, it's the whole engine. The sandbox you should prefer, for a given cost, is usually the one with the **smallest, most auditable, most memory-safe TCB** reachable by the guest. "Strength" is mostly "smallness and safety of the reachable TCB."
-
-### The "Each Wall Has a Blind Spot" Model
-
-Tag every layer with the escape class it *doesn't* cover. Container: kernel bugs. VM: VMM/device bugs and side channels. In-process: engine memory bugs. Capability broker: still vulnerable to logic bugs. Once you see that **no layer covers all classes**, defense in depth stops being a slogan and becomes arithmetic: stack layers so that the classes one layer misses are caught by another, and accept that side channels need a hardware-level answer.
-
-### The "Authority Should Travel With the Request" Model
-
-The fix for the entire confused-deputy family is one idea: **authority should be carried by the request as an unforgeable token, never inferred from who's holding the request.** Whenever you see a privileged helper acting on a name or path supplied by an untrusted caller "because the helper has permission," you're looking at ambient authority and a latent confused deputy. Replace "the helper can access X, and the caller asked it to" with "the caller presented a capability for exactly X." If you internalize one senior idea from this page, make it this.
-
-### The "Move the Boundary to the Smallest Hostile Interface" Model
-
-Don't ask "how do I make the kernel bug-free" (impossible). Ask "how do I make the guest stop talking to the kernel." That reframing is the whole logic of gVisor (interpose a userspace kernel) and microVMs (give the guest its own kernel so it talks to a small hypervisor instead). The strongest sandboxes don't harden the big shared component — they **interpose a small one** between the guest and the big one.
-
----
-
 ## Code Examples
 
 These are conceptual sketches; the lessons are architectural.
@@ -258,31 +167,6 @@ FIRECRACKER microVM:
 ```
 
 In all three the guest "makes syscalls," but *what those syscalls reach* — and thus the reachable TCB — is radically different.
-
----
-
-## Pros & Cons
-
-| Option | Pros | Cons |
-|--------|------|------|
-| **In-process isolate / Wasm** | Highest density, fastest start; great as an inner layer. | Engine memory bug = escape; shares host address space; weak as sole boundary. |
-| **Plain container** | Cheap, fast, ubiquitous tooling; good resource/deploy boundary. | Shared kernel = huge attack surface; not a strong security boundary for hostile tenants. |
-| **gVisor** | Much smaller host-kernel surface; memory-safe userspace kernel; container-like ergonomics. | Syscall-heavy workloads slow down; compatibility gaps (not every syscall implemented identically). |
-| **microVM (Firecracker/Kata)** | Hardware-enforced boundary; own kernel per guest; small VMM TCB; fast enough for serverless. | Higher per-guest RAM; ~100ms-class boot; extra OS to manage; still shares hardware (side channels). |
-| **Full VM / separate host** | Strongest practical isolation; mature. | Heavy: slow boot, high resource cost, operational weight. |
-| **Capability-based design** | Structurally kills the confused-deputy class; explicit, auditable authority. | Requires designing the system around capabilities; retrofitting ambient-authority systems is hard. |
-| **Side-channel hardening** | Addresses the class other layers ignore. | Costly (disable SMT, dedicate cores/hosts); never fully "solved" on shared hardware. |
-
----
-
-## Use Cases
-
-- **Anonymous code execution platforms** (online IDEs, code-runners, untrusted serverless): microVMs or gVisor, because tenants are mutually distrusting and arbitrary.
-- **High-density multi-tenant edge** with tighter latency budgets: Wasm or V8 isolates as the inner layer, wrapped in OS/VM isolation, with the security argument leaning on Wasm's small TCB.
-- **Per-function hardware isolation at scale**: Firecracker's fast-boot minimal microVMs make one-VM-per-invocation economically viable.
-- **Container compatibility with stronger isolation**: gVisor or Kata when you need OCI images but can't accept the shared-kernel risk.
-- **Secrets/crypto workloads on shared infrastructure**: dedicated cores/hosts and constant-time code, because side channels defeat logical isolation.
-- **Plugin/extension brokers**: capability-passing host interfaces so a hostile plugin can't confuse the host into over-privileged actions.
 
 ---
 
@@ -392,138 +276,24 @@ Logical isolation (even a VM) does not, by itself, close this axis.
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. Explain precisely why "containers are not a security boundary" — name the shared component and why its size matters.
-2. gVisor and Firecracker both isolate untrusted code more strongly than a plain container. Describe how each changes *what the guest's syscalls reach*, and contrast their costs.
-3. Give the five escape *classes* and one distinct defense for each. Which class do microVMs *not* address?
-4. What is the confused-deputy problem, what is its root cause, and how does capability security structurally eliminate it?
-5. Why can two memory-isolated microVMs on the same physical core still leak data to each other? What class is this, and what stops it?
-6. Walk through a TOCTOU escape at a sandbox boundary and the resolve-then-hold fix that prevents it.
-7. You're choosing isolation for "arbitrary code from anonymous users, latency-sensitive." Argue for gVisor vs Firecracker and state the residual risk either way.
-8. Why is "minimize the reachable TCB" a better north star than "make the boundary strong"? Tie it to the gVisor and Firecracker designs.
-9. Data flows *out* of a sandbox and is rendered into an HTML page. What's the senior concern, and where did the vulnerability move?
-10. Explain "the cheapest escape defines your security" and how it argues for defense in depth rather than a single strong wall.
+1. State the system invariant that **Sandboxing & Isolation** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
----
+## Verify your work
 
-## Cheat Sheet
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
 
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│         ISOLATION: STRENGTH vs COST + ESCAPE CLASSES             │
-├──────────────────────────────────────────────────────────────────┤
-│ SPECTRUM (cheap/weak -> costly/strong):                          │
-│   in-process isolate/Wasm -> container -> gVisor ->              │
-│   microVM (Firecracker/Kata) -> full VM / dedicated host         │
-│   Choose the CHEAPEST rung whose residual risk you accept.       │
-├──────────────────────────────────────────────────────────────────┤
-│ SHARED KERNEL = weak boundary (containers):                      │
-│   guest reaches huge memory-unsafe kernel via syscalls.          │
-│   gVisor   -> interpose userspace kernel (shrink host surface)   │
-│   microVM  -> own kernel per guest (move boundary to hypervisor) │
-├──────────────────────────────────────────────────────────────────┤
-│ ESCAPE CLASSES (each needs its own defense):                     │
-│   1. kernel/syscall bug   -> shrink surface / gVisor / microVM   │
-│   2. VMM/device bug       -> minimal device model, sandbox VMM   │
-│   3. misconfig/leaky bndry-> deny-by-default, audit, fail closed │
-│   4. confused deputy      -> CAPABILITIES, not ambient authority │
-│   5. resource DoS         -> cgroups, quotas, per-tenant limits  │
-│   6. SIDE CHANNEL         -> no-SMT-share, partition, dedicated HW│
-│      (NOT closed by VMs alone if hardware is shared)             │
-├──────────────────────────────────────────────────────────────────┤
-│ BOUNDARY DISCIPLINE:                                             │
-│   * smallest reachable TCB wins                                  │
-│   * authority travels WITH the request (capability)             │
-│   * resolve-then-hold (kill TOCTOU); validate the handle         │
-│   * sandbox OUTPUTS are untrusted inputs to the host             │
-│   * defense in depth: the cheapest escape defines your security  │
-└──────────────────────────────────────────────────────────────────┘
-```
+## Review questions
 
----
-
-## Summary
-
-- "Is it secure?" is the wrong question; **"what attack surface, what blast radius, what cost?"** is the senior question. Every sandbox can be escaped — you choose how hard and how costly.
-- The **shared kernel** makes plain containers a weak security boundary for hostile multi-tenancy: the guest reaches a huge, memory-unsafe TCB through syscalls.
-- Two opposite answers shrink the problem: **gVisor** interposes a memory-safe **userspace kernel** (smaller reachable host-kernel surface, syscall-overhead cost); **Firecracker/Kata** give each guest its **own kernel in a microVM** (boundary becomes a small hypervisor + minimal device model, at a boot/RAM cost).
-- Escapes come in **classes** — kernel/syscall bug, VMM/device bug, misconfiguration, confused-deputy logic, resource DoS, and **side channels** — each needing its own defense; no single layer covers all.
-- **Side channels** (cache/timing/Spectre) leak across boundaries without breaking them and are *not* closed by logical isolation alone; they need hardware-level answers (no SMT sharing, partitioning, dedicated hosts, constant-time code).
-- The **confused-deputy problem**, rooted in **ambient authority**, is the structural cause of most logic escapes; **capability security** — unforgeable tokens that name *and* authorize — eliminates the class, which is why the field keeps returning to capabilities.
-- **Threat-model the boundary**: inside vs outside, and the *full* interface (syscalls, imports, mounts, handles, even timing/error/temp-file leakage). Validate outputs as untrusted; **kill TOCTOU** with resolve-then-hold.
-- The operating assumption is **defense in depth**: stack independent layers, minimize the reachable TCB, and remember **the cheapest escape — not the strongest wall — defines your security.**
-
----
-
-## Further Reading
-
-- *gVisor design documentation* — https://gvisor.dev/docs/ — the userspace-kernel architecture (Sentry/Gofer) and its security model.
-- *"Firecracker: Lightweight Virtualization for Serverless Applications"* — Agache et al., NSDI 2020 — the microVM design and its security/density trade-offs.
-- *Kata Containers architecture docs* — VM-isolated, OCI-compatible containers.
-- *"The Confused Deputy"* — Norm Hardy (1988) — the original, short and essential.
-- *"Capability Myths Demolished"* — Miller, Yee, Shapiro — why capabilities solve confused-deputy structurally.
-- *Spectre and Meltdown papers* (Kocher et al.; Lipp et al., 2018) — speculative-execution side channels across boundaries.
-- *"A Systematic Evaluation of Transient Execution Attacks and Defenses"* — Canella et al. — the side-channel landscape.
-- *NCC Group, "Understanding and Hardening Linux Containers"* — the shared-kernel boundary in depth.
-- *Saltzer & Schroeder (1975)* — least privilege, complete mediation, fail-safe defaults — the principles underlying all of this.
-
----
-
-## Diagrams & Visual Aids
-
-### Where the Guest's Syscalls Land (and the Reachable TCB)
-
-```text
-PLAIN CONTAINER
-   guest ─syscall─────────────────────────────►  [ HOST KERNEL ]  ◄── huge,
-                                                    memory-unsafe, shared TCB
-
-gVISOR
-   guest ─syscall─►  [ Sentry: userspace kernel ]  ── tiny filtered set ─►  host kernel
-                       (memory-safe, seccomp'd)              (small reachable surface)
-
-FIRECRACKER microVM
-   guest ─syscall─►  [ guest's OWN kernel ]  ─virtio─►  [ tiny VMM ]  ─►  host
-                       (inside the VM)                   (small device model = small TCB)
-
-   Reachable TCB:  container = whole host kernel  >  gVisor = Sentry + small filter
-                   microVM   = hypervisor + minimal devices  (smallest of the three)
-```
-
-### The Escape-Class Map (each layer's blind spot)
-
-```text
-                 kernel  VMM/    misconfig  confused  resource  side
-                 bug     device  /leak      deputy    DoS       channel
- container        ✗ open  n/a     depends    depends   cgroups   ✗ open
- gVisor           ~small  n/a     depends    depends   cgroups   ✗ open
- microVM          ✓ guest ✗ open  depends    depends   limits    ✗ open
- in-process       n/a     n/a     depends    depends   limits?   ✗ open
- capability design  -      -       -         ✓ closed   -          -
- dedicated HW       -      -       -          -          -        ✓ closed
-
-  ✓ = strongly addressed   ✗ open = a real escape path this layer ignores
-  No row closes every column -> stack layers (defense in depth).
-```
-
-### Confused Deputy → Capability Fix
-
-```text
-AMBIENT AUTHORITY (confusable)              CAPABILITY (not confusable)
-  guest ── "write to PATH" ──► broker         guest ── "write via HANDLE" ──► broker
-                               (acts with                                    (acts only on
-                                ITS OWN power                                 the resource the
-                                on any PATH)                                  HANDLE authorizes)
-  guest names /var/lib/billing ─► CORRUPTED   guest has no handle to billing ─► CANNOT NAME IT
-```
-
-### TOCTOU at the Boundary
-
-```text
-   CHECK ──────────────[ gap: guest swaps target ]──────────────► USE
-   is_inside(path)?  ✓                 (symlink -> /etc/shadow)     open(path) -> ESCAPE
-
-   FIX:  resolve ONCE to a handle ─► validate the HANDLE ─► use the SAME handle
-         (nothing left to swap between check and use)
-```
+- Which invariant must remain true when Sandboxing & Isolation fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

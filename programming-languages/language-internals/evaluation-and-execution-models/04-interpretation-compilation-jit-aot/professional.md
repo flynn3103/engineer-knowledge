@@ -1,54 +1,11 @@
-# Interpretation, Compilation, JIT, AOT — Professional Level
+# Interpretation, Compilation, JIT, AOT — Professional
 
-> **Topic:** Interpretation, Compilation, JIT, AOT
-> **Focus:** Engineering and operating execution models at scale — code-cache and compiler-thread management, deopt-metadata cost, security of runtime codegen, WASM's JIT/AOT story, and choosing/tuning the model as a fleet-level decision.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Interpretation, Compilation, JIT, AOT** with measurable outcomes and limited coordination?
 
-## Introduction
-
-> Focus: **Running these models in production at scale**, where the academic trade-offs become SLOs, dollars, CVEs, and incident postmortems. What knobs exist, what they cost, how the model interacts with containers and autoscaling, and why "the JIT generates executable code at runtime" is a security story, not just a performance one.
-
-A senior can explain deopt, tracing, closed-world AOT, and PGO. A professional *operates* these models across a fleet and is accountable for the consequences:
-
-- The JIT's machinery — compiler threads, the **code cache**, profiling counters, **deopt metadata** — consumes CPU, memory, and address space that you must size and monitor. A full code cache silently degrades a JVM to interpretation; runaway compiler threads steal CPU from request handling; deopt metadata bloats memory. These are operational realities with dashboards and alerts.
-- **Runtime code generation is an attack surface.** A JIT must hold memory that is *writable and executable* (or rapidly toggle W^X), which is exactly what exploit mitigations try to forbid. JIT spraying, type-confusion bugs in speculative optimizers, and the entire history of browser zero-days route through the JIT. AOT eliminates this surface — a real security argument, not just a performance one.
-- **WebAssembly** has made the JIT/AOT distinction a shipping concern in *every browser and edge runtime*: WASM is JIT-compiled (baseline + optimizing, mirroring the JS engine) or AOT-compiled to native (Wasmtime/Wasmer `compile`, edge platforms precompiling modules), with the same startup-vs-peak and the same codegen-security trade-offs you now know — plus near-instant startup as a headline feature.
-- At fleet scale the choice of model is an **economic** one: warmup CPU burned across thousands of cold starts, RSS multiplied by replica count, p99 tail dominated by compilation jitter. The professional computes these, not hand-waves them.
-
-This page is about owning the model in production. It assumes you've internalized the senior material and pushes into operations, security, and cost.
-
----
-
-## Prerequisites
-
-- **Required:** Senior-level command of deopt, method vs tracing JITs, closed-world AOT, R2R, and PGO.
-- **Required:** Operational fluency — you've sized JVM/CLR/Node services, read GC and compilation logs, and owned latency SLOs.
-- **Required:** A working model of virtual memory permissions (W^X, `mprotect`) and why writable+executable memory is dangerous.
-- **Helpful:** Exposure to containerized deployment (cgroup memory/CPU limits) and autoscaling behavior.
-- **Helpful:** Awareness of the WASM execution model in browsers and server runtimes.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Code cache** | The fixed-size memory region a JIT writes generated native code into. Exhaustion → compilation stops → fallback to interpreting. |
-| **Compiler thread** | A background thread that performs JIT compilation off the application's critical path; competes for CPU. |
-| **Compilation jitter** | Latency variance caused by JIT compilation (and deopt) happening concurrently with request handling. |
-| **Deopt metadata footprint** | Memory consumed by the per-compiled-point maps needed to reconstruct interpreter frames on deopt. |
-| **W^X (Write-XOR-Execute)** | A security policy: memory is writable or executable, never both at once. JITs must work around it. |
-| **JIT spraying** | An exploitation technique that coerces a JIT into emitting attacker-chosen byte sequences into executable memory. |
-| **RWX memory** | Memory mapped readable+writable+executable — historically how JITs held generated code; a prime exploit target. |
-| **Speculative-execution side channels** | Spectre-class hardware issues; relevant because JIT-emitted code (and the engine) became a delivery vehicle in browsers. |
-| **Tiering-up / tiering-down** | Promoting code to a higher (more optimized) tier, or demoting it (e.g. after deopt). |
-| **WASM baseline/optimizing compiler** | e.g. V8's Liftoff (baseline) and TurboFan (optimizing) for WebAssembly — the JS engine's two-tier model applied to WASM. |
-| **AOT-compiled WASM** | Precompiling a `.wasm` module to native ahead of execution (Wasmtime/Wasmer `compile`, edge precompilation). |
-| **Cold start** | The latency of bringing a fresh process/instance to first-useful-work, dominated by startup + (for JIT) warmup. |
-| **RSS** | Resident set size — physical memory a process occupies; multiplied across replicas at fleet scale. |
-| **Ahead-of-time cache (AppCDS / R2R)** | Persisted artifacts (class-data sharing, ReadyToRun images) that cut JVM/CLR startup by reusing pre-processed state. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -114,42 +71,6 @@ Production runtimes give you levers *between* pure JIT and pure AOT, and using t
 - **Precompiled + cached WASM** at the edge gives AOT cold-start with a portable, sandboxed artifact.
 
 The mature stance: the model is a *dial with detents*, and matching the detent to each deployment (CLI → native-image; latency-sensitive web tier → R2R + warmup; batch monolith → tuned JIT; multi-tenant edge → precompiled WASM) is how you get the best of the spectrum instead of dogmatically picking an end.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Code cache exhaustion** | A print shop with finite shelf space for plates; once full, it stops making new plates and reverts to slow hand-lettering — no error, just sudden slowness. |
-| **Compiler threads stealing CPU** | Back-room staff retooling machines during the lunch rush, competing with the cooks for the same kitchen. |
-| **Warmup tail after deploy** | A new branch location on opening day — slow and clumsy until the staff find their rhythm; you don't send your biggest client there first. |
-| **RWX / JIT spraying** | A workshop that must keep the engraving machine both loaded and powered; a saboteur who can choose what gets engraved can stamp out a master key. |
-| **Optimizer type-confusion exploit** | A factory robot told the part is steel when it's foam; it applies steel-force and punches straight through — attacker-controlled "wrong assumption." |
-| **AOT removes the surface** | Shipping pre-stamped parts only; there's no powered engraving machine on site to subvert. |
-| **WASM baseline→optimizing** | A food truck that serves a decent dish instantly, then perfects the recipe for the items people keep ordering. |
-| **Precompiled edge WASM** | Vending machines stocked with finished meals — instant, no kitchen, no warmup. |
-| **Fleet economics** | One slow checkout lane is an annoyance; the same inefficiency across 5,000 stores is a budget line. |
-
----
-
-## Mental Models
-
-### The "Compiler Subsystem is a Tenant" Model
-
-Treat the JIT like a co-resident service sharing the box: it has a CPU budget (compiler threads), a memory budget (code cache + metadata + working set), and a failure mode (fill the cache → silent fallback to interpreting). You size, limit, monitor, and alert on it exactly as you would a sidecar. This reframes "JIT performance" from a black box into an operable resource.
-
-### The "Throughput Distribution, Not Throughput" Model
-
-A fleet's performance is a *distribution* over instances and time: fresh instances warming, steady instances at peak, unlucky requests hitting compilation/deopt jitter. SLOs live in the *tail* of that distribution. Optimizing the model means shaping the whole distribution — pre-warm to lift the cold instances, stagger deploys to decorrelate warmup tails, cap compiler CPU to bound jitter — not just maximizing the steady-state mode.
-
-### The "Codegen-at-Runtime = Attack Surface" Model
-
-Any process that turns input into executable code at runtime holds RWX-ish memory and runs an optimizer on attacker-influenced data. That's a security liability with a long CVE history. AOT trades the JIT's adaptivity for the *elimination* of this surface. Put "does runtime codegen fit this trust boundary?" on the same decision sheet as latency and cost.
-
-### The "Spectrum with Detents" Model
-
-Don't binarize. The real menu is: interpret · bytecode+interp · interp+baseline-JIT · tiered-JIT · JIT+CDS/AppCDS · R2R(hybrid) · PGO-AOT · closed-world-AOT · precompiled-WASM. Each detent trades startup/memory/security against peak/adaptivity. Production excellence is matching the detent to each deployment, and you have the knobs to do it.
 
 ---
 
@@ -236,30 +157,6 @@ The arithmetic, not the slogan, is what justifies "serverless resurrected AOT."
 
 ---
 
-## Pros & Cons
-
-| Aspect | Tiered JIT (operated) | JIT + CDS/R2R hybrid | Closed-world AOT | Precompiled WASM (edge) |
-|--------|----------------------|----------------------|------------------|-------------------------|
-| **Cold start** | Slow (warmup tail). | Improved (skip loading/precompiled commons). | Fast. | Near-instant. |
-| **Peak throughput** | Highest (adaptive). | High (JIT still available). | Good, but no runtime respecialization. | Good; sandbox overhead. |
-| **Memory (RSS) per replica** | Largest (cache+metadata+profiles). | Large-ish. | Small. | Small. |
-| **Tail latency** | Warmup + compilation jitter. | Reduced. | Predictable, flat. | Predictable. |
-| **Security (runtime codegen)** | RWX-ish surface; optimizer-bug CVEs. | Same (JIT present). | No runtime codegen — surface removed. | Compiled at build; strong sandbox. |
-| **Dynamism / reflection** | Full. | Full. | Restricted; build-time config. | Module-scoped; capability-based. |
-| **Operational complexity** | High (size/monitor compiler subsystem). | Medium-high. | Build pipeline + reflection config. | Build + cache pipeline. |
-| **Fleet cost at scale-to-zero** | High (warmup × cold-starts). | Medium. | Low. | Lowest. |
-
----
-
-## Use Cases
-
-- **Operated tiered JIT** for saturated, long-lived services where peak throughput buys fewer machines and warmup amortizes — provided you size the code cache and compiler threads, pre-warm, and monitor deopt/compilation as tail-latency sources.
-- **JIT + AppCDS/R2R** for latency-sensitive web tiers that redeploy often: cut first-request latency without surrendering the JIT or dynamism.
-- **Closed-world AOT** where startup, memory, *or* the removal of the runtime-codegen attack surface is the requirement: CLIs, scale-to-zero serverless, hardened/locked-down environments (no-RWX platforms), dense microservice bin-packing.
-- **Precompiled WASM at the edge** for multi-tenant, near-instant-cold-start, strongly-sandboxed compute — the model where the whole spectrum's lessons converge into a single modern deployment target.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Make the compiler subsystem observable and bounded
@@ -318,60 +215,24 @@ Before targeting a JIT runtime, confirm the environment permits RWX/dynamic-code
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│      OPERATING EXECUTION MODELS AT SCALE: CPU · MEM · SEC · $     │
-├──────────────────────────────────────────────────────────────────┤
-│ The JIT is a TENANT with a budget you must size & monitor:        │
-│   code cache (full → SILENT fallback to interpret → throughput    │
-│     cliff, no exception)  → alert >80%, size, enable flushing     │
-│   compiler threads (steal CPU; size to cgroup quota)              │
-│   deopt metadata + profiles (RSS — why warmed JVM RSS ≫ AOT)      │
-├──────────────────────────────────────────────────────────────────┤
-│ Performance is a DISTRIBUTION over time/instances; SLOs live in   │
-│ the TAIL: warmup tail, compilation jitter, deopt storms.          │
-│   mitigate: PRE-WARM before readiness · stagger deploys ·         │
-│   AppCDS/R2R for startup · alert on deopt rate                    │
-├──────────────────────────────────────────────────────────────────┤
-│ SECURITY: runtime codegen = attack surface                        │
-│   RWX-ish memory · JIT spraying · speculative-optimizer CVEs.     │
-│   AOT REMOVES it (no runtime codegen) — required on no-RWX        │
-│   platforms & in hardened/untrusted-input environments.           │
-├──────────────────────────────────────────────────────────────────┤
-│ WASM = the spectrum, shipped everywhere:                          │
-│   browser: tiered JIT (Liftoff baseline → TurboFan optimizing)    │
-│   edge/server: AOT / precompiled (Wasmtime/Wasmer) → ~0 cold start│
-├──────────────────────────────────────────────────────────────────┤
-│ Choose the model by FLEET ECONOMICS, not a microbenchmark:        │
-│   cost ≈ warmup_CPU·coldstart_rate + RSS·replicas·$ + tail_pen    │
-│          − peak_throughput_savings                                │
-│   scale-to-zero/serverless → AOT/precompiled-WASM                 │
-│   saturated long-lived      → tuned, pre-warmed JIT (or R2R)      │
-└──────────────────────────────────────────────────────────────────┘
-```
+1. Define the user or business outcome that **Interpretation, Compilation, JIT, AOT** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
----
+## Verify your work
 
-## Summary
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
 
-- A JIT is an **operable resource tenant**: its **code cache**, **compiler threads**, and **deopt/profile metadata** consume CPU, memory, and address space, each with a failure mode you must size, monitor, and alert on. Code-cache exhaustion is the signature incident — a **silent reversion to interpreting** with no exception.
-- Production performance is a **distribution**, and SLOs live in its **tail**: warmup tails after deploy/scale-out, compilation jitter, and deopt storms. The mitigations are operational — **pre-warm before readiness, stagger deploys, use AppCDS/R2R, and watch deopt rate** as a leading indicator.
-- **Runtime code generation is a security surface**: RWX-ish executable memory, JIT spraying, and speculative-optimizer type-confusion bugs (the engine of countless browser zero-days). **AOT eliminates this surface**, which makes it mandatory on no-RWX platforms and attractive wherever the runtime processes untrusted input. This is a first-class decision factor, not a footnote.
-- **WebAssembly** ships the whole interpret/JIT/AOT spectrum to browsers and the edge: **tiered JIT** in the browser (Liftoff baseline → TurboFan optimizing) and **AOT/precompiled** modules on the server/edge for near-instant cold start with strong sandboxing — the same trade-offs you've studied, now the substrate of modern deployment.
-- At scale the model choice is **economics**: `warmup_CPU·coldstart_rate + RSS·replicas·$ + tail_penalty − peak_savings`, evaluated over the workload's lifetime and restart distribution. Scale-to-zero/serverless pushes toward **AOT/precompiled-WASM**; saturated long-lived services toward a **tuned, pre-warmed JIT (or R2R)** — and the hybrids (CDS, R2R, GraalVM dual-mode) are **detents on a dial you tune per deployment**, not an ideological binary.
+## Review questions
 
----
-
-## Further Reading
-
-- *Code cache and compiler tuning* — HotSpot `-XX:ReservedCodeCacheSize`, `-XX:CICompilerCount`, `-XX:+UseCodeCacheFlushing` documentation and JFR/`PrintCodeCache` diagnostics.
-- *Application Class-Data Sharing (AppCDS)* — JEP 310/350 and the Oracle CDS guides for cutting JVM cold start.
-- *Attacking Clientside JIT Compilers* and the broader literature on **JIT spraying** (Dion Blazakis et al.) — the security surface of runtime codegen.
-- *V8 and SpiderMonkey security postmortems* — writeups of TurboFan/IonMonkey type-confusion exploits; the practical case that speculation is an attack surface.
-- *W^X, RWX, and JIT hardening* — Apple's `pthread_jit_write_protect_np` and the platform discussions on running JITs under no-RWX policies.
-- *Wasmtime and Wasmer documentation* — module compilation (Cranelift/LLVM), serialization, and precompiled/AOT caching for the edge.
-- *Liftoff: a new baseline compiler for WebAssembly in V8* and *Up to 4GB of memory in WebAssembly* — V8 blog, for the browser WASM tiering model.
-- *Containerize your Java applications* and JVM container-awareness (`UseContainerSupport`) guides — for cgroup-correct compiler-thread sizing.
-- *Profile-Guided and AOT trade-offs at scale* — Google/Meta engineering writeups on PGO, AutoFDO, and warmup economics across large fleets.
+- Which measurable outcome justifies investing in Interpretation, Compilation, JIT, AOT?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

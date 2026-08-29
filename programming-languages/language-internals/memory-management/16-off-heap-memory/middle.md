@@ -1,16 +1,11 @@
-# Off-heap / Native Memory — Middle Level
+# Off-heap / Native Memory — Middle
 
-> **Topic:** Off-heap / Native Memory
-> **Focus:** The concrete mechanisms — how each runtime actually reaches the OS for off-heap memory, how that memory is freed, and the lifecycle of a direct buffer, an `Arena`, and an `mmap` region.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **Off-heap / Native Memory** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-At the junior level "off-heap" was a concept: memory the GC doesn't own. At this level it becomes a set of concrete APIs, each with its own allocation call, its own free path, and its own failure mode. The single most important thing to internalize is that **every off-heap region has an explicit owner and an explicit lifetime**, even when the API hides it behind a finalizer or a phantom reference. When you allocate off-heap, you have taken back the responsibility the GC normally carries — and the runtime gives you only thin help in carrying it.
-
-This page walks through the actual mechanisms in the JVM (where off-heap is most common and most dangerous), then Go, Rust, and .NET. The thread running through all of them: *who calls free, and when?*
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -129,23 +124,6 @@ _ = first8
 
 ---
 
-## Pros & Cons
-
-**Pros**
-- **No GC pressure.** A 20 GiB off-heap cache adds zero scan time and zero pause time. This is the headline JVM motivator.
-- **Precise, deterministic lifetimes** (with `Arena`/`Munmap`/`Drop`) — free exactly when you're done.
-- **Zero-copy sharing** with native code, DMA, the kernel, and other processes — no pinning, no marshaling copy.
-- **Packed binary layouts** with no per-object headers (a JVM object header is 12–16 bytes; a billion off-heap records save gigabytes).
-- **Data larger than RAM** via memory-mapped files, with the kernel managing the working set.
-
-**Cons**
-- **Manual lifetime** — leaks and use-after-free are back on the menu.
-- **Invisible to the usual tools** — not in heap dumps, not counted by `-Xmx`/`GOMEMLIMIT`, so leaks are hard to find.
-- **No bounds safety** on the raw paths (`Unsafe`, `mmap` slices) — a bad offset crashes the process.
-- **Serialization cost** — you can't store objects, only bytes, so you must encode/decode at the boundary.
-
----
-
 ## Best Practices
 
 1. **Default to scoped ownership.** Prefer `Arena` (JVM), `defer Munmap` (Go), RAII/`Drop` (Rust), `using`/`try-finally` (.NET) over finalizer-based freeing.
@@ -166,6 +144,24 @@ _ = first8
 
 ---
 
-## Summary
+## Apply it
 
-Off-heap memory is a concrete set of APIs over a few OS primitives (`malloc`, anonymous `mmap`, file `mmap`, and their Windows twins). On the JVM, `allocateDirect` is convenient but ties freeing to GC via a Cleaner — the worst of both worlds — while Panama's `Arena`/`MemorySegment` gives safe, deterministic, bounds-checked off-heap and should be the default for new code; `Unsafe` is the dangerous legacy path. Go uses `mmap` + `Munmap`, Rust uses RAII-owned mappings, .NET uses `NativeMemory`/`Marshal`. Memory-mapped files turn a file into addressable memory backed by the OS page cache, enabling data-larger-than-RAM and zero-copy IO. The constant across all of it: you own the lifetime now, and the runtime's normal limits and tools mostly can't see what you've allocated.
+1. Find a real component where **Off-heap / Native Memory** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
+
+## Verify your work
+
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
+
+## Review questions
+
+- Which boundary is most affected by Off-heap / Native Memory?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

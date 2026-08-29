@@ -1,8 +1,11 @@
 # Ecosystem & Tooling Maturity — Junior
 
-> **What?** Everything *around* a language that you use without writing yourself — the libraries, the package manager, the build tool, the formatter, the linter, the debugger, the test framework, the editor support, the docs, and the community that produces all of it. The language is the grammar; the ecosystem is the entire civilization that has grown up speaking it.
-> **How?** When you evaluate a language, don't just read its syntax — count what it gives you for free. A beautiful language with no libraries means you write everything yourself, forever. Most of your daily productivity comes from the ecosystem, not the language.
+<!-- level-focus -->
+At junior level, focus on this question:
 
+> How can I apply **Ecosystem & Tooling Maturity** in one small example and prove the result?
+
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## 1. The language is the small part
@@ -137,18 +140,24 @@ If those come back green, the ecosystem will carry you. If several come back red
 
 ---
 
-## 9. What's next
+## Apply it
 
-| Topic | File |
-|---|---|
-| How to actually *evaluate* a library before depending on it (bus factor, maintenance, license) | `middle.md` |
-| Ecosystem maturity as a moving risk, supply-chain attacks, dependency sprawl | `senior.md` |
-| Org-level platform tooling, private registries, SBOMs, 5-10 year bets | `professional.md` |
-| Interview questions on ecosystem and dependency decisions | `interview.md` |
-| Practice exercises — score ecosystems, audit dependency trees | `tasks.md` |
+1. Choose one small, known input for **Ecosystem & Tooling Maturity**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
-Related: ecosystem is one input to [`01-language-selection-criteria`](../01-language-selection-criteria/), and a thin ecosystem is one reason to [`08-language-longevity-and-lock-in-risk`](../08-language-longevity-and-lock-in-risk/) think hard about lock-in.
+## Verify your work
 
----
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
 
-**Memorize this:** a language is only as good as the ecosystem around it. The syntax you master in a week; the missing library you maintain forever. Count what a language gives you for free — registry, package manager, build, format, lint, debug, test, editor support, docs, community — because that bundle, not the grammar, is where your daily productivity actually comes from.
+## Review questions
+
+- What problem does Ecosystem & Tooling Maturity solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

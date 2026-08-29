@@ -1,18 +1,11 @@
-# Object Pinning & Movable Heaps — Senior Level
+# Object Pinning & Movable Heaps — Senior
 
-> **Topic:** Object Pinning & Movable Heaps
-> **Focus:** The design space of movable heaps and the pinning escape hatch — how compacting collectors, address stability, and unmanaged interop trade off across the .NET, JVM, and Go runtimes.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Object Pinning & Movable Heaps** under failure, load, and change?
 
-## Introduction
-
-A managed heap is a negotiated illusion. The runtime promises your code that a reference stays valid for the object's lifetime, but it does *not* promise that the object stays at a fixed machine address. Compacting, copying, and generational collectors routinely **relocate live objects** — to defragment the heap, to keep allocation a cheap bump of a pointer, and to promote survivors between generations. After a move, the collector rewrites every managed reference it can find: roots on the stack, in registers, in static fields, and inside other heap objects. The illusion holds because the collector owns the full set of pointers.
-
-It owns the *managed* set. The moment you hand a raw address to code the collector cannot see — a C library, a device doing DMA, the kernel reading a buffer mid-`read(2)` — that address becomes a liability. If a collection fires during the syscall and the buffer moves, the unmanaged side writes into freed or repurposed memory. **Pinning** is the contract that closes this gap: it tells the collector "this object must not move," so a stable address can safely cross the managed/unmanaged boundary.
-
-This tier is about the *design space*. Every relocating runtime needs a pinning mechanism, and the shape of that mechanism reveals how the runtime weighs throughput, fragmentation, and interop ergonomics. Understanding .NET, the JVM, and Go side by side turns pinning from a per-API incantation into a coherent model you can reason about.
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -133,22 +126,6 @@ They share only the English word "pin." Treat them as unrelated when reasoning a
 
 ---
 
-## Pros & Cons
-
-**Movable heaps (the thing pinning fights):**
-
-- **Pro:** O(1) bump allocation, bounded fragmentation, good locality after compaction, cheap promotion.
-- **Con:** No address stability — every raw-pointer interop scenario needs an escape hatch.
-
-**Pinning:**
-
-- **Pro:** Hands stable addresses to native code, DMA, and the kernel with zero copying. Essential for high-throughput I/O where copying would dominate cost.
-- **Con:** A pinned object obstructs compaction, creating holes (fragmentation). Many or long-lived pins degrade collection: less reclaimable contiguous space, more work per GC, and on the JVM critical-region pins can stall the whole VM. Pinning also keeps the object **alive** (it's a strong root), so leaked pins are memory leaks plus relocation leaks.
-
-The trade is fundamentally local-and-temporary vs. global-and-persistent: pinning is cheap and correct when scoped tightly, and corrosive when it becomes ambient.
-
----
-
 ## Best Practices
 
 - **Pin for the shortest possible window.** Prefer lexically scoped pins (`fixed`, a `Pinner` with `defer Unpin`) over open-ended handles. The ideal pin lasts exactly one synchronous native call.
@@ -172,6 +149,24 @@ The trade is fundamentally local-and-temporary vs. global-and-persistent: pinnin
 
 ---
 
-## Summary
+## Apply it
 
-Movable heaps buy cheap allocation and low fragmentation by reserving the right to relocate live objects; the collector maintains the illusion of stable references by rewriting every managed pointer. Pinning is the deliberate, scoped surrender of relocation for a single object so a raw address can safely cross into native code, DMA, or the kernel. .NET exposes it directly (`fixed`, `GCHandle`, `Memory<T>.Pin`, and the segregated Pinned Object Heap); the JVM mostly avoids it (copying via `Get…ArrayElements`, narrow pins via `Get…Critical`, off-heap via `DirectByteBuffer`); Go regulates it through cgo pointer rules and the explicit `runtime.Pinner`, with the extra twist that goroutine stacks themselves move. Rust's `Pin<P>` is an unrelated, compile-time guarantee for self-referential types — same word, different problem. The durable lesson: pin briefly and locally, segregate or go off-heap for the long-lived case, and prefer stable *handles* over raw *addresses* whenever you need identity rather than a pointer.
+1. State the system invariant that **Object Pinning & Movable Heaps** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
+
+## Verify your work
+
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
+
+## Review questions
+
+- Which invariant must remain true when Object Pinning & Movable Heaps fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

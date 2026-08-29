@@ -1,33 +1,12 @@
-# Tracing Garbage Collection — Senior Level
+# Tracing Garbage Collection — Senior
 
-> **Topic:** Tracing Garbage Collection
-> **Focus:** Design trade-offs across real collectors — concurrent vs incremental vs stop-the-world, barriers, safepoints, precise vs conservative scanning, moving vs non-moving — and how Go, the HotSpot zoo, V8, and CPython make different choices for different goals.
+<!-- level-focus -->
+At senior level, focus on this question:
 
+> Which system invariant is affected by **Tracing Garbage Collection** under failure, load, and change?
+
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
-
-## Introduction
-
-There is no "best" garbage collector — only collectors that are tuned for different objectives. The senior-level skill is not memorizing one algorithm but understanding the **design space**: the small set of axes along which every collector positions itself, the mechanisms (safepoints, barriers) that let it sit where it does, and why a runtime team chose those positions. Once you can place Go, G1, ZGC, V8, and CPython on the same axes, you can predict how each behaves under your workload and read a new collector's design in minutes.
-
-## Prerequisites
-
-- Middle-tier algorithms: mark-sweep, mark-compact, copying, generational, the tri-color abstraction, write barriers, remembered sets.
-- The mutator/collector framing: the mutator is your program; the collector is the GC. They contend for the heap.
-- Basic awareness of CPU memory ordering (barriers must be correct under concurrency).
-
-## Glossary
-
-- **Mutator:** application threads that read/write the heap (they "mutate" the graph).
-- **Stop-the-world (STW):** all mutator threads are paused while the collector works.
-- **Concurrent GC:** the collector runs *simultaneously* with the mutator on separate threads.
-- **Incremental GC:** the collector runs in small slices interleaved with the mutator on the *same* thread(s), bounding each pause.
-- **Safepoint:** a point in execution where a thread's stack and registers are in a known, scannable state, so it can be paused for GC.
-- **SATB (snapshot-at-the-beginning):** a deletion-barrier discipline that conceptually collects the heap as it existed when marking began.
-- **Incremental-update:** an insertion-barrier discipline that tracks new pointers into already-scanned (black) objects.
-- **Load / read barrier:** code on every pointer *load* that can heal, forward, or remap a reference — the enabler of concurrent *moving* collection.
-- **Floating garbage:** objects that became unreachable *during* a concurrent cycle but survive it, collected only next time.
-- **Precise (exact) GC:** the runtime knows exactly which words are pointers.
-- **Conservative GC:** the runtime guesses; any word that *could* be a pointer is treated as one.
 
 ## The Design Space
 
@@ -100,14 +79,6 @@ The JVM's superpower is that one bytecode runs under any of these — you choose
 
 **CPython — reference counting + a cyclic tracing collector.** The primary mechanism is reference counting (immediate, deterministic-ish reclamation). A supplementary **generational tracing collector** runs only to break **reference cycles** that refcounting can't. This is the canonical "hybrid": refcount handles the common case; tracing handles cycles. (The GIL historically simplified the refcount updates; the free-threading work changes that calculus.)
 
-## Mental Models
-
-- **The impossible trinity.** Throughput, latency, memory — pick two. Every collector's identity is *which* corner of the triangle it sacrifices. Go and ZGC sacrifice throughput+memory for latency; Parallel GC sacrifices latency for throughput+memory.
-
-- **Barriers are the price of concurrency.** A write barrier buys concurrent marking; a read/load barrier buys concurrent moving. The more concurrency you want, the more per-access tax you pay. STW collectors pay zero barrier tax but pay it all back in pause.
-
-- **Safepoints are the leash.** Concurrency doesn't eliminate stopping the world; it shrinks the STW to "reach a safepoint, flip a switch, scan roots." Anything that delays reaching a safepoint (a JNI critical section, a long counted loop) reintroduces latency.
-
 ## Pros & Cons of the Major Approaches
 
 | Approach | Pause | Throughput | Memory | Moves? | Example |
@@ -117,14 +88,6 @@ The JVM's superpower is that one bytecode runs under any of these — you choose
 | Fully concurrent compacting | **Sub-ms, flat** | Lower (load barrier) | **Highest** (headroom) | Yes, concurrently | ZGC, Shenandoah |
 | Concurrent non-moving mark-sweep | Sub-ms | Good | Moderate, fragments | No | Go |
 | Refcount + cyclic tracing | Spread, can cascade | Moderate | Low | No | CPython |
-
-## Use Cases
-
-- **Latency-critical services (trading, ad-serving, interactive APIs):** Go, ZGC, or Shenandoah — flat sub-ms pauses matter more than peak throughput.
-- **Batch / throughput jobs (Spark, ETL, compilers):** HotSpot Parallel — long rare pauses are fine; total CPU efficiency wins.
-- **Huge heaps (hundreds of GB to TB):** ZGC — pauses independent of heap size are the only viable option.
-- **General large server apps:** G1 — balanced default.
-- **Scripting / glue with C extensions:** CPython's refcount+cycle hybrid; near-deterministic reclamation, predictable interop.
 
 ## Best Practices
 
@@ -141,6 +104,26 @@ The JVM's superpower is that one bytecode runs under any of these — you choose
 - **TTSP cliffs:** a single thread stuck off-safepoint stalls *all* threads during STW root scan, turning an advertised sub-ms collector into a multi-ms outlier.
 - **Premature promotion under bursty load** still bites generational collectors, pushing short-lived survivors into the expensive old generation.
 
-## Summary
+---
 
-A garbage collector is a set of positions in a design space: **STW vs concurrent vs incremental**, **moving vs non-moving**, **generational vs not**, **throughput- vs latency-oriented**, **precise vs conservative** — bounded by the impossible trinity of throughput, latency, and memory. **Safepoints** make stopping/scanning possible; **write barriers** (SATB/deletion vs incremental-update/insertion) enable concurrent *marking*; **load barriers** (ZGC's colored pointers, Shenandoah's reference barrier) enable concurrent *compaction*. Real collectors instantiate different corners: **Go** picks concurrent, non-moving, non-generational, sub-ms; the **HotSpot zoo** lets you pick throughput (Parallel), balance (G1), or flat low latency on huge heaps (ZGC/Shenandoah); **V8** is generational mostly-concurrent; **CPython** is refcount plus a cyclic tracer. The senior skill is matching those positions to an SLO.
+## Apply it
+
+1. State the system invariant that **Tracing Garbage Collection** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
+
+## Verify your work
+
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
+
+## Review questions
+
+- Which invariant must remain true when Tracing Garbage Collection fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

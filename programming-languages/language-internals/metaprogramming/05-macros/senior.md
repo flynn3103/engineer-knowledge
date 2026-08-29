@@ -1,60 +1,11 @@
-# Macros — Senior Level
+# Macros — Senior
 
-> **Topic:** Macros
-> **Focus:** Hygienic, structured macros in a statically typed world — Rust's `macro_rules!` (token-tree pattern matching) and procedural macros (`syn` + `quote`, the three kinds), the formal meaning of hygiene, expansion ordering, and how C++ templates/`constexpr` and Elixir's `quote`/`unquote` occupy the same design space.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Macros** under failure, load, and change?
 
-## Introduction
-
-> 🎓 At junior level you saw textual macros and their bugs. At middle level you saw Lisp's homoiconic, syntactic macros and the concept of hygiene. At senior level you must answer the engineering questions: *how do you get hygienic, structured macros into a statically typed language with no homoiconicity?* How do you parse arbitrary syntax inside a macro, generate a hundred lines of trait implementation from a `#[derive]`, and keep the error messages from becoming unreadable? The answer, in the language that took macros most seriously since Lisp, is Rust.
-
-Rust is interesting because it is *not* homoiconic — its surface syntax is conventional C-family text, not lists — yet it ships a powerful, **hygienic** macro system. It does this by exposing the program as **token trees**: not flat tokens (like C) and not fully-parsed ASTs (like Lisp lists), but a tree of tokens where bracket pairs `() [] {}` group their contents. Rust offers two distinct macro mechanisms over this representation:
-
-1. **Declarative macros** (`macro_rules!`): pattern-match on token trees and emit token trees, with **fragment specifiers** (`$x:expr`, `$t:ty`, `$i:ident`) that constrain what each piece must be, and **repetition** (`$(...)*`). Hygienic by default. The descendant of Scheme's `syntax-rules`.
-2. **Procedural macros**: ordinary Rust functions that receive a `TokenStream`, parse it (almost always with the `syn` crate into a real AST), and produce a `TokenStream` (almost always built with the `quote!` macro). These come in three kinds: **derive** (`#[derive(Serialize)]`), **attribute** (`#[route(GET, "/")]`), and **function-like** (`sql!(...)`). This is the descendant of Lisp's `defmacro` — a Turing-complete transformation written in the host language.
-
-Around this sits the central, hard-won concept that distinguishes good macro systems from bad: **hygiene**. A hygienic macro guarantees that identifiers it introduces neither *capture* the caller's identifiers nor *are captured by* them. C has zero hygiene (the `tmp` collision). Common Lisp has none but lets you fake it with `gensym`. Scheme and Rust have it built in. Understanding *why* hygiene is hard — and where even Rust's hygiene has seams — is a senior-level distinction.
-
-This page covers Rust's two systems in depth, hygiene formally, expansion ordering and recursion, debugging expanded code (`cargo expand`), and how C++ templates + `constexpr`/`consteval` and Elixir's `quote`/`unquote` solve overlapping problems. `professional.md` then covers shipping macro-heavy crates: compile-time budgets, error-message engineering, and when a macro is the wrong tool at organizational scale.
-
----
-
-## Prerequisites
-
-- **Required:** The junior and middle pages — textual vs syntactic macros, homoiconicity, quasiquotation, and the capture/hygiene problem with `gensym`.
-- **Required:** Working Rust knowledge — traits, generics, ownership at a reading level. You should recognize `#[derive(Debug)]`.
-- **Required:** What an AST is and what a parser does.
-- **Helpful but not required:** C++ template syntax and a sense of what `constexpr` means.
-- **Helpful but not required:** Any compiler-frontend exposure (token streams, spans).
-
-You do **not** need to know:
-
-- The internals of `rustc`'s macro expander or its name-resolution algorithm.
-- How to write a full parser by hand (`syn` does this).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Token tree** | Rust's macro input model: a sequence of tokens where each bracket pair groups its contents into a sub-tree. Coarser than an AST, finer than flat tokens. |
-| **`macro_rules!`** | Rust's *declarative* macro form: pattern → template rules over token trees. Hygienic. |
-| **Fragment specifier** | In `macro_rules!`, the `:kind` that constrains a metavariable: `expr`, `ty`, `ident`, `pat`, `block`, `stmt`, `path`, `tt`, `literal`, etc. |
-| **Metavariable** | A `$name` in a `macro_rules!` pattern that captures a fragment. |
-| **Repetition** | `$( ... )sep*` / `$( ... )+` / `$( ... )?` — match/emit a fragment zero-or-more, one-or-more, or zero-or-one times. |
-| **Procedural macro** | A Rust function (in a special `proc-macro` crate) that maps a `TokenStream` to a `TokenStream`. Three kinds: derive, attribute, function-like. |
-| **`TokenStream`** | The input/output type of a procedural macro: a flat-ish stream of tokens with spans. |
-| **`syn`** | The de-facto crate that parses a `TokenStream` into a typed Rust AST. |
-| **`quote!`** | The de-facto crate/macro that builds a `TokenStream` from a quasiquote-like template (`#var` interpolates, `#(...)*` repeats). Rust's quasiquotation. |
-| **Derive macro** | `#[derive(Trait)]` — generates an `impl` block for a type from its definition. The most common procedural macro. |
-| **Attribute macro** | `#[name(args)]` — transforms the item it is attached to (e.g. a function → a route handler). |
-| **Hygiene** | The guarantee that macro-introduced identifiers do not collide with the caller's, in either direction. |
-| **Span** | Source-location + hygiene context attached to every token; drives both error messages and hygiene. |
-| **`cargo expand`** | Tool that prints the fully macro-expanded source — Rust's `gcc -E` / `macroexpand`. |
-| **`constexpr` / `consteval`** | C++ keywords marking computation that may (`constexpr`) or must (`consteval`) run at compile time. A different route to compile-time work than macros. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -181,27 +132,6 @@ consteval int must_be_compile_time(int n) { return n * n; }  // MUST run at comp
 
 ---
 
-## Real-World Analogies
-
-**Three tiers of pasta-making.** A C macro is squeezing dough through a stencil — you get a shape, but the machine has no idea it is food. `macro_rules!` is a pasta press with *interchangeable dies* (`:expr`, `:ty`, `:ident`): each die only accepts dough of a certain kind and produces a guaranteed-valid shape. A procedural macro is a chef who takes your raw ingredients (`TokenStream`), reads the recipe (`syn` parses it), and cooks an arbitrary dish (`quote!` plates it). More power, more responsibility, more ways to over-season.
-
-**Hygiene as a sterile operating room.** An unhygienic macro is surgery in a kitchen — the macro's instruments (`tmp`) and the patient's belongings (the caller's `tmp`) get mixed on the same table. Hygiene is the sterile field: every instrument the macro brings in is tagged and quarantined from the patient's environment, so nothing the macro introduces can touch — or be touched by — the caller's names by accident.
-
-**`#[derive]` as a contract-printing machine.** Writing `Debug`, `Clone`, `PartialEq`, `Serialize` by hand for every struct is like hand-copying a legal contract for each new client. `#[derive(...)]` is the machine that prints the correct contract from the client's details automatically — the boilerplate the type system *could* infer but the language will not write for you.
-
----
-
-## Mental Models
-
-- **Choose your representation: text → token-tree → AST.** C works on text (no safety). `macro_rules!` works on token trees with typed fragments (structural safety, limited logic). Proc-macros work on a parsed AST via `syn` (full logic, full responsibility). Pick the weakest tool that suffices.
-- **Fragment specifiers are types for syntax.** `$x:expr` is "this must be an expression," giving you the structural guarantees that make precedence bugs impossible.
-- **Hygiene = identity by origin, not by spelling.** Two `tmp`s from different hygiene contexts are different variables. Spans carry the context. This is why Rust/Scheme macros are safe and C macros are not.
-- **`quote!` is quasiquotation; `#x` is unquote, `#(...)* ` is splicing.** If you understood Lisp's `` ` ``/`,`/`,@`, you already understand `quote!`.
-- **Macro work is compile-time work.** Recursion depth, `syn` parsing, and template generation all cost build time. A macro that saves run time can cost minutes of compile time — a trade you must weigh.
-- **Templates ≠ macros.** C++ templates generate code by substituting types/values and are type-checked; they fix the double-eval/type-safety problems of C macros but do not transform syntax. Different tool, overlapping use cases.
-
----
-
 ## Code Examples
 
 ### `macro_rules!` with multiple fragment specifiers and repetition
@@ -277,18 +207,6 @@ end
 
 ---
 
-## Use Cases
-
-- **Eliminating boilerplate the type system cannot infer** — `#[derive(Debug, Clone, Serialize)]` generates per-type impls; without it you would hand-write thousands of lines.
-- **Compile-time-checked DSLs** — `println!`/`format!` validate format strings *at compile time*; `sqlx::query!` checks SQL against a live schema; routing macros validate URL patterns. These checks are impossible with functions.
-- **Variadic / ergonomic constructors** — `vec![1, 2, 3]`, `hashmap!{...}`, `json!({...})` — pleasant syntax expanding to efficient code.
-- **Custom control flow** — `tokio::select!`, error-handling macros, test-harness macros (`#[test]`, `#[tokio::test]`).
-- **Attribute-driven frameworks** — web routing (`#[get("/")]`), benchmark/test registration, FFI bindings.
-
-When *not* to: anything a generic function, trait, or `const fn` can express. Reach for the macro only when you need new syntax, compile-time validation, or per-type code generation.
-
----
-
 ## Coding Patterns
 
 **Pattern: prefer `macro_rules!` first.** Reach for a proc-macro only when you need to inspect type structure or run logic.
@@ -338,72 +256,24 @@ When *not* to: anything a generic function, trait, or `const fn` can express. Re
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. What representation do Rust macros operate on, and how is it different from C's tokens and Lisp's lists?
-2. What does the fragment specifier `:expr` guarantee, and what does it *not* guarantee?
-3. Name the three kinds of procedural macro and a real-world example of each.
-4. State hygiene precisely. How is it implemented in Rust, and how does Common Lisp's `gensym` approximate it?
-5. Why can `#[derive(Serialize)]` do something no `macro_rules!` macro can?
-6. How do C++ templates fix the C `MAX` macro's double-evaluation and type-safety problems, and what can they *not* do that Rust proc-macros can?
+1. State the system invariant that **Macros** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
-<details>
-<summary>Answers</summary>
+## Verify your work
 
-1. **Token trees** — tokens grouped by bracket pairs. Coarser than Lisp's fully-parsed lists, but more structured than C's flat token stream (brackets always balance and can be recursed into). It can also accept syntax that is not yet valid Rust.
-2. `:expr` guarantees the captured fragment is a complete, parsed expression that splices in as one unit (so precedence bugs are impossible). It does *not* prevent double evaluation if the template uses the metavariable more than once.
-3. **Derive** (`#[derive(Serialize)]` / serde), **attribute** (`#[get("/")]` / web routers), **function-like** (`sqlx::query!("SELECT …")`).
-4. Hygiene: an identifier's meaning is fixed by where it was *written*, not where expansion places it, preventing capture in both directions. Rust implements it via spans carrying a hygiene context that name resolution respects. `gensym` approximates it by minting a unique, un-typeable symbol for one binding, simulating a distinct context.
-5. It can *read the type's structure* (its fields, generics) via `syn` and run arbitrary logic to generate a tailored `impl`. `macro_rules!` only pattern-matches token shapes; it cannot introspect a type's fields.
-6. `max_t<T>` is a real instantiated function: each argument is evaluated exactly once and the call is type-checked, eliminating double-eval and type-safety holes. Templates cannot transform arbitrary *syntax* or accept foreign DSL syntax / run arbitrary compile-time logic over tokens the way proc-macros can; they substitute types and values.
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
 
-</details>
+## Review questions
 
----
-
-## Cheat Sheet
-
-```text
-RUST MACRO SUBSTRATE = TOKEN TREES (brackets group; can hold not-yet-valid Rust)
-
-DECLARATIVE: macro_rules!  (hygienic by default)
-  matcher => transcriber, over token trees
-  fragment specifiers: $x:expr $t:ty $i:ident $p:pat $b:block $s:stmt $:path $:tt $:literal
-  repetition: $( ... )sep*   $( ... )+   $( ... )?
-  PITFALL: repeated $x still double-evaluates → bind once: { let v=$x; v*v }
-
-PROCEDURAL: fn(TokenStream)->TokenStream   (hygiene = opt-in via spans)
-  parse with: syn      generate with: quote!  (#var = unquote, #(...)* = splice)
-  three kinds:
-    derive    #[derive(Serialize)]   read type, emit impl   (serde, clap, thiserror)
-    attribute #[get("/")]            transform the item     (web routers)
-    fn-like   sqlx::query!("SELECT") compile-time DSL/check
-
-HYGIENE = identity by ORIGIN, not spelling (spans carry context)
-  C: none | CL: gensym (manual) | Scheme/Rust macro_rules!: automatic | proc-macro: explicit
-
-DEBUG:  cargo expand        (the Rust gcc -E / macroexpand)
-ERRORS: forward spans; use compile_error!/syn::Error, NOT panic!; test with trybuild
-
-NEIGHBORS:
-  C++ templates + constexpr/consteval = compile-time code by TYPE/VALUE substitution,
-      type-checked, no double-eval — but not syntax transformation
-  Elixir quote/unquote/defmacro = Lisp-style homoiconic macros on the BEAM
-```
-
----
-
-## Summary
-
-Rust shows that you can have **hygienic, structured macros without homoiconicity** by exposing the program as **token trees** and offering two layers. **`macro_rules!`** matches token-tree patterns with **fragment specifiers** (`:expr`, `:ty`, `:ident`) that make precedence bugs impossible and is **hygienic by default** — the descendant of Scheme's `syntax-rules`. **Procedural macros** are Rust functions that **parse with `syn` and generate with `quote!`**, in three kinds — **derive**, **attribute**, **function-like** — and power serde, clap, web routers, and compile-time-checked DSLs like `sqlx::query!`; they are the descendant of Lisp's `defmacro` and require *explicit* span/hygiene reasoning. **Hygiene** — identity by origin, carried by spans — is the line between safe macro systems (Scheme, Rust) and dangerous ones (C); `gensym` is its manual Common Lisp approximation. The same design space is occupied by **C++ templates + `constexpr`/`consteval`** (compile-time code generation by type/value substitution, type-checked, no double-eval, but not syntax transformation) and **Elixir's `quote`/`unquote`** (homoiconic BEAM macros). The senior throughline: choose the weakest mechanism that works, treat compile-time as a budget, and engineer your spans so the errors stay human — themes `professional.md` turns into shipping discipline.
-
----
-
-## Further Reading
-
-- *The Rust Reference*, "Macros" chapter, and *The Little Book of Rust Macros* — `macro_rules!` from basics to advanced recursion.
-- *The `syn`, `quote`, and `proc-macro2` crate docs* — the standard procedural-macro toolchain.
-- David Tolnay's `proc-macro-workshop` — hands-on derive/attribute/function-like exercises (the `Builder`, `Debug`, `seq!` problems).
-- *The hygiene papers*: Kohlbecker et al., "Hygienic Macro Expansion" (1986); Clinger & Rees, "Macros that Work" — the formal origins.
-- C++: Scott Meyers, *Effective Modern C++* on `constexpr`; the C++ Core Guidelines' "prefer templates to function-like macros" rules.
-- Try it: `cargo install cargo-expand`, write a trivial `#[derive]`, and run `cargo expand` to see the generated impl.
+- Which invariant must remain true when Macros fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

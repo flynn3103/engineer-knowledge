@@ -1,41 +1,11 @@
-# Finalizers & Destructors — Middle Level
+# Finalizers & Destructors — Middle
 
-> **Topic:** Finalizers & Destructors
-> **Focus:** How deterministic destructors and GC finalizers actually work under the hood — drop order, drop flags, `with`/`defer`/`using`, the finalizer thread, resurrection, and the one-cycle delay.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **Finalizers & Destructors** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-At the junior level we drew the line between *deterministic* destructors and *non-deterministic* finalizers. Now we look at the **mechanisms**: what actually invokes cleanup, in what order, on which thread, and what can go wrong. The mechanism explains the rules. Once you understand *how* a finalizer gets scheduled — onto a queue, processed later by a dedicated thread, after at least one GC cycle — the "don't release scarce resources in finalizers" rule stops being dogma and becomes obvious.
-
-We will cover the deterministic side (C++ destructors, Rust `Drop` with drop order and drop flags, Go `defer`, Python `with`, C# `using`) and the GC-driven side (Java `finalize`/`Cleaner`, Go `SetFinalizer`, Python `__del__`), including **resurrection**, **ordering**, and the **finalizer thread** model.
-
----
-
-## Prerequisites
-
-- Junior tier: the deterministic vs non-deterministic distinction.
-- **Stack unwinding**: when a scope exits (normally or via an exception/error), local variables are torn down in a defined order.
-- **Reference counting vs tracing GC** (rough idea): Python uses reference counting *plus* a cycle collector; Java/Go use tracing collectors.
-- **Move semantics** (rough idea, for Rust/C++): ownership of a value can transfer.
-
----
-
-## Glossary
-
-| Term | Meaning |
-|---|---|
-| **Stack unwinding** | The process of destroying local variables as a scope exits (including during exception propagation). |
-| **Drop order** | The order in which destructors run for variables in a scope — typically reverse of declaration. |
-| **Drop flag** | A hidden runtime boolean Rust uses to track whether a value still needs dropping (e.g., after a conditional move). |
-| **Finalizer queue** | A list the GC adds finalizable objects to; a separate thread drains it and runs their finalizers. |
-| **Finalizer thread** | A dedicated background thread (or goroutine) that executes finalizers one by one. |
-| **Resurrection** | A finalizer making the about-to-die object reachable again, canceling its collection. |
-| **Reachability** | Whether the GC can still find an object through references from roots. |
-| **Idempotent close** | A close operation safe to call more than once. |
-| **`ManuallyDrop`** | A Rust wrapper that suppresses automatic dropping so you control it yourself. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -72,15 +42,6 @@ During step 3, the finalizer runs arbitrary code — including storing `this`/th
 ### Ordering among finalizers
 
 The GC does **not** order finalizers by reference relationships. If object A's finalizer touches object B, and both are being collected, B might be finalized (or even freed) first. **Never have one finalizer depend on another finalizable object still being valid.** With reference cycles, the order is fully undefined.
-
----
-
-## Mental Models
-
-- **Destructor = "on the way out the door."** It is wired to the *exit* of a scope/function, so it fires exactly when control leaves.
-- **Finalizer = "in the lost-and-found queue."** The object is set aside, and a single clerk processes the queue eventually. You don't know when the clerk reaches your item, and the building might close (process exit) before they do.
-- **Drop flags = a checklist.** "Did I already give this away (move) earlier? If so, don't try to drop it again." The compiler keeps the checklist so a moved-out value isn't double-dropped.
-- **Resurrection = a zombie.** The object was pronounced dead, the mortician (finalizer) ran, and then it walked out alive. Spooky and almost never what you want.
 
 ---
 
@@ -198,26 +159,6 @@ Both an explicit close and a finalizer can run. Guard with a `closed` flag (or a
 
 ---
 
-## Pros & Cons
-
-| Mechanism | Timing | Thread | Main use |
-|---|---|---|---|
-| C++ destructor / Rust `Drop` | Scope exit (deterministic) | Caller's | Primary cleanup, exception/panic-safe |
-| Go `defer` | Function return (deterministic) | Caller's | Primary cleanup |
-| Python `with` / C# `using` | Block exit (deterministic) | Caller's | Primary cleanup |
-| Java `finalize` / `Cleaner`, Go finalizer, Python `__del__` | GC-driven (non-deterministic) | Finalizer thread/goroutine | Backstop only |
-
-Deterministic wins on timing, thread-locality, and exception-safety. Finalizers win only as a *forgot-to-close* safety net and native-memory reclaim.
-
----
-
-## Use Cases
-
-- **`defer`/`with`/`using`/`Drop`/destructor:** every scarce or side-effecting resource — files, sockets, DB connections, locks, transactions, temp files.
-- **Finalizer/Cleaner:** free native memory the GC can't see; detect and log leaks; never the only release path for OS handles.
-
----
-
 ## Best Practices
 
 1. **Wire cleanup to control flow**, not to the GC, for anything that matters.
@@ -239,9 +180,24 @@ Deterministic wins on timing, thread-locality, and exception-safety. Finalizers 
 
 ---
 
-## Summary
+## Apply it
 
-- Deterministic cleanup (C++ destructors, Rust `Drop`, Go `defer`, Python `with`, C# `using`) is wired into **control flow** and fires at a known instant, in a known order (reverse declaration), on the caller's thread, safely through exceptions and panics.
-- Finalizers are **queued** when the GC finds an object unreachable, drained later by a **single finalizer thread/goroutine**, after **at least one extra GC cycle**, and possibly **never** (shutdown).
-- That mechanism directly causes the hazards: delay, thread stalls, undefined ordering, and **resurrection**.
-- Use the **two-tier pattern**: explicit idempotent close as the primary path, finalizer as a backstop that logs forgotten cleanup and reclaims native memory.
+1. Find a real component where **Finalizers & Destructors** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
+
+## Verify your work
+
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
+
+## Review questions
+
+- Which boundary is most affected by Finalizers & Destructors?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

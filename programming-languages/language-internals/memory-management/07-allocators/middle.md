@@ -1,34 +1,12 @@
-# Allocators — Middle Level
+# Allocators — Middle
 
-> **Topic:** Allocators
-> **Focus:** The internal mechanisms of a general-purpose allocator — size classes, bins, boundary tags, coalescing/splitting, fit strategies — plus the family of specialized allocators (bump, pool/slab, buddy, stack).
+<!-- level-focus -->
+At middle level, focus on this question:
 
+> Where does **Allocators** belong in a maintainable component, and which trade-off selects the design?
+
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
-
-## Introduction
-
-At the junior tier, the allocator was a black box that hands out and reclaims memory. Now we open the box. A general-purpose allocator is a data-structures problem: given a stream of arbitrary `malloc(size)` and `free(ptr)` requests, maintain a map of the heap that lets you answer "where is a free region of at least `size` bytes?" quickly, while keeping fragmentation and metadata overhead low.
-
-There is no single right answer — which is why dozens of allocators exist. This document covers the building blocks they all share (chunks, headers, free lists, fit policies), the classic general-purpose design (dlmalloc/ptmalloc bins), and the *specialized* allocators that throw generality away in exchange for being dramatically faster at a narrower job: **bump/arena**, **pool/slab**, **buddy**, and **stack** allocators.
-
-## Prerequisites
-
-- Solid grasp of the junior material: heap, chunk, free list, header, coalescing, fragmentation.
-- Comfortable with linked lists and basic asymptotic cost (O(1) vs. O(n) list walks).
-- Pointer arithmetic and the idea of memory alignment (rounding addresses to multiples of 8/16).
-- A rough sense of what a thread is (we touch on per-thread structures; deep concurrency is a senior topic).
-
-## Glossary
-
-- **Boundary tag:** A copy of a chunk's size stored at *both* ends of the chunk so neighbors can be inspected in O(1). The trick that makes coalescing fast.
-- **Splitting:** Cutting a large free chunk into a returned piece plus a smaller leftover free chunk.
-- **Coalescing (merging):** Combining a freed chunk with adjacent free neighbors into one larger chunk.
-- **Size class:** A discrete bucket of sizes (e.g., 16, 32, 48, 64, …). Requests are rounded up to the nearest class.
-- **Segregated free list:** A separate free list per size class, so satisfying a request is a direct lookup, not a search.
-- **Bin:** dlmalloc/ptmalloc's name for a free list bucket (fast bins, small bins, large bins, unsorted bin).
-- **Arena:** A self-contained heap region with its own free lists and lock; glibc uses multiple arenas to reduce contention.
-- **Slab:** A page (or set of pages) carved entirely into objects of one fixed size.
-- **Buddy:** A scheme that manages memory in power-of-two blocks that split and merge with their "buddy."
 
 ## Core Concepts
 
@@ -133,21 +111,6 @@ The **buddy** system manages memory in blocks whose sizes are powers of two. To 
 
 A bump allocator with a twist: you can free in **strict LIFO order** (last allocated, first freed) by saving and restoring a marker. Allocate moves the pointer up; free moves it back down to a saved marker, reclaiming everything above. It models nested scopes perfectly and is common for scratch/temporary memory in games and parsers.
 
-## Real-World Analogies
-
-- **Bump allocator = a fresh notepad.** You write top-to-bottom (increment the pointer). You never erase a single line; when the page is done you tear off the *whole sheet* and start fresh. Fast, but no per-line erasing.
-- **Pool allocator = an egg carton.** Twelve identical slots. You pop an egg out (allocate) or put one back (free) — instantly, no measuring, because every slot is the same size.
-- **Buddy allocator = breaking a chocolate bar.** Need a small piece? Snap a big bar in half, then half again, until the piece is just big enough. Done? If the matching half is also free, snap them back together.
-- **Boundary tags = labels on both ends of a shelf segment**, so a stocker can read the size of the segment whether they approach it from the left or the right.
-
-## Mental Models
-
-1. **Generality has a price.** A general allocator must handle any size, any order — so it carries headers, fit searches, and coalescing logic. Specialized allocators delete those costs by constraining the problem (one size, or one free order, or free-all-at-once).
-
-2. **Free lists are caches of shape.** A segregated free list isn't just "free memory" — it's free memory *pre-sorted by size*, turning a search into a lookup.
-
-3. **Fragmentation is a layout property, not a quantity.** You fight it structurally: size classes bound internal fragmentation; coalescing fights external fragmentation; arenas sidestep both by freeing en masse.
-
 ## Code Examples
 
 ### A bump (arena) allocator in C
@@ -230,24 +193,6 @@ void pool_free(Pool *p, void *ptr) {
 
 The free list lives *inside* the free blocks themselves — a freed block's first bytes become the `next` pointer. Zero metadata overhead, O(1) alloc/free, no fragmentation as long as every object is the same size.
 
-## Pros & Cons
-
-| Allocator | Pros | Cons |
-|-----------|------|------|
-| General-purpose (bins) | Handles any size/order; one API for everything | Header overhead; fit/coalesce logic; fragmentation risk |
-| Bump/arena | Fastest possible alloc; trivial reset; great locality | No individual free; must free whole region |
-| Pool/slab | O(1) alloc/free; zero fragmentation; cache-hot | Only one object size per pool |
-| Buddy | Fast split/merge (XOR buddy); bounded fragmentation | Internal fragmentation up to ~2×; power-of-two only |
-| Stack | O(1) alloc/free; models scopes | Strict LIFO free order only |
-
-## Use Cases
-
-- **Compiler:** a bump arena per compilation pass — the AST and IR for one pass all die together.
-- **Web server:** an arena per request — parse, route, render into the arena, reset after the response.
-- **Game engine:** a frame arena reset every frame; pools for particles, entities, components.
-- **Kernel:** buddy for pages, slab for kernel objects.
-- **Parser/interpreter:** a stack allocator for nested scope scratch space.
-
 ## Coding Patterns
 
 - **Arena-per-scope.** Tie an arena's lifetime to a logical scope (request, frame, pass). Reset at the scope boundary; never `free` inside.
@@ -272,6 +217,26 @@ The free list lives *inside* the free blocks themselves — a freed block's firs
 - **Arena over-retention.** Because an arena frees nothing until reset, one long-lived object pins the *entire* region. Keep long-lived data out of short-lived arenas.
 - **Next-fit's hidden cost.** It often fragments worse and trashes cache locality compared to first-fit despite seeming "fairer."
 
-## Summary
+---
 
-A general-purpose allocator is a data-structures engine: chunks carry **headers and boundary tags** so neighbors can be inspected and merged in O(1); **splitting** and **coalescing** keep chunk sizes matched to demand; **size classes** and **segregated free lists** (the bins of dlmalloc/ptmalloc) turn allocation into a near-O(1) lookup while bounding internal fragmentation. When you know more about the workload, **specialized** allocators win big by dropping generality: **bump/arena** allocators allocate by pointer increment and free everything at once; **pool/slab** allocators serve fixed-size objects with zero fragmentation; **buddy** allocators split and merge power-of-two blocks; **stack** allocators free in LIFO order. The senior tier builds on this to compare full production allocators (jemalloc, tcmalloc, mimalloc) and reason about thread scalability and fragmentation at scale.
+## Apply it
+
+1. Find a real component where **Allocators** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
+
+## Verify your work
+
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
+
+## Review questions
+
+- Which boundary is most affected by Allocators?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

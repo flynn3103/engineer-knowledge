@@ -1,50 +1,11 @@
-# Capability-Based Security — Professional Level
+# Capability-Based Security — Professional
 
-> **Topic:** Capability-Based Security
-> **Focus:** Shipping least-authority in real codebases — dependency-injecting authority, SES/WASI/Node permission models, macaroons and capability tokens in distributed systems, revocation via membranes, supply-chain defense, and the organizational economics of migrating an ACL/RBAC system toward capabilities.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Capability-Based Security** with measurable outcomes and limited coordination?
 
-## Introduction
-
-At the senior tier you learned *where* capabilities are enforced — the kernel, the language realm, the sandbox ABI — and the machinery (membranes, macaroons, derivation trees) that keeps the model sound. At the professional tier the question changes from "what enforces it" to "how do I retrofit this into a hundred-thousand-line service without halting feature work, and how do I justify the cost to the people who pay for it."
-
-This is the tier where capability security stops being a property of clean-room systems like seL4 and becomes a *refactoring discipline* you apply to a Node service that already `import`s `fs` in forty files, an organizational migration you stage over quarters, and a supply-chain control you defend in a security review. The hardest parts here are not cryptographic or kernel-theoretic. They are economic and social: ambient authority is *convenient*, every program in your stack assumes it, and the people who maintain those programs experience least-authority as friction until the day it saves them from a breach.
-
-This page is about that real-world middle ground — *capability islands inside ambient systems*. You will rarely get to start on seL4. You will almost always be handed a codebase soaked in ambient authority and asked to make the trust-sensitive parts of it not be. The professional skill is knowing which parts those are, how to wrap them, how to hand authority to them by injection instead of import, and how to revoke that authority cleanly when a tenant churns or a plugin is removed. We will work through the retrofit recipe, the deployable runtimes (SES/Hardened JS, the Node permission model, WASI), the distributed-token story (macaroons and their failure modes), and the migration economics — with war stories where each one has bitten teams in production.
-
----
-
-## Prerequisites
-
-- **Required:** Senior tier — the three enforcement layers (kernel/language/ABI), membranes, caretakers, macaroons with caveats, the powerbox, and the ACL-vs-capability comparison.
-- **Required:** Fluency refactoring a real service in at least one of JavaScript/TypeScript, Go, Rust, or Python — extracting dependencies, inverting control, threading interfaces through call graphs.
-- **Required:** Working knowledge of how your platform exposes ambient authority: `fs`/`net`/`child_process` in Node, `os`/`open` in Python, the global allocator and syscalls in systems languages.
-- **Required:** Operational context — multi-tenancy, plugin systems, third-party dependency risk, incident response, and the compliance questions ("who could have done this?") that drive auth design.
-- **Helpful:** Exposure to OAuth2/JWT scopes for the macaroon comparison, and to one capability-island Unix mechanism (`pledge`/`unveil`, Capsicum, Landlock, seccomp).
-- **Helpful:** Having owned an authorization rewrite or a sandbox rollout end to end.
-
----
-
-## Glossary
-
-| Term | Meaning |
-|------|---------|
-| **Ambient authority** | Power a piece of code can exercise simply by *being* code in the process — `import fs`, a global socket, `process.env` — without anyone handing it that power. The thing capabilities eliminate. |
-| **Authority injection** | Passing a capability (a file handle, a scoped client, a directory object) into a module as an argument or constructor parameter instead of letting the module reach for ambient authority. |
-| **POLA** | Principle of Least Authority — every component holds exactly the authority it needs to do its job and no more; the design target of all this work. |
-| **Powerbox** | The single trusted component that holds broad authority and hands out narrowly-scoped capabilities to everything else; the place ambient authority is *allowed* to live. |
-| **SES / Hardened JavaScript** | A frozen, ambient-authority-free JavaScript runtime (`lockdown()` + `Compartment`) shipping in Agoric/Endo; the practical language-level ocap form today. |
-| **Compartment** | An isolated JS evaluation scope populated with exactly the endowments (capabilities) a guest may use; no ambient globals. |
-| **Node permission model** | Node.js's `--permission` flag plus `--allow-fs-read`/`--allow-fs-write`/`--allow-child-process`/etc., a process-level allowlist that turns ambient `fs`/`net` access into a granted-only capability. |
-| **WASI preopen** | A directory (or socket) capability the host hands a WebAssembly module at startup; the module can resolve paths only relative to preopens it holds — no preopen, no filesystem. |
-| **Macaroon** | An HMAC-chained bearer token any holder can *attenuate* offline by appending caveats; the distributed-systems realization of capability attenuation. |
-| **Caveat** | A restriction baked into a macaroon (`expires < T`, `object = 42`, or a third-party caveat needing a discharge). |
-| **Caretaker** | A revocable indirection wrapping a single capability; flip a switch and the wrapped object is severed. |
-| **Membrane** | A *transitive* caretaker: every object that passes through it is wrapped too, so an entire reachable subgraph can be revoked atomically. |
-| **Confused deputy** | A privileged component tricked into misusing its authority on behalf of a less-privileged caller — the canonical failure that ambient authority enables and capabilities prevent. |
-| **Handle (Zircon/Fuchsia)** | A userspace name for a kernel-object capability with rights bits; the only way to act on a kernel object in Fuchsia — no ambient namespace. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -126,46 +87,6 @@ Two systems prove capabilities are not just a research toy but ship in products 
 **seL4** is a formally verified microkernel where there is no ambient authority at all: every action is the invocation of a capability held in the process's capability space (CSpace), capabilities are minted weaker and badged, and `seL4_CNode_Revoke` severs a derivation subtree. Its C implementation is *proven* to enforce authority confinement and integrity. The professional significance is twofold: it ships in high-assurance products (secure phones, defense, automotive, avionics) where you need a *proof* rather than a test suite, and it demonstrates that the proof is *enabled by* the capability model — "your authority is the capabilities you hold" is a small enough statement to verify formally, which you simply cannot say about an ambient-authority system.
 
 **Fuchsia / Zircon** carries the idea into a shipping consumer OS. Every kernel object is named by a **handle** carrying rights bits; handles are the only way to act on kernel objects, they are transferred over channels, and there is no ambient filesystem — a component's namespace is exactly the set of handles its parent granted at launch. This is the powerbox pattern at OS scale: a component holds the handles for its job and no more, so a compromised driver holds only the MMIO and IRQ handles for its device and cannot touch the rest of the system. Fuchsia is the existence proof that capability-by-handle scales to a full, maintainable, consumer operating system — the thing KeyKOS and EROS proved was *possible* but never reached application gravity for.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Authority injection** | A contractor who must be *handed* the key to one room, versus one who keeps a master key to the whole building "for convenience." |
-| **Powerbox** | The building's front desk: the only place that holds all keys and cuts narrowly-scoped ones for visitors. |
-| **Confused deputy** | A compiler given a fee-file path by the customer overwrites the billing log, because it acts with *its* authority on the customer's say-so — the original 1988 confused-deputy story. |
-| **Membrane** | A quarantine zone: anything that touches anything inside also becomes quarantined, and you can lift the whole zone at once. |
-| **Macaroon caveat** | A travel visa you can voluntarily stamp with extra restrictions ("transit only, expires Friday") that no later holder can erase. |
-| **Third-party caveat** | A visa valid only if you also carry a letter from a second consulate. |
-| **WASI preopen** | A workshop with no doors outside; the only access is the one supply hatch the foreman opened for you. |
-| **ACL → capability migration** | Moving from "the guard checks your ID against a list" to "you hold a key that only opens what you were given." |
-| **Supply-chain confinement** | Letting a subcontractor into one supply closet instead of the whole warehouse, so a dishonest subcontractor can steal only what's in that closet. |
-
----
-
-## Mental Models
-
-### The "Import Is a Grab, Injection Is a Grant" Model
-
-Every `import fs` is a module reaching out and *taking* authority no one gave it. Every constructor parameter is a module *receiving* authority a caller chose to grant. The entire retrofit is converting grabs into grants. When you read a module's signature and can enumerate its authority from the parameters alone — without reading the body — you have arrived. When you must read the whole body to know what it can touch, you are still in ambient-authority land.
-
-### The "Powerbox at the Edge, Confinement at the Core" Model
-
-You will never make a real process have zero ambient authority. Instead you confine ambient authority to one auditable place (the powerbox: `main`, the composition root, the host of a sandbox) and make everything downstream receive narrowed capabilities. Security review then has one question — "what does the powerbox hand out, and to whom?" — instead of a whole-codebase audit.
-
-### The "Attenuate Without Asking" Model (macaroons)
-
-Stop thinking of a token as a fixed grant you must return to the issuer to narrow. Think of it as a capability the *holder* shrinks, offline, before delegating — the HMAC chain makes "shrink-only" a cryptographic law. This is the trust topology that lets a client hand a cache server a one-key, 30-second token derived from its broad token with no issuer round-trip.
-
-### The "Revocation Spreads or It Lies" Model
-
-A caretaker cuts one wire; a membrane cuts that wire and every wire that ever passed through it. If the holder obtains objects *transitively* and you revoke with a caretaker, your revocation is a lie — the holder still reaches everything it vended. Match the revocation tool to whether authority spreads.
-
-### The "Confinement Is Containment, Not Detection" Model
-
-Capability confinement does not detect a malicious dependency, scan it, or trust its maintainer. It removes the *path*: no socket capability, no exfiltration, regardless of what the code wants to do. This is why it works against unknown future compromises — it defends the structure, not the specific attack.
 
 ---
 
@@ -308,31 +229,6 @@ revoke();
 
 ---
 
-## Pros & Cons
-
-| Aspect | Pros | Cons |
-|--------|------|------|
-| **Authority injection** | Authority visible in signatures; confused deputy structurally prevented; testable (inject a fake). | Longer signatures, explicit wiring, friction the team feels before the payoff. |
-| **SES Compartments** | In-process, module-grain confinement; deployable today; strong supply-chain story. | Must `lockdown()`; guests lose nondeterminism (`Date`/`Math.random`) which can break naive code. |
-| **Node permission model** | One-flag process perimeter; defends `fs`/`net`/spawn without rearchitecting. | Coarse (process-level); all-or-nothing per resource; not module-grain. |
-| **WASI** | Zero-authority default; confines untrusted *binaries*; portable; strong edge/plugin story. | Younger ecosystem; preopen model differs from POSIX expectations; host can over-grant. |
-| **Macaroons** | Offline client attenuation; cross-service composition via third-party caveats; no session store. | Bearer secrets (theft = authority); root-key compromise total; verifier must actually check caveats. |
-| **Membranes** | Atomic transitive revocation of a graph. | Proxy overhead; breaks `===`/`instanceof`; subtle to implement correctly. |
-| **ACL → capability migration** | Eliminates confused deputies on delegation edges; enables least-authority sharing. | Invasive; fights ambient identity; auditors ask "who did it?"; must stay hybrid to ship. |
-
----
-
-## Use Cases
-
-- **Plugin and extension hosts.** Run untrusted third-party code in WASI sandboxes or SES Compartments with only the capabilities its function needs.
-- **Edge / serverless compute.** Per-tenant WASM modules with per-tenant preopens and policy-mediated egress.
-- **Supply-chain hardening.** Confine pure-computation dependencies so a compromised transitive package has no socket or filesystem to exploit.
-- **Scoped, delegable API tokens.** Macaroons for "share-by-link," downstream service delegation, and short-lived attenuated tokens without an issuer round-trip.
-- **Multi-tenant data access with clean revocation.** Membranes over per-tenant views so a churned tenant's whole reachable graph is severed atomically.
-- **High-assurance components.** seL4-based isolation where a *proof* of confinement is required; Fuchsia-style handle isolation for drivers and services.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Powerbox at the composition root
@@ -405,20 +301,6 @@ callB(authority)   # A can only ever exercise what it was granted
 
 ---
 
-## War Stories
-
-**The markdown renderer that could read your secrets.** A team shipped a docs site whose markdown pipeline imported a chain of plugins, one of which transitively pulled in a package that, post-compromise, read `process.env` and POSTed it out. The fix was not a scanner — it was moving the renderer into an SES Compartment endowed with nothing but pure string functions. The malicious update still ran; it just had no `process` and no `fetch`. The lesson the team internalized: *the renderer never needed the authority, so it should never have held it.* Pure-computation dependencies are the cheapest things to confine and the most dangerous to leave ambient.
-
-**The "30-second" token that lived for months.** A storage gateway used macaroons with an `expires < T` caveat to scope download links. A refactor of the verification path checked the HMAC signature and returned early, skipping the caveat-evaluation loop. Signatures verified, so everything "worked" — and every link minted in that window was effectively permanent, because the expiry caveat was never evaluated. It surfaced only when an audit found a months-old "temporary" link still downloading. The fix was a fail-closed verifier that errors on any caveat it doesn't evaluate, plus an adversarial test that mints an *expired* token and asserts rejection. Macaroon security lives entirely in the verifier, not the chain.
-
-**The revocation that revoked nothing.** A multi-tenant analytics product gave each tenant a caretaker over a `Dataset` object and, on tenant offboarding, flipped the caretaker. Tenants who had earlier called `dataset.query(...)` held live `ResultCursor` objects that kept streaming rows long after "revocation," because the caretaker only severed the `Dataset` handle, not the cursors it had vended. Replacing the caretaker with a membrane — wrapping every object that crossed the tenant boundary — made offboarding sever the whole reachable graph at once. The team's takeaway: *if the object you grant vends other objects, you need a membrane or your revocation is a lie.*
-
-**The WASI host that wired the whole disk.** An edge platform ran customer WASM modules and, for "developer convenience," preopened `--dir /`. The modules were "sandboxed" — no ambient authority in the WASM sense — but the sandbox was the entire host filesystem, so a malicious module read other customers' data. The sandbox is exactly as tight as the host's grants; a permissive preopen throws away the entire model. Per-customer, per-directory preopens and default-deny sockets fixed it.
-
-**The confused deputy in the report exporter.** An internal reporting service ran exports "as the service" and accepted an output path from the requesting user. A user supplied a path pointing at a privileged config file; the service, exercising *its* authority on the user's say-so, overwrote it — the textbook confused deputy. The fix was to stop trusting a *path* and start requiring a *capability*: the user had to present a write capability for the destination, which they could only have if they were already authorized to write there. Bundling designation with authority (the capability *is* the path-plus-permission) is precisely what closes the confused-deputy hole.
-
----
-
 ## Common Mistakes
 
 1. **Importing ambient `fs`/`net` in business logic** instead of receiving an injected capability — the original sin every retrofit targets.
@@ -445,154 +327,24 @@ callB(authority)   # A can only ever exercise what it was granted
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. Take a module that does `import fs` and refactor it to receive a directory capability. Then add the CI lint rule that prevents the ambient import from returning. What does the rule protect against that a code review alone does not?
-2. Explain, in supply-chain terms, why running a markdown parser in an SES Compartment endowed with nothing defends against a *future* compromise of that parser, without any scanner or signature.
-3. A storage gateway's macaroon link with `expires < T` is still valid months later, yet the HMAC signature verifies. Where is the bug, and write the one assertion in a test that would have caught it.
-4. A tenant offboarding flips a caretaker over a `Dataset`, but the tenant's `ResultCursor` objects keep streaming. Explain why, and what pattern fixes it.
-5. Describe a confused-deputy bug in a report exporter that accepts an output path, then rewrite the interface so the bug is structurally impossible.
-6. Your WASI plugin host preopens `--dir /` for "convenience." What authority did you just grant, and what is the minimal correct grant for a plugin that processes one customer's files?
-7. You are asked to migrate an RBAC system to capabilities. Which edges do you convert first and why, and what do you deliberately leave as ACL/RBAC?
-8. Why is the Node permission model an *outer* perimeter rather than a replacement for SES Compartments? What does each catch that the other does not?
+1. Define the user or business outcome that **Capability-Based Security** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
----
+## Verify your work
 
-## Cheat Sheet
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
 
-```text
-┌──────────────────────────────────────────────────────────────────────┐
-│        SHIPPING LEAST-AUTHORITY — PROFESSIONAL CHEAT SHEET            │
-├──────────────────────────────────────────────────────────────────────┤
-│ RETROFIT RECIPE                                                       │
-│   1. Inventory ambient reach (grep fs/net/child_process/env)         │
-│   2. Push authority to ONE powerbox (main / composition root)        │
-│   3. Inject NARROWED capabilities (dir cap, scoped client)           │
-│   4. Lint-forbid ambient imports in the business layer (CI gate)     │
-├──────────────────────────────────────────────────────────────────────┤
-│ DEPLOYABLE CONFINEMENT                                                │
-│   SES/Hardened JS  lockdown() + Compartment(endowments)  module-grain │
-│   Node perm model  --permission --allow-fs-read=...      process-grain│
-│   WASI             preopen dir/socket caps; no --dir=no fs  binary    │
-│   seL4 / Fuchsia   handles/CSpace; proof-grade; drivers, hi-assurance │
-├──────────────────────────────────────────────────────────────────────┤
-│ DISTRIBUTED TOKENS — MACAROONS                                       │
-│   HMAC chain: anyone ADDs caveats offline; NONE can remove           │
-│   third-party caveat => needs a discharge macaroon (compose svcs)    │
-│   PITFALL: verifier MUST evaluate every caveat — fail closed         │
-├──────────────────────────────────────────────────────────────────────┤
-│ REVOCATION                                                           │
-│   caretaker = sever ONE object                                       │
-│   membrane  = sever the whole vended subgraph atomically             │
-│   rule: holder obtains objects transitively => MUST use a membrane   │
-├──────────────────────────────────────────────────────────────────────┤
-│ SUPPLY CHAIN                                                         │
-│   classify deps by authority NEEDED; pure-compute deps => confine    │
-│   "containment not detection": no socket cap => no exfiltration      │
-├──────────────────────────────────────────────────────────────────────┤
-│ ACL/RBAC -> CAPABILITY MIGRATION                                     │
-│   convert DELEGATION edges first (confused-deputy-prone)             │
-│   keep HYBRID: identity for audit/authn, caps for fine-grained authz │
-├──────────────────────────────────────────────────────────────────────┤
-│ REMEMBER: confinement bounds AUTHORITY, not INFORMATION              │
-│   timing/cache side channels survive; bearer-token theft is total    │
-└──────────────────────────────────────────────────────────────────────┘
-```
+## Review questions
 
----
-
-## Summary
-
-- The professional reality of capability security is *capability islands inside ambient systems*: you retrofit least-authority into trust-sensitive parts of an existing codebase rather than starting on seL4.
-- The core refactor is **import → inject**: stop grabbing ambient authority (`import fs`/`net`), start receiving narrowed capabilities from a small, auditable **powerbox**, and lint-forbid the ambient path so it cannot creep back.
-- **SES/Hardened JS** (`lockdown()` + `Compartment`) confines modules in-process; the **Node permission model** confines the whole process at the perimeter; **WASI preopens** confine untrusted *binaries*; **seL4** and **Fuchsia handles** are proof-grade and OS-scale production capability systems.
-- **Macaroons** give distributed tokens capability properties — offline attenuation, delegation, and cross-service composition via third-party caveats — with the standing hazard that *security lives entirely in the verifier*: every incident is a caveat that was never checked.
-- **Revocation** demands matching the tool to the spread of authority: a **caretaker** severs one object, a **membrane** severs an entire transitively-vended subgraph atomically. A caretaker where a membrane is needed is a silent leak.
-- **Supply-chain defense** is the strongest modern argument: confinement is *containment, not detection* — a dependency with no socket capability cannot exfiltrate, defending against unknown future compromises with no scanner.
-- **Migrating ACL/RBAC toward capabilities** pays off most on delegation edges (where confused deputies live), is invasive enough that it must stay **hybrid** — identity for audit, capabilities for fine-grained delegable authorization — and that hybrid is the correct, shippable end state.
-- The hard limits remain: capabilities confine **authority, not information** (timing/cache channels survive), and bearer capabilities are total-loss on theft.
-
----
-
-## What You Can Build
-
-- **A capability-injection retrofit** of one service: convert its business layer from ambient `fs`/`net` to injected capabilities, with a CI lint rule enforcing the boundary, and measure how the security-review question shrinks.
-- **A confined-dependency plugin host** in SES: `lockdown()`, run third-party plugins in Compartments endowed with only what each needs, and demonstrate a malicious plugin cannot reach the network.
-- **A WASI plugin/edge sandbox** with per-tenant preopens, default-deny sockets, and a policy-mediated egress proxy.
-- **A macaroon library with an adversarial verifier test** that proves skipping a caveat check (or mis-ordering it) is caught by CI.
-- **A membrane-based multi-tenant store** where tenant offboarding severs the whole reachable graph atomically, with a test proving transitively-vended objects die too.
-- **An ACL→capability migration plan** for one delegation edge, with before/after diagrams showing the confused deputy removed and the hybrid boundary documented.
-
----
-
-## Further Reading
-
-- *seL4: Formal Verification of an OS Kernel* — Klein et al., SOSP 2009; and the seL4 reference manual (CSpace, Mint/Revoke). https://sel4.systems/
-- *The Fuchsia Book — Zircon kernel objects, handles, and rights.* https://fuchsia.dev/fuchsia-src/concepts/kernel
-- *Macaroons: Cookies with Contextual Caveats for Decentralized Authorization in the Cloud* — Birgisson et al., NDSS 2014. https://research.google/pubs/pub41892/
-- *Hardened JavaScript / SES / Compartments* — Agoric/Endo and the TC39 proposal. https://github.com/endojs/endo and https://github.com/tc39/proposal-compartments
-- *WASI: The WebAssembly System Interface* — capability-based design docs and the preopen model. https://wasi.dev/
-- *Node.js Permission Model* — the `--permission` documentation. https://nodejs.org/api/permissions.html
-- *The Confused Deputy (or why capabilities might have been invented)* — Norm Hardy, 1988. https://cap-lore.com/CapTheory/ConfusedDeputy.html
-- *Robust Composition: Towards a Unified Approach to Access Control and Concurrency Control* — Mark S. Miller's dissertation (membranes, the powerbox, ocap). http://www.erights.org/talks/thesis/
-- *Capsicum: Practical Capabilities for UNIX* — Watson et al., USENIX Security 2010; and OpenBSD `pledge`/`unveil`; Linux Landlock. https://www.cl.cam.ac.uk/research/security/capsicum/
-
----
-
-## Diagrams & Visual Aids
-
-```
-IMPORT (GRAB) vs INJECT (GRANT)
-===============================
-
-  AMBIENT:   [ module ] --import fs--> [ ENTIRE FILESYSTEM ]
-             authority is INVISIBLE in the signature; reach is unbounded
-
-  CAPABILITY:[ powerbox ] --openDirCap('/app/data')--> [ DirCap ]
-                                                          |
-                                            inject (constructor arg)
-                                                          v
-                                                      [ module ]
-             authority is EXACTLY DirCap; visible in the signature
-
-
-POWERBOX AT THE EDGE, CONFINEMENT AT THE CORE
-=============================================
-
-   ambient authority lives HERE (audited)         confined here
-   +-------------------+                    +------------------------+
-   |     POWERBOX      |  --narrowed caps-> |  business logic        |
-   |  main / comp root |                    |  (no fs/net imports)   |
-   |  fs, net, env     |  --Compartment---> |  risky dependency      |
-   +-------------------+                    +------------------------+
-   review question: "what does the powerbox hand out, to whom?"
-
-
-MACAROON ATTENUATION CHAIN
-==========================
-
-   issuer:   HMAC(root, "user=alice")               = sig0   (broad)
-   client:   HMAC(sig0, "object=42")                = sig1
-   client:   HMAC(sig1, "expires<+30s")             = sig2   (strictly weaker)
-                 |                                       |
-          can only ADD                            verifier re-derives from root
-          (HMAC one-way)                          AND checks EVERY caveat <-- fatal if skipped
-
-
-CARETAKER vs MEMBRANE
-=====================
-
-  caretaker:  [holder] --> (X)-> [object]          revoke X: object severed
-                              ^                     but vended children survive!
-
-  membrane:   [holder] --> (M)-> [db] -(M)-> [table] -(M)-> [row]
-                              every crossing re-wrapped by the same M
-              revoke M: db, table, row ALL severed atomically
-
-
-SUPPLY-CHAIN CONFINEMENT
-========================
-
-   AMBIENT:    malicious dep --require('net')--> [ EXFILTRATE ]   (any of 3000 deps)
-   CONFINED:   malicious dep --(no socket cap)--> [   blocked  ]   containment, not detection
-```
+- Which measurable outcome justifies investing in Capability-Based Security?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

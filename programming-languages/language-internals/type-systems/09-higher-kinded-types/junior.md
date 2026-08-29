@@ -1,69 +1,11 @@
-# Higher-Kinded Types — Junior Level
+# Higher-Kinded Types — Junior
 
-> **Topic:** Higher-Kinded Types
-> **Focus:** Types have types too. Before you can write code that works for *any* container, you need a word for "the kind of thing `List` is" — and that word is **kind**.
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **Higher-Kinded Types** in one small example and prove the result?
 
-## Introduction
-
-> Focus: **What is a "kind"?** And **why would you ever want a type parameter that is itself a container, not a value?**
-
-You already write **generic** code. `List<T>` works for any element type `T`: `List<Int>`, `List<String>`, `List<User>`. The `T` is a *hole* you fill with a concrete type. That is **abstraction over a type** — your code does not care *which* element type fills the hole.
-
-Higher-kinded types ask a stranger question. What if the hole is not the *element* but the *container itself*? What if you could write one function that works for **any container** — `List`, `Maybe`/`Option`, `Either`, a `Future`, a tree — without naming which one? Not "any element type", but "any *thing that holds elements*". That is **abstraction over a type constructor**, and to even talk about it cleanly we need a vocabulary for the "shape" of types. That vocabulary is **kinds**.
-
-Here is the one idea this whole page builds toward:
-
-- `Int`, `String`, `Bool`, `User` are **complete, finished types**. You can have a value of type `Int`. Their kind is written `*` (say it "star", or "type").
-- `List`, `Maybe`, `Option`, `Set` are **not** finished types. You cannot have a value of type "`List`". `List` of *what*? It is a *type that needs one more type* to become complete. It is a **type constructor**. Its kind is `* -> *` — "give me a type, I'll give you back a type".
-- `Either`, `Map`, a pair `(A, B)` need **two** types to finish. Their kind is `* -> * -> *`.
-
-A **higher-kinded type** is code that abstracts over something of kind `* -> *` — code that is generic in the *container*, the way ordinary generics are generic in the *element*.
-
-> 🎓 **Why this matters for a junior:** You don't need to *write* higher-kinded code on day one. But the moment you read Haskell, Scala with the Cats library, or TypeScript with fp-ts, you'll hit `f a`, `F[_]`, or `Kind<F, A>` and wonder what kind of beast that is. Understanding *kinds* — the "types of types" — is the single concept that unlocks all of it. It is also one of the cleanest ways to deepen what "generic" really means.
-
-This page stays gentle. We explain kinds with pictures and counting, show what "a function that works for any container" buys you, and meet — without mysticism — the famous trio `Functor`, `Applicative`, `Monad`, which are *the* reason higher-kinded types exist. The real Haskell and Scala mechanics live in `middle.md` and `senior.md`. Here we build intuition.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** Generics in at least one language — `List<T>`, `Optional<T>`, `Map<K, V>`, or the equivalent. You should be comfortable with the idea of a type parameter.
-- **Required:** What a function is, and that functions take inputs and return outputs.
-- **Required:** Familiarity with at least one "container that might be empty or hold a value", such as Java `Optional`, Swift/Rust `Option`, or even nullable types.
-- **Helpful but not required:** Having used `map` on a list (`[1,2,3].map(x => x + 1)`).
-- **Helpful but not required:** Seeing `flatMap` (also called `bind`, `>>=`, `andThen`, or `SelectMany`) once before.
-
-You do **not** need:
-
-- Any Haskell or Scala yet. We introduce the syntax slowly.
-- Category theory. The word "monad" comes from there, but you can use it without any of the math.
-- The implementation tricks (defunctionalization, type lambdas) — those are senior/professional topics.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Type** | A set of values: `Int` is "all the integers", `Bool` is `{true, false}`. You can hold a value of a type. |
-| **Type constructor** | A type that needs other types to become complete: `List`, `Maybe`, `Map`. Not a type by itself. |
-| **Generic / parametric** | Code with type *holes* (`T`, `A`) that works for many element types. |
-| **Kind** | The "type of a type". Tells you how many type arguments a type needs to be complete. |
-| **`*`** ("star" / "type") | The kind of a complete type like `Int` or `String`. |
-| **`* -> *`** | The kind of a one-argument type constructor like `List` or `Maybe`. |
-| **`* -> * -> *`** | The kind of a two-argument type constructor like `Either` or `Map`. |
-| **Higher-kinded type (HKT)** | Code that abstracts over a type constructor (something of kind `* -> *`), not just a type. |
-| **Container / effect** | Informal name for an `F` of kind `* -> *`: it "wraps" a value of type `A` to make `F<A>`. |
-| **`map` / `fmap`** | Transform the value(s) inside a container with a function, keeping the container shape. |
-| **`flatMap` / `bind` / `>>=`** | Like `map`, but the function itself returns a container; the result is flattened so you don't get a container-of-containers. |
-| **Functor** | Any container `F` that supports a lawful `map`. |
-| **Monad** | A container `F` that supports `flatMap` and a way to wrap a plain value (`pure` / `of` / `return`), following laws. |
-| **`pure` / `of` / `return`** | Put a plain value into the simplest possible container: `pure(3)` is `Some(3)` for `Option`, `[3]` for `List`. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -202,48 +144,6 @@ You don't need the details now. The shape to remember: **every Monad is an Appli
 
 ---
 
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **A type (`Int`)** | A specific, finished object you can hold — a single brick. |
-| **A type constructor (`List`)** | A *mold* that stamps out bricks. The mold itself is not a brick; feed it material and it makes one. |
-| **Kind `*`** | "This is a finished brick." |
-| **Kind `* -> *`** | "This is a brick mold — needs one material to produce a brick." |
-| **Kind `* -> * -> *`** | "This is a mold that needs two materials" (e.g. a two-tone brick mold). |
-| **Higher-kinded function** | An instruction manual that works for *any mold*, not just one specific brick. |
-| **`map`** | A gift-wrapping rule: "whatever is in the box, swap it for something else, keep the same box." |
-| **Functor** | Any box you can apply that gift-wrapping rule to. |
-| **`flatMap`** | "Open the box; the thing inside tells you to go to *another* box; merge them so you don't end up holding nested boxes." |
-| **Monad** | A box that supports that open-and-merge rule plus a way to put a plain item into the simplest box. |
-| **`pure`** | The simplest possible packaging: drop one item into a single-item box. |
-
-The "mold vs brick" picture is the load-bearing one. **`List` is a mold, `List<Int>` is a brick.** Higher-kinded types are about writing instructions for molds.
-
----
-
-## Mental Models
-
-### The "count the holes" model
-
-When you meet any type name, ask: *how many type arguments must I supply before I can store a value of it?*
-
-- Zero holes → kind `*` → `Int`, `String`, `List<Int>`.
-- One hole → kind `* -> *` → `List`, `Option`, `Future`.
-- Two holes → kind `* -> * -> *` → `Either`, `Map`, pair.
-
-A higher-kinded type is any code whose **type parameter still has a hole in it** — you're parameterizing over a one-hole (or more) thing.
-
-### The "same shape, many boxes" model
-
-Whenever you notice yourself writing the *same operation* against `List`, then against `Option`, then against `Either`, with only the box changing, you've found a place where a higher-kinded abstraction would let you write it **once**. `map` is the first such operation; `flatMap` is the second. The whole `Functor`/`Monad` machinery is "let me write this once for all boxes".
-
-### The "ladder of power" model
-
-Think of three rungs. `Functor` lets you transform inside a box. `Applicative` lets you combine *independent* boxes. `Monad` lets a later step *depend on* an earlier box's contents. Pick the lowest rung that does your job: don't demand `Monad` when `Functor` suffices. Lower rungs are more general and apply to more types.
-
----
-
 ## Code Examples
 
 We stay light. The point is to *see* kinds and the shared shape, not to master Haskell yet.
@@ -331,35 +231,6 @@ bump(List(1, 2, 3)) // List(2, 3, 4)
 
 ---
 
-## Pros & Cons
-
-| Aspect | Pros | Cons |
-|--------|------|------|
-| **Reuse** | Write `map`, `traverse`, validation, retry logic *once* and reuse across every container/effect. | The payoff only appears once you have several containers; for one container it's overkill. |
-| **Abstraction** | Express "works for any effect `F`" — the basis of tagless-final, generic `traverse`, effect systems. | Adds a layer of indirection that can hide what's actually running. |
-| **Type safety** | The compiler checks that your generic code is valid for *all* containers, not just the one you tested. | Error messages get long and abstract — "no Functor instance for F" baffles newcomers. |
-| **Learnability** | Once internalized, a huge body of FP code becomes readable. | Steep ramp. Many engineers never need it; teams often ban it for onboarding cost. |
-| **Language support** | First-class in Haskell, Scala, PureScript. | Absent in Java, Go, C#, Rust (native), TypeScript (native) — you either can't or must hack it. |
-
----
-
-## Use Cases
-
-Higher-kinded types earn their keep when:
-
-- **You have many containers and the same operation across all of them.** Define `map`/`flatMap`/`traverse` once.
-- **You want code generic over the "effect".** A function that works whether the effect is `Option` (maybe-missing), `Either` (maybe-error), `Future`/`IO` (async/side-effecting), or `List` (many results).
-- **You're using a typed-FP library.** Scala's Cats/ZIO, Haskell's `base`/`mtl`, PureScript, TypeScript's fp-ts all lean on HKTs.
-- **You want to write a single validation/parsing pipeline** that can run synchronously *or* asynchronously by swapping the effect type.
-
-They are the **wrong** tool when:
-
-- Your codebase has one or two containers and no plans for more — plain generics are simpler.
-- Your team is unfamiliar with FP and onboarding speed matters more than maximal reuse.
-- Your language doesn't support them and the encoding cost outweighs the benefit (often the case in Rust/TypeScript today).
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Reach for `map` before `flatMap`
@@ -401,24 +272,24 @@ Ask for the least powerful abstraction that does the job. If you only transform 
 
 ---
 
-## Summary
+## Apply it
 
-- **Types classify values; kinds classify types.** A finished type like `Int` has kind `*`.
-- **Type constructors are type-level functions.** `List` and `Maybe` have kind `* -> *` (one hole); `Either` and `Map` have kind `* -> * -> *` (two holes). Count the arrows to count the missing arguments.
-- **A higher-kinded type abstracts over a type *constructor*** (a `* -> *` thing), not just a type — it's "generic in the container", not merely "generic in the element".
-- **The motivation is the repeated shape of `map` and `flatMap`** across `List`, `Option`, `Either`, `Future`. The same signature appears everywhere; HKTs let you write it once.
-- **Functor** = container with a lawful `map`. **Monad** = container with `flatMap` + `pure` obeying laws; `flatMap` just "runs the next step and flattens". The hierarchy is **Functor → Applicative → Monad**, each adding power.
-- **`flatMap` is concrete, not magic:** short-circuit for `Option`, error-propagate for `Either`, cartesian-product for `List`.
-- **Haskell and Scala have HKTs natively; Java, Go, C#, Rust (native), and TypeScript (native) do not** — a limitation we explore in later pages.
-- **Junior takeaway:** master the word *kind* and the "count the holes" habit. Everything else builds on it.
+1. Choose one small, known input for **Higher-Kinded Types**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
----
+## Verify your work
 
-## Further Reading
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
 
-- *Learn You a Haskell for Great Good!* — Miran Lipovača. The gentlest on-ramp to Functors and Monads. http://learnyouahaskell.com/
-- *Functional Programming in Scala* ("the red book") — Chiusano & Bjarnason. Builds Functor/Monad from scratch.
-- *Haskell Programming from First Principles* — Allen & Moronuki. Careful, slow, excellent on kinds.
-- *Category Theory for Programmers* — Bartosz Milewski. For the curious; not required. https://bartoszmilewski.com/
-- The fp-ts documentation (TypeScript) — shows the same ideas in a language many juniors already use. https://gcanti.github.io/fp-ts/
-- *What I Wish I Knew When Learning Haskell* — Stephen Diehl. A map of the territory.
+## Review questions
+
+- What problem does Higher-Kinded Types solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

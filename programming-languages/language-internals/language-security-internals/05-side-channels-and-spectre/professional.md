@@ -1,52 +1,11 @@
-# Side Channels & Spectre — Professional Level
+# Side Channels & Spectre — Professional
 
-> **Topic:** Side Channels & Spectre
-> **Focus:** Engineering and operating defenses at scale — the performance economics of each mitigation, threat-model-driven mitigation policy, constant-time programming discipline, and verifying it with dudect / ctgrind / formal tooling.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Side Channels & Spectre** with measurable outcomes and limited coordination?
 
-## Introduction
-
-> Focus: **Given a fleet, a threat model, and a budget, which mitigations do you actually turn on — and how do you prove your own crypto and auth code is constant-time?**
-
-By the senior level you can classify any transient-execution variant and name its mitigation. The professional problem is harder and more concrete: **mitigations are not free, threat models are not uniform, and "turn everything on" is the wrong default** — it can cost double-digit percentages of fleet capacity, which at scale is millions of dollars and a real carbon and latency budget. The professional engineer treats mitigation as a *risk-and-cost optimization* keyed to *where the trust boundary actually is*, and owns two things the platform cannot do for them: (1) the **mitigation policy** (what to enable, on which hosts, for which workloads), and (2) the **constant-time discipline** in the security-critical code their team writes — the one channel that is fully theirs and that no microcode update will fix for them.
-
-This page covers the economics (KPTI's syscall tax, retpoline's indirect-branch penalty, SSBD per-process cost, the brutal arithmetic of disabling SMT), how to set mitigation policy from a threat model instead of from fear, and then the craft of **constant-time programming**: the rules (no secret-dependent branches, indices, divisions, or variable-latency instructions), the techniques (branchless selection, bitmasking, blinding, hardware crypto), and — critically — how to *verify* you got it right with **dudect** (statistical timing leakage testing), **ctgrind** (Valgrind-based taint of secret bytes), and tools like ct-verif / Binsec/Rel for stronger guarantees. The thesis: **you cannot eyeball constant-timeness — the compiler will betray you — so you must measure and verify, in CI, on the real target.**
-
-> 🎓 **Why this matters for a professional:** This is where security meets the P&L and the SLO. The decisions here — disable SMT on the secrets tier but not the batch tier; enable SSBD only for the JIT processes; gate the crypto library on a dudect run in CI — are exactly the judgment calls that distinguish an engineer who *understands* side channels from one who only *knows about* them.
-
----
-
-## Prerequisites
-
-- **Required:** `senior.md` — the full transient-execution taxonomy and the structure→mitigation→layer map.
-- **Required:** Comfort reading generated assembly and reasoning about per-instruction latency/throughput.
-- **Required:** Operational fluency: syscall-rate profiling, SMT/topology, kernel/microcode/compiler-flag management across a fleet.
-- **Helpful:** Statistics basics (hypothesis testing, percentiles) for interpreting dudect output.
-- **Helpful:** Experience with a crypto library's internals (BoringSSL, libsodium, or similar).
-
-You do **not** need to be a CPU designer — but you must be able to reason about *cost per boundary crossing* and *leakage measured statistically*.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Mitigation policy** | The per-workload, per-host decision of which CPU-vuln mitigations to enable, derived from the threat model. |
-| **Threat model** | Explicit statement of who the attacker is, what they can run, and what boundary protects the secret. Drives mitigation choice. |
-| **Syscall tax (KPTI)** | The extra page-table switch / TLB cost added to every user↔kernel transition by KPTI; worst for syscall-heavy workloads. |
-| **PCID / INVPCID** | Process-context identifiers that let KPTI avoid full TLB flushes, dramatically reducing its cost on supporting CPUs. |
-| **Constant-time (CT) code** | Code whose timing and memory-access pattern are independent of secret values. |
-| **Secret-dependent branch/index/division** | The three classic CT violations: control flow, memory addresses, or variable-latency arithmetic that depends on a secret. |
-| **Branchless selection** | Choosing between two values with arithmetic/bitwise ops (a mask) instead of an `if`, to avoid a secret-dependent branch. |
-| **Blinding** | Randomizing a computation (e.g., multiplying by a random factor) so its side-channel signature is decorrelated from the secret. |
-| **dudect** | A practical tool that statistically tests whether a function's runtime distribution differs between two input classes (fixed vs. random secret) — a leak indicator. |
-| **ctgrind** | A Valgrind (Memcheck) modification that marks secret bytes as "uninitialized" so any branch/index on them is flagged — taint-based CT checking. |
-| **ct-verif / Binsec/Rel** | Tools giving stronger (formal/relational) guarantees that a binary is constant-time. |
-| **Doit / DIT** | Data-Independent Timing CPU modes (Intel DOITM / ARM DIT) that promise certain instructions run in secret-independent time. |
-| **Selective mitigation** | Enabling a costly mitigation only on the subset of processes/hosts whose threat model needs it. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -112,32 +71,6 @@ No combination of mitigations is complete forever — new variants keep arriving
 - **Detection/governance layer:** track new CVEs, re-run the threat-model mapping, and re-evaluate the SMT decision as hardware refreshes change the cost/benefit.
 
 State the residual risk plainly: e.g., "on this tier we accept cross-tenant L1 leakage risk in exchange for SMT throughput, mitigated by single-tenant scheduling." Security at scale is documented trade-offs, not absolutes.
-
----
-
-## Real-World Analogies
-
-**Mitigation policy as insurance underwriting.** You don't buy flood insurance for a house on a hill. KPTI, SSBD, SMT-off are premiums; you pay them where the risk (untrusted neighbors, exposed boundary, valuable asset) justifies the cost, and you document why you skipped them elsewhere.
-
-**Constant-time code as a poker face.** A skilled player never lets their *timing* — the pause before a bet, the speed of a fold — reveal their hand. Constant-time code is the engineering version: the function must "play every hand at the same tempo" so the observer learns nothing from the rhythm.
-
-**dudect as a polygraph.** You don't trust the function's claim that it's constant-time; you wire it up, feed it two kinds of secrets, and watch whether its "pulse" (cycle count) changes. A statistically significant tell is a confession.
-
-**SMT-off as closing the shared break room.** SMT siblings share the core's "break room" (buffers, caches) at the same time, where they can overhear each other (MDS, L1TF). Disabling SMT gives each tenant their own room — safer, but you've halved the building's occupancy.
-
----
-
-## Mental Models
-
-**Model 1: Mitigation = premium; threat model = the actuarial table.** Compute expected cost (performance × fleet × time) against expected risk (exposure × asset value). Enable where risk-adjusted benefit beats cost; document the rest.
-
-**Model 2: Three CT sins.** Every constant-time bug is a secret-dependent **branch**, **address**, or **variable-latency op**. Auditing CT code is hunting those three.
-
-**Model 3: The compiler is an adversary to CT code.** Anything you write to be constant-time, the optimizer may "improve" back into a leak. Trust only the verified binary, not the source.
-
-**Model 4: Detect ≠ prove.** dudect/ctgrind *find* leaks; only formal tools *prove* their absence. Calibrate confidence to the tool and to the asset's value.
-
-**Model 5: Residual risk is a deliverable.** At scale you never reach zero. The professional artifact is a written, re-visitable statement of what you mitigated, what you accepted, and why.
 
 ---
 
@@ -215,30 +148,6 @@ trusted_batch:
 
 ---
 
-## Pros & Cons
-
-| Decision | Upside | Downside |
-|----------|--------|----------|
-| **Selective mitigation by tier** | Spends performance only where risk justifies it; large fleet savings. | Requires accurate threat modeling and per-tier ops; misclassification = exposure. |
-| **Disabling SMT (secrets tier)** | Closes the strongest cross-thread leaks (MDS/L1TF). | Large capacity loss; expensive at scale. |
-| **PCID-aware KPTI** | Keeps Meltdown protection while slashing the syscall tax. | Needs CPU support; still nonzero for syscall-storm workloads. |
-| **Branchless CT code** | Removes the timing/cache leak; portable. | Harder to write/read; compiler can undo it; must be verified. |
-| **Hardware crypto (AES-NI etc.)** | Constant-time and fast; no secret-indexed tables. | Not available everywhere; must fall back carefully. |
-| **dudect in CI** | Cheap, real-target regression gate. | Detects, can't prove absence; needs a quiet, stable runner. |
-| **Formal CT verification** | Strongest guarantee. | High effort; reserved for critical primitives. |
-
----
-
-## Use Cases
-
-- **Cloud/hosting platforms:** set per-tier SMT/scheduling/mitigation policy; decide co-location rules for untrusted guests vs. secret-bearing hosts.
-- **Crypto/auth library maintainers:** write and *verify* constant-time primitives; gate releases on dudect/ctgrind; reserve formal verification for the core.
-- **Browser / serverless / WASM runtime teams:** combine site/process isolation, SSBD, timer hardening, and v1 gadget hardening; balance against latency.
-- **Confidential computing / HSM / enclave teams:** L1TF/MDS mitigations, SMT policy, and CT code are existential; residual-risk statements are part of the security argument.
-- **Performance/SRE teams:** quantify mitigation cost on real workloads and feed it back into capacity planning and the mitigation policy.
-
----
-
 ## Coding Patterns
 
 **Pattern: tiered, documented mitigation policy.** Encode mitigations per workload tier, justified by an explicit threat model, and re-evaluate on hardware refresh and new CVEs.
@@ -280,48 +189,24 @@ trusted_batch:
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. For a syscall-heavy database tier, how do you predict KPTI's cost, and what hardware feature reduces it?
-2. Construct a tiered mitigation policy for: (a) a host holding signing keys, (b) a multi-tenant VM host running untrusted guests, (c) a trusted internal batch cluster. Justify each.
-3. List the three "constant-time sins" and give a branchless fix for a secret-dependent branch.
-4. Why must constant-time code be verified at the binary level rather than the source level?
-5. Contrast dudect, ctgrind, and ct-verif on what they guarantee and their cost.
-6. When is disabling SMT *not* worth it, and when is it essential?
-7. Explain RSA blinding and which side channel it defeats.
-8. Write a one-paragraph residual-risk statement for keeping SMT on in a tier, and the trigger that would force you to revisit it.
+1. Define the user or business outcome that **Side Channels & Spectre** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
----
+## Verify your work
 
-## Cheat Sheet
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
 
-| Item | Professional takeaway |
-|------|------------------------|
-| KPTI cost | ∝ syscall rate; cut hard by PCID/INVPCID. |
-| Retpoline cost | ∝ indirect-branch density; eIBRS cheaper on modern CPUs. |
-| SSBD | Enable for untrusted-code processes (browsers/JITs), not trusted batch. |
-| SMT off | Strongest MDS/L1TF cut; biggest capacity cost; decide by trust boundary. |
-| CT sins | Secret-dependent branch / address / variable-latency op. |
-| CT techniques | Masking, cswap, full-table scan, blinding, hardware crypto, DIT/DOIT. |
-| Verify | ctgrind (find), dudect (CI gate), ct-verif (prove crown jewels). |
-| Golden rule | Trust the verified binary, not the source; the compiler is adversarial to CT. |
-| Policy | Mitigate by threat boundary + asset value; document residual risk; revisit. |
+## Review questions
 
----
-
-## Summary
-
-At scale, side-channel defense is an optimization problem, not a checklist. **Mitigations cost real performance** — KPTI taxes syscalls (cut by PCID), retpoline taxes indirect branches (cut by eIBRS), SSBD costs per-process, and disabling SMT to fully close MDS/L1TF can cost a large slice of fleet capacity. The professional discipline is to **set mitigation policy from an explicit threat model** — who runs code on this hardware, what boundary protects the secret, how valuable the asset is — producing a *tiered* policy that spends performance only where risk justifies it, with every skipped or accepted trade-off written into a re-visitable residual-risk register. Over-mitigation is a genuine, expensive failure mode.
-
-The one channel that is fully yours is **constant-time programming**: no secret-dependent branches, addresses, or variable-latency operations. The techniques are branchless selection (masking), conditional swap, full-table scans or hardware crypto instead of secret-indexed tables, and blinding for variable-latency big-integer math. But you **cannot eyeball constant-timeness — the compiler will undo it** — so you must verify at the binary level: **ctgrind** (taint-based, finds leaks during development), **dudect** (statistical timing test, a CI regression gate on the real CPU), and **ct-verif / Binsec/Rel** (formal proof for the crown-jewel primitives). The mature posture is defense in depth — current microcode/kernel/compiler, isolation of untrusted code, verified constant-time code, and active CVE governance — combined with an honest, documented statement of residual risk that you revisit as hardware and attacks evolve. Security at this level is the quality of your trade-offs and the rigor of your verification, not the absence of risk.
-
----
-
-## Further Reading
-
-- "Dude, is my code constant time?" (Reparaz, Balasch, Verbauwhede) — the dudect methodology.
-- Adam Langley's writing on ctgrind and constant-time pitfalls; the BearSSL constant-time documentation.
-- ct-verif and Binsec/Rel papers on verified constant-time at the binary level.
-- Intel DOITM / ARM DIT documentation on data-independent timing modes.
-- Kernel and hypervisor mitigation tuning guides (KPTI/PCID, SSBD, MDS, L1TF, core scheduling) for fleet operators.
-- The crypto-engineering literature on blinding and constant-time elliptic-curve and big-integer implementations.
+- Which measurable outcome justifies investing in Side Channels & Spectre?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

@@ -1,31 +1,12 @@
-# Reference Counting — Senior Level
+# Reference Counting — Senior
 
-> **Topic:** Reference Counting
-> **Focus:** Design trade-offs vs tracing GC, the advanced refcount optimizations, and a cross-language comparison of real implementations.
+<!-- level-focus -->
+At senior level, focus on this question:
 
+> Which system invariant is affected by **Reference Counting** under failure, load, and change?
+
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
-
-## Introduction
-
-A senior engineer's job is not to recite "refcounting frees at zero" but to make defensible decisions: *Should this subsystem use reference counting or tracing GC? Which refcount flavor? Where is the cost hiding, and is it worth an optimization that complicates the code?* That requires understanding the deep duality between reference counting and tracing garbage collection — they are, in a precise sense, two ends of the same spectrum — and the catalogue of optimizations (deferred, coalesced, biased) that production systems use to claw back the per-reference cost.
-
-This page assumes you already know the mechanism and cost model. We focus on **trade-offs and engineering judgment.**
-
-## Prerequisites
-
-- The middle-tier cost model: atomic vs non-atomic, inline vs side-table, weak references, cycle collectors.
-- A working model of **tracing garbage collection**: mark-and-sweep, generational hypothesis, stop-the-world pauses, throughput vs latency.
-- Familiarity with memory ordering (acquire/release semantics) at a conceptual level.
-
-## Glossary
-
-- **Tracing GC** — a collector that periodically determines liveness by walking the reachable object graph from roots, rather than per-reference accounting.
-- **Throughput** — fraction of total CPU spent on useful work vs memory management.
-- **Latency / pause time** — how long the program is stalled by the memory manager at once.
-- **Deferred reference counting** — skipping count updates for references from the stack/registers, reconciling periodically.
-- **Coalesced reference counting** — collapsing many intermediate count changes between two observation points into one net change.
-- **Biased reference counting** — splitting a count into an owner-thread (non-atomic) part and a shared (atomic) part to avoid atomics on the common single-owner path.
-- **Bacon–Rajan cycle collection** — the trial-deletion algorithm CPython-style cyclic collectors are based on; finds cycles by locally subtracting internal references.
 
 ## Refcounting vs Tracing GC: The Real Trade-off
 
@@ -96,13 +77,6 @@ Many objects are referenced exactly once, or are effectively permanent (interned
 - **`weak_ptr`** for non-owning references; `.lock()` to upgrade.
 - **`enable_shared_from_this`** lets an object hand out `shared_ptr`s to itself without creating a second, independent control block (which would double-free).
 - No cycle collection; cycles leak. `weak_ptr` is the prescribed fix.
-
-## Mental Models
-
-- **"Refcounting and tracing are duals."** Don't think "GC vs refcounting"; think "where on the trace↔count spectrum, and with which hybrids." CPython is a literal hybrid.
-- **"Naive refcounting trades throughput for latency."** It spreads the cost out (good for pauses) but does *more total work* (bad for throughput). Every advanced optimization is an attempt to recover throughput without losing the latency win.
-- **"Atomicity is a tax you can route around."** Biased, deferred, and coalesced counting are all schemes to avoid paying the atomic/per-write tax on the common path.
-- **"Cycles are an architectural decision, not a bug to patch."** Whether you use weak refs, a cycle collector, or redesign ownership is a design choice with throughput, complexity, and correctness consequences.
 
 ## Code Examples
 
@@ -192,10 +166,26 @@ struct Widget : std::enable_shared_from_this<Widget> {
 - **Biased count migration cost.** When an object escapes its owner thread, biased refcounting must transition it to the shared path — a one-time cost that can surprise under sharing-heavy workloads.
 - **Cycle collector and finalizers interact badly.** Objects with finalizers inside a cycle complicate collection ordering; CPython historically refused to collect cycles containing objects with `__del__` (relaxed in modern versions, but still subtle).
 
-## Summary
+---
 
-- Reference counting and tracing GC are **duals**; the real engineering question is *where on the spectrum* and *which hybrid*, not "which religion."
-- Naive refcounting typically has **worse throughput** but **better latency and promptness** than generational tracing — it does a little work on every pointer write.
-- The throughput gap is attacked by **deferred** (skip stack refs), **coalesced** (net out churn), and **biased** (owner-local non-atomic) reference counting, plus **immortal/one-bit** counts for permanent objects.
-- Real systems differ sharply: CPython (inline + cyclic GC + immortal objects for no-GIL), Swift/ARC (compiler-inserted, biased, side-table weak), Rust (`Rc`/`Arc`/`Weak`, no collector, leaks are safe), C++ (`shared_ptr` control block, always-atomic, `enable_shared_from_this`).
-- **Choose refcounting** for pauses/promptness/footprint/single-owner; **choose tracing** for throughput/pervasive-cycles/high-young-death/heavy-shared-mutation.
+## Apply it
+
+1. State the system invariant that **Reference Counting** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
+
+## Verify your work
+
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
+
+## Review questions
+
+- Which invariant must remain true when Reference Counting fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

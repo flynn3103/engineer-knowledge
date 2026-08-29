@@ -1,63 +1,11 @@
-# Generics & Parametric Polymorphism — Professional Level
+# Generics & Parametric Polymorphism — Professional
 
-> **Topic:** Generics & Parametric Polymorphism
-> **Focus:** The engineering economics of generics at scale — binary size vs. runtime speed vs. compile time vs. runtime type information, and how to *measure and tune* the trade-off. Monomorphization bloat as a real cost center, accidental boxing as a real latency leak, raw-type `ClassCastException`s in production, and the cross-language design decisions you make on real systems.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Generics & Parametric Polymorphism** with measurable outcomes and limited coordination?
 
-## Introduction
-
-> Focus: **At scale, the choice of generics implementation stops being a language-design footnote and becomes a line item in your budget** — binary size, cold-start time, p99 latency, GC pressure, build duration, and on-call incidents. This page is about *operating* generics in production: measuring the costs, recognizing the failure modes, and making the right trade per call site.
-
-Every preceding level treated the four implementation strategies (monomorphization, erasure, reified, hybrid) as *facts about languages*. The professional level treats them as *knobs you turn under constraints*. The same `<T>` that's free in a textbook can, in a real binary, cost you 40 MB of code, a 200 ms cold start, a hot loop that allocates a million boxed `Integer`s per second, or a compile that went from 90 seconds to 12 minutes when someone added one heavily-instantiated generic to a hot dependency.
-
-The four costs are in tension and you cannot minimize all of them:
-
-- **Runtime speed** (favored by monomorphization/reification — no boxing, full inlining),
-- **Binary/code size** (favored by erasure/sharing — one copy),
-- **Compile/build time** (favored by erasure — compile the generic once),
-- **Runtime type information** (favored by reification — `typeof(T)`, `new T()`).
-
-Monomorphization buys speed and runtime-type-per-copy by spending size and compile time. Erasure buys size and compile time by spending speed (boxing) and runtime type info. Reification buys speed *and* runtime type info by spending runtime complexity and some specialization cost. There is no free lunch; there is only the right trade for *this* service, *this* call site, *this* deployment target.
-
-This page works through the production realities: **monomorphization bloat** (Rust/C++ binaries, `serde`/template explosions, cold-start and instruction-cache costs) and how to cap it; **accidental boxing** (Java/Scala/C# autoboxing in hot paths, the `List<Integer>` tax, GC pressure) and how to find and kill it; **raw-type and unchecked-cast `ClassCastException`s** that detonate in production far from their cause; the **Go before/after** story as a concrete migration case; and the **decision framework** for choosing and tuning generics on real systems — including when to *deliberately erase a monomorphized generic* or *specialize an erased one*. Throughout, the discipline is the same: **measure the four costs, locate the bottleneck, turn exactly the knob that addresses it.**
-
----
-
-## Prerequisites
-
-- **Required:** Senior level — parametricity, free theorems, rank-1 vs. higher-rank, specialization, the expression problem.
-- **Required:** Solid middle-level command of monomorphization vs. erasure vs. reified vs. Go's hybrid and their observable consequences.
-- **Required:** Working familiarity with profiling: CPU profiles, allocation profiles, binary-size analysis, build-time analysis.
-- **Helpful:** Having shipped a service where binary size, cold start, p99 latency, or build time was a real constraint.
-- **Helpful:** Exposure to at least two of {Rust/C++, Java/Scala, C#, Go} in production.
-
-You do **not** need:
-
-- The formal relational definition of parametricity (`senior.md` gave the intuition).
-- Variance or higher-kinded types in depth (sibling topics).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Monomorphization bloat** | Binary-size and compile-time growth from emitting a specialized copy of a generic per type argument. |
-| **Instruction-cache (i-cache) pressure** | Slowdown from a large hot code footprint (many monomorphized copies) thrashing the CPU's instruction cache. |
-| **Accidental boxing** | Unintended heap allocation when a value type is silently promoted to a reference (e.g. Java autoboxing `int` → `Integer`). |
-| **Autoboxing** | Automatic, implicit boxing/unboxing inserted by the compiler (Java, C#) — convenient and a frequent hidden cost. |
-| **Boxing tax** | The aggregate runtime cost (allocation, GC, indirection, cache misses) of boxed value types in erased generics. |
-| **Raw type** | (Java) A generic used without type arguments; disables checks and re-enables runtime `ClassCastException`. |
-| **Heap pollution** | A generically-typed location holding a value of the wrong actual type, due to unchecked casts/raw types; the time bomb behind delayed `ClassCastException`s. |
-| **Unchecked cast/warning** | A cast the compiler cannot verify due to erasure; the marked spot where the wrong type can enter. |
-| **Code-size budget** | A hard or soft limit on binary size (embedded, WASM, mobile, fast cold-start serverless). |
-| **Cold start** | Time to first useful work for a fresh process/instance; sensitive to binary size, JIT warmup, and code that must be loaded. |
-| **PGO** | Profile-Guided Optimization; using runtime profiles to drive specialization/inlining decisions. |
-| **Devirtualization** | The compiler/JIT turning a dynamic dispatch into a direct (often inlined) call when the target type is known — recovering monomorphization-like speed from erased/virtual code. |
-| **`dyn`/trait object / interface boxing** | Deliberately erasing a monomorphized generic via dynamic dispatch to share one code copy. |
-| **Striped/specialized container** | A primitive-specialized collection (`IntArrayList`, `int[]`, `IntStream`) avoiding the boxing tax. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -141,40 +89,6 @@ The senior insight made operational: **specialization and erasure are sliders yo
 ### 7. Devirtualization and the JIT: Erased Code That Runs Like Monomorphized
 
 A crucial nuance: erased/virtual generic code is *not* doomed to be slow. Modern JITs (HotSpot, .NET) and AOT optimizers perform **devirtualization** — when profiling shows a generic/virtual call site is *monomorphic in practice* (one actual type dominates), the JIT speculatively inlines the concrete implementation, recovering near-monomorphization speed *dynamically*. This is why a hot `Stream<T>` pipeline can run fast despite erasure, and why micro-benchmarks must use realistic type diversity. The flip side: a **megamorphic** call site (many actual types) defeats devirtualization and stays slow — so type diversity at a hot generic boundary is itself a performance concern. Professionals reason about *what the JIT can prove*, not just what the source says.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Four-cost budget** | A vehicle you can tune for speed, fuel economy, cargo space, or off-road capability — but not all four at once. Pick what *this trip* needs. |
-| **Monomorphization bloat** | A warehouse stocking a full custom toolkit for every job type — instant readiness, but the warehouse overflows and restocking (builds) takes forever. |
-| **I-cache pressure from bloat** | So many near-identical toolkits that the worker spends all day walking the aisles instead of working — the "fast" specialization becomes slow. |
-| **Accidental boxing** | Shipping single screws each in its own padded crate because the conveyor only handles crates — enormous overhead for tiny items. |
-| **Raw-type `ClassCastException`** | A mislabeled crate that passes every checkpoint and explodes only when finally opened, three buildings away from where it was mislabeled. |
-| **Devirtualization** | A general-purpose worker who, noticing they do the *same* job 99% of the time, sets up a dedicated fast jig for it — regaining specialist speed without a permanent specialist line. |
-| **Decision framework** | Triage in an ER: find the *binding* problem (what's actually killing the patient) before treating anything. |
-
----
-
-## Mental Models
-
-### The Binding-Constraint Lens
-
-At scale there is always *one* dominating cost. Generics tuning is the discipline of (a) identifying which of {speed, size, build, runtime-type-info} is binding, and (b) moving *only* that one, watching that the others don't breach their limits. Optimizing a non-binding cost is wasted work — or worse, it pushes a non-binding cost into binding territory.
-
-### The Per-Call-Site Slider
-
-Don't think "my language monomorphizes" or "my language erases." Think: "at *this* call site, do I want the specialized-fast-big version or the shared-small-slower version?" Rust lets you slide toward erasure with `dyn`; Scala/JVM lets you slide toward monomorphization with `@specialized`; everyone can slide by factoring generic shells over concrete cores. The strategy is a *default*, not a *mandate*.
-
-### Invisible-Cost Vigilance
-
-The two costliest generics mistakes — **boxing** and **monomorphization bloat** — are both *invisible in the source*. `map.get(k)` doesn't look like an allocation; `Vec<Foo>` doesn't look like 30 KB of code. Professionals don't reason about generics costs from the source; they reason from **profiles and size reports**. Train yourself to distrust the source's apparent cost and reach for the tool.
-
-### The Detonation-Distance Model (for erasure bugs)
-
-Erasure-induced type errors detonate *far from their cause* — different time, module, team. The defense is to **shrink detonation distance**: validate at trust boundaries so the bad type is rejected at *entry*, where the cause is obvious, instead of at a distant *read*. Every unchecked cast you allow lengthens the fuse.
 
 ---
 
@@ -312,30 +226,6 @@ clang++ -ftime-trace foo.cpp   # produces a Chrome-trace of compile phases
 
 ---
 
-## Pros & Cons
-
-| Decision | Pros | Cons |
-|----------|------|------|
-| **Default monomorphization (Rust/C++)** | Top runtime speed, no boxing, full inlining. | Bloat, slow builds, i-cache pressure at extreme instantiation counts. |
-| **Erase a hot generic at a boundary** | Caps binary size and compile time; one shared copy. | Dynamic-dispatch cost; defeats some inlining (mitigated by JIT devirtualization). |
-| **Default erasure (Java/Scala)** | Small code, fast builds, legacy interop. | Boxing tax in hot paths; raw-type `ClassCastException`s; no runtime `T`. |
-| **Specialize an erased generic (`@specialized`)** | Kills boxing for chosen hot types. | Bytecode/class explosion; must be selective. |
-| **Reified (C#)** | No value-type boxing *and* runtime `T`. | Heavier runtime; boxing still sneaks in at `object`/interface boundaries. |
-| **Hybrid (Go)** | Type safety + fast builds + middling speed; killed `interface{}` panics. | Dictionary indirection; not as fast as monomorphization; perf still maturing. |
-
----
-
-## Use Cases
-
-- **Latency-critical JVM service with numeric hot paths** → hunt boxing with an allocation profiler; replace `List<Integer>`/`Map<Long,…>` with primitive-specialized collections; keep inner loops in primitives, box only at the edge.
-- **Rust/C++ service or binary with a size/cold-start budget** (WASM, embedded, serverless, mobile) → measure with `cargo-llvm-lines`/`cargo bloat`/`-ftime-trace`; erase large cold generics via `dyn`/virtual; factor thin generic shells over concrete cores.
-- **Library with a huge build-time footprint from a generic dependency** → identify the over-instantiated generic; reduce its instantiation surface or push an erased boundary between it and your code.
-- **Legacy `Object`/raw-type Java codebase throwing intermittent `ClassCastException`** → enable `-Xlint:unchecked`, fail builds on warnings, validate types at deserialization/reflection boundaries, migrate raw types to parameterized ones.
-- **Go service still on `interface{}` + assertions** → migrate hot, panic-prone reusable code to `[T any]` for compile-time safety; accept the dictionary cost or benchmark the few truly hot spots.
-- **Cross-language platform team** → document, per language, which generics cost is binding and the standard mitigation, so the trade-off is a known playbook rather than rediscovered per incident.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Thin Generic Shell Over a Non-Generic Core
@@ -391,13 +281,24 @@ No generics performance/size change without a before profile and an after profil
 
 ---
 
-## Summary
+## Apply it
 
-- At scale, the four generics strategies are **knobs under constraints**, not language trivia. Every decision moves you in a 4-cost space — **runtime speed, binary size, compile time, runtime type info** — and **you cannot minimize all four**.
-- **Monomorphization bloat** (Rust/C++, `serde`/template explosions) is a real cost center: large binaries, long builds, and i-cache pressure that can make "zero-cost" net-negative. Cap it by erasing large/cold generics via `dyn`/virtual, factoring thin generic shells over concrete cores, and cutting instantiation count — *after* `cargo-llvm-lines`/`cargo bloat`/`-ftime-trace` name the offender.
-- **Accidental boxing** (Java/Scala/C# autoboxing, the `List<Integer>` tax) is a real latency/GC leak, **invisible in the source**. Find it with allocation profilers; kill it with primitive-specialized containers, keeping hot loops in value types and boxing only at the boundary, or `@specialized` for chosen hot types.
-- **Raw types and unchecked casts** cause **heap pollution** and `ClassCastException`s that **detonate far from their cause** — a direct consequence of erasure. Defend by failing builds on unchecked warnings, banning raw types, and validating types at trust boundaries to shrink detonation distance to zero.
-- **Go's before/after** is the clean case study: `interface{}` + assertions was hand-rolled erasure with boxing and runtime panics and `go generate` codegen tooling; `[T any]` delivered compile-time safety and killed the panics at the cost of dictionary indirection — usually faster than boxing, not always as fast as monomorphization.
-- **The JIT's devirtualization** can make erased/virtual generics run like monomorphized ones *when a hot call site is monomorphic in practice* — but **megamorphic** boundaries defeat it, making type diversity at hot sites a genuine performance concern.
-- The professional discipline is a loop: **identify the binding cost → map it to the strategy → locate the specific offender with tooling → turn exactly one knob → re-measure.** Specialization and erasure are **per-call-site sliders**, not language-wide verdicts.
-- Above all: **the apparent cost of generics in the source is a lie; reason from profiles and size/build reports.** The expensive instantiation or allocation is rarely the one you'd guess — let the tools name it.
+1. Define the user or business outcome that **Generics & Parametric Polymorphism** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
+
+## Verify your work
+
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
+
+## Review questions
+
+- Which measurable outcome justifies investing in Generics & Parametric Polymorphism?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

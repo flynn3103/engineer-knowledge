@@ -39,13 +39,13 @@ manifests *in the other language*, hours from the actual mistake.
 
 | # | Topic | The question it answers |
 |---|---|---|
-| 01 | [What Is an ABI](01-what-is-an-abi/) | What contract must two compiled units share to interoperate at all? |
-| 02 | [Calling Conventions](02-calling-conventions/) | How exactly are arguments, returns, and the stack arranged at a call? |
-| 03 | [Name Mangling & Linking](03-name-mangling-and-linking/) | Why is the symbol `_ZN3foo3barEi`, and how does the linker find it? |
-| 04 | [FFI from High-Level Languages](04-ffi-from-high-level-languages/) | How do Python/Java/Go/Rust/Node actually call native code? |
-| 05 | [Data Marshalling & Memory Layout](05-data-marshalling-and-memory-layout/) | How do structs, strings, and arrays cross the boundary safely? |
-| 06 | [Cross-Language Interop](06-cross-language-interop/) | Beyond C: how do whole ecosystems talk (C++, Wasm, gRPC, COM)? |
-| 07 | [FFI Safety & Pitfalls](07-ffi-safety-and-pitfalls/) | What are the failure modes, and how do you not get destroyed by them? |
+| 01 | [What Is an ABI](01-what-is-an-abi/README.md) | What contract must two compiled units share to interoperate at all? |
+| 02 | [Calling Conventions](02-calling-conventions/README.md) | How exactly are arguments, returns, and the stack arranged at a call? |
+| 03 | [Name Mangling & Linking](03-name-mangling-and-linking/README.md) | Why is the symbol `_ZN3foo3barEi`, and how does the linker find it? |
+| 04 | [FFI from High-Level Languages](04-ffi-from-high-level-languages/README.md) | How do Python/Java/Go/Rust/Node actually call native code? |
+| 05 | [Data Marshalling & Memory Layout](05-data-marshalling-and-memory-layout/README.md) | How do structs, strings, and arrays cross the boundary safely? |
+| 06 | [Cross-Language Interop](06-cross-language-interop/README.md) | Beyond C: how do whole ecosystems talk (C++, Wasm, gRPC, COM)? |
+| 07 | [FFI Safety & Pitfalls](07-ffi-safety-and-pitfalls/README.md) | What are the failure modes, and how do you not get destroyed by them? |
 
 ---
 
@@ -69,7 +69,7 @@ tiers plus `interview` and `tasks`.
 
 ## Related sections
 
-- **[Runtime Systems](../runtime-systems/)** — GC integration, stack unwinding, and object layout all leak across the FFI boundary.
-- **[Data Representation & Numerics](../data-representation-and-numerics/)** — marshalling is fundamentally about agreeing on bit-level representation and endianness.
-- **[Memory Management](../memory-management/)** — who owns and frees what is *the* FFI question; pinning and lifetimes live here too.
-- **[Language Security Internals](../language-security-internals/)** — the FFI is the seam through which a safe language inherits an unsafe one's vulnerabilities.
+- **[Runtime Systems](../runtime-systems/README.md)** — GC integration, stack unwinding, and object layout all leak across the FFI boundary.
+- **[Data Representation & Numerics](../data-representation-and-numerics/README.md)** — marshalling is fundamentally about agreeing on bit-level representation and endianness.
+- **[Memory Management](../memory-management/README.md)** — who owns and frees what is *the* FFI question; pinning and lifetimes live here too.
+- **[Language Security Internals](../language-security-internals/README.md)** — the FFI is the seam through which a safe language inherits an unsafe one's vulnerabilities.

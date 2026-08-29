@@ -1,54 +1,11 @@
-# Integer Representation & Overflow — Middle Level
+# Integer Representation & Overflow — Middle
 
-> **Topic:** Integer Representation & Overflow
-> **Focus:** The practical bug-finding layer — integer promotion, implicit conversions, signed/unsigned comparisons, truncation, and the concrete techniques to *detect* overflow before it bites you.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **Integer Representation & Overflow** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-> Focus: **Most integer bugs don't come from a single big number. They come from quiet, automatic conversions** — a `short` promoted to `int`, a signed value compared against an unsigned one, a 64-bit length truncated into a 32-bit field — and from doing arithmetic without *checking* whether it overflowed.
-
-At the junior level you learned the model: integers are fixed-width, two's complement, and overflow wraps (or doesn't) depending on the language. At the middle level the work is different. You will rarely write `INT_MAX + 1` on purpose. You *will* constantly write code where the language **silently changes a value's type or width behind your back** — and that is where production overflow bugs actually live.
-
-Three families dominate:
-
-1. **Implicit conversions and integer promotion** — the compiler widens, narrows, or re-signs operands of an expression according to rules you didn't write and probably can't recite. `byte b = (byte)(a + c)` in Java; the "usual arithmetic conversions" in C; `as` casts in Rust.
-2. **Signed/unsigned comparison** — when you compare a signed and an unsigned value, one of them is converted, and the conversion can turn `−1` into `4294967295`, flipping the comparison.
-3. **Overflow detection** — since most languages won't tell you overflow happened, you need *techniques* to find out: pre-checks against the limits, wider-type computation, the post-condition trick (carefully, because of UB), and compiler builtins.
-
-This page is the toolkit. By the end you should be able to look at a line like `if (a + b > LIMIT)` or `arr[i - 1]` or `int len = (int)bigValue;` and immediately ask the right question: *what got converted, what width is this evaluated at, and can it overflow?*
-
----
-
-## Prerequisites
-
-- **Required:** The junior page — two's complement, fixed widths, per-language overflow behavior, wraparound.
-- **Required:** Comfort reading C, Java, and Go arithmetic; basic Rust helps.
-- **Helpful:** Knowing what a cast/conversion looks like in your language(s).
-- **Helpful:** Having been bitten by at least one "the number came out wrong/negative" bug — this page explains why.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Integer promotion** | The C rule that operands narrower than `int` (`char`, `short`, bitfields) are converted to `int` (or `unsigned int`) before arithmetic. |
-| **Usual arithmetic conversions** | C/C++ rules that bring the two operands of a binary operator to a common type before computing. |
-| **Implicit conversion** | A type/width/sign change the language performs without an explicit cast. |
-| **Narrowing / truncation** | Converting to a smaller type; high bits are discarded. |
-| **Widening** | Converting to a larger type; sign-extended (signed) or zero-extended (unsigned). |
-| **Signed-to-unsigned conversion** | Reinterpreting the bit pattern under the unsigned reading; `−1` becomes the type's max. |
-| **Rank** | C's ordering of integer types by size/precedence; used to decide the common type. |
-| **`size_t`** | An unsigned type wide enough to hold any object size on the platform (32-bit on 32-bit systems, 64-bit on 64-bit). |
-| **`ptrdiff_t`** | The *signed* counterpart to `size_t`; the type of a pointer difference. |
-| **Pre-check** | Testing operands against limits *before* the operation, to predict overflow. |
-| **Post-check** | Testing the *result* after the operation to infer overflow (unsafe for signed in C — UB). |
-| **Checked arithmetic** | An operation that reports overflow rather than silently producing a value. |
-| **Saturating arithmetic** | Overflow clamps to the type's max/min instead of wrapping. |
-| **Wrapping arithmetic** | Overflow is defined to wrap modulo 2ⁿ, deliberately. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -178,36 +135,6 @@ if (r < a) { /* overflowed */ }   // BUG in C for SIGNED ints
 ```
 
 For **unsigned** this is valid (wraparound is defined, so a smaller result means it wrapped). For **signed**, the addition `a + b` *itself* is undefined behavior when it overflows — so by the time you check `r`, you've already invoked UB and the compiler may have assumed it never happened and deleted your check. **Detect before, not after, for signed types.**
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Integer promotion** | Everyone at a meeting being asked to convert their notes to A4 before comparing — even the people who wrote on index cards. |
-| **Usual arithmetic conversions** | Two travelers with different currencies; before settling a bill, both convert to one agreed currency — and the conversion can surprise you. |
-| **Signed→unsigned flip** | Reading a "−1" written as "all 9s on the odometer" (999999) — same dial, wildly different number. |
-| **Truncation** | Cutting a long receipt to fit a small frame — you keep only the bottom portion, losing the total at the top. |
-| **Pre-check** | Weighing your luggage at home before the airport so you never get hit with the overweight fee at the gate. |
-| **Post-check (signed, UB)** | Checking your bank balance *after* a bounced transaction already triggered penalties — the damage is done. |
-| **Wider-type computation** | Doing the math on a bigger whiteboard, then copying only the result that fits back onto the small one. |
-
----
-
-## Mental Models
-
-### The "Expression Has a Type" Model
-
-Stop reading `a + b` as "add two numbers." Read it as: *"the language picks a common type T, converts both operands to T, computes in T, and the result is of type T."* Almost every middle-level integer bug is explained by being wrong about what T is. In C, `char + char` has type `int`. In `unsignedInt < negativeInt`, T is unsigned and the negative becomes huge. Always ask: **what is the type of this expression, and at what width does it compute?**
-
-### The "Conversion Is a Reinterpretation, Not a Move" Model
-
-A signed→unsigned conversion doesn't change the bits — it changes the *reading rule*. `(unsigned)-1` is the same `0xFFFFFFFF` bit pattern, now read as 4294967295. Truncation discards high bits; widening adds bits (copying the sign for signed). Picture the bits staying put while a different "lens" is placed over them.
-
-### The "Detect Before You Leap" Model
-
-For overflow, the safe mental default is: **never perform an operation that might overflow and then inspect the wreckage** (especially in C, where the wreckage is UB). Instead, *ask in advance* whether the operation will overflow — compare against the limit, or compute in a wider type, or use a checked primitive that does the asking atomically with the operation.
 
 ---
 
@@ -355,29 +282,6 @@ fn main() {
 
 ---
 
-## Pros & Cons
-
-| Technique | Pros | Cons |
-|-----------|------|------|
-| **Pre-check against limits** | Portable, no UB, works for the widest type. | Verbose; easy to get the sign cases wrong (especially multiplication). |
-| **Compute in wider type** | Simple and obvious; one check at the end. | Doesn't work for the widest type; costs a wider operation. |
-| **Compiler builtins (`__builtin_*_overflow`)** | Fast (uses CPU overflow flag), correct, concise. | Non-standard (GCC/Clang); not portable to MSVC without alternatives. |
-| **Checked APIs (Rust `checked_*`, Java `*Exact`)** | Idiomatic, safe, expresses intent. | Java throws (exception cost); must remember to use them. |
-| **Saturating arithmetic** | Never wraps to a wrong-direction value; great for DSP/graphics/clamped meters. | Silently caps — can hide that a limit was hit. |
-| **Wrapping arithmetic** | Correct and intended for hashing, checksums, ring buffers. | A footgun if used by accident; reader must know it's deliberate. |
-
----
-
-## Use Cases
-
-- **Parsing untrusted input (file/network):** pre-check every size/length/count field before arithmetic. This is where conversion and overflow bugs become CVEs.
-- **Buffer/size calculations:** compute `count * elementSize` with overflow detection (builtin or wider type) before allocating.
-- **Cross-width serialization:** when packing a 64-bit value into a 32-bit wire field, validate it fits *before* truncating.
-- **Index math:** `i - 1`, `mid = lo + (hi - lo)/2`, ring-buffer `(head + 1) % cap` — all need overflow/underflow awareness, especially with unsigned indices.
-- **Interop with C from a safer language:** when crossing into `size_t`/`int` land, conversions are where data quietly changes.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Overflow-safe multiplication via division check
@@ -485,124 +389,24 @@ Never narrow blindly; convert through a fallible path that reports the loss.
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. In C, what is the *type* of `('a' + 1)`? What about `(unsigned char)200 + (unsigned char)100` — type and value of the expression vs. when stored back into an `unsigned char`?
-2. Why does `if (-1 < (unsigned)1)` evaluate false? Walk through the conversion.
-3. Write `safe_mul(a, b, &out)` for signed 32-bit ints using only pre-checks (no wider type, no builtin). Handle the sign and zero cases.
-4. Show the bit-level steps that turn `(short)0x8000` into `−32768` (truncation + sign reinterpretation).
-5. Why is `int r = a + b; if (r < a) overflow();` valid for unsigned `a, b` but a bug for signed ones in C?
-6. Rewrite `(lo + hi) / 2` to be overflow-safe and explain why it can't overflow when `lo <= hi`.
-7. In Java, `byte x = (byte)(127 + 1);` — what is `x` and why? What was the type of `127 + 1` before the cast?
-8. On a Windows LLP64 system, what is `sizeof(long)`? Why does code assuming `long == 64 bits` break there?
+1. Find a real component where **Integer Representation & Overflow** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
----
+## Verify your work
 
-## Tricky Questions
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
 
-**Q1: Does C's integer promotion mean 8-bit arithmetic never wraps mid-expression?**
+## Review questions
 
-Correct. `char`/`short` operands are promoted to `int` first, so the arithmetic happens in (at least) 32 bits. Wrapping/truncation to the small type only occurs when you *store* the result back into the narrow type. So `(unsigned char)255 + (unsigned char)1` is `256` as an expression, and becomes `0` only on assignment to an `unsigned char`.
-
-**Q2: Why does Go forbid `var s int; var u uint; s < u`?**
-
-By design, Go has no implicit numeric conversions. It refuses to silently convert between signed and unsigned (or between widths), which structurally eliminates the C signed/unsigned comparison bug. You must write `int64(s) < int64(u)` (or similar), making the conversion — and its risks — explicit.
-
-**Q3: Is `__builtin_add_overflow` portable?**
-
-It's a GCC/Clang extension (also accepted by recent Clang on Windows), but not standard C and not in MSVC by that name. For portability, wrap it: use the builtin where available, fall back to pre-checks or `<intrin.h>` `_addcarry_u32`/`_addcarry_u64` on MSVC. C23 adds `<stdckdint.h>` (`ckd_add`, `ckd_mul`) as a standard solution.
-
-**Q4: When should I use saturating vs wrapping arithmetic?**
-
-Saturating when exceeding a bound should *clamp* and continuing makes sense: audio samples, color channels, progress meters, a rate counter you cap. Wrapping when modular behavior is the actual semantics: hash functions, checksums, ring-buffer indices, PRNGs. Using wrapping where you meant saturating produces a loud glitch (a pop, a wrong color); the reverse silently hides that a limit was hit.
-
-**Q5: Why is comparing a signed value to `.size()` in C++ a warning?**
-
-`std::vector::size()` returns `size_t` (unsigned). `for (int i = 0; i < v.size(); i++)` compares signed `i` to unsigned `size()`; the signed `i` converts to unsigned. It usually works but breaks if `size()` exceeds `INT_MAX` or if `i` ever goes negative. Compilers emit `-Wsign-compare`. Use `size_t i` or `std::ssize(v)` (C++20).
-
-**Q6: Can I detect 64-bit overflow without a 128-bit type?**
-
-For addition, yes — pre-check against limits, or use `__builtin_add_overflow`. For multiplication, the cleanest portable route is `__builtin_mul_overflow`, or `unsigned __int128` on GCC/Clang, or a high/low product via `_umul128`/`math/bits.Mul64`. Pure pre-check multiplication (`a > MAX/b`) also works and needs no wide type.
-
----
-
-## Cheat Sheet
-
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│              CONVERSIONS, COMPARISONS & DETECTION                │
-├──────────────────────────────────────────────────────────────────┤
-│ C integer promotion: char/short  →  int  BEFORE arithmetic       │
-│   so 8/16-bit "wrap" only happens on the NARROWING STORE          │
-├──────────────────────────────────────────────────────────────────┤
-│ Usual arithmetic conversions pick a common type:                 │
-│   unsigned (rank >= signed) WINS → signed operand goes unsigned   │
-│   => (-1 < 1u) is FALSE   (-1 becomes 4294967295)                │
-├──────────────────────────────────────────────────────────────────┤
-│ Truncation = keep low bits (no round, no clamp)                  │
-│   300 -> u8  = 300 & 0xFF = 44                                   │
-│ Widening: signed sign-extends, unsigned zero-extends             │
-├──────────────────────────────────────────────────────────────────┤
-│ Overflow detection:                                              │
-│   A) pre-check:  b>0 && a > MAX-b   (portable, no UB)            │
-│   B) wider type: (int64)a + (int64)b, check fits                 │
-│   C) builtin:    __builtin_add_overflow / ckd_add (C23)          │
-│   D) checked API: Rust checked_add / Java addExact               │
-│   * signed POST-check (r<a) is UB in C — never do it             │
-├──────────────────────────────────────────────────────────────────┤
-│ Safe idioms:                                                     │
-│   midpoint:   lo + (hi - lo)/2                                   │
-│   unsigned -: len.checked_sub(1) / guard len>0                  │
-│   sign cmp:   compareUnsigned / guard sign first                │
-│   narrow:     try_from(...) -> Result                           │
-├──────────────────────────────────────────────────────────────────┤
-│ Platform: int=32 almost everywhere; long=64 (Unix) / 32 (Win)   │
-│   use int32_t / int64_t when width matters                      │
-└──────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## Summary
-
-- The middle-level danger is **silent conversions**, not lone giant numbers.
-- **C integer promotion** widens `char`/`short` to `int` before arithmetic; narrow-type wrap happens only on the store-back.
-- The **usual arithmetic conversions** can convert a signed operand to unsigned, which is why **`−1 < 1u` is false** — the canonical signed/unsigned trap.
-- **Truncation keeps the low bits** (no rounding, no clamping) and can flip the sign of a signed target.
-- **Detect overflow before you compute** (pre-check against limits, or compute in a wider type, or use builtins/checked APIs). **Never** post-check signed overflow in C — the overflow itself is UB.
-- **Saturating vs wrapping** are both legitimate; choose by domain and make the choice explicit in code.
-- Languages differ in how much footgun they leave: **Go forbids implicit conversions**, **Rust pushes you toward `try_from`/`checked_*`**, **C/C++ leave it all to you** (so turn on `-Wsign-compare` and UBSan).
-- A middle engineer's habit: for every arithmetic expression, ask *"what is its type, at what width does it compute, and can it overflow?"* — and validate ranges at every trust boundary.
-
----
-
-## What You Can Build
-
-- **A `safe_int` library** with `add/sub/mul/div` that pre-check and return success/failure, tested at the boundaries against the compiler builtins.
-- **A signed/unsigned comparison linter** (toy): scan C source for `<`/`>` where one side is signed and the other `size_t`/unsigned.
-- **A truncation playground** that takes any 64-bit value and shows what survives narrowing to 32/16/8 bits, signed and unsigned.
-- **An overflow-detection benchmark** comparing pre-check vs wider-type vs `__builtin_*_overflow` performance.
-- **A binary-search implementation** with both the buggy `(lo+hi)/2` and the safe `lo+(hi-lo)/2` midpoint, plus a test that triggers the overflow on a huge (or simulated huge) array.
-- **A cross-platform width reporter** that prints `sizeof` for `int/long/size_t/ptrdiff_t` and explains LP64 vs LLP64.
-
----
-
-## Further Reading
-
-- *Computer Systems: A Programmer's Perspective* (Bryant & O'Hallaron), Ch. 2.2–2.3 — conversions and the signed/unsigned interactions, with proofs.
-- *Secure Coding in C and C++* — Robert Seacord. The authoritative treatment of integer conversion and overflow vulnerabilities. CERT INT rules.
-- CERT C Coding Standard — INT30-C, INT31-C, INT32-C (overflow, conversion, signed overflow). https://wiki.sei.cmu.edu/confluence/display/c
-- "Extra, Extra - Read All About It: Nearly All Binary Searches and Mergesorts are Broken" — Joshua Bloch, 2006 (the `(lo+hi)/2` bug).
-- *The C Standard* (n2310/C17) §6.3 (conversions), §6.3.1.1 (promotion) — dense but definitive.
-- GCC/Clang docs for `__builtin_add_overflow` and the C23 `<stdckdint.h>` proposal.
-- UndefinedBehaviorSanitizer documentation (`-fsanitize=integer`).
-
----
-
-## Related Topics
-
-- This folder: [`junior.md`](junior.md) (the model), [`senior.md`](senior.md) (internals & `INT_MIN` traps), [`professional.md`](professional.md) (CVEs & production), [`interview.md`](interview.md), [`tasks.md`](tasks.md).
-- Sibling numerics:
-  - [Floating-Point Representation](../02-floating-point-ieee-754/middle.md) — conversions between int and float, another lossy boundary.
-- Security framing: `../../../quality-engineering/static-analysis/sast/middle.md` — tools that flag integer-conversion bugs.
-- Hardware: `../../cpu-architecture/01-alu/middle.md` — the overflow and carry flags these techniques read.
+- Which boundary is most affected by Integer Representation & Overflow?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

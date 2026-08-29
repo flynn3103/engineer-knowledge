@@ -1,70 +1,11 @@
-# Dependent & Refinement Types — Junior Level
+# Dependent & Refinement Types — Junior
 
-> **Topic:** Dependent & Refinement Types
-> **Focus:** What if a type could say "this is a list of exactly 3 things" or "this is a number that is definitely positive" — and the compiler checked it for you, before the program ran?
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **Dependent & Refinement Types** in one small example and prove the result?
 
-## Introduction
-
-> Focus: **The ordinary types you already know carry almost no information. Dependent and refinement types carry a lot more — and the compiler checks it.**
-
-You already use types. When you write `int`, `string`, `List<User>`, you are telling the compiler what *kind* of thing a value is, and the compiler stops you from, say, adding a `string` to a `User`. That is enormously useful. But ordinary types are coarse. The type `int` covers `-3`, `0`, and `42` all the same way. The type `List<int>` is the same whether the list is empty or has a million elements. So if you write a function that divides by a number, the type system happily lets you pass `0`. If you ask for "the first element of a list," the type system happily lets you ask an empty list — and you get a crash at runtime.
-
-**Dependent and refinement types push the line.** They let a type say more:
-
-- A **refinement type** is a normal type *plus a condition*. Instead of `int`, you write something that reads as "an `int` that is greater than zero," written `{ v: Int | v > 0 }`. Now the compiler refuses to let a possibly-zero or possibly-negative number flow into a slot that demands a positive one.
-- A **dependent type** is a type that *mentions an actual value*. The classic example is a list whose **length is part of its type**: not just "list of ints" but "list of ints of length 3." Written `Vec 3 Int`. Now a function that joins two such lists can promise, *in its type*, that the result has length `n + m` — and the compiler verifies that promise.
-
-The payoff is dramatic. Whole categories of bug — array out-of-bounds, division by zero, calling `head` on an empty list, off-by-one — can be made **impossible to even write down**. The compiler rejects the broken program instead of you finding out in production.
-
-The cost is real too, which is why your everyday language (Python, Java, Go, TypeScript) does not do this by default. These ideas live mostly in research-grade languages (Idris, Agda, Coq, Lean, F\*) and high-assurance tools (Liquid Haskell, Dafny). But the *ideas* are leaking into mainstream languages — TypeScript's literal types, Rust's const generics — and understanding the core intuition makes you a sharper engineer even if you never write a line of Agda.
-
-> 🎓 **Why this matters for a junior:** You have probably written a null check, an "is this index in range?" check, or a "don't divide by zero" guard. Those checks are you, manually, at runtime, doing a job a strong enough type system could do for you at compile time — once, for all inputs, forever. This page is about that idea: *moving correctness from runtime checks into the types themselves.*
-
-This page stays intuitive. We will not prove anything by hand. We will build the mental model — what a "type that depends on a value" even means, what a refinement is — using small, readable examples. The harder machinery (Pi and Sigma types, SMT solvers, totality checking, actual proofs) is for the higher tiers.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** What a *type* is in any typed language. You have seen `int`, `string`, `List<T>`, and you know the compiler uses types to reject some programs (e.g. `"hello" + 5` in a strict language).
-- **Required:** What a *function* is, and what "argument type" and "return type" mean.
-- **Required:** Basic familiarity with generics / parametric types — `List<T>`, `Map<K, V>`, `Array<int>`. The `T` is a *type* parameter.
-- **Helpful but not required:** Having hit a real bug like an array index out of bounds, a null-pointer exception, or a division by zero. Those are exactly the bugs these types prevent.
-- **Helpful but not required:** A vague sense that some languages "prove" things — you do not need to know how.
-
-You do **not** need to know:
-
-- Any logic, proof theory, or the Curry–Howard correspondence (that is `senior.md`).
-- How an SMT solver works (that is `middle.md` and beyond).
-- Idris, Agda, Coq, or Lean syntax in detail. We will show tiny snippets and explain every line.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Type** | A label on a value that the compiler tracks and checks. `int`, `string`, `List<User>`. |
-| **Static type** | A type known and checked at **compile time**, before the program runs. |
-| **Ordinary / simple type** | A type that does *not* mention any runtime value. `int`, `List<int>`. Carries little information. |
-| **Dependent type** | A type that **mentions a value**. E.g. `Vec n Int` — a vector whose length `n` is baked into the type. |
-| **Refinement type** | A base type **plus a predicate** restricting which values are allowed. `{ v: Int \| v > 0 }` = "a positive int." |
-| **Predicate** | A condition that is either true or false for a given value, e.g. `v > 0`, `0 <= i < len arr`. |
-| **`Vec n a`** | The canonical dependent type: a vector (list) of `n` elements of type `a`, where `n` is part of the type. |
-| **Index out of bounds** | Asking for element `i` of an array when `i` is too big or negative. The bug refinement types prevent. |
-| **`head`** | "Give me the first element." Unsafe on an empty list — a dependent/refinement type can forbid that call. |
-| **Compile-time error** | The compiler rejects the program. Good: the bug never ships. |
-| **Runtime error** | The program crashes (or misbehaves) while running. The thing we are trying to eliminate. |
-| **SMT solver** | An automated "logic engine" (e.g. Z3) that decides whether a predicate is always true. Refinement types lean on it. |
-| **Proof** | A convincing argument the compiler can check that a claim always holds. Dependent types often require you to write these. |
-| **Idris / Agda / Coq / Lean** | Languages with full dependent types. Coq and Lean double as *proof assistants*. |
-| **Liquid Haskell / F\* / Dafny** | Tools with refinement types, where an SMT solver discharges the conditions automatically. |
-| **Make illegal states unrepresentable** | A design slogan: encode rules in types so broken values cannot be constructed at all. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -162,32 +103,6 @@ ordinary types            refinement types            full dependent types
 ```
 
 **Refinement types are more automatable but less expressive** (the SMT solver does the work, but it can only handle conditions it understands). **Dependent types are maximally expressive but more effortful** (you can state anything, but you may have to prove it). That trade-off is the single most important thing to take from this page.
-
----
-
-## Real-World Analogies
-
-**The form field with a validation rule.** An ordinary type is a text box labeled "Age." A refinement type is a text box labeled "Age" *with a rule attached*: "must be a whole number between 0 and 150." The difference is that the refinement-type version *cannot* contain `-5` or `"banana"` — the rule is part of what the field *is*, not a separate check you run afterward. Crucially, with refinement types the rule is enforced *before submission* (at compile time), not after.
-
-**A box stamped "EXACTLY 12 EGGS."** An ordinary "carton" type tells you it holds eggs. A dependent `Vec 12 Egg` carton has the count printed *on the box as part of its identity*. If a machine is supposed to combine a `Vec 6` carton and a `Vec 6` carton, the output box is stamped `Vec 12` — and an inspector (the compiler) verifies the count matches the stamp before the box leaves the factory. You can never accidentally ship a `Vec 11`.
-
-**The bouncer who checks the *type* of ID, vs. the one who checks your *age*.** An ordinary type system is a bouncer who only checks "is this an ID?" — any ID gets you in, including one that says you're 12. A refinement type is a bouncer who checks "is this an ID *and* does it say 18+?" The condition is baked into the door policy. Nobody underage gets through, ever — not "usually," not "if we remember to check."
-
-**A recipe that lists exact pan sizes.** "Pour into a pan" is an ordinary type. "Pour into a 9-inch pan" is dependent — the *value* (9 inches) is part of the instruction, and if you later "double the recipe," a dependent recipe automatically demands an 18-inch-equivalent pan and the compiler-cook refuses to proceed with the wrong pan.
-
----
-
-## Mental Models
-
-**1. The type is a promise; finer types are stronger promises.** Every type is a promise about a value. `int` promises "it's an integer" — weak. `{v: Int | v > 0}` promises "it's a *positive* integer" — stronger. `Vec n a` promises "it's a vector and here is its exact length" — stronger still. Dependent and refinement types are just *stronger promises that the compiler enforces*.
-
-**2. Push the check left.** Picture a timeline: *write code → compile → ship → run → crash.* A runtime check catches a bug at the far right (when it runs, maybe in production). These types push the check all the way to the left — to compile time. The bug is caught once, for *all* possible inputs, before anyone runs the program. "Shift left" is the slogan.
-
-**3. Make illegal states unrepresentable.** Don't write code that handles a bad state gracefully — make the bad state *impossible to construct*. You can't pass an empty vector to `head` because the type won't let you build the call. The bug isn't handled; it's *uninhabited*.
-
-**4. The wall between values and types has a door.** In ordinary languages, values live at runtime and types live at compile time, and never the twain shall meet. Dependent typing's one big idea: a type can contain a value (`Vec 3` contains `3`). Once you accept that, everything else follows.
-
-**5. Two dials: expressiveness and automation.** Turn the "expressiveness" dial up and you can state richer properties — but you turn the "automation" dial down and must prove more by hand. Refinement types sit at "moderate expressiveness, high automation (SMT)." Full dependent types sit at "maximal expressiveness, low automation (manual proofs)."
 
 ---
 
@@ -295,46 +210,6 @@ Rust's `[T; N]` puts a length *value* into the type, which is genuinely a fragme
 
 ---
 
-## Pros & Cons
-
-### Pros
-
-| Benefit | Why it matters |
-|---------|----------------|
-| **Whole bug classes vanish** | Out-of-bounds, divide-by-zero, empty-list, null, off-by-one — made unrepresentable. |
-| **Checked once, for all inputs** | Unlike a runtime guard or a test, a type-level property holds for *every* possible input, forever. |
-| **Documentation that can't lie** | The signature `append : Vec n a -> Vec m a -> Vec (n+m) a` is a spec the compiler enforces. |
-| **Fewer runtime checks** | Provably-safe indexing means the bounds check can sometimes be elided — correctness *and* speed. |
-| **High-assurance possible** | Lets you build verified compilers, kernels, crypto where a bug is unacceptable. |
-
-### Cons
-
-| Cost | Why it hurts |
-|------|--------------|
-| **Proof burden (dependent)** | Full dependent types may require you to *write proofs* by hand — slow, specialized. |
-| **Steep learning curve** | Idris/Agda/Coq/Lean are unfamiliar; the concepts are deep. |
-| **Compile times** | Type checking these properties can be slow. |
-| **Ergonomics** | Expressing "obvious" facts can require fighting the type checker. |
-| **Limited automation (dependent)** | The SMT solver in refinement tools can only handle predicates it understands; outside that, you're on your own. |
-| **Not mainstream** | Small ecosystems, fewer libraries, fewer engineers who know them. |
-
----
-
-## Use Cases
-
-- **Eliminating array-bounds and off-by-one bugs** by making indices carry "I'm in range" in their type. (Liquid Haskell does this.)
-- **Forbidding division by zero / null / empty-collection access** at compile time.
-- **Verified cryptography.** Projects like HACL\* (used in Firefox, Linux) prove their crypto correct in F\*.
-- **Verified compilers.** CompCert is a C compiler proven (in Coq) to produce machine code that matches the source's meaning.
-- **Verified OS kernels.** seL4 is a microkernel with a machine-checked proof of correctness.
-- **Cloud-scale assurance.** AWS uses Dafny and F\* to verify critical components (e.g. cryptographic and authorization logic).
-- **Formalized mathematics.** Lean's `mathlib` is a vast library of machine-checked math proofs.
-- **Safer protocol and parser code**, where lengths and bounds matter and bugs become security holes.
-
-You are unlikely to reach for these on a typical web backend — and that's fine. The point of knowing them is to recognize *when the stakes justify the cost*.
-
----
-
 ## Coding Patterns
 
 You won't write these daily yet, but recognizing them matters.
@@ -374,17 +249,24 @@ You won't write these daily yet, but recognizing them matters.
 
 ---
 
-## Summary
+## Apply it
 
-Ordinary types are coarse: `int` includes zero, `List<T>` includes the empty list, so bugs like divide-by-zero and empty-list access slip through and become runtime crashes. **Refinement types** add a predicate to a base type (`{v: Int | v > 0}`), and an **SMT solver** checks it automatically — practical, moderately expressive. **Dependent types** let a type mention a *value* (`Vec n a`, a length-indexed vector), so functions can promise exact size relationships (`append : Vec n a -> Vec m a -> Vec (n+m) a`) and forbid bad calls (`head` can't touch an empty vector) — maximally expressive, but you may have to write proofs by hand. The trade-off — refinement is *automatable but limited*, dependent is *expressive but effortful* — is the heart of the topic. These tools power verified systems (CompCert, seL4, HACL\*) and live mostly in research-grade languages (Idris, Agda, Coq, Lean, F\*), with tastes leaking into the mainstream (TypeScript literal types, Rust const generics). The unifying idea: **move correctness out of runtime checks and into the types, making illegal states unrepresentable.**
+1. Choose one small, known input for **Dependent & Refinement Types**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
----
+## Verify your work
 
-## Further Reading
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
 
-- *Type-Driven Development with Idris* — Edwin Brady (the gentlest serious introduction to dependent types).
-- *Programming Language Foundations in Agda* (PLFA) — free online, builds the ideas from scratch.
-- The Liquid Haskell tutorial (online) — refinement types you can run today.
-- *Software Foundations* (Pierce et al.) — Coq-based, the classic on proofs-as-programs.
-- The F\* tutorial and the HACL\* project pages — refinement types in production crypto.
-- *Certified Programming with Dependent Types* (CPDT) — Adam Chlipala, for when you're ready to go deep.
+## Review questions
+
+- What problem does Dependent & Refinement Types solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

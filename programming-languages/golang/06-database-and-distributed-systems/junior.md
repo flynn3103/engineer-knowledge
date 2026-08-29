@@ -1,38 +1,11 @@
 # Database and Distributed Systems — Junior
 
-> **Topic:** [Database and Distributed Systems](../README.md)
-> **Focus:** `database/sql` basics, connection pooling, transactions, and the first idea of idempotency — writing data access code that doesn't silently corrupt state.
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **Database and Distributed Systems** in one small example and prove the result?
 
-## Introduction
-
-Go talks to databases through the standard `database/sql` package plus a driver (`lib/pq`, `pgx`, `go-sql-driver/mysql`, etc.). `database/sql` already manages a **connection pool** for you — you don't open and close a raw connection per query, you borrow one from the pool and return it. Understanding that pool, transactions, and the basic idea of "what happens if this runs twice" is the foundation everything else in this topic builds on.
-
----
-
-## Prerequisites
-
-- Comfortable with `error` handling and basic struct usage.
-- No prior SQL/database-driver experience assumed beyond basic SQL syntax.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **`sql.DB`** | Not a single connection — a pool of connections, safe for concurrent use across goroutines. |
-| **Connection pool** | A managed set of open connections, reused across queries instead of opened/closed per call. |
-| **Transaction (`sql.Tx`)** | A group of statements executed atomically — all succeed or all roll back. |
-| **`Commit`** | Finalizes a transaction's changes. |
-| **`Rollback`** | Discards a transaction's changes. |
-| **Idempotency** | An operation that produces the same end state whether run once or multiple times. |
-| **Queue** | An ordered channel for decoupling producers from consumers, often across process/service boundaries. |
-| **Cache** | A fast, usually in-memory or near-memory, store of recently or frequently accessed data. |
-| **Rate limit** | A cap on how many operations are allowed in a given time window. |
-| **Lock** | A mechanism ensuring only one actor at a time can modify a piece of shared state. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -159,26 +132,6 @@ return rows.Err() // always check after the loop — a mid-scan error doesn't pa
 
 ---
 
-## Pros & Cons
-
-| | Pros | Cons |
-|---|---|---|
-| **`database/sql` pooling** | Safe for concurrent use, no manual connection management | Requires understanding pool-size settings to tune for load |
-| **Transactions** | Atomic multi-statement correctness | Holding one open too long blocks other operations on the same rows |
-| **Parameterized queries** | Prevents SQL injection, lets the driver handle escaping | None — always use them |
-
----
-
-## Use Cases
-
-| Situation | Approach |
-|---|---|
-| Multiple related writes that must all succeed or none | Wrap in a transaction |
-| A read that might legitimately return nothing | Check `errors.Is(err, sql.ErrNoRows)` |
-| A write that might be retried by the caller | Design for idempotency (unique request ID, `ON CONFLICT DO NOTHING`) |
-
----
-
 ## Best Practices
 
 1. Create one `*sql.DB` at startup; never per-request.
@@ -208,47 +161,24 @@ return rows.Err() // always check after the loop — a mid-scan error doesn't pa
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```go
-db.SetMaxOpenConns(25); db.SetConnMaxLifetime(5 * time.Minute)
-tx, _ := db.BeginTx(ctx, nil); defer tx.Rollback()
-tx.Commit()
-rows, _ := db.QueryContext(ctx, q); defer rows.Close()
-for rows.Next() { rows.Scan(&x) }
-rows.Err() // check after loop
-```
+1. Choose one small, known input for **Database and Distributed Systems**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
----
+## Verify your work
 
-## Summary
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
 
-- `sql.DB` is a connection pool, created once at startup and reused everywhere.
-- Transactions group statements atomically; `defer tx.Rollback()` right after `BeginTx` is the safe standard idiom.
-- Always use parameterized queries — never string concatenation.
-- Always close `rows` and check `rows.Err()` after iterating.
-- Idempotency — designing operations to be safe to retry — matters the moment retries or duplicate messages are possible.
+## Review questions
 
----
-
-## Further Reading
-
-- Go Wiki — *database/sql Tutorial*: <https://go.dev/wiki/SQLInterface>
-- `database/sql` package docs: <https://pkg.go.dev/database/sql>
-
----
-
-## Related Topics
-
-- [Error Handling](../04-error-handling/junior.md) — `sql.ErrNoRows` as a sentinel error.
-- [HTTP and APIs](../05-http-and-apis/junior.md) — the layer that usually calls into this one.
-
----
-
-## Check your understanding
-
-1. Explain Database and Distributed Systems — Junior Level in your own words and name the problem it solves.
-2. How would you apply the ideas around Introduction, Prerequisites, Glossary in a realistic engineering change?
-3. What failure mode or misuse should you look for, and what evidence would reveal it?
-4. What small example would prove that you can apply Database and Distributed Systems — Junior Level correctly?
-5. What observable result would convince you that the approach improved the system?
+- What problem does Database and Distributed Systems solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

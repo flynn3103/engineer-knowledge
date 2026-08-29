@@ -10,6 +10,7 @@ The knowledge required for modern engineering work is scattered across countless
 
 - **Craftsmanship** — code review, object-oriented design, disciplined testing, documentation, build engineering, legacy code, anti-patterns, and technical debt
 - **Programming Languages** — Go plus shared language/runtime internals
+- **Networking** — protocols, DNS, CDNs, load balancing, service communication, and APIs at scale
 - **Engineering Thinking** — computational, systems, critical, first-principles, probabilistic, creative, scientific, and metacognitive reasoning
 - **Data Engineering** — *coming soon*
 - **AI Engineering** — *coming soon*
@@ -23,6 +24,7 @@ The knowledge required for modern engineering work is scattered across countless
 ├── 📂 programming-languages/
 │   ├── golang/                           # Go roadmap — concurrency through production debugging
 │   └── language-internals/               # Runtime, memory, types, compilers, and interoperability
+├── 📂 networking/                         # Protocols, traffic delivery, service communication, and APIs
 ├── 📂 engineering-thinking/              # 9 sections: computational thinking → metacognition and learning
 ├── 📂 Data-Engineering/                  # Coming soon
 ├── 📂 AI-Engineering/                    # Coming soon

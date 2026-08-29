@@ -1,59 +1,11 @@
-# Interpretation, Compilation, JIT, AOT — Middle Level
+# Interpretation, Compilation, JIT, AOT — Middle
 
-> **Topic:** Interpretation, Compilation, JIT, AOT
-> **Focus:** The mechanics under the strategies — interpreter dispatch techniques, the bytecode loop, what a JIT *actually* does at runtime, tiered compilation, warmup, and on-stack replacement.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **Interpretation, Compilation, JIT, AOT** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-> Focus: **Stop treating the interpreter and the JIT as black boxes.** What instruction sequence actually runs the interpreter loop? What does "the JIT compiled this method" mean step by step? Why is warmup unavoidable, and what is on-stack replacement?
-
-At junior level we drew the four strategies — interpret, bytecode, JIT, AOT — as a spectrum. At this level we open each one up. The headline ideas:
-
-- An interpreter spends a shocking fraction of its time not on *your* arithmetic but on the **dispatch** — fetching the next instruction and jumping to the code that handles it. There's a whole family of techniques (switch-based, direct-threaded, indirect-threaded, computed-goto) whose entire purpose is to make that jump cheaper. Understanding dispatch is understanding why interpreters are slow and how they get faster.
-- A JIT is not magic. It is a compiler that runs *inside* your process, triggered by counters, fed by **profiles**, producing machine code into a buffer that the program then jumps into. Once you see it as "a compiler that runs at runtime and uses information unavailable at build time," the rest follows.
-- **Tiered compilation** exists because there's a fundamental tension: a cheap-but-dumb compiler gives you native speed *quickly*; an expensive-but-smart compiler gives you *better* native speed but takes longer. So runtimes use both — a fast first tier to get off the interpreter, then a slow optimizing tier for the truly hot code.
-- **On-stack replacement (OSR)** is the trick that lets a JIT optimize a loop that's *already running* — swapping out the interpreted loop for the compiled one *mid-flight*, without waiting for the function to be called again.
-
-This page makes those concrete. Higher levels cover deoptimization, speculative optimization, PGO for AOT, and the engineering economics.
-
----
-
-## Prerequisites
-
-- **Required:** The junior-level model — the four strategies and the "translation timing" idea.
-- **Required:** Comfort reading a `switch`/`case` and a `while` loop in C-like pseudocode.
-- **Required:** A rough sense of what "a pointer" and "a function pointer" are.
-- **Helpful:** Having seen disassembly or bytecode output once (Python `dis`, `javap -c`).
-- **Helpful:** Knowing that a CPU has a branch predictor that does better on predictable jumps than unpredictable ones.
-
-You do **not** yet need: SSA form, register allocation, escape analysis, or the deoptimization machinery — those are `senior.md` and `professional.md`.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Dispatch** | The act of an interpreter selecting and jumping to the handler for the next instruction. The interpreter's core overhead. |
-| **Decode** | Extracting the opcode (and operands) from the next bytecode instruction before dispatching. |
-| **Opcode** | The numeric code identifying a bytecode instruction (e.g. `BINARY_ADD`, `LOAD_FAST`). |
-| **Switch-based dispatch** | Dispatch via a big `switch(opcode)` in a loop. Simple, portable, but the indirect jump is poorly branch-predicted. |
-| **Direct threading** | Dispatch where each bytecode is replaced by the *address* of its handler, so dispatch is "jump to the address stored here." Faster; needs computed-goto (a GCC/Clang extension). |
-| **Indirect threading** | Like direct threading but through a table: each opcode indexes a table of handler addresses. Slightly more indirection, more compact bytecode. |
-| **Computed goto** | A compiler extension (`&&label`, `goto *ptr`) that lets you jump to a dynamically chosen label — the building block of threaded interpreters. |
-| **Profiling (in a JIT)** | Counting how often code runs and recording observed types/branches, to decide what and how to compile. |
-| **Invocation counter** | A per-method counter incremented on each call; crossing a threshold triggers compilation. |
-| **Backedge counter** | A per-loop counter incremented each time a loop iterates back; triggers compilation of hot loops (and OSR). |
-| **Tiered compilation** | Using multiple compilers of increasing quality and cost (interpreter → fast JIT → optimizing JIT). |
-| **Baseline / template JIT** | A fast, simple JIT that emits straightforward native code per bytecode with little optimization. Quick to produce, modest speedup. |
-| **Optimizing JIT** | A slow, sophisticated JIT that applies inlining, escape analysis, etc. Produces fast code but costs CPU and time. |
-| **OSR (On-Stack Replacement)** | Replacing an interpreted (or lower-tier) frame with a compiled one *while it is running*, typically for a long loop. |
-| **Warmup** | The transient period during which a JIT'd program runs below peak speed because compilation hasn't finished. |
-| **Code cache** | The region of memory where a JIT writes the native code it generates. |
-| **Inline cache** | A per-call-site cache of "last time, this call dispatched to *this* method/type," speeding up dynamic dispatch. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -180,41 +132,6 @@ OSR is why a JIT can speed up a single long-running loop in `main`, not just cod
 
 ---
 
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Dispatch overhead** | A short-order cook who, between every single chop, has to re-read the ticket to find out what to do next. The reading, not the chopping, eats the time. |
-| **Switch dispatch** | One central dispatcher radioing every taxi from one desk — a bottleneck, and the dispatcher can't predict who's next. |
-| **Threaded dispatch** | Each taxi knowing directly which taxi tends to follow it, so handoffs are smooth and predictable. |
-| **Invocation/backedge counters** | A turnstile counting how often a door is used; once it's busy enough, management installs an escalator (compiles it). |
-| **Tiered compilation** | A draft system: a fast typist produces a rough usable draft immediately; a meticulous editor later rewrites the *frequently-read* chapters to perfection. |
-| **Warmup** | A car engine that runs rich and sluggish until it reaches operating temperature, then settles into efficient cruising. |
-| **OSR** | Re-treading a tire *while the car is still rolling* — swapping the worn (interpreted) loop for a fresh (compiled) one without stopping the journey. |
-| **Inline cache** | A receptionist who remembers "the last three callers all wanted the sales team" and routes instantly until a different request arrives. |
-
----
-
-## Mental Models
-
-### The "Fetch-Decode-Dispatch Tax" Model
-
-Picture every interpreted instruction as: *(tax) + (work) + (tax)*, where the tax is fetch/decode/dispatch and the work is the actual operation. For cheap operations, tax ≫ work. Native code pays the tax *once*, at compile time, and then the running program is *all work.* Every interpreter optimization (threading, superinstructions, specialization) is an attempt to shrink the tax; every JIT is an attempt to *eliminate* it for hot code.
-
-### The "JIT is a Compiler on a Background Thread, Steered by Counters" Model
-
-Replace "JIT magic" with this concrete picture: counters tick as code runs; when one trips, a *normal compiler* (running on another thread, using profile data) emits native code into a buffer; the method's entry is repointed at that buffer. Everything advanced — tiering, OSR, deopt — is an elaboration of this loop. Holding this model stops you from over-mystifying JITs.
-
-### The "Speculate-and-Guard" Model
-
-A JIT's power comes from *betting*: "this is always an int," "this branch is never taken," "this call always lands here." Each bet is wrapped in a cheap **guard** that checks the bet still holds; if it fails, fall back. Trade: a tiny per-bet check buys you aggressively specialized code. The whole adaptive-optimization edifice is bets plus guards plus a fallback (deoptimization).
-
-### The "Climb to Peak" Model
-
-A JIT'd program's throughput over time is a rising curve: interpret (low) → baseline JIT (mid) → optimizing JIT (high plateau). An AOT program is a flat line at the plateau from t=0. Whether the area-under-the-curve favors JIT or AOT depends entirely on **how long the program runs.** Short run: AOT's flat line wins. Long run: JIT reaches the same plateau and the early deficit becomes negligible.
-
----
-
 ## Code Examples
 
 ### A switch-dispatch bytecode interpreter (tiny but real)
@@ -311,30 +228,6 @@ With a function called in a hot loop, you'll see V8 report optimizing (TurboFan)
 
 ---
 
-## Pros & Cons
-
-| Aspect | Interpreter | JIT | AOT |
-|--------|-------------|-----|-----|
-| **Dispatch overhead** | Pays it on every instruction. | Eliminated for hot code; cold code still pays it. | None — code is native. |
-| **Uses runtime profiles** | No. | Yes — its core advantage. | Only via a separate PGO step (offline). |
-| **Startup** | Fast (no compile). | Slow (warmup). | Fastest. |
-| **Peak throughput** | Low. | High (often matches/beats AOT). | High. |
-| **Memory** | Low. | High (compiler + code cache + profiles). | Low. |
-| **Adapts mid-run (OSR, respecialization)** | N/A. | Yes. | No. |
-| **Complexity to implement** | Low. | Very high. | Medium-high. |
-| **Code-gen at runtime as attack surface** | No runtime codegen. | Yes — writable+executable memory. | No runtime codegen. |
-
----
-
-## Use Cases
-
-- **Threaded/computed-goto interpreters** are the right investment when you must stay an interpreter (portability, simplicity, fast startup) but want to claw back speed without writing a JIT — exactly CPython's and LuaJIT's interpreter strategy.
-- **Tiered JITs** suit long-running, throughput-sensitive systems (app servers, browsers, databases) where warmup amortizes and peak speed compounds over billions of operations.
-- **OSR** matters for any workload dominated by a *single long loop* called once — batch jobs, simulation kernels, data-processing inner loops. Without OSR a JIT can't help those.
-- **AOT** remains the answer when warmup is a tax you can't afford: CLIs, serverless, and latency-critical cold starts.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Benchmark *after* warmup, and report both numbers
@@ -389,60 +282,24 @@ OSR works best on standard counted loops. Bizarre control flow (loops with many 
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│                 UNDER THE HOOD: DISPATCH, JIT, TIERS              │
-├──────────────────────────────────────────────────────────────────┤
-│ Interpreter loop = FETCH → DECODE → DISPATCH → (tiny work) → loop │
-│   The dispatch (indirect jump) is the tax. Threading shrinks it.  │
-├──────────────────────────────────────────────────────────────────┤
-│ Dispatch ladder (cheapest last):                                  │
-│   switch        one central indirect jump (bad prediction)        │
-│   indirect      handler addresses via a table (compact)           │
-│   direct/threaded  jump baked into each handler (best prediction) │
-│   needs computed-goto (&&label, goto *) — GCC/Clang only          │
-├──────────────────────────────────────────────────────────────────┤
-│ A JIT, demystified:                                               │
-│   counters detect hot → bg compiler reads bytecode + PROFILE →    │
-│   emits native into code cache → repoint entry → run native       │
-├──────────────────────────────────────────────────────────────────┤
-│ JIT's edge over AOT: runtime PROFILE it bets on, guarded:         │
-│   observed types · branch freq · devirtualization · inlining      │
-├──────────────────────────────────────────────────────────────────┤
-│ Tiered compilation (speed vs quality):                            │
-│   HotSpot: interp → C1 → C2                                        │
-│   V8:      Ignition → Sparkplug → Maglev → TurboFan               │
-│   .NET:    Tier 0 (QuickJIT) → Tier 1 (optimizing)               │
-├──────────────────────────────────────────────────────────────────┤
-│ Warmup = unavoidable climb to peak (must run to profile).         │
-│ OSR    = swap a RUNNING interpreted loop for compiled, mid-flight.│
-│          (HotSpot marks it '%' in PrintCompilation.)              │
-└──────────────────────────────────────────────────────────────────┘
-```
+1. Find a real component where **Interpretation, Compilation, JIT, AOT** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
----
+## Verify your work
 
-## Summary
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
 
-- An interpreter's cost is dominated by **dispatch** — fetch/decode/jump-to-handler — not by your arithmetic. The **switch → indirect → direct(threaded)** ladder makes dispatch cheaper, mostly by helping the CPU branch predictor; **computed goto** is the enabling compiler feature (GCC/Clang).
-- A **JIT is just a compiler running inside your process**, triggered by **invocation and backedge counters**, fed by **profiles**, emitting native code into a **code cache** and repointing method entries at it.
-- The JIT's superpower over AOT is **profile-driven speculation**: observed types, branch frequencies, devirtualization, and cross-boundary inlining — each a **bet wrapped in a cheap guard**.
-- **Tiered compilation** resolves the speed-vs-quality tension: a fast cheap compiler (C1, Sparkplug) gets code off the interpreter quickly; a slow optimizing compiler (C2, TurboFan) perfects the hottest code later. Lower tiers also *collect profiles* for higher tiers.
-- **Warmup** is unavoidable — you must run code to know it's hot, and compiling costs CPU. A program's throughput climbs to a plateau; whether JIT or AOT wins depends on **how long it runs.**
-- **On-Stack Replacement (OSR)** lets a JIT optimize a loop that's *already executing* in a once-called function, swapping the live frame into compiled code mid-loop — essential for big-loop workloads.
-- Practical consequences: warm up before benchmarking, keep hot call sites **monomorphic**, **pre-warm** JIT'd servers before taking load, and remember that runtime code generation is both the JIT's power and a security surface.
+## Review questions
 
----
-
-## Further Reading
-
-- *Crafting Interpreters* (Part III, "A Bytecode Virtual Machine") — Robert Nystrom. Builds a real bytecode VM and discusses dispatch. https://craftinginterpreters.com/
-- *The Structure and Performance of Efficient Interpreters* — Ertl & Gregg. The definitive study of threaded dispatch and branch prediction.
-- *Tiered Compilation in the JVM* — the HotSpot tiered-compilation design documents and `PrintCompilation` references.
-- *Sparkplug — a non-optimizing JavaScript compiler* — V8 blog. Why a fast baseline tier matters.
-- *Launching Ignition and TurboFan* — V8 blog. The bytecode + JIT pipeline of a modern JS engine.
-- *On-Stack Replacement in the HotSpot JVM* — talks and papers on how live frames are migrated to compiled code.
-- *Inside the Python 3.11 specializing adaptive interpreter* — for a modern take on speeding up a bytecode interpreter without a full JIT.
-- *Computed gotos for efficient dispatch tables* — Eli Bendersky's blog post, a clear hands-on explanation.
+- Which boundary is most affected by Interpretation, Compilation, JIT, AOT?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

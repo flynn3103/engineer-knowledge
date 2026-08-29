@@ -1,71 +1,11 @@
-# Generics & Parametric Polymorphism — Junior Level
+# Generics & Parametric Polymorphism — Junior
 
-> **Topic:** Generics & Parametric Polymorphism
-> **Focus:** Writing one piece of code that works for *every* type. What `<T>` actually means, why a `List<T>` is better than a `List<Object>`, and why the same generic function behaves identically whether you hand it an `int`, a `String`, or a spaceship.
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **Generics & Parametric Polymorphism** in one small example and prove the result?
 
-## Introduction
-
-> Focus: **What does it mean to write code that works "for any type"?** And **why is that strictly better than the alternatives — copy-pasting per type, or throwing everything into `Object`?**
-
-Imagine you write a function that returns the first element of a list. With an `int` list you write `firstInt`. With a `String` list you write `firstString`. With a `User` list you write `firstUser`. Three functions, identical *bodies*, differing only in the word `int` / `String` / `User`. That is wasteful, error-prone, and the moment you add a fourth type you copy-paste again.
-
-**Generics** (the language feature) let you write that function *once*, with the type left as a blank to be filled in later:
-
-```text
-first<T>(items: List<T>) -> T
-```
-
-The `<T>` is a **type parameter** — a placeholder for "some type, you tell me which." When you call `first(myIntList)`, the compiler fills `T = int`. When you call `first(myStringList)`, it fills `T = String`. **One body, all types.** The mechanism that makes this work is called **parametric polymorphism**: "parametric" because the code is *parameterized by a type*, and "polymorphism" (Greek: *many forms*) because the one function takes many forms depending on the type plugged in.
-
-The single most important property — and the thing that separates parametric polymorphism from the other kinds — is **uniformity**. `first<T>` does the *exact same thing* for every `T`. It cannot peek at the type and behave differently for `int` than for `String`. It literally *cannot know* what `T` is, so it must treat every value as an opaque box: hold it, return it, move it, but never inspect it. That sounds like a limitation, and it is, but it is also a superpower: because the function is forced to ignore the contents, you know it *can't* corrupt them, and you can reuse it everywhere with total confidence.
-
-This page covers the absolute foundations: what a type parameter is, the difference between a **generic type** (`List<T>`) and a **generic function** (`first<T>`), why generics beat both copy-paste and `Object`-everything, and the same examples across Java, C#, Go, TypeScript, Rust, and C++. The next level (`middle.md`) goes into the four kinds of polymorphism and how generics are actually *implemented* (monomorphization vs. type erasure); `senior.md` covers parametricity and "theorems for free"; `professional.md` covers the deep performance and design trade-offs of each implementation strategy.
-
-> 🎓 **Why this matters for a junior:** Generics are everywhere — every collection you use (`List`, `Map`, `Set`, `Option`, `Result`, `Promise`, `Future`) is generic. If you don't understand `<T>`, you will either avoid these tools or misuse them. And the #1 junior mistake — reaching for `Object`/`interface{}`/`any` and casting everywhere — is *exactly* the problem generics were invented to kill. Learning this well makes your code shorter, safer, and faster all at once.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** How to write a function with parameters and a return type in at least one typed language (Java, C#, Go, TypeScript, Rust, or C++).
-- **Required:** What a **type** is — `int`, `String`, a class/struct you defined — and what it means for a variable to "have a type."
-- **Required:** Basic familiarity with a collection like a list or array.
-- **Helpful but not required:** Some exposure to inheritance / interfaces (we contrast generics with them, lightly).
-- **Helpful but not required:** Having felt the pain of either copy-pasting a function per type, or casting `Object` back to the real type.
-
-You do **not** need to know:
-
-- How the compiler implements generics (monomorphization, erasure — that's `middle.md`).
-- Bounded type parameters / constraints in depth (we touch them; the full treatment is a sibling topic).
-- Variance (`? extends`, covariance — a sibling topic).
-- Anything about typeclasses, higher-kinded types, or parametricity proofs (`senior.md`).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Generic** | A function, type, or method written with one or more **type parameters** so it works for many types. |
-| **Type parameter** | A placeholder for a type, written `<T>` (or `<E>`, `<K, V>`…). Filled in with a real type when the generic is used. |
-| **Type argument** | The actual type you supply for a type parameter. In `List<String>`, `String` is the type argument for `List<T>`'s parameter `T`. |
-| **Parametric polymorphism** | Writing code parameterized by a type variable that behaves **identically for all types**. The formal name for what generics give you. |
-| **Generic type** | A type that takes type parameters: `List<T>`, `Map<K,V>`, `Optional<T>`. |
-| **Generic function / method** | A function/method that takes type parameters: `first<T>(...)`, `max<T>(...)`. |
-| **Instantiation** | Filling a generic's type parameter with a concrete type — turning `List<T>` into `List<String>`. |
-| **Type inference** | The compiler figuring out the type argument for you, so you write `first(myList)` instead of `first<String>(myList)`. |
-| **Type variable** | Another name for a type parameter inside the body of a generic; `T` *is* a type variable. |
-| **Bounded type parameter** | A type parameter restricted to types satisfying some requirement: `<T extends Comparable<T>>` ("T must be comparable"). |
-| **Unbounded type parameter** | A type parameter with no restriction — `T` can be *any* type. The function can only do type-agnostic things with it. |
-| **Boxing** | Wrapping a value type (like `int`) in a heap object so it can be treated uniformly as a reference. A common cost of certain generic implementations. |
-| **`Object` / `any` / `interface{}`** | The "top type" — a box that holds anything. The pre-generics way to write reusable code, requiring casts and losing type safety. |
-| **Cast** | Telling the compiler "trust me, this `Object` is really a `String`." Unchecked casts are where pre-generics code blows up at runtime. |
-| **Container / collection** | A data structure holding other values: list, map, set, stack. The most common place you meet generics. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -175,39 +115,6 @@ max<T: Comparable>(a: T, b: T) -> T { return a > b ? a : b }
 ```
 
 Now `T` can be any *comparable* type, and inside the body you're allowed to use `>`. This is **bounded polymorphism**, and it sits on the boundary between parametric polymorphism (uniform) and ad-hoc polymorphism (per-type behavior, via the comparison operation). Bounds get a full treatment in the dedicated bounded-polymorphism topic; here, just know that an *unbounded* `T` can do almost nothing, and a *bounded* `T` can do exactly what the bound permits.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Generic type `Box<T>`** | A cardboard shipping box. The same box ships books, shoes, or mugs — it doesn't care what's inside, it just holds and protects. |
-| **Type parameter `<T>`** | The label slot on the box: "Contents: ____." You fill it in per shipment. |
-| **Type argument** | What you write on the label: "Contents: Books." |
-| **Uniform behavior** | The postal system moves the box from A to B *identically* regardless of contents. It physically cannot open it to special-case the route based on what's inside. |
-| **`Object`-everything (no generics)** | Shipping everything in unlabeled identical boxes. At the destination, you must *guess and open* each one to find out what it is — and sometimes guess wrong. |
-| **Copy-paste per type (no generics)** | Building a custom, single-purpose box for books, another for shoes, another for mugs. Works, but a colossal waste, and a flaw in the design repeats in all of them. |
-| **Bounded type parameter** | "This box only ships *fragile* items" — a restriction that lets the shipper assume something (add padding) it couldn't assume for arbitrary contents. |
-| **Type inference** | The clerk reads the contents and fills in the label for you, so you don't have to. |
-| **Boxing a value type** | Putting a single loose coin into a small protective sleeve so it can travel through the same pipe as everything else. Small overhead, lets it be handled uniformly. |
-| **Cast / `ClassCastException`** | Opening an unlabeled box expecting shoes and finding a live snake. The crash. |
-
----
-
-## Mental Models
-
-### The Fill-in-the-Blank Model
-
-A generic is a piece of code with a *blank* where a type goes. `List<__>`, `first<__>(...)`. The compiler fills the blank with whatever concrete type you use it with. One template, many fillings. Everything else about generics is a refinement of "what can you write, and what can the compiler do, when there's a blank in the type."
-
-### The Opaque-Box Model (for uniformity)
-
-Inside a generic function, a value of type `T` is an **opaque box** with no label and no openable lid. You can pick it up, set it down, hand it to someone, put it in a bigger box — but you cannot open it or ask what's inside. This is *why* the same code works for all types: it never depends on the contents. When you *do* need to look inside (compare, print, construct), you must add a **bound** — which is like stamping "these boxes are guaranteed to contain comparable things" so you're allowed to peek in the one specific way the stamp promises.
-
-### The "Stamp Out a Copy" vs. "One Shared Machine" Model (preview of implementation)
-
-There are two ways a compiler can make `Stack<T>` work for many types. Either it **stamps out a separate copy** of the code for `Stack<int>`, `Stack<String>`, etc. (fast, but more code), or it builds **one shared machine** that treats every element as a generic box and runs the same code for everyone (smaller, but slower because of the boxing). You don't need this yet — `middle.md` is entirely about this choice — but keep the two pictures in your head: *specialize-per-type* vs. *one-size-fits-all*.
 
 ---
 
@@ -377,37 +284,6 @@ C++ templates also stamp out a specialized copy per type (like Rust). The compil
 
 ---
 
-## Pros & Cons
-
-| Aspect | Pros | Cons |
-|--------|------|------|
-| **Reuse** | Write a container or algorithm **once**, use it for every type. No copy-paste. | The generic code is slightly more abstract to read than a concrete version. |
-| **Type safety** | The compiler enforces that a `List<String>` holds only `String`s. No runtime casts, no `ClassCastException`. | You sometimes fight the compiler when your design needs bounds or variance you haven't learned yet. |
-| **Clarity at call site** | `Map<UserId, User>` documents intent far better than `Map` (of what to what?). | Long generic signatures (`Map<String, List<Pair<K, V>>>`) can get noisy. |
-| **Performance (specialized)** | In Rust/C++/C# value types, generics are *zero-cost* — as fast as hand-written code, no boxing. | In Java/erased systems, generic code over value types often **boxes** (heap allocation, indirection). |
-| **Maintenance** | A bug fixed in the generic is fixed for all instantiations at once. | Error messages for misused generics can be cryptic (especially C++ templates). |
-| **Vs. `Object`/`any`** | Strictly safer and clearer. | Migrating an old `Object`-based API to generics can be a large change. |
-
----
-
-## Use Cases
-
-Generics are the right tool when:
-
-- **You're writing a container or collection.** Lists, maps, sets, stacks, queues, trees, caches — anything that *holds other values* should be generic in the element type. This is the canonical use.
-- **You're writing an algorithm that doesn't care about the element type.** Sort, reverse, find, map, filter, fold — these work uniformly over any element (sometimes with a bound like "comparable").
-- **You're wrapping or transforming a value.** `Optional<T>`, `Result<T, E>`, `Future<T>`, `Box<T>`, `Cache<K, V>` — wrappers that add behavior around any payload.
-- **You want to eliminate casts.** Any place you currently take or return `Object`/`any`/`interface{}` and cast is a candidate for a type parameter.
-- **You want one API to serve many types safely.** A serialization function `serialize<T>(value: T)`, a builder `Builder<T>`, a repository `Repository<Entity>`.
-
-Generics are *not* the right tool when:
-
-- **The behavior genuinely differs per type.** If `area()` means something different for `Circle` and `Square`, that's *subtype* polymorphism (override a method), not parametric. Don't force it into `<T>`.
-- **You only ever use one concrete type.** A `Stack<int>` you never reuse for anything else may as well be a plain `IntStack` for clarity. (Though using the standard generic one costs nothing.)
-- **You're tempted to inspect `T` at runtime.** If you find yourself wanting `if T == int`, you've left parametric polymorphism and probably want overloading, an interface, or a different design.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: The Generic Container
@@ -483,15 +359,24 @@ Write `first(xs)`, not `first<String>(xs)`, unless the compiler can't infer it (
 
 ---
 
-## Summary
+## Apply it
 
-- **Generics** let you write a function or type **once** with a **type parameter** (`<T>`) standing in for "some type you supply later." The compiler fills the blank when you use it.
-- The formal name is **parametric polymorphism**: code *parameterized by a type variable* that behaves **identically for every type**.
-- They solve a real problem with three bad pre-generics options: copy-paste per type (wasteful), `Object`/`any` everywhere (unsafe, needs casts and crashes at runtime), or do nothing. Generics give the **reuse of the second with the safety of the first**.
-- The defining property is **uniformity**: a generic function can't inspect or special-case `T`, so it must treat values as **opaque boxes** — which is exactly why it's safe and reusable.
-- A **generic type** (`List<T>`) and a **generic function** (`first<T>`) are distinct, orthogonal ideas.
-- **Type inference** means you rarely write `<T>` explicitly at call sites — generics feel lightweight in practice.
-- An **unbounded** `T` can do almost nothing; a **bounded** `T` (`<T: Comparable>`) can do exactly what the bound allows. (Bounds are their own topic.)
-- The same idea appears in every typed language: Java/C#/TS `<T>`, Go `[T any]`, Rust/C++ generics & templates. The syntax differs; the model is one.
-- Under the hood, compilers either **stamp out a specialized copy per type** (Rust, C++ — fast, more code) or **share one implementation** treating values generically (Java, TS — smaller, slower/boxing). That choice — and its trade-offs — is the heart of the next level.
-- A junior's #1 upgrade: **stop casting `Object`/`any`; introduce a `<T>` instead.** Shorter, safer, and faster, all at once.
+1. Choose one small, known input for **Generics & Parametric Polymorphism**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
+
+## Verify your work
+
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
+
+## Review questions
+
+- What problem does Generics & Parametric Polymorphism solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

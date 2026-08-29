@@ -43,14 +43,14 @@ These questions are **language-agnostic by design.** The frameworks here apply w
 
 | # | Topic | Focus |
 |---|---|---|
-| [01](01-language-selection-criteria/) | Language Selection Criteria | The decision framework — problem fit, performance, team, ecosystem, risk; weighted scoring vs gut feel |
-| [02](02-performance-vs-productivity-tradeoffs/) | Performance vs Productivity Tradeoffs | "Fast enough," the cost of premature performance, the velocity/throughput spectrum, profiling before switching |
-| [03](03-ecosystem-and-tooling-maturity/) | Ecosystem & Tooling Maturity | Libraries, package managers, build/debug/observability tooling, evaluating library health and bus factor |
-| [04](04-interop-and-polyglot-architectures/) | Interop & Polyglot Architectures | FFI, service boundaries, shared schemas, the JVM/WASM polyglot, "right tool per job" and its hidden costs |
-| [05](05-when-to-introduce-a-new-language/) | When to Introduce a New Language | Triggers, the N+1 language tax, the shiny-thing trap, governance, pilots, and exit criteria |
-| [06](06-migrating-between-languages/) | Migrating Between Languages | Strangler fig, incremental vs big-bang, shadow/parallel runs, and the rewrite fallacy |
-| [07](07-total-cost-of-ownership-and-team-skills/) | TCO & Team Skills | Hiring, onboarding, training, salaries, maintenance, Conway's law, "fun to write, expensive to own" |
-| [08](08-language-longevity-and-lock-in-risk/) | Language Longevity & Lock-In Risk | Betting on a future, vendor/platform lock-in, community-health signals, deprecation, escape hatches |
+| [01](01-language-selection-criteria/README.md) | Language Selection Criteria | The decision framework — problem fit, performance, team, ecosystem, risk; weighted scoring vs gut feel |
+| [02](02-performance-vs-productivity-tradeoffs/README.md) | Performance vs Productivity Tradeoffs | "Fast enough," the cost of premature performance, the velocity/throughput spectrum, profiling before switching |
+| [03](03-ecosystem-and-tooling-maturity/README.md) | Ecosystem & Tooling Maturity | Libraries, package managers, build/debug/observability tooling, evaluating library health and bus factor |
+| [04](04-interop-and-polyglot-architectures/README.md) | Interop & Polyglot Architectures | FFI, service boundaries, shared schemas, the JVM/WASM polyglot, "right tool per job" and its hidden costs |
+| [05](05-when-to-introduce-a-new-language/README.md) | When to Introduce a New Language | Triggers, the N+1 language tax, the shiny-thing trap, governance, pilots, and exit criteria |
+| [06](06-migrating-between-languages/README.md) | Migrating Between Languages | Strangler fig, incremental vs big-bang, shadow/parallel runs, and the rewrite fallacy |
+| [07](07-total-cost-of-ownership-and-team-skills/README.md) | TCO & Team Skills | Hiring, onboarding, training, salaries, maintenance, Conway's law, "fun to write, expensive to own" |
+| [08](08-language-longevity-and-lock-in-risk/README.md) | Language Longevity & Lock-In Risk | Betting on a future, vendor/platform lock-in, community-health signals, deprecation, escape hatches |
 
 ---
 

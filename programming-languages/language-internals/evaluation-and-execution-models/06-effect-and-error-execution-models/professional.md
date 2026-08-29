@@ -1,63 +1,11 @@
-# Effect & Error Execution Models — Professional Level
+# Effect & Error Execution Models — Professional
 
-> **Topic:** Effect & Error Execution Models
-> **Focus:** The whole field as one mechanism. Delimited continuations as the substrate; algebraic effects and handlers as the surface; one-shot vs multi-shot; how exceptions, generators, async, and dependency injection collapse into a single primitive — and the operational, performance, and resource-safety consequences of building (or choosing) such a system.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Effect & Error Execution Models** with measurable outcomes and limited coordination?
 
-## Introduction
-
-> Focus: **There is one control-flow primitive underneath all of it.** Stack unwinding, `yield`, `await`, `recover`, dependency injection, backtracking search, transactional retry — they are the same operation parameterized by *what the handler does with the continuation.* This page builds that primitive from the ground (delimited continuations), shows the surface that exposes it (algebraic effect handlers), and works through the operational, performance, and resource-safety engineering of using it in anger.
-
-By now you can read unwind tables and explain why a throw is slow. This level asks the harder question a language designer or runtime engineer must answer: **what is the most general way to model "a computation that does more than return a value," such that errors, effects, suspension, and resumption all fall out as special cases?** The answer, developed over decades from Scheme's `call/cc` through delimited continuations (`shift`/`reset`) to **algebraic effects and handlers** (Eff, Koka, OCaml 5, Effekt, Frank), is: **reify "the rest of the computation" as a value — a continuation — and let a handler installed up the stack receive each effectful operation together with that continuation and decide its fate.**
-
-From this single primitive:
-
-- An **exception** is an effect whose handler **discards** the continuation (never resumes) — control transfers and the abandoned computation dies.
-- A **generator** is an effect (`yield`) whose handler **resumes** the continuation each time the consumer asks for another value.
-- **async/await** is an effect (`await`) whose handler **stashes** the continuation in an event loop and resumes it when the awaited result is ready — exactly **one** resume per suspension.
-- **Dependency injection / reader** is an effect (`ask`) whose handler **immediately resumes** the continuation with an environment value.
-- **Non-deterministic search / backtracking** is an effect (`choose`) whose handler resumes the continuation **multiple times**, once per alternative.
-- **Software-transactional retry** is an effect whose handler re-runs (resumes a fresh copy of) the continuation on conflict.
-
-The axis that separates these is **how many times, and with what, the continuation is resumed** — zero (exceptions), one (async, generators-as-pull), or many (backtracking, STM, probabilistic). That axis — **one-shot vs multi-shot** — is also where all the *hard* engineering lives, because resuming a continuation more than once replays everything captured in it, which collides violently with imperative resource management (`defer`, `Drop`, destructors, mutexes).
-
-This page also covers the *operational* end of error design that a staff engineer owns: **errors vs panics vs aborts** as a deliberate taxonomy, **let-it-crash** philosophy with **supervisors** (Erlang/OTP), **error context propagation** as a distributed-systems concern, and the cost model of all of the above on hot paths and at scale.
-
-> 🎓 **Why this matters at this level:** When you evaluate a new language's effect system, design a service's failure taxonomy, build an async runtime, or debug why a backtracking handler corrupted a database, you are reasoning about *continuations and their resumption discipline*. This is the layer where "error handling" and "concurrency" and "control flow" stop being separate topics.
-
----
-
-## Prerequisites
-
-- **Required:** The senior page: DWARF/LSDA/SEH unwinding, the cost of stack traces, async error reattachment, the "effects as resumable operations" lens.
-- **Required:** Solid grasp of at least one async runtime's internals (event loop, poll-based futures, or coroutine suspension).
-- **Required:** Comfort with higher-order functions and, ideally, monadic abstraction (`bind`/`>>=`).
-- **Helpful:** Prior exposure to `call/cc`, CPS, or a generator/coroutine implementation.
-- **Helpful:** Familiarity with Erlang/OTP supervision or a similar fault-isolation model.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Continuation** | A first-class value representing "the rest of the computation" from a point; calling it resumes there. |
-| **`call/cc`** | Scheme's "call-with-current-continuation": captures the *entire* rest of the program as an escaping, re-invocable function. Undelimited. |
-| **Delimited continuation** | A continuation bounded by a prompt/`reset`; captures only up to the boundary, returns a value, and *composes*. Operators: `shift`/`reset`, `control`/`prompt`, `shift0`. |
-| **Prompt / `reset`** | The marker delimiting how far a captured continuation extends. |
-| **`shift` / `control`** | Operators that capture the delimited continuation up to the nearest prompt and pass it to a body. |
-| **Algebraic effect** | A declared operation (`raise`, `yield`, `await`, `ask`) a computation may *perform*, suspending it and invoking the nearest handler. |
-| **Effect handler** | Code that interprets performed effects; receives the operation's argument(s) and the **continuation**, and decides whether/how to resume. |
-| **One-shot continuation** | A continuation that may be resumed **at most once** (exceptions, async, pull-generators). Cheap; compatible with linear resources. |
-| **Multi-shot continuation** | A continuation that may be resumed **many times** (backtracking, STM, probabilistic). Requires copying captured state; hostile to imperative cleanup. |
-| **Effect row / effect signature** | A type-system feature tracking which effects a function may perform (Koka's effect rows, Frank's abilities). |
-| **Tail-resumptive handler** | A handler that resumes the continuation exactly once in tail position — optimizable to a plain call (no real capture needed). |
-| **Let-it-crash** | A reliability philosophy: don't defensively handle every error; let a process die and a supervisor restart it in a known-good state. |
-| **Supervisor** | (Erlang/OTP) a process whose job is to monitor children and restart them per a strategy on failure. |
-| **Error context propagation** | Attaching the "what was I doing" chain to an error as it crosses layers (and process/service boundaries). |
-| **Stack ripping / CPS** | Manually rewriting code into continuation-passing style — the painful thing effects/async exist to avoid. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -135,41 +83,6 @@ Choosing the wrong tier is a classic production failure: recovering from a panic
 The Erlang/OTP insight inverts defensive programming: **don't** wrap every operation in error handling. Let a lightweight, isolated process **crash** on unexpected failure, and let a **supervisor** restart it from a known-good state per a restart strategy (`one_for_one`, `one_for_all`, `rest_for_one`, with intensity/period limits). This works because Erlang processes share nothing (a crash can't corrupt a neighbor) and restart is cheap. It's the macro-scale version of the errors/panics/aborts taxonomy: routine failures are values; unexpected failures crash a small unit and get restarted, rather than being heroically handled in place.
 
 Orthogonally, **error context propagation** is how a failure stays diagnosable as it crosses layers and services: each layer wraps with "what I was doing" (Go `%w`, Rust `anyhow`/`thiserror` context, exception chaining, distributed trace/span IDs). At scale, the error's *context chain* and *trace correlation* matter more than its type — you need to reconstruct the causal path across processes, where no single stack ever existed.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Continuation** | A bookmark plus the *entire unread remainder* of the book as a portable object you can hand to someone else to finish. |
-| **Delimited continuation** | A bookmark plus only the rest of *this chapter* (up to the prompt) — a self-contained piece you can re-read or skip. |
-| **Effect handler** | A genie you summon mid-task: you state your wish (the operation) and give it a "send me back here" portal (the continuation); it grants the wish and may send you back, send you back many times, or not at all. |
-| **One-shot vs multi-shot** | A single-use vs reusable return ticket. The reusable ticket is powerful but if your trip had side effects (you spent money, made a mess), using it again repeats all of them. |
-| **Exception = discard k** | The genie hears your wish, decides the quest is hopeless, and simply *doesn't* send you back — your old path is abandoned. |
-| **Let-it-crash + supervisor** | A factory that doesn't repair jammed robots in place; it powers the robot off and a foreman swaps in a fresh one from a known-good state. |
-| **Errors/panics/aborts** | Wrong order at a restaurant (fix it), kitchen fire (evacuate this room, restaurant survives), gas leak in the whole building (evacuate everything, don't stop to tidy up). |
-| **Error context chain** | A shipping label that accumulates a stamp at every depot, so when a package is lost you can trace its whole journey. |
-
----
-
-## Mental Models
-
-### The "Handler Decides the Fate of `k`" Model
-
-Reduce the entire topic to one question at every effectful operation: *what does the handler do with the continuation `k`?* Discard it = exception. Call it once = async/generator/DI/state. Call it many times = search/STM. Every control feature, every error model, every async pattern is a point on this single axis. Internalizing this collapses a dozen "separate" topics into one.
-
-### The "Decouple Operation from Interpretation" Model
-
-A `perform Ask` *requests*; a handler *interprets*. The same program text means "read real config" under one handler and "return a test stub" under another — without changing the code. This is why effects are simultaneously an error model, a concurrency model, a DI framework, and a mocking framework: they all want the same decoupling of "what is requested" from "how it's satisfied."
-
-### The "Trust-After-Failure" Model for the Taxonomy
-
-Don't classify failures by their *cause*; classify them by **how much you trust the process afterward.** Fully trust → recoverable error (handle locally). Distrust this operation but trust the process → panic (contain at a boundary). Distrust the whole process → abort (terminate, don't touch state). This single lens picks the right tier every time.
-
-### The "Cleanup Counts Resumptions" Model
-
-Every piece of cleanup (`defer`/`Drop`/`finally`/destructor) silently assumes the code path it guards runs **exactly once**. The moment a handler can run a continuation zero or multiple times, that assumption is a bug waiting to happen: zero → cleanup may be skipped unless the runtime forces it on discard; many → cleanup re-runs. Always pair an effect system's resumption discipline with its cleanup guarantees.
 
 ---
 
@@ -310,36 +223,6 @@ The worker's code is clean because failure isolation and recovery are the *super
 
 ---
 
-## Pros & Cons
-
-| Dimension | Pros | Cons |
-|-----------|------|------|
-| **Algebraic effects (general)** | One mechanism for errors/async/generators/DI/state; decouples operation from interpretation; resumable exceptions; superb for testing/mocking. | Conceptually demanding; effect typing adds signature ceremony; immature tooling/ecosystem in most languages. |
-| **Delimited continuations** | Maximally expressive substrate; compose; can implement everything above. | Hard to implement efficiently and to reason about; multi-shot fights imperative resources. |
-| **One-shot restriction** | Cheap (move stack segment); preserves linear-resource/cleanup reasoning; matches async/generators. | Cannot express backtracking/STM/probabilistic directly. |
-| **Multi-shot** | Expresses search, non-determinism, transactional retry elegantly. | Replays captured side effects incl. cleanup; needs copyable state; performance and correctness hazards. |
-| **Errors-as-values taxonomy** | Explicit, local, composable, cheap; clear trust boundaries. | Verbose; discipline-dependent; needs context-wrapping conventions. |
-| **Let-it-crash / supervisors** | Simple worker code; strong fault isolation; self-healing. | Requires shared-nothing isolation + cheap restart; restart loses in-flight state; not free in shared-memory languages. |
-
----
-
-## Use Cases
-
-- **Designing/evaluating an effect system** (Koka, OCaml 5, Effekt, Unison abilities, a library like `eff`/`fused-effects`): judge it by its resumption discipline, effect-typing ergonomics, and cleanup guarantees.
-- **Building an async runtime or scheduler:** recognize `await` as one-shot continuation capture; choose stackful (fiber/segment) vs stackless (state-machine) representation accordingly.
-- **Implementing generators/iterators/coroutines** without manual CPS: delimited continuations or one-shot effects give pull/push iteration directly.
-- **Architecting a service's failure taxonomy:** map every failure to error/panic/abort by trust-after-failure; define boundary recovery and abort triggers explicitly.
-- **Fault-tolerant systems:** apply let-it-crash + supervision where isolation and cheap restart hold (Erlang/Elixir/BEAM, or actor frameworks emulating it).
-- **Distributed error diagnosis:** design error-context chains and trace correlation so a failure is reconstructable across processes where no single stack exists.
-
-### When *not* to reach for general effects
-
-- Hot, simple paths where a plain `Result`/`error` is clearer and faster.
-- Teams/ecosystems without effect-system maturity — the cognitive and tooling cost outweighs the elegance.
-- Anywhere multi-shot would silently replay I/O or cleanup; restrict to one-shot or avoid.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Restrict to one-shot unless you can prove resource-safety
@@ -397,27 +280,24 @@ Use crash-and-restart only where a crash cannot corrupt neighbors (separate proc
 
 ---
 
-## Summary
+## Apply it
 
-- There is **one substrate**: the **continuation** — "the rest of the computation" as a value. **Delimited** continuations (`shift`/`reset`, prompts) are the practical, composable form; **algebraic effects and handlers** are their typed, ergonomic surface.
-- Every control feature is "**perform an operation, hand the handler the continuation, and let the handler decide its fate**." The deciding axis is **how many times `k` is resumed**: **0** = exceptions/`panic`, **1** = async/generators/DI/state, **many** = backtracking/STM/probabilistic.
-- **Exceptions are the degenerate case**: an effect whose handler discards the continuation, with the runtime still guaranteeing the abandoned segment's cleanup runs (the unwinding machinery from earlier levels). General handlers *generalize* `try/catch` by being able to **resume** — true resumable exceptions, as in Lisp's condition/restart.
-- **One-shot** continuations are cheap (move a stack segment) and preserve linear-resource/cleanup reasoning; **multi-shot** is expressive but **replays captured side effects and cleanup**, which is the central correctness hazard. Most practical systems (OCaml 5, async runtimes) are one-shot; **tail-resumptive** handlers compile to plain calls.
-- The **operational taxonomy** — **error vs panic vs abort** — should be chosen by **trust-after-failure**, not cause: handle locally, contain at a boundary, or terminate without cleanup. Recovering past corruption is worse than crashing.
-- **Let-it-crash + supervisors** is the macro-scale version: clean worker code, fault isolation via shared-nothing, cheap restart to a known-good state — valid only where isolation is real, with restart-intensity limits to avoid storms.
-- At scale, an error's **context chain and trace correlation** matter more than its type, because failures must be reconstructed across processes where no single stack ever existed.
+1. Define the user or business outcome that **Effect & Error Execution Models** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
----
+## Verify your work
 
-## Further Reading
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
 
-- Gordon Plotkin & Matija Pretnar, *"Handlers of Algebraic Effects"* — the foundational paper. https://homepages.inf.ed.ac.uk/gdp/publications/Effect_Handlers.pdf
-- Daan Leijen, *"Algebraic Effects for Functional Programming"* (Koka) and *"Type Directed Compilation of Row-Typed Algebraic Effects."*
-- Matija Pretnar, *"An Introduction to Algebraic Effects and Handlers."* https://www.eff-lang.org/handlers-tutorial.pdf
-- *OCaml 5 Effects* — manual and the *"Retrofitting Effect Handlers onto OCaml"* (PLDI 2021) paper on one-shot fiber implementation.
-- Oleg Kiselyov & collaborators, *"Delimited Continuations"* and *"Freer Monads, More Extensible Effects."*
-- Olivier Danvy & Andrzej Filinski, *"Abstracting Control"* — `shift`/`reset` origins; Filinski, *"Representing Monads."*
-- *Structure and Interpretation of Computer Programs* and Friedman/Felleisen on `call/cc` and continuations.
-- Joe Armstrong, *"Making Reliable Distributed Systems in the Presence of Software Errors"* (thesis) — let-it-crash and OTP supervision.
-- *Common Lisp* condition/restart system (Seibel, *Practical Common Lisp*, ch. 19) — resumable exceptions decades early.
-- Effekt, Frank, and Unison documentation — modern effect-typed languages worth studying comparatively.
+## Review questions
+
+- Which measurable outcome justifies investing in Effect & Error Execution Models?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

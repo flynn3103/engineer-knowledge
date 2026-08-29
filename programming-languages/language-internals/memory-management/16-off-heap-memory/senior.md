@@ -1,14 +1,11 @@
-# Off-heap / Native Memory — Senior Level
+# Off-heap / Native Memory — Senior
 
-> **Topic:** Off-heap / Native Memory
-> **Focus:** Design and cross-runtime trade-offs — when off-heap is the right architecture, how to model lifetime and ownership across a system, and how the choice ripples into GC tuning, serialization, and the OS.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Off-heap / Native Memory** under failure, load, and change?
 
-## Introduction
-
-Knowing the off-heap APIs is the middle tier. The senior question is *whether to reach for them at all*, and if so, how to structure the system so the manual-memory responsibility doesn't metastasize into leaks and crashes scattered across the codebase. Off-heap is a power tool: it removes the GC from the hot path for huge datasets, but it reintroduces every problem managed runtimes were invented to solve. The senior skill is containing that blast radius — concentrating native ownership in a few well-tested components and keeping the rest of the system in the safe, managed world.
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -104,21 +101,6 @@ _ = unix.Madvise(m, unix.MADV_SEQUENTIAL)
 
 ---
 
-## Pros & Cons
-
-**Pros (design-level)**
-- Decouples dataset size from GC pause time — the core architectural win.
-- Enables zero-copy pipelines (mmap → off-heap parse → native/DMA) with no intermediate copies.
-- Region/arena ownership can be *more* leak-resistant than reference-counted on-heap graphs, because freeing is bulk and scoped.
-
-**Cons (design-level)**
-- You take on a buffer-management and serialization layer the runtime used to provide for free.
-- Tuning and capacity planning become manual and error-prone (heap limit no longer bounds the process).
-- Diffuse ownership leaks are subtle and invisible to standard tools — a real operational tax.
-- Read-in-place layouts are rigid: schema evolution means versioned binary formats.
-
----
-
 ## Best Practices
 
 1. **Profile first.** Only move a structure off-heap after a profiler shows it dominating GC cost or footprint. Don't speculate.
@@ -140,6 +122,24 @@ _ = unix.Madvise(m, unix.MADV_SEQUENTIAL)
 
 ---
 
-## Summary
+## Apply it
 
-At the senior level, off-heap is an architectural decision with a narrow but high-value sweet spot: large, long-lived, GC-pressuring datasets; zero-copy native interop; data larger than RAM. The discipline that makes it safe is *concentrated, explicit ownership* — arena/region scoping over diffuse per-object freeing, a small native core behind a safe API, and a serialization stance (read-in-place vs decode-on-read) chosen on purpose. Off-heap reshapes GC tuning (smaller heap, smaller live set, but a native footprint the ergonomics can't see), and mmap-based designs trade control for simplicity in a way that's right for some databases and wrong for others. The recurring lesson: off-heap gives back the performance the GC costs you, in exchange for the safety the GC gave you — make that trade only where the profiler proves it pays.
+1. State the system invariant that **Off-heap / Native Memory** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
+
+## Verify your work
+
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
+
+## Review questions
+
+- Which invariant must remain true when Off-heap / Native Memory fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

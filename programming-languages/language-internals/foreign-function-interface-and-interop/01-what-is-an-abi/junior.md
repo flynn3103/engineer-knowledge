@@ -1,64 +1,11 @@
-# What Is an ABI — Junior Level
+# What Is an ABI — Junior
 
-> **Topic:** What Is an ABI
-> **Focus:** The difference between source code that compiles together and machine code that *runs* together. Why "it compiled" and "it works" are two different promises.
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **What Is an ABI** in one small example and prove the result?
 
-## Introduction
-
-> Focus: **What is an ABI, and why is it different from an API?**
-
-When you write `printf("hello\n")` and call a function from a library, you are relying on two completely separate promises. The first promise is at the level of *source code*: the function is named `printf`, it takes a format string and some arguments, and it returns an `int`. That promise is the **API** — the Application *Programming* Interface. It is the contract you read in a header file or in documentation. It lives in the world of names, types, and signatures.
-
-The second promise is invisible to you, and it operates at the level of *machine code*. When your compiled program actually calls `printf`, the two pieces of code — yours and the library's — have to agree on a huge number of low-level mechanical details that no source file mentions. Which CPU register holds the first argument? Which register holds the return value? How wide is an `int` — 4 bytes or 8? When you pass a `struct`, where do its fields sit in memory, and how much invisible padding is between them? Who cleans up the stack after the call? This second promise is the **ABI** — the Application *Binary* Interface.
-
-In one sentence: **an API is a contract between source files; an ABI is a contract between compiled binaries.** The API lets your code *compile* against a library. The ABI lets your code, once compiled, actually *call into* that library at runtime without corrupting memory or crashing.
-
-> 🎓 **Why this matters for a junior:** The single most confusing class of bug you will eventually hit is "it compiled fine, but it crashes at runtime in a way that makes no sense." A large fraction of those bugs are **ABI mismatches** — two pieces of binary code that agreed on the *names* but disagreed on the *bytes*. Understanding that there are two contracts, not one, is what lets you reason about these bugs instead of just rebuilding everything and hoping.
-
-This page covers: what an API is versus what an ABI is, the concrete things an ABI nails down (argument passing, type sizes, struct layout, the return value, the stack), why the **C ABI** is the universal language that everything speaks at the boundary, and what "ABI stability" means and why it lets you upgrade a shared library without recompiling the world. Deeper levels go into calling conventions in detail, name mangling, the C++ ABI problem, and platform-specific ABIs like System V AMD64 and Windows x64.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** You can write, compile, and run a simple program in at least one compiled language (C, C++, Rust, Go) or have called a native library from a higher-level one.
-- **Required:** What a function call is — arguments go in, a return value comes out.
-- **Required:** A rough idea that source code (`.c`, `.cpp`) gets turned into machine code by a compiler.
-- **Helpful but not required:** Awareness that programs use *libraries* — files like `.so` on Linux, `.dll` on Windows, `.dylib` on macOS.
-- **Helpful but not required:** A vague sense that the CPU has *registers* (tiny fast storage slots) and a *stack* (a region of memory for function calls).
-
-You do **not** need to know:
-
-- Assembly language. We will show a little, but you do not need to write it.
-- The exact register names of any platform — that is `senior.md` and `professional.md`.
-- How linkers and loaders work in detail.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **API (Application Programming Interface)** | A *source-level* contract: function names, parameter types, return types. What you need to **compile** against something. |
-| **ABI (Application Binary Interface)** | A *binary-level* contract: how compiled code passes arguments, lays out data, and calls functions. What you need to **run** correctly against already-compiled code. |
-| **Calling convention** | The part of the ABI that says *how arguments and return values are passed* — which registers, what order, who cleans the stack. |
-| **Register** | A small, extremely fast storage location inside the CPU. Arguments are often passed in registers. |
-| **Stack** | A region of memory that grows and shrinks as functions are called and return. Holds local variables and overflow arguments. |
-| **Alignment** | A rule that a value of size *N* must sit at a memory address that is a multiple of some number (often *N*). Misalignment is slow or illegal. |
-| **Padding** | Unused filler bytes a compiler inserts inside a `struct` so that each field is correctly aligned. |
-| **Struct layout** | The exact byte-by-byte arrangement of a struct's fields in memory, including padding. |
-| **Name mangling** | How a compiler turns a source name (especially in C++) into the actual symbol name in the binary. |
-| **Symbol** | A name in a compiled object file that the linker uses to connect a call to its target (e.g. `printf`). |
-| **Object file / executable / shared library** | Files containing machine code. Their *format* (ELF, PE, Mach-O) is part of the platform ABI. |
-| **Shared library** | A library loaded at runtime and shared between programs: `.so` (Linux), `.dll` (Windows), `.dylib` (macOS). |
-| **ABI break** | A change that makes already-compiled code stop working with a new binary, even if the source still compiles. |
-| **C ABI** | The simple, stable, universally-implemented ABI of the C language. The lingua franca everyone uses at the boundary. |
-| **`extern "C"`** | A C++ instruction that tells the compiler to expose a function using the plain, stable C ABI instead of the complex C++ one. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -170,39 +117,6 @@ The **API is unchanged** in the sense that `config.timeout` still compiles. But 
 
 ---
 
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **API** | The *recipe* written in a cookbook: "add two cups of flour." A human-readable instruction. |
-| **ABI** | The actual *physical handoff* in the kitchen: which hand passes the bowl, which counter it sits on, how the bowl is oriented. The mechanics, not the words. |
-| **Calling convention** | An agreed protocol for passing a baton in a relay race: which hand, at which mark, at what speed. Both runners must agree or the baton drops. |
-| **Type size mismatch** | One country measures in inches, another in centimeters. Same number "12," wildly different physical length. |
-| **Struct padding** | A muffin tray with fixed-size cups. Even a tiny muffin occupies a whole cup; the gaps are padding. |
-| **C ABI as lingua franca** | English at an international airport. Not everyone's native language, but everyone speaks enough of it to coordinate. |
-| **ABI stability** | A wall outlet shape that never changes. You can buy a new lamp (new library) and plug it into the old wall (old program) because the plug shape (ABI) is stable. |
-| **ABI break with stable API** | The cookbook still says "two cups of flour," but the kitchen secretly swapped to bigger cups. The recipe reads the same; the result is wrong. |
-| **`extern "C"`** | A specialist who normally speaks dense jargon (C++) agreeing to speak plain English (C ABI) when talking to outsiders. |
-| **Name mangling** | A coat-check system that turns "blue jacket" into a unique ticket number so two identical-looking jackets don't get confused. |
-
----
-
-## Mental Models
-
-### The Two-Contracts Model
-
-Whenever you connect two pieces of code, picture **two separate handshakes stacked on top of each other**. The top handshake is the API: do the names and types match so it compiles? The bottom handshake is the ABI: do the bytes, registers, and layouts match so it runs? A successful compile only confirms the *top* handshake. The bottom handshake is checked the hard way — at runtime, by whether it crashes. Carrying this picture stops you from assuming "it compiled, so it must be compatible."
-
-### The "Bytes on the Wire" Model
-
-Think of a function call as sending a little message across a wire from caller to callee. The API tells you *what the message means* ("two integers"). The ABI is the **wire format** — the exact byte layout of the message, where each field starts, how wide it is, what order things come in. Two programs can agree perfectly on the *meaning* and still fail because they disagree on the *wire format*. This is the same intuition you have for network protocols, applied to function calls.
-
-### The "Frozen Snapshot" Model (for ABI stability)
-
-When your program is compiled, it takes a **frozen snapshot** of every assumption about the libraries it calls: every struct size, every argument position, every type width. That snapshot is baked into the binary and never updates. A shared library can be swapped underneath your program freely — *as long as the new library still matches the frozen snapshot*. The moment the library's reality drifts from your program's frozen snapshot, you get corruption. ABI stability is the promise "the things in your snapshot will not change."
-
----
-
 ## Code Examples
 
 ### Seeing type sizes differ
@@ -282,35 +196,6 @@ A program compiled against v1 allocates 4 bytes for a `Config`. If you swap in v
 
 ---
 
-## Pros & Cons
-
-This section is about the **trade-offs of caring about (and committing to) a stable ABI** — the central engineering decision around ABIs.
-
-| Aspect | Pros of a stable ABI | Cons / costs |
-|--------|----------------------|--------------|
-| **Upgradability** | Ship a new shared library; every existing program benefits without recompiling. Security fixes reach the whole system instantly. | You are *frozen*: you cannot change struct layouts, type sizes, or calling conventions without breaking everyone. |
-| **Ecosystem** | A stable C ABI lets every language interoperate. The whole FFI world depends on it. | The lowest-common-denominator (C ABI) is feature-poor: no exceptions, no generics, no rich types across the boundary. |
-| **Distribution** | Vendors ship pre-compiled binaries that "just work" across versions. | Hard to evolve. Adding a field to a public struct is a breaking change forever. |
-| **Debuggability** | A documented ABI means mismatches are diagnosable, not magic. | ABI bugs are subtle: they often don't crash *at* the mistake, they corrupt memory and crash later. |
-| **Performance** | Calling conventions are tuned per platform for speed (registers over stack). | Per-platform tuning means per-platform ABIs — code is not portable at the binary level. |
-
----
-
-## Use Cases
-
-You need to think explicitly about ABIs when:
-
-- **You ship or consume a shared library** (`.so`, `.dll`, `.dylib`) that other programs link against. Their compiled binaries depend on your ABI staying stable.
-- **You write a plugin system.** Plugins are compiled separately and loaded at runtime — they *must* match the host's ABI exactly.
-- **You call native code from a managed language** — Python `ctypes`/`cffi`, Java JNI, Node N-API, Go cgo, C# P/Invoke. You are describing an ABI by hand.
-- **You expose a C++ library to other languages.** You wrap it in `extern "C"` to present a stable C ABI.
-- **You target multiple platforms.** `long` sizes, struct padding, and calling conventions differ between Linux, Windows, and macOS, and between x86-64 and ARM.
-- **You debug a "compiled fine, crashes weirdly" bug** across a library boundary. ABI mismatch is a prime suspect.
-
-You can mostly *ignore* ABIs when you compile your entire program from source in one go with one compiler — then the compiler enforces a consistent ABI internally and you never see a boundary.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Use fixed-width types at any binary boundary
@@ -383,49 +268,24 @@ Instead of exposing the fields of a struct (and freezing its layout forever), ha
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│                  API vs ABI — THE ONE THING                       │
-├──────────────────────────────────────────────────────────────────┤
-│  API = source-level contract  → lets code COMPILE together        │
-│  ABI = binary-level contract  → lets code RUN together            │
-│  "It compiled" proves only the API. ABI is checked at runtime.    │
-├──────────────────────────────────────────────────────────────────┤
-│  An ABI specifies:                                                │
-│    * calling convention  (which register holds which arg)         │
-│    * type sizes          (int=4, long=? , pointer=8)              │
-│    * alignment & padding (struct layout, byte by byte)            │
-│    * register usage, stack frame                                  │
-│    * name mangling, file format (ELF/PE/Mach-O)                   │
-│    * syscall convention, exceptions, thread-local storage         │
-├──────────────────────────────────────────────────────────────────┤
-│  The long trap:                                                   │
-│    Linux/macOS (LP64):  long = 8 bytes                            │
-│    64-bit Windows (LLP64): long = 4 bytes                         │
-│    → use int32_t / int64_t at any boundary                        │
-├──────────────────────────────────────────────────────────────────┤
-│  C ABI = the universal handshake                                  │
-│    every FFI (ctypes, JNI, cgo, P/Invoke) speaks C at the edge    │
-│    extern "C"  → expose a stable C ABI from C++                   │
-├──────────────────────────────────────────────────────────────────┤
-│  ABI stability = swap a shared library, no recompile, IF the      │
-│  ABI is unchanged. Adding a struct field BREAKS the ABI even      │
-│  when the source still compiles (API intact, ABI broken).         │
-└──────────────────────────────────────────────────────────────────┘
-```
+1. Choose one small, known input for **What Is an ABI**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
----
+## Verify your work
 
-## Summary
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
 
-- An **API** is a *source-level* contract (names, types, signatures) that lets code **compile** together. An **ABI** is a *binary-level* contract that lets already-compiled code **run** together.
-- A successful compile proves only the API. The ABI is verified the hard way — at runtime — and a mismatch shows up as "compiled fine, crashes weirdly."
-- An ABI specifies the **calling convention** (which registers hold arguments and the return value), **type sizes**, **alignment and struct padding**, register usage, the stack frame, name mangling, the file format, and more.
-- **Type sizes are not universal.** The biggest junior trap is `long`: 8 bytes on Linux/macOS (LP64), 4 bytes on 64-bit Windows (LLP64). Use fixed-width types like `int32_t` at boundaries.
-- **Struct layout includes invisible padding.** A struct's size and field offsets are part of the ABI, not just the sum of its fields.
-- The **C ABI** is the universal language at the boundary — simple, stable, and implemented everywhere. Every FFI speaks C. `extern "C"` exposes a stable C ABI from C++.
-- **ABI stability** is what lets you upgrade a shared library without recompiling callers — *only if* the ABI is unchanged.
-- **ABI breaks and API breaks are independent.** Adding a field to a public struct keeps the source compatible (API intact) but changes the struct's size (ABI broken).
-- A junior's #1 habit: when you hit a cross-library bug that makes no sense, **suspect an ABI mismatch** — different sizes, different layouts, mismatched compilers, or a missing `extern "C"`.
+## Review questions
+
+- What problem does What Is an ABI solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

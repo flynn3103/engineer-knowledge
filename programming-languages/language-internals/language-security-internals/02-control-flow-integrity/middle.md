@@ -1,66 +1,11 @@
-# Control-Flow Integrity — Middle Level
+# Control-Flow Integrity — Middle
 
-> **Topic:** Control-Flow Integrity
-> **Focus:** How code reuse generalizes into ROP/JOP/COP, and how forward-edge CFI (LLVM CFI, Microsoft CFG/XFG) restricts indirect calls to legitimate target sets.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **Control-Flow Integrity** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-> Focus: **Once injected code is dead (NX) and the return address has a tripwire (canary), how do attackers still hijack control flow — and how do we restrict the *forward edge* to fight back?**
-
-At the junior level, the story ended with two facts: NX killed injected shellcode, and the attacker's response was *code reuse* — running the program's own executable code in an order the programmer never intended. Return-to-libc was the toy version. This page covers the industrial version: **Return-Oriented Programming (ROP)** and its cousins JOP/COP, which compose tiny existing snippets into arbitrary computation, and then the first systematic defense aimed at the **forward edge**: restricting where indirect *calls* are allowed to go, via **LLVM CFI**, **Microsoft Control Flow Guard (CFG)**, and **XFG**.
-
-The mental pivot from junior to middle is this: stop thinking about *one* corrupted address jumping to *one* place. Start thinking about a corrupted **stack full of addresses**, each one a "return" that lands on a tiny code fragment, runs two or three instructions, and "returns" again — to the next fragment. The attacker isn't supplying *code*; they're supplying a *sequence of addresses* (a "chain"), and the program's own bytes do the work. This is the abstraction that made NX, by itself, insufficient, and forced the industry toward CFI.
-
-> 🎓 **Why this matters for a mid-level engineer:** This is the level where security stops being "use `snprintf`" and becomes "understand the threat model your platform mitigations assume." If you ship C/C++ — drivers, runtimes, services, plugins — you need to know what `-fsanitize=cfi` and `/guard:cf` actually check, what they *don't*, and why "coarse" CFI got bypassed while "fine-grained" CFI is the real target. This is also where you learn to read a hardening report and know whether "CFI: enabled" means much.
-
-This page covers: ROP gadgets and the chain abstraction (conceptually, no working chains), JOP/COP for indirect jumps and calls, the distinction between **coarse-** and **fine-grained** CFI and why coarse CFI fell, and the design of forward-edge CFI — **type-based target sets** (LLVM CFI), Microsoft **CFG/XFG**, and the related hardening of GOT/PLT via **RELRO**. The next level (`senior.md`) covers the backward edge: shadow stacks and hardware (CET, PAC, BTI).
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** Everything in `junior.md` — control flow, indirect branches, stack smashing, NX, canaries, return-to-libc.
-- **Required:** A working picture of a stack frame: return address, saved registers, locals.
-- **Required:** What a C++ **vtable** is — a per-class table of function pointers used for virtual dispatch.
-- **Helpful but not required:** Basic familiarity with `ret`, `call`, `jmp` instructions and the idea that `ret` pops an address off the stack and jumps to it.
-- **Helpful but not required:** Awareness of dynamic linking (the GOT and PLT).
-
-You do **not** need to know:
-
-- How to *build* a ROP chain (we describe the concept defensively, not the construction).
-- Shadow stacks, CET, PAC, BTI — those are `senior.md`.
-- The CFI bypass research frontier (COOP, data-only attacks) — that's `professional.md`.
-
-> ⚠️ **Defensive scope.** We describe *classes* of attack and the *mechanisms* of defenses. No gadget chains, payloads, or step-by-step exploit construction appear here.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Gadget** | A short sequence of existing instructions ending in a `ret` (ROP), `jmp` (JOP), or `call` (COP). The building block of code reuse. |
-| **ROP (Return-Oriented Programming)** | Chaining gadgets that each end in `ret`, driven by a stack full of attacker-placed addresses. |
-| **JOP (Jump-Oriented Programming)** | Code reuse using gadgets ending in indirect `jmp`, coordinated by a "dispatcher" instead of `ret`. |
-| **COP (Call-Oriented Programming)** | Code reuse using gadgets ending in indirect `call`. |
-| **Gadget chain** | The ordered list of addresses (and data) the attacker places to drive a ROP/JOP/COP attack. |
-| **Forward edge** | Indirect calls/jumps *into* a function: function pointers and virtual (vtable) calls. |
-| **Backward edge** | Returns *out of* a function. |
-| **CFI (Control-Flow Integrity)** | Enforcing that indirect branches reach only legitimate targets. |
-| **Coarse-grained CFI** | CFI with a loose policy (e.g., "any function entry," "any address after a `call`"). Cheap, but bypassable. |
-| **Fine-grained CFI** | CFI with tight, per-call-site target sets derived from program structure/types. |
-| **Target set** | The set of addresses a given indirect branch is allowed to reach. |
-| **LLVM CFI** | Clang/LLVM's compiler-based CFI; uses **type signatures** to compute target sets for indirect calls and vtable dispatch. |
-| **CFG (Control Flow Guard)** | Microsoft's forward-edge CFI: a bitmap of valid call targets, checked before each indirect call. |
-| **XFG (eXtended Flow Guard)** | Microsoft's finer-grained successor to CFG, adding type-hash checks to the target check. |
-| **vtable** | C++ table of virtual function pointers; a prime forward-edge target via *vtable hijacking*. |
-| **GOT / PLT** | Global Offset Table / Procedure Linkage Table — dynamic-linking structures of function pointers; classic corruption targets. |
-| **RELRO** | "RELocation Read-Only" — makes the GOT (and other relocations) read-only after startup, hardening it against overwrite. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -157,30 +102,6 @@ RELRO isn't CFI per se, but it removes a major forward-edge corruption target, a
 
 ---
 
-## Real-World Analogies
-
-**ROP as a ransom note cut from a magazine.** A kidnapper who can't write their own note (NX: no new code) cuts individual words out of existing magazines and pastes them in order to spell a new message. Each word is a "gadget"; the pasted sequence is the "chain." The magazine (the program's own code) supplied every word; the attacker only supplied the *arrangement*.
-
-**Coarse CFI as "you may only enter through a door."** A building with a rule "intruders may only enter through *a* door" sounds safe — until you notice it has 500 doors. There are so many legal doors that you can still walk a useful path. Fine-grained CFI is "this hallway connects only to *these three* specific doors," which actually constrains movement.
-
-**Type-based target sets as job titles.** LLVM CFI says: "this call slot can only be filled by someone with the job title `int(char*)`." That's much better than "any employee." But if a thousand people share that title, the slot is still loosely guarded — the precision limit of type-based CFI.
-
-**RELRO as drying the cement.** When a building is constructed, the dynamic linker pours the "cement" of the GOT (filling in addresses). RELRO lets it *dry* — once set at startup, it's read-only and can't be re-poured by an attacker mid-run.
-
----
-
-## Mental Models
-
-**Model 1: The stack is a program; the gadgets are its opcodes.** Once you see a ROP chain as "the overflowed stack *is* the attacker's bytecode, interpreted by `ret`," you understand why NX is helpless and why protecting the backward edge (shadow stacks) and forward edge (CFI) are *both* necessary.
-
-**Model 2: CFI quality = how small is the target set.** Every forward-edge CFI scheme answers "where may this indirect branch go?" The *security value* is inversely proportional to the size of that set. "Any function entry" (coarse) ≈ weak. "Functions of this exact type" (LLVM CFI) ≈ strong. "This one function" (ideal, rarely achievable) ≈ strongest.
-
-**Model 3: Two edges, two defenses, both required.** Forward edge → LLVM CFI / CFG / XFG. Backward edge → canaries (weak) and shadow stacks (strong, `senior.md`). Defending one edge just pushes attackers to the other (ROP↔JOP/COP).
-
-**Model 4: Hardening is a checklist, not a switch.** NX + canary + PIE/ASLR + Full RELRO + forward-edge CFI + shadow stack together raise the cost dramatically. Each closes a specific door; the attacker needs to defeat the *combination*.
-
----
-
 ## Code Examples
 
 > Defensive/illustrative only. We show how to *enable and reason about* defenses, and the *shape* of vulnerable patterns — never working exploits.
@@ -271,47 +192,6 @@ dumpbin /headers /loadconfig app.exe   # look for "Guard CF" flags
 
 ---
 
-## Pros & Cons
-
-**ROP/JOP/COP (the threat)** — not a defense; listed so you weigh defenses against it.
-
-| Attacker advantage | Attacker limit |
-|--------------------|----------------|
-| Defeats NX entirely (reuses legitimate code). | Needs a memory bug *and* knowledge of code addresses (ASLR raises the bar). |
-| Turing-complete with enough gadgets. | Fine-grained CFI + shadow stacks shrink/close usable gadgets. |
-
-**LLVM CFI (forward edge)**
-
-| Pros | Cons |
-|------|------|
-| Fine-grained, type-based sets — small target sets. | Requires LTO and whole-program visibility; awkward across shared-library boundaries. |
-| Strong vtable integrity for C++. | Functions sharing a type stay mutually reachable (precision limit). |
-| Low runtime overhead (a bitmask/range check). | Doesn't protect the backward edge or stop data-only attacks. |
-
-**Microsoft CFG / XFG**
-
-| Pros | Cons |
-|------|------|
-| OS-supported, broadly deployed on Windows. | Plain CFG is coarse (any valid entry) and was shown bypassable. |
-| XFG adds type hashes → much finer. | Still forward-edge only; needs the loader's cooperation. |
-
-**RELRO**
-
-| Pros | Cons |
-|------|------|
-| Removes GOT overwrite as a hijack path. | Full RELRO resolves all symbols at startup (slower launch); not CFI by itself. |
-
----
-
-## Use Cases
-
-- **C++ codebases with heavy virtual dispatch** (browsers, game engines, GUI toolkits) — `cfi-vcall` directly targets vtable hijacking.
-- **Plugin/handler architectures** that store function pointers in data structures — `cfi-icall` constrains them.
-- **Windows applications and drivers** — CFG/XFG is the platform-native forward-edge defense.
-- **Security-critical daemons** parsing untrusted input — pair forward-edge CFI with Full RELRO, PIE/ASLR, and (from `senior.md`) shadow stacks.
-
----
-
 ## Coding Patterns
 
 **Pattern: Minimize and type-narrow your function pointers.** Distinct, specific signatures yield smaller CFI target sets than a sea of `void(void)` callbacks.
@@ -374,49 +254,24 @@ typedef void (*log_cb)(int level, const char *msg);
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. Explain how a stack full of addresses, plus gadgets ending in `ret`, performs computation without injecting code.
-2. Why does NX fail to stop ROP, but DEP-bypass and code reuse still require a memory bug?
-3. What is the difference between coarse- and fine-grained CFI, and *why* was coarse CFI bypassed?
-4. How does **LLVM CFI** decide whether an indirect call is allowed? What's its precision limit?
-5. How does Microsoft **CFG** decide, and what does **XFG** add?
-6. What is **vtable hijacking**, and which CFI scheme (`cfi-vcall`) targets it?
-7. Why does forward-edge CFI need to be paired with backward-edge protection?
-8. What does **Full RELRO** protect, and why is it discussed alongside CFI?
+1. Find a real component where **Control-Flow Integrity** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
-> If you can answer 3–6 cleanly, you understand forward-edge CFI well enough to move to `senior.md` (shadow stacks and hardware: CET, PAC, BTI).
+## Verify your work
 
----
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
 
-## Cheat Sheet
+## Review questions
 
-| Concept | One-liner |
-|---------|-----------|
-| **Gadget** | Short existing instruction run ending in `ret`/`jmp`/`call`. |
-| **ROP** | Chain `ret`-ending gadgets via a corrupted stack — defeats NX. |
-| **JOP / COP** | Same idea via indirect `jmp` / `call`; attack the forward edge. |
-| **Forward edge** | Indirect calls (function pointers, vtables). |
-| **Coarse CFI** | Loose policy ("any entry") — bypassable. |
-| **Fine-grained CFI** | Small, type-derived per-site target set. |
-| **LLVM CFI** | Type-signature target sets; needs LTO; `cfi-icall`/`cfi-vcall`. |
-| **CFG** | MS bitmap of valid call targets (coarse). |
-| **XFG** | CFG + per-target type hash (fine). |
-| **RELRO** | Make GOT read-only after startup; blocks GOT overwrite. |
-| **Golden rule** | CFI value ∝ smallness of the target set; protect both edges. |
-
----
-
-## Summary
-
-Once NX killed injected shellcode, attackers turned the program's own bytes into a weapon: **ROP** chains tiny existing **gadgets** (each ending in `ret`) driven by a corrupted stack, achieving arbitrary computation without supplying any code — which is exactly why NX alone is insufficient. **JOP/COP** extend this to indirect jumps and calls, attacking the **forward edge**, and **vtable hijacking** turns a heap data bug into a forward-edge control hijack. The defensive answer is **forward-edge CFI**, which restricts indirect calls to a **target set**. The crucial design axis is **coarse vs fine-grained**: coarse CFI ("any function entry") was bypassed because its set is huge, while fine-grained schemes shrink it — **LLVM CFI** uses **function-type signatures** (with the precision limit that same-typed functions stay mutually reachable), **Microsoft CFG** uses a valid-target bitmap (coarse), and **XFG** tightens CFG with type hashes. Pair all of this with **Full RELRO** (read-only GOT) and PIE/ASLR, and remember the forward edge is only half the story — `senior.md` covers the backward edge with shadow stacks and hardware.
-
----
-
-## Further Reading
-
-- Abadi et al., "Control-Flow Integrity" — the original CFI paper that named the field.
-- Clang documentation: "Control Flow Integrity" (`-fsanitize=cfi`, the `cfi-*` schemes, LTO requirement).
-- Microsoft documentation on Control Flow Guard (`/guard:cf`) and XFG.
-- Research on coarse-CFI bypasses (e.g., "Out of Control," "Stitching the Gadgets") — read for *why* coarse CFI failed.
-- Continue to `senior.md` for shadow stacks, Intel CET, ARM PAC, and BTI.
+- Which boundary is most affected by Control-Flow Integrity?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

@@ -1,55 +1,11 @@
-# Fixed-Point & Arbitrary Precision — Professional Level
+# Fixed-Point & Arbitrary Precision — Professional
 
-> **Topic:** Fixed-Point & Arbitrary Precision
-> **Focus:** Designing money and high-precision systems that survive audits and attackers — a real Money type, ledger invariants, multi-currency and FX, constant-time crypto bignums, the real incidents (billing rounding, salami slicing), and the cross-language facilities a production system actually leans on.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Fixed-Point & Arbitrary Precision** with measurable outcomes and limited coordination?
 
-## Introduction
-
-> Focus: **How do you architect a system where every cent is accounted for, every rounding is defensible to an auditor, and the bignums under your crypto don't leak keys?**
-
-The earlier pages gave you correct primitives. This page is about *systems* — the decisions that, made wrong, become incidents with names: a billing run that double-charges fractions of a cent, a multi-currency report that doesn't tie out, a payout split where the platform quietly absorbs (or pockets) the remainder, a crypto path that leaks a private key through timing.
-
-Two domains dominate professional use of this topic:
-
-1. **Money systems** — ledgers, billing, FX, payouts. The hard requirements are *exactness*, *conservation* (debits equal credits, splits sum to the whole), *auditability* (every rounding has a documented, reproducible rule), and *currency correctness* (minor units, scale, and rounding per currency and jurisdiction).
-2. **Cryptographic bignums** — RSA/DH/ECC riding on arbitrary-precision modular arithmetic where *constant-time* behavior is a security requirement and a single non-constant-time path is a vulnerability.
-
-And one recurring villain ties it together: **salami slicing** — skimming sub-unit fractions across many transactions so each victim loses an unnoticeable amount while the attacker accumulates a fortune. The "half-cent that has to go somewhere" is exactly the seam a fraudster (or a careless rounding bug) exploits.
-
-> 🎓 **Why this matters at the professional level:** You're the person who signs off that the billing engine is correct, that the ledger balances under concurrency, that the FX rounding satisfies the regulator, and that the crypto isn't leaking. These are not algorithm-trivia; they're design and review decisions where the cost of being wrong is money, trust, or a CVE.
-
-This page covers: a production Money type and ledger invariants; rounding policy and conservation under FX and allocation; real incidents and the salami-slicing pattern; constant-time crypto bignums; and the language-facility comparison you reach for in practice. The `interview.md` and `tasks.md` files turn all of this into questions and exercises.
-
----
-
-## Prerequisites
-
-- **Required:** Junior/middle/senior pages — fixed-point, decimals, rounding/allocation, bignum internals and cost model, constant-time concerns.
-- **Required:** Database transactions and isolation basics (you'll persist money).
-- **Required:** A working mental model of an accounting ledger (debits/credits, double-entry).
-- **Helpful:** Exposure to a payments/billing or FX system.
-- **Helpful:** Awareness of timing side channels in crypto.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Money type** | A value object pairing an exact amount (minor units or decimal) with a currency, exposing safe arithmetic. |
-| **Minor unit** | The smallest indivisible unit of a currency (cent, yen, fils). ISO 4217 lists each currency's exponent. |
-| **ISO 4217 exponent** | The number of decimal places a currency uses: USD=2, JPY=0, BHD/KWD=3. |
-| **Conservation invariant** | Money is neither created nor destroyed: debits = credits; sum of allocated shares = total. |
-| **Double-entry** | Every transaction posts equal debits and credits, so the books always balance. |
-| **FX rounding** | Rounding produced by converting between currencies at a rate; must be deterministic and reproducible. |
-| **Salami slicing** | Fraud/error that skims sub-minor-unit fractions across many transactions ("penny shaving"). |
-| **Constant-time** | Execution time independent of secret data — required to prevent timing attacks on crypto bignums. |
-| **Reproducible rounding** | The same inputs always produce the same rounded outputs, so an auditor can re-derive every figure. |
-| **Settlement** | The point where amounts become final and are rounded to the payable minor unit. |
-| **Materialized rounding remainder** | The leftover from a split, explicitly assigned (to a party or a rounding account) rather than lost. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -123,30 +79,6 @@ On the crypto side, the professional concern is **side channels**. RSA/DH/ECC ri
 | **C++** | Boost.Multiprecision (`cpp_int`, `cpp_dec_float`), GMP/MPFR; `__int128` for wide fixed-point intermediates | GMP `mpz_t` | `__int128` is the go-to wide intermediate for Q-format multiply. |
 | **Rust** | `rust_decimal`, `bigdecimal`; `num-rational` | `num-bigint`, `i128`/`u128` | strong type system makes a Money newtype natural. |
 | **JavaScript** | no native decimal; `decimal.js`, `big.js`, `dinero.js` | `BigInt` | plain `Number` loses integer precision past 2^53 — a real JSON hazard. |
-
----
-
-## Real-World Analogies
-
-**The cash drawer that must balance.** At close, a cashier's drawer must reconcile to the penny. A money system is that drawer at scale: if it's off by a cent, *something* is wrong, and "it's just a cent" is not an acceptable answer to an auditor — because a systematic one-cent error is exactly how skimming looks.
-
-**The recipe with a master ledger.** A professional kitchen tracks every gram in and out; "we lost a little flour each batch" eventually means theft or waste. Conservation invariants are the kitchen's inventory discipline applied to money.
-
-**The poker face, again, with stakes.** Constant-time crypto is a dealer who takes exactly the same time on every hand. The moment the dealer hesitates on strong hands, the table reads the tell. The attacker is *measuring* your hesitation in microseconds.
-
-**The split bill that always sums.** When friends split a check, someone has to absorb the odd cent — and everyone agrees who, *before* paying. Allocation is making that agreement explicit and consistent so the restaurant always gets exactly the bill total.
-
----
-
-## Mental Models
-
-**Model 1 — "Make illegal money states unrepresentable."** Encode currency, scale, and rounding into a type so cross-currency math and scale mixups are compile/throw errors, not silent corruption.
-
-**Model 2 — "Every remainder has a home."** Rounding never destroys value; it relocates it. Name the destination (a party, a rounding account) explicitly. A homeless remainder is a bug and a fraud seam.
-
-**Model 3 — "Reproducible or it didn't happen."** If you can't re-derive a historical figure from inputs + documented rules, you can't defend it. Rounding policy is configuration and audit trail, not an implementation detail.
-
-**Model 4 — "Secret-dependent anything is a leak."** In crypto, time, branches, and memory access patterns are all observable. Constant-time discipline removes the channel.
 
 ---
 
@@ -253,33 +185,6 @@ int64_t fx_mul_q32(int64_t a, int64_t b) {
 
 ---
 
-## Pros & Cons
-
-### A dedicated Money type
-
-**Pros:** enforces currency/scale/rounding invariants in the type; eliminates whole bug classes; auditable in one place. **Cons:** upfront design cost; serialization/ORM mapping work; team must use it consistently (a single bare-int escape hatch reopens the holes).
-
-### Storing minor-unit integers vs `BigDecimal`
-
-**Pros (integers):** fastest, simplest, exact, trivially DB-mappable. **Cons (integers):** awkward for >2-decimal intermediate precision (FX rates, interest) — often pair integers for storage with decimals for calculation.
-**Pros (`BigDecimal`):** flexible scale, natural for tax/interest/FX. **Cons:** slower, `equals` pitfalls, must pin scale/mode.
-
-### Constant-time crypto
-
-**Pros:** closes timing side channels; required for any real crypto. **Cons:** harder to write, sometimes slower; must resist "optimizations" that reintroduce data-dependent timing — which is why you use vetted libraries, not roll your own.
-
----
-
-## Use Cases
-
-- **Billing / invoicing / subscriptions:** exact line items, documented rounding boundary, reconciliation.
-- **Ledgers / double-entry accounting:** conservation invariants enforced and tested.
-- **Payments / payouts / marketplace splits:** allocation so platform + sellers + fees sum to the charge.
-- **Multi-currency / FX / treasury:** per-currency scale, high-precision rates, materialized rounding remainders.
-- **Cryptographic services:** key generation, signing, TLS — constant-time bignum modular arithmetic.
-
----
-
 ## Coding Patterns
 
 **Pattern 1 — "Money is a type, never a primitive."** Centralize currency, scale, rounding, and arithmetic; forbid cross-currency ops by construction.
@@ -324,22 +229,24 @@ int64_t fx_mul_q32(int64_t a, int64_t b) {
 
 ---
 
-## Summary
+## Apply it
 
-- Production money systems rest on a **Money type** that makes illegal states (cross-currency math, wrong scale, ad-hoc rounding) unrepresentable.
-- **Conservation is non-negotiable:** double-entry balances, splits sum to the whole, and **every rounding remainder gets an explicit home**. A homeless remainder is both a bug and a fraud seam.
-- **Rounding is auditable policy:** mode chosen per regulation, scale per ISO 4217, rounding at one documented boundary, every figure reproducible.
-- **Salami slicing** (penny shaving) is the real-incident form of mishandled sub-unit fractions — defended by conservation, single-boundary rounding, allocation, and independent reconciliation.
-- **Crypto bignums must be constant-time:** secret-dependent timing/branches/memory access leak keys; use vetted libraries, never generic bignum ops on secret paths.
+1. Define the user or business outcome that **Fixed-Point & Arbitrary Precision** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
----
+## Verify your work
 
-## Further Reading
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
 
-- Martin Fowler, *Patterns of Enterprise Application Architecture* — **Money** and `allocate`.
-- ISO 4217 currency codes and minor-unit exponents.
-- JSR-354 (Java Money & Currency API), Joda-Money; `shopspring/decimal`, `dinero.js`, `rust_decimal` docs.
-- Kocher (1996), *Timing Attacks*; Brumley & Boneh (2003), *Remote Timing Attacks Are Practical*.
-- Go `crypto/subtle`, BoringSSL/libsodium constant-time guidance.
-- *Modern Computer Arithmetic* (Brent & Zimmermann) for the bignum foundations underneath crypto.
-- This topic's `interview.md` and `tasks.md` to pressure-test the above.
+## Review questions
+
+- Which measurable outcome justifies investing in Fixed-Point & Arbitrary Precision?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

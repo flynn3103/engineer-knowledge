@@ -1,20 +1,11 @@
-# Data Marshalling & Memory Layout — Senior Level
+# Data Marshalling & Memory Layout — Senior
 
-> **Topic:** Data Marshalling & Memory Layout
-> **Focus:** ABI-exact struct layout, GC pinning against moving collectors, zero-copy buffers at scale, and the ownership/lifetime contracts that make a binding crash-free instead of crash-sometimes.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Data Marshalling & Memory Layout** under failure, load, and change?
 
-## Introduction
-
-> Focus: **The four marshalling contracts — layout, lifetime, ownership, encoding — re-stated at the level of the C ABI, the garbage collector's relocation behavior, and the allocator boundary, so you can design a binding that does not corrupt the heap under load.**
-
-At the middle level you learned the four contracts and the per-runtime tool for each. At the senior level the question shifts from "which tool" to "what exactly is the machine doing, and where is the contract enforced — or not enforced — at the byte and instruction level?" A binding that passes its tests and then segfaults once an hour in production is failing a contract that the test never stressed: a GC cycle that landed mid-call, an allocator mismatch that only corrupts the heap occasionally, a struct whose padding differs by one byte on the customer's compiler.
-
-The senior skill is to reason about marshalling the way the ABI document and the GC source reason about it. A `struct` is not "fields"; it is a sequence of offsets dictated by alignment rules that the C compiler and your runtime must agree on byte-for-byte. A "pointer into a managed array" is not a stable address; it is a *currently-valid* address that a moving collector is free to invalidate at the next safepoint unless you have explicitly told it not to. "Who frees this" is not etiquette; it is the difference between returning memory to the heap that allocated it and handing `glibc`'s `free` a pointer that came from Rust's allocator — which is undefined behavior that may corrupt freelist metadata and detonate three function calls later.
-
-This page is organized around the contracts as the machine sees them: **layout matching against the C ABI**, **pinning against moving GCs**, **zero-copy vs copy buffers**, and **ownership/lifetime including opaque handles**. The recurring theme: at the FFI boundary every runtime invariant you rely on — type safety, bounds checks, the borrow checker, the GC's right to move things — is suspended, and you re-establish each one by hand, per call, with full knowledge of what the other side's ABI expects.
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -102,26 +93,6 @@ The **two-call size protocol** (caller-allocates, but the caller doesn't know th
 ### 5. Lifetime is an interval, not a point
 
 Validity is a window: the data must be valid *from the moment C receives the pointer until the moment C is done with it*. If C stores the pointer (registers a callback context, keeps a buffer for async I/O), that window extends past the call return. Most lifetime bugs are a window that is too *narrow* — you freed, dropped, unpinned, or let the refcount hit zero while C still held the pointer. The senior habit is to ask, for every pointer that crosses: *"How long does the other side hold this — just the call, or longer? And what keeps it valid for that whole interval?"*
-
----
-
-## Mental Models
-
-### Model 1: The struct is a contract drawn in offsets
-
-Don't think "fields"; think "a map from offset to type that both sides must share exactly." When a struct binding misbehaves, draw the byte layout on both sides — offsets, sizes, padding — and the divergence is almost always visible. A field two bytes off, a missing pad, a `long` that's 4 bytes here and 8 there. Bytes don't lie.
-
-### Model 2: A managed pointer is a lease, not a deed
-
-When you take the address of a managed array, you hold a *lease* that the GC can revoke at the next safepoint. Pinning converts the lease into a deed for a bounded term. Forgetting to pin means the GC can foreclose mid-call. The pointer's value was correct the instant you read it and wrong the instant the collector ran.
-
-### Model 3: Every allocation has exactly one rightful undertaker
-
-The allocator that created a block is the only one that may free it. A returned pointer carries an implicit "free me with *this* function" tag that the type system can't see. Encode that tag in your code — a wrapper type, a paired-free call, a comment — because the moment it's ambiguous, someone calls the wrong `free` and the heap corrupts silently.
-
-### Model 4: Zero-copy trades safety for speed, and you pay the safety back by hand
-
-Copying is safe because the moment of copy severs the lifetime dependency. Zero-copy keeps that dependency alive, so you must manually guarantee validity + immovability for the whole window. The performance win is real; so is the obligation.
 
 ---
 
@@ -322,8 +293,24 @@ A binding's test suite calls these and asserts its own `sizeof`/offset match. Th
 
 ---
 
-## Summary
+## Apply it
 
-At the senior level the four marshalling contracts are re-stated against the machine. **Layout** means reproducing the C ABI's offsets byte-for-byte — alignment, padding, packing, total size — via `#[repr(C)]`, `LayoutKind.Sequential`, `ctypes.Structure`, or FFM `MemoryLayout`, and one diverging offset corrupts every field after it. **Lifetime** means pinning managed buffers against moving collectors (`fixed`/`GCHandle` in .NET, `GetPrimitiveArrayCritical` in JNI, `runtime.Pinner`/no-retained-pointers in Go, refcount-keep-alive in non-moving CPython), and distinguishing pinning (stable address) from keep-alive (no collection). **Zero-copy** buys near-native throughput by handing C a pointer into your memory, at the price of guaranteeing validity and immovability for the whole window — Python's buffer protocol and NumPy make this practical, with contiguity as the trap. **Ownership** rides the allocator-matching law and the three conventions (caller-fills, callee-allocates-paired-free, callee-owns), with opaque handles plus single-free wrapper types as the safe default. Master these as the ABI and GC see them, and "random" FFI crashes become diagnosable failures of a specific, named contract.
+1. State the system invariant that **Data Marshalling & Memory Layout** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
----
+## Verify your work
+
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
+
+## Review questions
+
+- Which invariant must remain true when Data Marshalling & Memory Layout fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

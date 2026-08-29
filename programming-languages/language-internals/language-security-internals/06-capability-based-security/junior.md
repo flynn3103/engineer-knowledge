@@ -1,66 +1,11 @@
-# Capability-Based Security — Junior Level
+# Capability-Based Security — Junior
 
-> **Topic:** Capability-Based Security
-> **Focus:** What is a capability, why is it different from "checking permissions," and why does the difference make whole classes of bugs impossible?
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **Capability-Based Security** in one small example and prove the result?
 
-## Introduction
-
-> Focus: **What does it mean to *hold* permission instead of *being checked for* permission?**
-
-Almost every security system you have used works like a bouncer at a club. You walk up, you say *"I'm Alice, let me into room 217,"* and a guard checks a list to decide whether Alice is allowed into room 217. The room number — *which* room — is something you simply *name*. Anyone can name any room. The list — the **access-control list**, or ACL — is what decides whether you get in. Your authority is in *who you are*, and it is checked at the door.
-
-**Capability-based security** turns this inside-out. Instead of naming a room and being checked against a list, you are handed a **key**. The key is the only thing that names the room *and* opens it. You cannot point at a room you have no key for, because in this world there is no way to "name" a room except by holding its key. There is no list, no door check, no bouncer reading your identity. **If you have the key, you can get in. If you don't have it, the room does not even exist for you.**
-
-That key is a **capability**: an unforgeable, transferable token that *both* designates a specific resource *and* grants the right to use it. Designation and authority are fused into one thing. You cannot have one without the other.
-
-In one sentence: **an ACL system asks "who are you, and are you allowed?"; a capability system asks nothing — it just checks "do you hold the key?"**
-
-> 🎓 **Why this matters for a junior:** Most of the security section of this roadmap is *defensive* — how to stop SQL injection, how to validate input, how not to leak secrets. Capability-based security is the *affirmative* counterpart: a way of structuring programs so that whole categories of attacks are **impossible by construction**, not merely defended against. A module that was never handed a network socket simply *cannot* phone home, no matter how malicious its code is. That is a different and much stronger kind of safety than "we checked and it looked fine."
-
-This page covers: what ambient authority is and why it causes the famous **confused deputy** problem; what a capability is and how it structurally prevents that bug; the everyday capabilities you already use without naming them (Unix file descriptors, unguessable URLs, OAuth tokens); and the principle that ties it all together — **POLA, the Principle of Least Authority**.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** How to call a function and pass it arguments. Capabilities, at the bottom, are just *references you pass around*.
-- **Required:** A rough idea of what a file path, a URL, and a process are.
-- **Required:** What it means for a program to "have permission" to do something (read a file, open a socket).
-- **Helpful but not required:** Some exposure to Unix file descriptors (`open()` returns a number you read/write through).
-- **Helpful but not required:** A vague sense of how object references work in a memory-safe language (Java, Python, JS) — you hold a reference, you can call methods; you don't hold it, you can't.
-
-You do **not** need to know:
-
-- How capability operating systems implement kernel objects (that's `senior.md` and `professional.md`).
-- The object-capability calculus or formal proofs of confinement (that's `senior.md`).
-- WASI, seL4 internals, or membrane patterns (later levels).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Authority** | The actual ability to cause an effect — read this file, open that socket. Distinct from *permission* (a recorded rule); authority is what you can really do *right now*. |
-| **Designation** | The act of *naming* a resource — "file 217," "the printer," "Bob's account." |
-| **Capability** | An **unforgeable** token that fuses *designation* and *authority*: it names exactly one resource and grants the right to use it. Holding it *is* the permission. |
-| **Ambient authority** | Authority you have *just by being you*, available from the surrounding environment, without being handed it for the specific call. A normal process's ability to open any file by path is ambient. |
-| **ACL (Access-Control List)** | A list attached to a resource saying which identities may do what. The bouncer's clipboard. The dominant model in Unix, Windows, and most databases. |
-| **Identity** | *Who* a subject is (user ID, role). ACL systems make decisions based on identity; capability systems do not need it. |
-| **Confused deputy** | A program that holds authority and is tricked by a less-privileged caller into using that authority on the caller's behalf, against the rules. The canonical bug ambient authority enables. |
-| **POLA** | **Principle of Least Authority** — every component should hold exactly the authority it needs to do its job, and no more. |
-| **Object capability (ocap)** | A capability that *is* an ordinary object reference in a memory-safe language. You can only call what you hold a reference to. |
-| **Attenuation** | Handing someone a *weaker* version of a capability — e.g. "read-only" instead of "read-write," or "this one file" instead of "the whole directory." |
-| **Revocation** | Taking a capability *back* — making a previously-handed-out key stop working. |
-| **Delegation** | Passing a capability you hold to someone else, so they can use the resource too. |
-| **Forgeable / unforgeable** | A token is *forgeable* if you can manufacture a valid one from nothing (guess a filename). It is *unforgeable* if the only way to get one is to be given it. |
-| **Bearer token** | A secret string such that *whoever holds it* is treated as authorized — no identity check. A capability in disguise (OAuth tokens, signed URLs, password-reset links). |
-| **File descriptor (fd)** | The integer Unix hands you from `open()`. You read/write through it. It behaves like a capability: holding it is the right to use that open file. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -118,40 +63,6 @@ You have used capabilities for years without the name:
 - **An object reference in a memory-safe language.** If you hold a reference to a `BankAccount` object, you can call `.withdraw()`. If you were never given the reference, you cannot reach the object at all — there is no `findAccountByName()` available to you. This is the purest form: an **object capability**.
 
 The lesson for a junior: capabilities are not exotic. They are *handles you were given*, and the security comes from controlling **who gets handed what**.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **ACL / ambient authority** | A building where every door reads your face, checks a master list, and decides. You can walk up to *any* door and try. |
-| **Capability** | A physical key. The key names exactly one lock and opens it. No list, no face scan. |
-| **Designation = authority (fused)** | The key *is* the address. You can't point at a room you have no key for; you wouldn't even know it's there. |
-| **Confused deputy** | A valet (deputy) who can drive any car in the lot. You hand him a ticket and say "the red Ferrari" — he fetches it, even though it isn't yours, because his authority drives any car and you merely *named* one. |
-| **Capability fix** | Instead of a ticket, you hand the valet *your* car key. He can only fetch the car the key opens — yours. |
-| **Attenuation** | A hotel key card programmed for *one* room and *this week only*, made from the master key. |
-| **Revocation** | The front desk deactivating your key card. The card still exists; it just stops working. |
-| **Delegation** | Lending your house key to a friend so they can water the plants. |
-| **POLA** | Giving the dog-walker a key to *only* the side gate, not the whole house. |
-| **Bearer token** | A movie ticket. Whoever holds it gets in. The cinema doesn't check your ID. |
-| **Unforgeable** | A key you cannot whittle from a photo of the lock — the only way to get one is to be given one. |
-
----
-
-## Mental Models
-
-### The "No Names, Only Keys" Model
-
-The single idea that unlocks the whole topic: in a capability world, **there is no global namespace of resources you can reach.** You cannot write `open("/etc/passwd")` because there is no ambient `open` and no `/etc/passwd` to name. You can only act through the handles someone put in your hand. If a component holds three capabilities, those three are the *entire* universe it can affect. Carry this picture: a program is a bag of keys, and it can touch exactly what its keys open — nothing more.
-
-### The "Connectivity Begets Connectivity" Model
-
-How does a component ever get a new capability? Only three ways: it was *born* holding it (endowment by its creator), it was *handed* one as an argument (introduction), or it *created* a new resource and got the key to it (parenthood). There is no fourth way — no "look it up by name," no "ask the environment." So authority spreads only along the lines of who-already-talks-to-whom. **You can reason about what a component could possibly reach by following the references it was given.** That is auditable; ambient authority is not.
-
-### The "Possession Is the Permission" Model
-
-Stop thinking "is this subject *allowed*?" and start thinking "does this code *hold the handle*?" The check is not a policy decision made at a door; it is the brute physical fact of whether the reference is in your hand. A function that needs no `fs` handle was never given one, and so the question "is it allowed to read files?" has a structural answer — *no, it has no handle* — rather than a policy answer that someone might misconfigure.
 
 ---
 
@@ -251,38 +162,6 @@ void payRent(Account tenant, Account landlord, long rent) {
 ```
 
 There is no `AccountRegistry.find("alice")` here. The *absence* of an ambient lookup is the security. Authority is the reference itself.
-
----
-
-## Pros & Cons
-
-| Aspect | Pros | Cons |
-|--------|------|------|
-| **Confused deputy** | Structurally eliminated — the bad request can't be named. | Requires rethinking APIs to pass handles, not names. |
-| **Least authority** | POLA is natural: hand each part only its keys. | Ambient-authority code (most code) must be refactored to receive authority. |
-| **Auditability** | What a component can reach = the keys it holds. Follow the references. | Tracking who-holds-what at runtime can be harder than reading a static ACL. |
-| **Composition** | Capabilities compose: attenuate, wrap, revoke, delegate cleanly. | Revocation needs design (the caretaker/membrane pattern), not free. |
-| **Supply-chain safety** | A library handed no network can't exfiltrate data, period. | Ecosystems assume ambient `fs`/`net`; libraries must be rewritten to accept authority. |
-| **Familiar substrate** | fds, object references, tokens are already capabilities. | Mainstream OSes are ACL-based; capability discipline fights the grain. |
-| **Mental load** | "Do I hold the handle?" is simpler than policy reasoning. | The discipline is all-or-nothing: one ambient `import os` reintroduces full authority. |
-
----
-
-## Use Cases
-
-Capability thinking is the right tool when:
-
-- **You run untrusted or semi-trusted code.** Plugins, user scripts, third-party libraries, sandboxed extensions. Hand them keys; deny everything else.
-- **You want supply-chain resilience.** A compromised dependency that was never handed a socket cannot phone home. Authority you didn't grant cannot be abused.
-- **You are designing a sandbox or runtime.** WASI, browser sandboxes, and capability OSes are built this way because it is the only model that *composes* under untrust.
-- **You need fine-grained delegation.** "Let this microservice read *this one* bucket prefix for *one hour*" is an attenuated, expiring capability (a signed URL).
-- **You build security-critical kernels.** seL4 — a formally verified microkernel — is capability-based precisely because the model is small enough to *prove* correct.
-
-It is the **wrong** (or harder) tool when:
-
-- You must interoperate with a deeply ACL/identity-based world (most enterprise IAM) where roles and audit-by-identity are the lingua franca.
-- The team cannot commit to the no-ambient-authority discipline — partial adoption gives partial (often false) safety.
-- You genuinely need *identity-based* policy ("only HR may read salaries, whoever they are, however they got here"), where ACLs map more directly.
 
 ---
 
@@ -391,184 +270,24 @@ https://files.example.com/d/9f3a...e1?sig=...&exp=1719300000
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. State the difference between *designation* and *authority* in one sentence each. Then explain what it means for a capability to *fuse* them.
-2. Re-tell the confused-deputy compiler story in your own words. Identify exactly which argument was a *name* and where the *ambient* authority came from.
-3. In the capability version of the compiler, *why* can the malicious user no longer attack? Point at the specific thing that is now missing from the function's reach.
-4. Give three capabilities you have personally used this week. For each, say what it designates and what authority it grants.
-5. A function signature is `def thumbnail(image_path: str) -> bytes`. Rewrite it to be capability-style. What did you remove, and what does the caller now have to do?
-6. Explain why a *guessable* download URL is not really a capability, using the word "unforgeable."
-7. Your teammate says "we use capabilities" but every module starts with `import requests`. Explain why this is not actually a capability system.
-8. Why is "check the ACL once at `open()`, then trust the fd" both *faster* than re-checking every `read()` *and* the reason file descriptors avoid a confused-deputy bug on the read path?
+1. Choose one small, known input for **Capability-Based Security**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
----
+## Verify your work
 
-## Cheat Sheet
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
 
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│                  CAPABILITY-BASED SECURITY                       │
-├──────────────────────────────────────────────────────────────────┤
-│ ACL / ambient model:  "Who are you? Are you on the list?"        │
-│   designation (name)  is FREE & universal — anyone names anything│
-│   authority (allow?)  decided by a separate check at use-time    │
-├──────────────────────────────────────────────────────────────────┤
-│ Capability model:     "Do you hold the key?"                     │
-│   ONE token = designation + authority, fused & unforgeable       │
-│   no list, no identity check, no ambient namespace               │
-├──────────────────────────────────────────────────────────────────┤
-│ Confused deputy:  privileged code tricked via a NAME it was given│
-│   cure: pass a HANDLE (capability), not a name — bug unnameable  │
-├──────────────────────────────────────────────────────────────────┤
-│ POLA: every part holds only the keys it needs, nothing more      │
-├──────────────────────────────────────────────────────────────────┤
-│ Capabilities you already use:                                    │
-│   * Unix file descriptor   (check once, then fd IS authority)    │
-│   * unguessable / signed URL (bearer capability over the web)    │
-│   * OAuth token            (scoped, expiring capability)         │
-│   * object reference       (ocap: hold it = can call it)         │
-├──────────────────────────────────────────────────────────────────┤
-│ Operations on capabilities:                                      │
-│   attenuate  hand a weaker version (read-only, one file, expiring)│
-│   delegate   pass it onward                                       │
-│   revoke     make it stop working (needs a wrapper you control)  │
-├──────────────────────────────────────────────────────────────────┤
-│ The discipline:                                                  │
-│   * default to ZERO authority                                    │
-│   * never IMPORT power; always RECEIVE it as an argument         │
-│   * one ambient `import os` reintroduces everything              │
-│   * audit by following the references a component was given      │
-└──────────────────────────────────────────────────────────────────┘
-```
+## Review questions
 
----
-
-## Summary
-
-- A **capability** is an unforgeable, transferable token that **both designates a resource and grants the right to use it** — designation and authority fused into one thing.
-- The mainstream alternative is the **ACL / ambient-authority** model: anyone can *name* any resource, and a separate check at use-time decides whether they're allowed. Authority hangs in the air around every process.
-- Ambient authority causes the **confused deputy**: privileged code is tricked, via a *name* it was handed, into wielding its own authority for a less-privileged caller. The canonical example is Norm Hardy's pay-per-use compiler tricked into overwriting its billing file with `-o BILL`.
-- Capabilities **structurally prevent** this: if the caller must pass a *handle* (which they could only obtain by already holding the authority), the malicious request becomes **unrepresentable** — there is no name to poison.
-- **POLA**, the Principle of Least Authority, falls out naturally: hand each component only the keys it needs. The blast radius of a compromised part is exactly the capabilities it held.
-- You already use capabilities: **Unix file descriptors** (checked once, then the fd *is* the authority), **unguessable/signed URLs**, **OAuth bearer tokens**, and **object references** in memory-safe languages.
-- The core discipline is simple to say and strict to keep: **never import authority; always receive it.** One ambient import reintroduces full ambient power.
-- This is the **affirmative** side of security: not "detect and block the attack," but "structure the program so the attack cannot be expressed."
-
----
-
-## What You Can Build
-
-- **A confused-deputy demo.** Write the vulnerable compiler-billing program (ambient `open`), exploit it with a malicious output path, then rewrite it capability-style and show the exploit no longer compiles/runs.
-- **A capability-style file processor.** A function that resizes an image but is *only* handed an input read-handle and an output write-handle — no `os`, no paths. Prove it can't touch anything else.
-- **A revocable share link.** A tiny web endpoint that mints unguessable, signed, expiring URLs to a single object, and a "revoke" button that disables one without affecting others.
-- **An fd-passing experiment.** Two Unix processes; one opens a file and passes the *fd* (not the path) to the other via `SCM_RIGHTS`. Confirm the second process reads the file with no path lookup of its own.
-- **A "least-authority" audit of a real script.** Take a script you wrote, list every ambient power it uses (`open`, `requests`, env vars), and refactor it so all authority is injected at the top.
-
----
-
-## Further Reading
-
-- *The Confused Deputy* — Norm Hardy, 1988. The four-page paper that named the problem. The compiler-billing story is here. https://cap-lore.com/CapTheory/ConfusedDeputy.html
-- *Capability-Based Computer Systems* — Henry Levy. The classic survey of capability hardware and OSes (Plessey 250, CAP, Hydra, KeyKOS). http://homes.cs.washington.edu/~levy/capabook/
-- *Paradigm Regained: Abstraction Mechanisms for Access Control* — Mark S. Miller & Jonathan Shapiro. The clearest modern statement of the object-capability model.
-- *What Are Capabilities?* — an accessible long-form introduction by Chip Morningstar (the "habitat" essay). http://habitatchronicles.com/2017/05/what-are-capabilities/
-- *POSIX `open(2)` / file-descriptor passing (`unix(7)`, `SCM_RIGHTS`)* — read these to see capabilities you already use. https://man7.org/linux/man-pages/man2/open.2.html
-- *The Principle of Least Authority (POLA)* — Saltzer & Schroeder's "least privilege" (1975), refined into least *authority*. https://web.mit.edu/Saltzer/www/publications/protection/
-- *seL4 Whitepaper* — the formally verified, capability-based microkernel. https://sel4.systems/
-
----
-
-## Diagrams & Visual Aids
-
-### ACL vs Capability: Where the Decision Lives
-
-```text
-ACL / AMBIENT MODEL
-  subject ──names──► "/etc/passwd"           (anyone can name anything)
-                          │
-                          ▼
-                   ┌──────────────┐
-                   │  CHECK ACL   │  ◄── decision at USE-TIME, every access
-                   │ is Alice ok? │
-                   └──────┬───────┘
-                     yes  │  no
-                  ────────┴────────►  (allow / deny)
-
-CAPABILITY MODEL
-  subject ──holds──► [ KEY: this file, read ]   (only if it was handed one)
-                          │
-                          ▼
-                     use the key        ◄── NO check; holding it IS the right
-                          │
-                          ▼
-                      (read happens)
-```
-
-### The Confused Deputy
-
-```text
-        ┌──────────── USER (cannot write BILL) ────────────┐
-        │  "compile myprog.src  -o BILL"   ◄── just a NAME │
-        └───────────────────────┬──────────────────────────┘
-                                 │ passes a name
-                                 ▼
-        ┌──────────── COMPILER (the DEPUTY) ───────────────┐
-        │  has its OWN authority to write BILL (ambient)    │
-        │  opens the user-named output file ... = BILL      │
-        │  writes compiler output  ──► BILL DESTROYED       │
-        └──────────────────────────────────────────────────┘
-
-   The deputy was CONFUSED: it used ITS authority on the USER's behalf.
-```
-
-### The Capability Fix
-
-```text
-        ┌──────────── USER ────────────┐
-        │ can only produce a handle to  │
-        │ files the USER may write.     │
-        │ -> CANNOT make a BILL handle. │
-        └───────────────┬───────────────┘
-                        │ passes a HANDLE (capability)
-                        ▼
-        ┌──────────── COMPILER ─────────┐
-        │ writes through the handle.     │
-        │ has NO path arg, NO ambient    │
-        │ open -> cannot reach BILL.     │
-        └────────────────────────────────┘
-
-         The attack has nothing to poison. Bug = UNREPRESENTABLE.
-```
-
-### Connectivity Begets Connectivity (how authority spreads)
-
-```text
-   A component gains a capability ONLY by:
-
-   (1) ENDOWMENT      ── born holding it (creator gave it at birth)
-   (2) INTRODUCTION   ── handed one as an argument by someone who holds it
-   (3) PARENTHOOD     ── it created a new resource, got the key
-
-   There is NO (4): no "look it up by name", no "ask the environment".
-
-        held keys = the ENTIRE reachable world of a component
-        audit "what can it touch?"  ==  follow its references
-```
-
-### A File Descriptor's Life as a Capability
-
-```text
-   open("/etc/hosts", O_RDONLY)
-        │   ▲
-        │   └── ACL checked HERE, ONCE (path -> permission)
-        ▼
-      fd = 3   ◄── unforgeable handle: fuses (which file) + (read right)
-        │
-        ├── read(3, ...)            no path, no recheck — fd IS authority
-        │
-        └── sendmsg(SCM_RIGHTS, 3)  delegate to another process
-                    │
-                    ▼
-            peer holds fd, reads the file, with NO path lookup of its own
-```
+- What problem does Capability-Based Security solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

@@ -1,8 +1,11 @@
 # Performance vs Productivity Tradeoffs — Junior
 
-> **What?** The central tension in language choice: some languages let you *ship fast* (Python, Ruby, JavaScript/TypeScript) and some let your code *run fast* (Rust, C++, Go, C). "Fast" means two completely different things, and confusing them is the rookie mistake.
-> **How?** Learn to ask "fast for *whom* — the developer or the CPU?", figure out whether your program is even limited by language speed (usually it isn't — it's waiting on a database or network), and only then care about runtime performance. Most of the time, "slow" languages are *fast enough*.
+<!-- level-focus -->
+At junior level, focus on this question:
 
+> How can I apply **Performance vs Productivity Tradeoffs** in one small example and prove the result?
+
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## 1. "Fast" is two different words wearing one costume
@@ -150,17 +153,24 @@ Notice every one of these starts from *evidence*, not vibes. "It feels slow" is 
 
 ---
 
-## 10. What's next
+## Apply it
 
-| Topic | File |
-|---|---|
-| Deciding with numbers — SLOs, profiling, where time goes | `middle.md` |
-| The many axes of performance and productivity, and lifecycle shifts | `senior.md` |
-| Velocity as a strategic asset; when leadership funds a rewrite | `professional.md` |
-| Interview questions on the tradeoff | `interview.md` |
-| Decision exercises to practice the judgment | `tasks.md` |
-| How performance fits the broader selection framework | [`01-language-selection-criteria`](../01-language-selection-criteria/) |
+1. Choose one small, known input for **Performance vs Productivity Tradeoffs**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
----
+## Verify your work
 
-**Memorize this:** there are two "fasts" — fast to write and fast to run — and they trade off against each other. You almost never need *fast*; you need *fast enough*, defined by a real number. And before you blame the language, check whether your program is even computing or just waiting — because a slow language doing nothing but waiting on a database is exactly as fast as a fast one.
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
+
+## Review questions
+
+- What problem does Performance vs Productivity Tradeoffs solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

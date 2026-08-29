@@ -1,62 +1,11 @@
-# Evaluation Strategies (call-by-x) — Middle Level
+# Evaluation Strategies (call-by-x) — Middle
 
-> **Topic:** Evaluation Strategies (call-by-x)
-> **Focus:** Beyond value/reference/sharing: *when* is an argument evaluated? Call-by-name defers it into a thunk, call-by-need memoizes that thunk into laziness, and strict-vs-non-strict decides whether an unused argument can blow up your program.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **Evaluation Strategies (call-by-x)** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-> Focus: **When does an argument get evaluated — at the call, or only if and when the callee actually uses it?**
-
-The junior page answered *what* a function receives (a copy, an alias, a shared reference). This page answers a second, orthogonal question that most languages hide from you: **when is the argument expression evaluated?** In nearly every mainstream language the answer is "right now, before the call" — that is **strict** (or **eager**) evaluation. But there is a whole family of strategies where the answer is "later, maybe never": **call-by-name** wraps the unevaluated expression in a little zero-argument function (a **thunk**) and re-evaluates it each time the parameter is used; **call-by-need** does the same but **memoizes** the first result, so the expression runs *at most once* — this is exactly what "lazy evaluation" means in Haskell.
-
-Why care, as a mid-level engineer? Because the *when* changes program behavior in ways the *what* never can. Under call-by-value, if any argument expression diverges (loops forever) or throws, the call never happens — the whole program is doomed. Under call-by-name/need, an argument you never use is *never evaluated*, so a function can terminate even when one of its arguments would loop forever. That difference — **non-strictness** — is the entire reason Haskell can have infinite lists, and the reason your `if`/`&&`/`||` work the way they do (those are non-strict in their operands even in strict languages, via short-circuiting).
-
-In one sentence: **strict evaluation runs arguments before the call; non-strict evaluation defers them into thunks, and laziness is call-by-name that remembers its answer.** Getting this lets you reason about short-circuiting, lazy streams, and why some code terminates that "shouldn't."
-
-> 🎓 **Why this matters at the middle level:** You already understand mutation and sharing. The next tier of bugs and design choices — infinite generators, `&&` short-circuit, why a logging macro shouldn't evaluate its argument, why Scala's `=> T` by-name params exist, why a thunk closure can leak memory — all live in *evaluation order*, not in passing semantics. This is also the bridge to lambda-calculus reduction order, which `senior.md` makes precise.
-
-This page covers **strict vs non-strict**, **call-by-name** with thunks and the classic **Jensen's device**, **call-by-need** (memoized laziness), **call-by-copy-restore** (value-result, the in/out parameter), and how termination depends on the strategy. `senior.md` ties it all to normal-order vs applicative-order reduction in the lambda calculus and to move semantics.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** Call-by-value, call-by-reference, and call-by-sharing (the `junior.md` page).
-- **Required:** What a closure is — a function bundled with the variables it captures.
-- **Required:** Short-circuit evaluation: that `false && expensive()` never calls `expensive()`.
-- **Helpful but not required:** Having seen a lambda/anonymous function passed as an argument.
-- **Helpful but not required:** Exposure to generators/iterators (Python `yield`, JS generators) — they are a form of laziness.
-
-You do **not** need to know:
-
-- Formal lambda-calculus reduction order (`senior.md`).
-- Move semantics or Rust ownership (`senior.md`).
-- The category theory or denotational semantics of laziness.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Strict (eager) evaluation** | Argument expressions are fully evaluated **before** the function body runs. The mainstream default. |
-| **Non-strict evaluation** | A function may produce a result without evaluating one or more of its arguments. |
-| **Call-by-name** | Each parameter is bound to the *unevaluated* argument expression; it is **re-evaluated every time** the parameter is referenced. |
-| **Thunk** | A zero-argument closure capturing an unevaluated expression plus its environment. The implementation mechanism for non-strict params. |
-| **Call-by-need** | Call-by-name plus **memoization**: the thunk runs at most once; the result is cached and reused. This is "lazy evaluation." |
-| **Memoization** | Caching the result of a computation so repeated requests return the stored value instead of recomputing. |
-| **Call-by-copy-restore (value-result)** | Copy the argument in at call time; on return, copy the (possibly changed) parameter back out into the caller's variable. |
-| **Divergence / bottom (⊥)** | A computation that never returns a value: an infinite loop or an exception. Written ⊥. |
-| **WHNF (weak head normal form)** | "Evaluated enough to see the outermost constructor" — e.g. you know a list is a cons cell without forcing its tail. The default depth Haskell evaluates to. |
-| **Force / forcing** | Triggering evaluation of a thunk to get its value. |
-| **Jensen's device** | A classic Algol 60 trick exploiting call-by-name: passing an expression and an index variable so the callee can iterate by mutating the index, e.g. summing `a[i]` over `i`. |
-| **Short-circuit** | Non-strict behavior of `&&`/`||`/`?:` built into otherwise-strict languages. |
-| **Space leak** | Memory bloat from accumulating unforced thunks (the dark side of laziness). |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -132,34 +81,6 @@ This is exactly Haskell's evaluation model. A binding like `let x = expensive()`
 A fourth strategy, distinct from all the above. At call time, **copy** the argument into the parameter (like call-by-value). The function works on its local copy. On **return**, copy the parameter's final value **back out** into the caller's variable. Ada's `in out` parameters, Fortran's argument convention, and some older systems use this.
 
 It usually *looks* identical to call-by-reference — but it differs precisely under aliasing (when the same variable is passed twice, or a global is also touched), because copy-restore only writes back at the *end*. That subtlety is a famous interview trap, expanded in Tricky Points.
-
----
-
-## Real-World Analogies
-
-**Strict — cooking every ingredient before you start the recipe.** You chop, boil, and roast *everything* the recipe mentions before turning on the stove. If one ingredient is rotten (diverges), you never get to cook, even if the final dish doesn't use it.
-
-**Call-by-name — a recipe that says "fresh-squeeze juice each time it's called for."** The instruction "add juice" is followed *every time it appears*. Three mentions of juice means squeezing three times. The instruction is the *expression*, re-run on demand.
-
-**Call-by-need — squeeze the juice once, keep the jug.** The first time the recipe wants juice you squeeze it; you keep the jug and pour from it for every later mention. One squeeze, many pours. Cached.
-
-**Thunk — a sealed "just add water" packet.** Nothing happens until you open it. You can carry it around, hand it off, and never open it — no cost until forced.
-
-**Call-by-copy-restore — borrowing a library book, returning the annotated copy at the end.** You take a copy, scribble in it all week, and only when you return it do your changes get merged back into the master. If two people borrowed copies of the same book and both return, the *last* return wins — which is exactly why copy-restore and true reference differ under aliasing.
-
----
-
-## Mental Models
-
-**Model 1: "A parameter is either a value or a recipe."** Strict params are *values* (already computed). Non-strict params are *recipes* (thunks) that compute on demand. Call-by-name re-runs the recipe each use; call-by-need runs it once and bottles the result.
-
-**Model 2: "Laziness = call-by-name with a cache."** If you remember nothing else: name + memo = need. Re-evaluate every time → name. Re-evaluate once → need.
-
-**Model 3: "Non-strict = unused arguments can't hurt you."** Under non-strict evaluation, `f(x, ⊥)` is fine as long as `f` ignores its second argument. Under strict, `⊥` poisons the call. Termination is a property of *order*.
-
-**Model 4: "Short-circuit is non-strictness you already use."** `cond && expensive()` is `if cond then expensive() else false` — the right operand is a thunk forced only when `cond` is true. Every strict language smuggles in non-strict operators for `&&`, `||`, and `?:`.
-
-**Model 5: "Copy-restore writes back at the boundary; reference writes through immediately."** Same effect when there's no aliasing; divergent effect the moment two names touch the same storage.
 
 ---
 
@@ -251,49 +172,6 @@ total := SUM(a[i], i, 1, n);
 ```
 
 `expr` is `a[i]`. Each loop iteration mutates `i` (call-by-name), so re-evaluating `a[i]` yields a *different* array element. One generic `SUM` can sum `a[i]`, `a[i]*b[i]`, `1/i`, anything — without higher-order functions. This is the canonical demonstration of call-by-name's expressiveness (and its danger).
-
----
-
-## Pros & Cons
-
-### Call-by-name
-
-**Pros**
-- Maximally lazy at the use site; unused arguments cost nothing.
-- Enables expression-level abstractions (Jensen's device, custom control flow).
-
-**Cons**
-- Re-evaluates on **every** use — duplicated work and duplicated side effects.
-- Side-effecting arguments behave unpredictably (run N times, or zero).
-
-### Call-by-need (laziness)
-
-**Pros**
-- Computes each argument **at most once**, **only if needed** — best of both.
-- Enables infinite data structures, stream fusion, and clean separation of generation from consumption.
-
-**Cons**
-- **Space leaks**: unforced thunks pile up and bloat memory.
-- Evaluation order becomes hard to predict, complicating debugging, profiling, and reasoning about *when* side effects happen.
-
-### Call-by-copy-restore
-
-**Pros**
-- No long-lived aliasing during the call (callee works on a private copy).
-- Gives in/out semantics without exposing a live reference.
-
-**Cons**
-- Surprising under aliasing: only writes back at return, so "last writer wins."
-- Subtle interaction with exceptions (does the restore happen on an abnormal exit?).
-
----
-
-## Use Cases
-
-- **Call-by-name / thunks** for custom control structures, assertion/logging macros (don't evaluate the message unless the log level is on), and lazy default values.
-- **Call-by-need / laziness** for infinite streams, generators, dependency graphs computed on demand, and avoiding work that the consumer may skip.
-- **Short-circuit operators** — the non-strictness you use daily.
-- **Call-by-copy-restore** in interop boundaries (Ada `in out`, certain FFI/RPC conventions) where you want value semantics during the call but updates afterward.
 
 ---
 
@@ -391,66 +269,24 @@ This single example is the cleanest way to *distinguish* the strategies empirica
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. What is the difference between strict and non-strict evaluation?
-2. Why can call-by-name terminate where call-by-value loops forever?
-3. What single addition turns call-by-name into call-by-need?
-4. What is a thunk, concretely?
-5. Why does `&&` count as non-strict even in a strict language?
-6. How does call-by-copy-restore differ from call-by-reference, and when does the difference become visible?
+1. Find a real component where **Evaluation Strategies (call-by-x)** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
-<details>
-<summary>Answers</summary>
+## Verify your work
 
-1. **Strict** evaluates all arguments before the body runs; **non-strict** may run the body without evaluating some arguments (they're deferred into thunks).
-2. A non-evaluated argument is never forced, so a diverging argument that the function ignores never runs — the call returns. Under call-by-value the argument is evaluated first and the program hangs.
-3. **Memoization**: cache the thunk's first result so it's computed at most once.
-4. A **zero-argument closure** capturing an unevaluated expression and its environment; calling it forces evaluation.
-5. `a && b` does not evaluate `b` when `a` is false — it's non-strict in its right operand (a built-in thunk), even though the language is otherwise strict.
-6. Copy-restore copies in and writes back **only at return**, whereas reference writes **live**. The difference shows under **aliasing** (same variable passed twice, or a global also touched): copy-restore gives "last write-back wins," reference interleaves.
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
 
-</details>
+## Review questions
 
----
-
-## Cheat Sheet
-
-```text
-AXIS 1 (what):  value / reference / sharing      ← junior page
-AXIS 2 (when):  STRICT (now)  vs  NON-STRICT (later/maybe never)  ← this page
-
-STRICT (eager):   call-by-value, call-by-reference   → args evaluated before body
-NON-STRICT:       call-by-name, call-by-need          → args deferred into thunks
-
-CALL-BY-NAME  = bind the EXPRESSION, re-evaluate EACH use   (Scala  => T, Algol)
-CALL-BY-NEED  = call-by-name + MEMOIZE → evaluate ONCE      (Haskell laziness, Scala lazy val)
-THUNK         = () -> T : zero-arg closure, the deferral mechanism
-COPY-RESTORE  = value-result: copy in, write back at RETURN (Ada in out, Fortran)
-
-TERMINATION:  non-strict can return where strict diverges  (const 42 undefined → 42)
-SHORT-CIRCUIT (&& || ?:) = non-strictness you already use, NOT memoization
-SPACE LEAK    = pile-up of unforced thunks (laziness' cost) → seq / foldl' / BangPatterns
-ALIASING TEST f(x,x) separates value / reference / copy-restore / name
-```
-
----
-
-## Summary
-
-- Passing has two independent axes: **what** the parameter aliases (junior) and **when** the argument is evaluated (this page).
-- **Strict** = evaluate arguments before the call; **non-strict** = defer them. Non-strict evaluation can **terminate where strict loops forever** because unused arguments are never forced.
-- **Call-by-name** binds the unevaluated *expression* and re-evaluates it on every use (Scala `=> T`, Algol; Jensen's device is the classic demo).
-- **Call-by-need** = call-by-name + **memoization** → evaluate at most once. This *is* lazy evaluation (Haskell, Scala `lazy val`).
-- **Thunks** (`() -> T`) are how strict languages simulate non-strictness — for lazy logging, deferred defaults, and custom control flow.
-- **Call-by-copy-restore** (value-result) copies in and writes back at return; it diverges from call-by-reference only under aliasing.
-- Laziness's costs are **space leaks** and **unpredictable evaluation order**; default to strict and reach for laziness deliberately.
-
----
-
-## Further Reading
-
-- The Scala language spec section on by-name parameters and `lazy val`.
-- The Haskell Report / GHC docs on lazy evaluation, WHNF, and strictness (`seq`, `$!`, `BangPatterns`).
-- Any treatment of Jensen's device in an Algol 60 reference.
-- The `senior.md` page in this topic, which makes call-by-name vs call-by-value precise as normal-order vs applicative-order reduction in the lambda calculus, and adds move semantics.
+- Which boundary is most affected by Evaluation Strategies (call-by-x)?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

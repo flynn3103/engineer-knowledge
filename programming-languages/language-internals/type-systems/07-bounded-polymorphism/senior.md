@@ -1,58 +1,11 @@
-# Bounded Polymorphism — Senior Level
+# Bounded Polymorphism — Senior
 
-> **Topic:** Bounded Polymorphism
-> **Focus:** Typeclasses/traits as principled ad-hoc polymorphism — dictionary translation, coherence and orphan rules, associated types vs type parameters, and how this machinery answers the expression problem.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Bounded Polymorphism** under failure, load, and change?
 
-## Introduction
-
-> Focus: **Typeclasses and traits are not "interfaces with extra steps."** They're a principled way to do ad-hoc polymorphism, with a precise compilation story (dictionary translation), a global correctness invariant (coherence), and a design tax (orphan rules) — and they solve a problem subtype interfaces structurally cannot.
-
-By now you can write bounds, combine them, and read the subtype-vs-dictionary split. The senior question is *why dictionary-passing bounds (typeclasses, traits) are the more principled design*, and what that principledness costs and buys.
-
-The thesis: **ad-hoc polymorphism done right.** "Ad-hoc polymorphism" means one operation name (`+`, `show`, `==`) with genuinely different implementations per type — `1 + 2` is integer add, `"a" + "b"` is concatenation, the implementations share nothing. Overloading is the *undisciplined* form (resolved syntactically, can't be abstracted over, no coherence guarantee). Typeclasses are the *disciplined* form: one declaration of the operation's signature (`class Eq a where (==) :: a -> a -> Bool`), many independent *instances*, the ability to write generic code that abstracts over "any type with an `Eq` instance," and a guarantee that the *same* instance is used everywhere for a given type (coherence). That last guarantee is what makes `Set a` sound — if two parts of the program disagreed on how `a` orders, the set would corrupt.
-
-This page develops: the **dictionary translation** that compiles a typeclass-constrained function into an ordinary function taking an explicit table of operations; **coherence** (one canonical instance per type) and the **orphan rule** that protects it; **associated types/type members** as an alternative to extra type parameters; **constraint propagation** through `where`; and the **expression problem** — adding new *types* and new *operations* without recompiling old code — which typeclasses solve and subtype-interfaces do not.
-
-> 🎓 **Why this matters at the senior level:** When you architect a library's extensibility story — "can users add their own types to my generic algorithms? can I add operations to types I don't control? will two transitive dependencies' instances collide?" — you are making decisions governed exactly by coherence, orphan rules, and associated-vs-parameter choices. Getting these right is the difference between a library that composes across an ecosystem and one that fights it.
-
-The runtime/specialization internals (full monomorphization vs witness-table dispatch trade-offs at scale) and the cross-language standardization story live in `professional.md`.
-
----
-
-## Prerequisites
-
-- **Required:** The middle page — multiple bounds, F-bounds/`Self`, and the subtype-bound vs dictionary-passing mechanisms.
-- **Required:** Implementing a typeclass instance / trait impl for your own type, and reading a `where`-constrained signature.
-- **Required:** A working sense of *parametric* vs *ad-hoc* polymorphism.
-- **Helpful:** Exposure to Haskell `class`/`instance`, Rust `trait`/`impl`, or Scala `given`/`using`.
-- **Helpful:** Having hit an "orphan instance" or "conflicting implementations" compile error.
-
-You do **not** need: the deep monomorphization-vs-dyn performance internals (`professional.md`), higher-kinded typeclasses (`Functor`/`Monad`) beyond passing mention, or compiler-internal constraint-solving algorithms.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Ad-hoc polymorphism** | One operation name with per-type implementations that need not be related (vs parametric, which is uniform). |
-| **Typeclass** | (Haskell) A named set of operations a type can implement via a separate `instance`. The principled form of overloading. |
-| **Trait** | (Rust/Scala) The same idea: a named capability with `impl`/`given` declarations. |
-| **Instance / impl** | A declaration `instance C T where ...` / `impl C for T { ... }` providing the operations of class/trait `C` for type `T`. |
-| **Dictionary** | The runtime (or compile-time) record of an instance's operations — a struct of function pointers/values. |
-| **Dictionary translation** | The desugaring of a constrained function `C a => a -> b` into an ordinary function `Dict_C_a -> a -> b` taking the dictionary explicitly. |
-| **Coherence** | The global invariant that there is **at most one** instance of a class for a given type, used everywhere. |
-| **Orphan instance** | An instance declared in a module that owns *neither* the class *nor* the type. Forbidden (or warned) to preserve coherence. |
-| **Orphan rule** | The rule "an instance must be defined where the class or the type is defined." |
-| **Coherence vs uniqueness** | Coherence = same instance chosen everywhere; uniqueness = only one instance can exist. Orphan rules enforce uniqueness to get coherence. |
-| **Associated type** | A type *member* of a typeclass/trait, determined by the implementing type (Rust `type Item;`, Swift `associatedtype`, Haskell type family). |
-| **Type parameter (on the class)** | An extra parameter on the class/trait itself (multi-param typeclasses, `trait Add<Rhs>`), as opposed to an associated type. |
-| **Functional dependency / output type** | A way to say one type parameter *determines* another (associated types are the cleaner modern form). |
-| **Expression problem** | Wadler's challenge: extend a datatype with new cases *and* new operations, statically type-safe, no recompilation, no casts. |
-| **Superclass / supertrait** | A constraint that one class requires another (`class Eq a => Ord a`, `trait Ord: PartialOrd`). |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -178,37 +131,6 @@ Coherence interacts with two advanced features. **Specialization** (Rust, unstab
 
 ---
 
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Dictionary translation** | A constrained job ("must be a licensed pilot") compiled into "here is the explicit pilot's license, passed alongside the worker." |
-| **Coherence** | A single national registry of "the one official way to weigh gold." Everyone uses the same scale, so trades reconcile. |
-| **Orphan rule** | You may only register a measurement standard if you own *either* the measuring method *or* the thing measured — preventing two strangers from registering rival standards that later clash. |
-| **Newtype escape** | Putting a foreign item in your *own* labeled box so you're allowed to attach your own certification to the box. |
-| **Associated type** | A spec that says "each engine model determines exactly one fuel type" — you don't specify the fuel separately; the engine fixes it. |
-| **Type parameter on the class** | A connector that accepts several voltages — you must say which voltage each time. |
-| **Expression problem** | A spreadsheet where you want to freely add both new rows (types) and new columns (operations) without rewriting the existing grid. |
-| **Superclass** | A senior certification that includes the junior one inside it. |
-
----
-
-## Mental Models
-
-### The "constraint is a value" model
-
-Stop thinking of `Ord a =>` / `T: Ord` as a *property*. Think of it as a **hidden argument**: a dictionary of the operations, threaded into the function by the compiler. Every bounded function is, after translation, a plain function that takes its capabilities as data. This single re-framing demystifies superclasses (nested dictionaries), constraint solving (the compiler is *constructing a value*), and why retrofitting works (you're just providing another dictionary). When reasoning about any typeclass behavior, ask: *what dictionary is being constructed and passed here?*
-
-### The "coherence is a global invariant, orphans are how you keep it local" model
-
-Coherence is a whole-program promise ("one instance per type, used everywhere"), but whole-program checks don't compose across separately compiled libraries. The orphan rule converts the global promise into a *local, modular* check: each instance is anchored to a crate that owns part of it, so the compiler can guarantee uniqueness by looking only at ownership, never the whole program. When the orphan rule frustrates you, remember it's the price of *modular* coherence — and the newtype is the sanctioned workaround.
-
-### The "two-axis extensibility grid" model
-
-Draw a 2×2: rows = "easy to add new types / hard," columns = "easy to add new operations / hard." OO subtype interfaces sit in *(types easy, operations hard)*. FP pattern-matching sits in *(operations easy, types hard)*. Typeclass-style bounded polymorphism sits in the open corner — *both easy*. Whenever you design an extensible system, place it on this grid and ask which axis you need open; if you need both, typeclasses/traits (not subtype interfaces, not bare ADTs) are the tool.
-
----
-
 ## Code Examples
 
 ### Dictionary translation, made explicit
@@ -307,30 +229,6 @@ fn describe<T: Shape>(s: &T) {
 
 ---
 
-## Pros & Cons
-
-| Aspect | Pros | Cons |
-|--------|------|------|
-| **Ad-hoc done right** | One signature, many independent instances; abstractable, type-directed, coherent. | More machinery than plain overloading; steeper learning curve. |
-| **Dictionary translation** | Clean semantics; enables monomorphization (zero-cost) *or* `dyn` (small code) by choice. | The mental model ("constraint is a value") is non-obvious to OO programmers. |
-| **Coherence** | `Set`/`Map`/dedup are *sound*; global agreement on instances. | Forbids locally-chosen instances; sometimes you genuinely want two orderings (need newtype/explicit comparator). |
-| **Orphan rule** | Makes coherence modular and link-safe across an ecosystem. | Real friction: can't `impl ForeignTrait for ForeignType`; newtype boilerplate. |
-| **Associated types** | No spurious type parameters; great inference; one canonical companion type. | Less flexible when a type *should* have multiple companion types (then you need a parameter). |
-| **Expression problem** | Open to new types **and** new operations; the most extensible bounded style. | Instance proliferation; possible overlapping-instance temptation. |
-
----
-
-## Use Cases
-
-- **Numeric/algebraic hierarchies** — `Eq`/`Ord`/`Num`/`Fractional` (Haskell), `PartialOrd`/`Ord`/`Add` (Rust): bounded code that works across the whole tower via superclass chaining.
-- **Sound collections** — `BTreeSet`/`HashMap` depend on coherent `Ord`/`Hash`; the entire design rests on coherence.
-- **Serialization frameworks** — `serde` (Rust), `aeson` (Haskell): derive instances per type; generic encode/decode bounded by `Serialize`/`ToJSON`. Orphan rules shape how third-party support is packaged.
-- **Iterator/stream abstractions** — associated `Item` type so `map`/`filter`/`collect` compose without type-parameter noise.
-- **Extensible interpreters/ASTs** — the expression problem in the wild: plugins add both new node types and new passes.
-- **Capability-bounded generic libraries** — "any `T` that is `Hash + Eq + Clone`" as a reusable, ecosystem-wide contract.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Newtype to escape the orphan rule (or to pick a non-default instance)
@@ -388,85 +286,24 @@ When you genuinely need *two* behaviors for one type (e.g. sort by name vs by ag
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. Hand-translate a `(Eq a, Ord a) => a -> a -> Bool` function into dictionary-passing form. How many dictionary parameters does it really need, and why (hint: superclass)?
-2. Explain precisely how the orphan rule lets the compiler guarantee coherence *without* whole-program analysis. What goes wrong in a hypothetical orphan-allowing world with two libraries?
-3. Give a concrete `T` for which you'd genuinely want two different `Ord` behaviors. Show the newtype that lets you have both without violating coherence.
-4. Rust's `Iterator` uses `type Item;` (associated), but `Add` uses `Add<Rhs>` (parameter). Justify each choice using the "does the type determine it?" test.
-5. Solve a 2-case, 2-operation expression problem (cases `Lit`/`Neg`, ops `eval`/`show`) with typeclasses, then *add* a third case and a third operation. Confirm no existing instance needed editing. Now argue why the OO subtype version would force edits.
-6. Why is negative reasoning ("`T` does not implement `C`") generally forbidden? Construct a scenario where allowing it causes spooky-action-at-a-distance when a downstream crate adds an instance.
-7. Which of these traits can be made into a `dyn` trait object, and which can't: `Clone`, `Iterator`, `Ord`, `Display`? Tie each answer to object-safety rules.
+1. State the system invariant that **Bounded Polymorphism** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
----
+## Verify your work
 
-## Cheat Sheet
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
 
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│              BOUNDED POLYMORPHISM (Senior)                        │
-├──────────────────────────────────────────────────────────────────┤
-│ Typeclasses/traits = AD-HOC POLYMORPHISM DONE RIGHT:             │
-│   one signature, many independent instances, abstractable,        │
-│   type-directed, COHERENT (vs raw overloading: none of that)      │
-├──────────────────────────────────────────────────────────────────┤
-│ DICTIONARY TRANSLATION:                                          │
-│   (C a => a -> b)  desugars to  (DictC a -> a -> b)              │
-│   constraint  =  hidden VALUE (a table of ops) passed in          │
-│   superclass  =  dictionary nested inside dictionary              │
-├──────────────────────────────────────────────────────────────────┤
-│ COHERENCE: <=1 instance per (class,type), used EVERYWHERE.       │
-│   makes Set/Map/dedup SOUND.                                     │
-│ ORPHAN RULE: instance must live where the CLASS or the TYPE does. │
-│   keeps coherence MODULAR. Escape = newtype wrapper.             │
-├──────────────────────────────────────────────────────────────────┤
-│ ASSOCIATED TYPE vs CLASS TYPE PARAMETER:                         │
-│   does the impl TYPE determine the other type?                   │
-│     yes -> associated type (Iterator::Item)  no annotation       │
-│     no  -> parameter (Add<Rhs>)              multiple impls ok    │
-├──────────────────────────────────────────────────────────────────┤
-│ EXPRESSION PROBLEM: add new TYPES and new OPERATIONS, no recompile│
-│   OO subtype:  types easy, operations HARD                       │
-│   FP match:    operations easy, types HARD                       │
-│   typeclasses: BOTH easy  <-- the win                            │
-├──────────────────────────────────────────────────────────────────┤
-│ Avoid: orphan instances, unlawful instances (Eq/Hash mismatch),  │
-│   negative reasoning, careless overlapping/specialization        │
-└──────────────────────────────────────────────────────────────────┘
-```
+## Review questions
 
----
-
-## Summary
-
-- Typeclasses/traits are **ad-hoc polymorphism done right**: one operation signature, many independent **instances**, the ability to abstract over "any type with this capability," and a **coherence** guarantee — everything raw overloading lacks.
-- Under the hood, a constraint compiles via **dictionary translation**: `C a => a -> b` becomes `DictC a -> a -> b`, the constraint becoming an explicit table of operations passed in (and possibly monomorphized away). **Superclasses** nest dictionaries inside dictionaries.
-- **Coherence** — one canonical instance per type, used everywhere — is what makes `Set`/`Map`/dedup *sound*. The **orphan rule** (instances must live where the class or the type is defined) makes coherence enforceable *modularly*; the **newtype** is the sanctioned escape.
-- **Associated types** model "the implementing type determines a companion type" (great inference, no annotations); **class type parameters** are for genuinely multi-instance relationships. The test: *does the type determine it?*
-- Constraints **propagate** and are **discharged** by the compiler's constraint solver, which chains superclass and instance edges to build the needed dictionaries.
-- The **expression problem** — extend with new types *and* new operations, statically, no recompilation — is solved by modeling operations as typeclasses; OO subtype interfaces (types open, operations closed) and bare ADTs (operations open, types closed) each leave one axis shut. This is the precise sense in which typeclass-style bounds are the most extensible.
-- Handle **specialization, overlapping instances, and negative reasoning** with great care — they strain the coherence/open-world guarantees that make the whole system compose.
-
----
-
-## What You Can Build
-
-- **A toy "dictionary-passing" compiler pass:** take a tiny typeclass-constrained language and emit the desugared explicit-dictionary form. Watching the translation makes coherence and superclasses click.
-- **An expression-problem demo** in three styles (OO subtype, FP ADT+match, typeclasses) showing exactly which files must change when you add a new type vs a new operation.
-- **A coherence-corruption exhibit:** a deliberately unlawful `Ord`/`Eq`+`Hash` instance fed into a set/map, showing silent duplication and lost lookups — a vivid lesson in why coherence and instance laws matter.
-- **A serialization mini-framework** with a `Serialize` trait, derive-like instances, and a worked example of the orphan rule blocking a third-party type plus the newtype fix.
-- **An iterator abstraction** built on an associated `Item` type, with `map`/`filter`/`collect`, then a "what if `Item` were a parameter?" branch demonstrating the inference breakage.
-
----
-
-## Further Reading
-
-- *How to Make Ad-Hoc Polymorphism Less Ad Hoc* — Wadler & Blott, 1989. The paper that introduced typeclasses and dictionary translation.
-- *The Expression Problem* — Philip Wadler's note (and the Java/Generics follow-ups). The canonical statement.
-- *Type Classes with Functional Dependencies* — Mark Jones, 2000. Why associated/output types matter.
-- *Associated Types with Class* — Chakravarty, Keller, Peyton Jones, Marlow, 2005. Type families and associated types.
-- *The Rust Reference & Rust RFCs* — the coherence/orphan-rule RFCs and the specialization RFC; the clearest modern engineering treatment. https://doc.rust-lang.org/reference/items/implementations.html
-- *Programming in Scala* / *Type Classes as Objects and Implicits* — Oliveira et al., 2010. Typeclasses encoded with implicits.
-- *Edward Kmett's talks/writings* on coherence and the dangers of orphan instances.
-- *Types and Programming Languages* — Pierce. Bounded quantification and the formal background.
-- *Scrap Your Boilerplate* and the "Datatypes à la carte" paper (Swierstra, 2008) — the expression problem solved with free monads/typeclasses.
+- Which invariant must remain true when Bounded Polymorphism fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

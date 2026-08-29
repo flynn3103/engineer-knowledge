@@ -1,62 +1,11 @@
-# Memory-Safety Mechanisms — Middle Level
+# Memory-Safety Mechanisms — Middle
 
-> **Topic:** Memory-Safety Mechanisms
-> **Focus:** How the detection and mitigation tools actually work — sanitizers (shadow memory, redzones, quarantine), Valgrind, hardened allocators, and the C-level defenses (`_FORTIFY_SOURCE`, annotated APIs) — and the real cost of spatial vs temporal protection.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **Memory-Safety Mechanisms** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-> Focus: **How do the tools that catch memory bugs actually catch them?** Not "use ASan" but "what does ASan *do* to your program so that an out-of-bounds write becomes a precise report?"
-
-At the junior level, memory safety is a property and a taxonomy of bugs. At this level, you open the toolbox and see the mechanisms. There are two distinct jobs:
-
-- **Detection** — finding bugs during development and testing. This is what AddressSanitizer (ASan), MemorySanitizer (MSan), UndefinedBehaviorSanitizer (UBSan), and Valgrind/Memcheck do. They *instrument* your program — adding checks and bookkeeping — so that an illegal access is caught the moment it happens, with a stack trace, instead of silently corrupting memory.
-
-- **Mitigation** — making bugs *harder to exploit* in production, where you can't pay sanitizer overhead. This is what **hardened allocators** (Scudo, GWP-ASan, hardened glibc malloc), **guard pages**, **`_FORTIFY_SOURCE`**, and stack canaries do. They don't fix the bug; they raise the cost of turning it into a working exploit, and often turn a silent corruption into a clean crash.
-
-The unifying technique behind most *spatial* detection is the **redzone**: place a small forbidden region immediately around each allocation, and any access that lands there is an overflow. The unifying technique behind *temporal* detection is the **quarantine**: don't immediately reuse freed memory; hold it in a "poisoned" state for a while so a use-after-free hits poison instead of valid reused data. Both rely on **shadow memory**: a compact side table that records, for every byte of your program, whether that byte is currently accessible.
-
-> 🎓 **Why this matters at this level:** Once you understand *how* the tools work, you understand their *blind spots*. ASan won't catch a use-after-free if the quarantine recycled the memory already. MSan needs the whole program instrumented or it gives false reports. `_FORTIFY_SOURCE` only protects calls where the compiler can compute the buffer size. Knowing the mechanism tells you when a clean tool run is real assurance and when it's a false sense of security.
-
-This page covers shadow memory and redzones, the ASan/MSan/UBSan split, Valgrind's very different (binary-translation) approach, hardened allocator techniques, the C defenses (`_FORTIFY_SOURCE`, annotated/checked APIs), and why temporal safety is fundamentally more expensive to enforce than spatial safety. `senior.md` goes into the language designs (Rust's borrow checker, managed-runtime guarantees); `professional.md` into hardware (MTE, CHERI) and the industry migration.
-
----
-
-## Prerequisites
-
-- **Required (junior level):** the spatial/temporal split, the bug taxonomy (overflow, UAF, double-free, uninitialized read), and why C is unsafe by default.
-- **Required:** comfort with C pointers, `malloc`/`free`, stack vs heap, and reading a stack trace.
-- **Helpful:** a rough idea of **virtual memory** and **pages** (the OS hands memory in ~4 KiB pages; access permissions are per page).
-- **Helpful:** having compiled something with `-fsanitize=address` and seen a report.
-- **Helpful:** awareness that the heap is managed by an *allocator* (malloc) with its own metadata, separate from your data.
-
-You do **not** yet need: Rust's borrow checker internals (`senior.md`), or hardware tagging like MTE/CHERI (`professional.md`).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Instrumentation** | Extra code the compiler (or a binary translator) inserts to monitor your program's behavior at runtime. |
-| **Shadow memory** | A compact side table mapping each region of application memory to metadata (e.g. "addressable or poisoned"). ASan uses 1 shadow byte per 8 app bytes. |
-| **Redzone** | A forbidden buffer placed immediately before/after an allocation. Accessing it = overflow detected. |
-| **Poison / unpoison** | Marking a region in shadow memory as inaccessible (poison) or accessible (unpoison). Freed memory and redzones are poisoned. |
-| **Quarantine** | A pool of recently-freed blocks held *unreusable* (and poisoned) so use-after-free is detectable before the memory is recycled. |
-| **Guard page** | A page marked no-access by the OS, placed next to an allocation so an overflow into it triggers a hardware fault (segfault) immediately. |
-| **AddressSanitizer (ASan)** | Compiler-based detector for spatial bugs (OOB) and temporal bugs (UAF, double-free), via redzones + quarantine + shadow memory. |
-| **MemorySanitizer (MSan)** | Detector for *uninitialized reads*. Tracks "is this bit initialized?" in shadow memory. |
-| **UndefinedBehaviorSanitizer (UBSan)** | Detector for many UB forms: signed overflow, misaligned access, bad casts, null deref, OOB on known-size objects. |
-| **ThreadSanitizer (TSan)** | Detector for data races (covered more in concurrency topics; relevant because races can break memory safety). |
-| **Valgrind / Memcheck** | A *binary* instrumentation tool: runs your unmodified binary on a synthetic CPU, tracking definedness and addressability. No recompile needed; much slower. |
-| **`_FORTIFY_SOURCE`** | A glibc/compiler feature that replaces certain libc calls (`memcpy`, `strcpy`, `sprintf`...) with bounds-checked variants when the destination size is known at compile time. |
-| **Stack canary** | A random value placed between local buffers and the saved return address; checked on return. A mismatch means a stack overflow corrupted it → abort. |
-| **Hardened allocator** | A malloc implementation (Scudo, hardened glibc, GWP-ASan) that adds randomization, metadata protection, and free-list hardening to resist exploitation. |
-| **Free-list** | The allocator's internal linked structure of available blocks. Corrupting it (via double-free or overflow into metadata) is a classic exploitation primitive. |
-| **Metadata separation** | Storing allocator bookkeeping *away from* user data (out-of-line) so an overflow can't corrupt it. |
-| **Fat pointer** | A pointer that carries *bounds* (base + length) alongside the address, enabling per-access spatial checks. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -156,32 +105,6 @@ A theme worth internalizing: **spatial safety is much cheaper to enforce than te
 
 ---
 
-## Real-World Analogies
-
-- **Shadow memory = a wet-paint chart.** Your building has rooms (memory). A separate clipboard at the door says, for each room, "freshly painted — do not enter." You never write that on the wall *inside* the room (that's the tenant's space); you keep it on the clipboard (shadow). Before entering any room you glance at the clipboard.
-
-- **Redzone = caution tape around the edges.** Each work area has a meter of caution tape on every side. Step onto the tape and an alarm sounds *immediately* — you haven't yet reached the next work area, so the guard knows precisely which area you overran and by how much.
-
-- **Quarantine = the returned-rental cooldown.** When a tool is returned it doesn't go straight back on the shelf; it sits in a "returned" bin for a while. If you try to grab "your" returned tool from the bin, staff catch you — but only while it's still in the bin. Once the bin overflows and the tool goes back on the public shelf, your claim to it is invisible again.
-
-- **Guard page = a locked steel door, not tape.** Instead of an alarm you can ignore, walking into a guard page hits a locked door the building's own structure enforces (the MMU). You can't proceed — the OS faults the process. Cheaper to enforce (no clipboard checks), but you can only afford so many steel doors.
-
-- **`_FORTIFY_SOURCE` = a tailor who knows the cloth size.** When the tailor (compiler) knows the exact size of the garment (buffer), they refuse a cut that wouldn't fit. When the size is custom/unknown at fitting time, they can't help — that's the blind spot.
-
----
-
-## Mental Models
-
-**Model 1: Detection poisons, hardware faults.** Software detectors (ASan, Memcheck) work by *poisoning* shadow metadata and checking it in software on every access — flexible but ~2–50× slow. Hardware mechanisms (guard pages, later MTE/CHERI) make the *MMU/CPU* enforce the rule — cheap but coarse. Production tools blend them (GWP-ASan samples onto guard pages).
-
-**Model 2: A clean tool run is evidence, not proof.** ASan with no findings means "no detectable bug *on these inputs, within quarantine limits, in instrumented code*." Combine it with **fuzzing** (to drive new inputs) and remember the blind spots (quarantine eviction, uninstrumented libs, wild jumps over redzones). Coverage = tool × inputs.
-
-**Model 3: Mitigation raises the attacker's cost; it doesn't remove the bug.** Canaries, free-list hardening, randomization, metadata separation — none *fixes* the overflow or UAF. They make a given bug harder or less reliable to weaponize, and often convert silent corruption into a clean abort. Defense in depth, not a cure.
-
-**Model 4: Spatial is local, temporal is global.** Whenever a mechanism seems expensive (quarantine memory, GC pauses, MTE), it's almost always paying for *temporal* safety — the hard one. Bounds checks (spatial) are nearly free by comparison.
-
----
-
 ## Code Examples
 
 > Defensive/educational only. These show how the *tools* report, and how to *write checkable* code — no exploits.
@@ -274,33 +197,6 @@ void fill(char *dst, size_t cap, char c) {
 
 ---
 
-## Pros & Cons
-
-**Sanitizers (ASan/MSan/UBSan):**
-
-- ✅ Precise, instant, named-line reports with allocation/free stacks.
-- ✅ Catch the dominant bug classes; integrate cleanly into CI + fuzzing.
-- ❌ Slow (ASan ~2×, MSan more, Valgrind 10–50×) and memory-hungry → testing only.
-- ❌ Real blind spots: quarantine eviction (temporal), uninstrumented libs (MSan), non-adjacent wild accesses.
-
-**Hardened allocators / guard pages / fortify:**
-
-- ✅ Cheap enough for production; remove common exploit primitives; convert corruption to clean abort.
-- ✅ GWP-ASan finds field bugs the lab missed via sampling.
-- ❌ Mitigation, not cure — the underlying bug remains; determined attackers adapt.
-- ❌ Guard pages are coarse (page granularity); can't protect every allocation.
-
----
-
-## Use Cases
-
-- **CI for any C/C++ project** → ASan + UBSan jobs on the test suite; MSan if you can instrument dependencies; a fuzzing job feeding ASan.
-- **Hard-to-rebuild binaries / leak hunts** → Valgrind/Memcheck.
-- **Production native code at scale** (Android, browsers) → hardened allocator (Scudo) + sampled GWP-ASan for field telemetry.
-- **Legacy C you can't rewrite** → compile with `_FORTIFY_SOURCE=2/3`, `-fstack-protector-strong`, and annotate hot APIs with size parameters.
-
----
-
 ## Coding Patterns
 
 ```text
@@ -359,112 +255,24 @@ Production build flags (defense in depth):
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. Explain ASan's shadow-memory scheme and why the per-access check is so cheap.
-2. What do redzones catch, and what do they *miss*?
-3. How does quarantine detect use-after-free, and what is its fundamental limit?
-4. When would you reach for Valgrind over ASan, and vice versa?
-5. Name three techniques a hardened allocator uses and what each defeats.
-6. Why is GWP-ASan affordable in production when guard pages are coarse?
-7. When does `_FORTIFY_SOURCE` do nothing, and why?
-8. Argue why temporal safety is fundamentally more expensive to enforce than spatial safety.
+1. Find a real component where **Memory-Safety Mechanisms** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
----
+## Verify your work
 
-## Cheat Sheet
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
 
-```text
-DETECTION (testing)
-  ASan : OOB + UAF + double-free | redzones + quarantine + shadow(1:8) | ~2x
-  MSan : uninitialized reads      | bit-level definedness shadow        | needs full instrumentation
-  UBSan: signed overflow, misalign, bad cast, null, bounds | cheap, turn on broad
-  TSan : data races (can break memory safety)
-  Valgrind/Memcheck: A-bits + V-bits, no recompile, 10-50x, weak on stack/global
+## Review questions
 
-MITIGATION (production)
-  _FORTIFY_SOURCE=2/3 : compile-time-sized libc calls -> *_chk, abort on overflow
-  -fstack-protector-strong : canary catches LINEAR stack overflow
-  hardened alloc (Scudo): free-list hardening, metadata separation, randomization
-  GWP-ASan : SAMPLED guard pages -> field UAF/OOB reports, ~free on average
-  guard page: OS no-access page -> hardware fault on adjacent overflow
-
-KEY TRUTHS
-  shadow poisons; hardware faults
-  redzone = spatial(adjacent) ; quarantine = temporal(finite)
-  clean ASan = evidence, not proof (inputs + quarantine + instrumentation)
-  spatial(local, cheap) << temporal(global, costly)
-```
-
----
-
-## Summary
-
-The tools that defend C/C++ split into **detection** (find bugs in testing) and **mitigation** (raise exploit cost in production). Detection is built on **shadow memory** — a 1-byte-per-8-bytes side table recording addressability — plus **redzones** (poisoned padding that catches adjacent overflows, giving spatial safety) and a **quarantine** (poisoned, not-yet-reused freed blocks that catch use-after-free, giving temporal safety *until the quarantine evicts the block*). ASan does both; MSan adds uninitialized-read detection; UBSan covers other UB; Valgrind offers recompile-free coverage at much higher cost.
-
-Production mitigation can't pay detector overhead, so it uses **hardened allocators** (free-list hardening, metadata separation, randomization — Scudo), **guard pages** (hardware-enforced no-access), **sampled GWP-ASan** (field bug telemetry for ~free), and C-level defenses (**`_FORTIFY_SOURCE`**, **stack canaries**, **annotated size-carrying APIs**). The recurring lesson: a clean tool run is evidence, not proof; mitigation hardens but doesn't cure; and **temporal safety is fundamentally more expensive than spatial safety** because "is it still alive?" is a global, time-dependent question with no cheap local check — which is exactly why the next level looks to language design and hardware.
-
----
-
-## What You Can Build
-
-- A CI matrix for a small C library with separate ASan+UBSan, MSan, and nightly Valgrind jobs, plus a libFuzzer target feeding ASan.
-- A demonstration that increasing `ASAN_OPTIONS=quarantine_size_mb` catches a UAF that a small quarantine misses — proving the eviction limit empirically.
-- A "before/after" hardening of a legacy C program: add `_FORTIFY_SOURCE=3`, stack protector, and a hardened allocator, then show a previously-silent overflow now aborting cleanly.
-
----
-
-## Further Reading
-
-- *AddressSanitizer: A Fast Address Sanity Checker* — Serebryany et al., USENIX ATC 2012 (the shadow-memory + redzone design). https://www.usenix.org/conference/atc12/technical-sessions/presentation/serebryany
-- *MemorySanitizer* — https://clang.llvm.org/docs/MemorySanitizer.html
-- *UndefinedBehaviorSanitizer* — https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html
-- *Valgrind / Memcheck manual* — https://valgrind.org/docs/manual/mc-manual.html
-- *GWP-ASan documentation* — https://llvm.org/docs/GwpAsan.html
-- *Scudo Hardened Allocator* — https://llvm.org/docs/ScudoHardenedAllocator.html
-- *glibc `_FORTIFY_SOURCE`* and the `__*_chk` functions — glibc manual and the `-D_FORTIFY_SOURCE` documentation.
-
----
-
-## Related Topics
-
-This is the middle tier of Memory-Safety Mechanisms. From here, `senior.md` moves from *detecting* bugs to *language designs that prevent them* (Rust's borrow checker, managed-runtime guarantees and their escape hatches), and `professional.md` covers hardware-enforced safety (ARM MTE memory tagging, CHERI capabilities, fat pointers) and the industry-wide migration to memory-safe languages. The `tasks.md` file gives hands-on sanitizer/Valgrind reasoning exercises, and `interview.md` drills the mechanisms. Adjacent roadmap areas — undefined behavior, the compilation pipeline, allocator/heap internals, and fuzzing — live in their own folders.
-
----
-
-## Diagrams & Visual Aids
-
-### Shadow Memory (1 byte per 8)
-
-```text
-  application memory:  [ b0 b1 b2 b3 b4 b5 b6 b7 ][ b8 ... ]
-                              │ maps to                │
-  shadow memory:           [ 0x00 ]                 [ 0xFA ]
-                          all 8 valid            poisoned (freed/redzone)
-  check: s=*((addr>>3)+off); if s && (addr&7)>=s -> BUG
-```
-
-### Heap Allocation With Redzones + Quarantine Lifecycle
-
-```text
-  ALLOCATED:  [ RZ poison ][  user data (valid) ][ RZ poison ]
-                   ^OOB-left      ^in bounds          ^OOB-right -> heap-buffer-overflow
-
-  free(p):    user data -> POISONED, block enters quarantine FIFO
-              use *p now  -> heap-use-after-free (free site + use site)
-
-  quarantine full -> oldest block UNPOISONED + reused -> later UAF now UNDETECTABLE
-```
-
-### Detection vs Mitigation
-
-```text
-            DETECTION (testing)              MITIGATION (production)
-            ───────────────────              ───────────────────────
-  spatial   ASan redzones / UBSan bounds     _FORTIFY_SOURCE, canaries,
-            Valgrind A-bits                   guard pages, hardened alloc
-  temporal  ASan quarantine                   randomized reuse, free-list
-            Valgrind                          hardening, sampled GWP-ASan
-            ↑ slow, precise, named line       ↑ cheap, "harder to exploit",
-                                                clean abort not cure
-```
+- Which boundary is most affected by Memory-Safety Mechanisms?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

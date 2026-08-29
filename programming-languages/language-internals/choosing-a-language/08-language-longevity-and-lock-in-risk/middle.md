@@ -1,8 +1,11 @@
 # Language Longevity & Lock-In Risk — Middle
 
-> **What?** A *method* for assessing how long a language will stay healthy, and a precise map of the kinds of lock-in you take on when you commit to it. The junior level said "read the simple signals." This level gives you the structured way to investigate governance, cadence, adoption, and the maturity curve — and to separate three lock-in dimensions that beginners blur into one.
-> **How?** Investigate the *institution* behind the language, not just its mood. Look at who controls it, how it has handled change historically, how big and growing its community is, and how broadly it's deployed. Then map your exposure across three distinct lock-in axes — language, framework, and platform/vendor — because each carries a different risk and a different escape cost.
+<!-- level-focus -->
+At middle level, focus on this question:
 
+> Where does **Language Longevity & Lock-In Risk** belong in a maintainable component, and which trade-off selects the design?
+
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## 1. Longevity is about the institution, not the vibe
@@ -60,7 +63,7 @@ Size matters, but **direction matters more.** A medium community that's growing 
 What to actually look at:
 
 - **Trend, not snapshot.** Stack Overflow's Developer Survey, the TIOBE/RedMonk rankings, GitHub language stats — read them over *several years* to see the slope. (Treat any single ranking skeptically; use them for trends, not gospel.)
-- **Library vitality.** Are the top packages actively maintained? Open the dependency you'd rely on and check the last commit. A language is only as alive as the libraries you'd actually use (see [`03-ecosystem-and-tooling-maturity`](../03-ecosystem-and-tooling-maturity/)).
+- **Library vitality.** Are the top packages actively maintained? Open the dependency you'd rely on and check the last commit. A language is only as alive as the libraries you'd actually use (see [`03-ecosystem-and-tooling-maturity`](../03-ecosystem-and-tooling-maturity/README.md)).
 - **Inflow of new developers.** Is it taught in bootcamps and universities? Are new people *entering*, or is the community aging in place? An aging-in-place community (the COBOL trajectory) means a future hiring desert.
 
 > A growing community compounds: more libraries, more answers, more tooling, more hires, which attracts more developers. A shrinking one compounds the other way. **Momentum is self-reinforcing in both directions** — bet on the direction, not just the size.
@@ -174,15 +177,24 @@ To see the method in action, apply Section 1's five questions to two languages a
 
 ---
 
-## 10. What's next
+## Apply it
 
-| Topic | File |
-|---|---|
-| Boring-stable vs. declining; engineering for portability and escape | [`senior.md`](senior.md) |
-| Org-level decade-long bets, exit optionality, talking to leadership | [`professional.md`](professional.md) |
-| Build longevity scorecards and lock-in maps yourself | [`tasks.md`](tasks.md) |
-| Interview framing of longevity and lock-in | [`interview.md`](interview.md) |
+1. Find a real component where **Language Longevity & Lock-In Risk** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
----
+## Verify your work
 
-**Memorize this:** longevity is about the *institution* — governance, cadence, compatibility, community trend, adoption breadth — not the vibe. Single-vendor backing is a double-edged sword. And "lock-in" is three different risks — language, framework, platform — so always ask *which axis* before you try to mitigate it.
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
+
+## Review questions
+
+- Which boundary is most affected by Language Longevity & Lock-In Risk?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

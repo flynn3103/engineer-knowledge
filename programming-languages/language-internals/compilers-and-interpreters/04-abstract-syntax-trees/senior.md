@@ -1,44 +1,12 @@
-# Abstract Syntax Trees — Senior Level
+# Abstract Syntax Trees — Senior
 
-> **Topic:** Abstract Syntax Trees
-> **Focus:** The AST as a phase interface — desugaring pipelines, multiple lowered ASTs (HIR/MIR), typed/annotated trees after semantic analysis, span survival through transforms, and the real ASTs of Python, Babel, Clang, Roslyn, and rustc.
+<!-- level-focus -->
+At senior level, focus on this question:
 
+> Which system invariant is affected by **Abstract Syntax Trees** under failure, load, and change?
+
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
-
-## Introduction
-
-> 🎓 At middle level you learned how a single AST is *represented* (sum type vs class hierarchy) and *traversed* (visitors, transformers, spans). At senior level the question changes: **there is rarely one AST.** A production compiler threads a *sequence* of trees — surface AST, desugared AST, one or more lowered intermediate representations — each one a deliberately narrower language than the last, and the AST's real job is to be the **stable interface between phases**.
-
-The surface syntax a programmer writes is wide: `for`, `while`, list comprehensions, `+=`, `?.`, pattern matches, string interpolation, async/await, default arguments. Every one of those is a convenience. The back end does not want to handle forty kinds of loop; it wants one. So the front end *lowers* the wide surface language into a narrow core, in stages, and each stage is an AST-to-AST transform. The discipline that makes this tractable is **desugaring**: systematically rewriting convenience constructs into a small set of primitives, while the source spans ride along so diagnostics still point at what the programmer actually wrote.
-
-This level is about that pipeline and the trees inside it. We will look at why compilers keep *several* ASTs (rustc's `AST → HIR → THIR → MIR`, Swift's `AST → SIL`, GHC's `HsSyn → Core`), what a **typed/annotated AST** is and why type information turns a parse artifact into a semantic one, and how the span — the thread from middle level — must survive every lowering or your error messages rot. Then we ground all of it in the real ASTs you will actually touch: Python's `ast`, Babel/ESTree, Clang's AST, Roslyn's red-green trees, and rustc's HIR. The `professional.md` file then goes underneath these to memory layout, arenas, and incremental red-green trees.
-
-## Prerequisites
-
-- The [middle](middle.md) level: sum-type vs class-hierarchy ASTs, the expression problem, the visitor pattern and double dispatch, transformers vs in-place mutation, and source spans.
-- Comfort with at least one statically-typed language's compiler model (you know roughly what "type checking" produces).
-- A working idea of what an intermediate representation (IR) is, even if only "something between the AST and machine code."
-- Having read or written at least one tree transform (a Babel plugin, a `NodeTransformer`, a desugaring pass) helps the lowering sections land.
-
-You do **not** need: SSA construction details, register allocation, or backend codegen — those live past the AST. You also do not need parser theory; we still start *after* the tree exists.
-
-## Glossary
-
-| Term | Meaning |
-| --- | --- |
-| **CST / parse tree** | Concrete Syntax Tree: a tree that mirrors the grammar exactly, including every token, paren, and keyword. The AST's verbose ancestor. |
-| **Lowering** | Translating a higher-level construct into lower-level primitives (`for` → `while`; method call → function call + receiver). |
-| **Desugaring** | Lowering specifically of *syntactic sugar* — convenience forms — into core forms. |
-| **Core language** | The minimal set of constructs the back end actually handles, after all sugar is removed. |
-| **HIR** | High-level IR (rustc): the AST after name resolution and desugaring, still tree-shaped, simpler than surface syntax. |
-| **THIR / MIR** | rustc's Typed HIR and Mid-level IR: further-lowered, typed, eventually a control-flow graph (no longer a tree). |
-| **Typed / annotated AST** | An AST whose nodes carry the results of semantic analysis: resolved types, symbol bindings, constant values. |
-| **Phase interface** | A data structure that one compiler phase produces and the next consumes; the AST is the archetypal one. |
-| **Span propagation** | Copying source positions onto synthesized nodes so diagnostics survive lowering. |
-| **Red-green tree** | Roslyn's two-layer design: an immutable, position-agnostic "green" node reused everywhere, wrapped by a lazy "red" node that knows its parent and absolute position. |
-| **ESTree** | The de-facto-standard JSON shape for JavaScript ASTs that Babel, ESLint, Prettier, and acorn all agree on. |
-| **Codemod** | An automated, AST-driven, large-scale source transformation (jscodeshift, Babel, libcst, OpenRewrite). |
-| **Sea of nodes** | A graph IR (not tree) used past the AST in some JITs (HotSpot C2); mentioned for contrast. |
 
 ## Core Concepts
 
@@ -118,37 +86,6 @@ The AST escaped the compiler decades ago. The same tree powers an entire class o
 - **Static analysis & security tools** (Semgrep, CodeQL) — match patterns against the AST (and beyond) to find vulnerabilities.
 
 What unifies them: they all need *structure*, not text. The moment a tool must understand "is this a function call or a variable named the same thing," it needs an AST. This is why "learn the AST" pays off far beyond writing a compiler.
-
-## Real-World Analogies
-
-| Concept | Analogy |
-| --- | --- |
-| CST vs AST | A court stenographer's verbatim transcript (every "um", every pause) vs the clean published opinion (only what matters). |
-| Phase interface | A standardized shipping container: the ship, the crane, and the truck all agree on the container, so any one can be swapped. |
-| Desugaring | A chef's *mise en place*: forty menu items reduced to a dozen prepped base components the line cooks actually combine. |
-| Lowering staircase (HIR/MIR) | Translating a novel: idiomatic prose → literal gloss → interlinear annotation → grammar-tagged corpus, each stage more explicit, less literary. |
-| Typed AST | A blueprint after the structural engineer stamps it: same drawing, now load-bearing facts attached. |
-| Span provenance | A footnote that survives every re-edit: "this sentence was paraphrased from the original on page 7." |
-| ESTree shared format | USB: one connector spec, so any device works with any port. |
-| Red-green tree | A wiki page (shared, immutable content) plus your browser tab's scroll position and breadcrumb (where *you* are in it). |
-
-## Mental Models
-
-### "There is no AST; there is a pipeline of trees."
-
-Stop picturing one tree. Picture a conveyor belt of trees, each narrower than the last: surface → desugared → HIR → typed → MIR. Each station does one transform. A senior engineer thinks in *which tree am I in* and *what has been made explicit by now*.
-
-### "Lower until the back end is bored."
-
-You keep lowering until the remaining language is so small and explicit that the back end has nothing left to decide. `for` is interesting; `while` is less so; a conditional jump is boring. The whole front end exists to make the back end's input boring.
-
-### "Annotations turn syntax into semantics."
-
-Parsing gives you a tree that *looks* like the program. Semantic analysis pins facts onto it — types, bindings, constants — until it *means* the program. The annotated AST is the first artifact a compiler can actually reason about correctness with.
-
-### "The span is the programmer's GPS coordinate, and it must survive teleportation."
-
-Every transform teleports nodes into new shapes. The span is the coordinate that says where in the *original* source this thing lived. Lose it during a transform and the user gets "error at 0:0" — the compiler equivalent of "you are lost."
 
 ## Code Examples
 
@@ -262,15 +199,6 @@ Keeping types out-of-band is what lets rustc share the HIR across queries and re
 | Shared AST format (ESTree) | Locked into a spec; evolving the language means evolving the spec for everyone |
 | Span provenance tracking | Every node grows; every transform must maintain it |
 
-## Use Cases
-
-- **Self-hosting compilers** maintain explicit HIR/MIR staircases for analysis at the right altitude (rustc, Swift, GHC).
-- **Transpilers** translate between surface languages by lowering one AST and printing as another (Babel ES2022→ES5, TypeScript→JS).
-- **IDEs** need typed ASTs to power go-to-definition, hover types, and rename — all queries against the annotated tree.
-- **Large-scale migrations** use codemods over the AST to mechanically refactor thousands of files safely.
-- **Security scanners** (CodeQL, Semgrep) match against the AST plus dataflow to find vulnerability patterns.
-- **Formatters** prove that layout is a printing concern by discarding it at parse and regenerating it.
-
 ## Coding Patterns
 
 ### 1. One AST type per altitude
@@ -335,88 +263,26 @@ Lowering changes the *language* (wide → narrow); optimization changes the *pro
 - **Clang's AST is immutable by design** — clang's RecursiveASTVisitor reads; rewriting C++ is done via a separate `Rewriter` working on source ranges, not by mutating the tree.
 - **Spans can carry *why*, not just *where*** — rustc's `SpanData` records an expansion/desugaring context, which is how it produces "in this expansion of macro `foo`" diagnostics.
 
-## Test Yourself
+---
 
-1. Give three constructs your favorite language desugars, and write the core form each lowers to.
-2. Why does `a[f()] += 1` require a temporary, and what bug appears without one?
-3. Explain the difference between a CST and an AST, and name a tool that needs each.
-4. rustc has AST, HIR, THIR, MIR. At which point does the "tree" stop being a tree, and why?
-5. What is a typed/annotated AST, and what becomes possible only after annotation?
-6. Argue for storing type information in a side table rather than on the node. When is on-node better?
-7. Why must a desugaring pass track *why* a node was synthesized, not just *where* the original was?
-8. Why does the JS ecosystem (ESLint, Prettier, Babel) compose so well? What shared artifact makes it possible?
-9. `ast.unparse(ast.parse(src)) == src` is often `False`. Explain.
+## Apply it
 
-## Cheat Sheet
+1. State the system invariant that **Abstract Syntax Trees** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
-```text
-┌──────────────────────────────────────────────────────────────────────┐
-│  SENIOR AST CHEAT SHEET                                                │
-├──────────────────────────────────────────────────────────────────────┤
-│ CST  = grammar-faithful, every token/paren. Tools: formatters, IDEs.  │
-│ AST  = meaning only; (1+2) == 1+2. Compilers parse straight to it.    │
-├──────────────────────────────────────────────────────────────────────┤
-│ AST = THE PHASE INTERFACE. Each phase: Tree -> Tree (or -> AnnTree).   │
-│ Swap a phase freely as long as the tree contract holds.               │
-├──────────────────────────────────────────────────────────────────────┤
-│ DESUGARING (wide surface -> narrow core):                             │
-│   a += b      -> a = a + b   (temp if target has side effects!)       │
-│   for x in it -> while-let over an iterator (eval `it` ONCE)          │
-│   x?.y        -> match/Option chain (preserve short-circuit)          │
-├──────────────────────────────────────────────────────────────────────┤
-│ LOWERING STAIRCASE (rustc):                                           │
-│   AST -> HIR -> THIR -> MIR(CFG, not a tree)                          │
-│   Each: narrower, more explicit, its own data type.                   │
-├──────────────────────────────────────────────────────────────────────┤
-│ TYPED AST: semantic analysis pins types+bindings onto the tree.       │
-│   on-node  : simple, mutable                                          │
-│   side-table (HirId -> Ty): immutable, shareable  ← favored           │
-├──────────────────────────────────────────────────────────────────────┤
-│ SPANS survive every transform. Track WHERE (bytes) + WHY (desugar     │
-│   origin). No span -> "error at 0:0".                                  │
-├──────────────────────────────────────────────────────────────────────┤
-│ REAL ASTs:                                                            │
-│   Python ast (lossy) / libcst (fidelity)                              │
-│   Babel/ESTree (shared by ESLint, Prettier, acorn)                    │
-│   Clang AST (rich, RecursiveASTVisitor, -ast-dump)                    │
-│   Roslyn red-green (full fidelity, incremental)                       │
-│   rustc HIR (desugared, side-table types, spans)                      │
-└──────────────────────────────────────────────────────────────────────┘
-```
+## Verify your work
 
-## Summary
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
 
-- A real compiler has **not one AST but a pipeline of trees**, each lower and narrower than the last (rustc: AST → HIR → THIR → MIR; Swift: AST → SIL; GHC: HsSyn → Core).
-- The AST is best understood as the **phase interface**: each phase is `Tree → Tree`, and the tree's shape is the contract that lets phases be swapped independently.
-- **Desugaring** shrinks the wide surface language into a small core, and its hardest obligation is **semantics preservation** — evaluate targets once, keep short-circuiting, preserve order.
-- A **typed/annotated AST** is the line between syntax and semantics; annotations live either on nodes or, better for sharing, in **side tables** keyed by node id.
-- **Spans must survive every transform**, carrying both *where* (byte range) and *why* (desugaring provenance), or diagnostics rot.
-- **CST vs AST** is decided by output: source-rewriting tools keep a concrete/full-fidelity tree; compilers parse straight to an AST.
-- The real ASTs — Python `ast`/libcst, Babel/ESTree, Clang, Roslyn red-green, rustc HIR — each encode a different priority (simplicity, fidelity, incrementality, clean lowering).
-- The AST powers far more than compilers: linters, formatters, codemods, transpilers, and security tools all need structure, not text.
+## Review questions
 
-## What You Can Build
-
-- A **mini lowering pipeline** that takes a small language with `for`, `+=`, and `?` and desugars to a three-construct core, with a differential test proving semantics are preserved.
-- A **span-preserving desugarer** whose test asserts that an error on a synthesized node points at the original surface construct.
-- A **typed-AST query API** that stores types in a side table and answers "type of this expression" without mutating the tree.
-- A **transpiler** that parses Python `ast`, lowers comprehensions to loops, and re-emits valid Python.
-- A **codemod** built on libcst (or jscodeshift) that performs a repo-wide API rename while preserving comments and formatting.
-
-## Further Reading
-
-- The rustc dev guide: "The HIR", "The THIR", "The MIR" chapters — the clearest public description of a real lowering staircase.
-- Simon Peyton Jones et al., *System F with Type Equality Coercions* (GHC Core) — how a huge surface language compiles to a dozen constructs.
-- The ESTree specification (estree.github.io) — the shared JS AST contract.
-- Clang documentation: "Introduction to the Clang AST" and `RecursiveASTVisitor`.
-- Roslyn wiki: "Roslyn Overview" and the red-green tree design notes.
-- Python docs: `ast`, `ast.NodeTransformer`, `ast.unparse`; and the libcst documentation for the fidelity-preserving alternative.
-- *Crafting Interpreters* (Nystrom) — desugaring and the AST as a phase boundary, made concrete.
-
-## Related Topics
-
-- [Junior level](junior.md) — what an AST is and how to walk it.
-- [Middle level](middle.md) — representation, the visitor pattern, transformers, and spans.
-- [Professional level](professional.md) — memory layout, arenas/flat index trees, and red-green incremental trees.
-- [Interview questions](interview.md) — desugaring, lowering, typed-AST, and real-AST questions.
-- [Hands-on tasks](tasks.md) — build a lowering pipeline, a span-preserving desugarer, and a codemod.
+- Which invariant must remain true when Abstract Syntax Trees fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

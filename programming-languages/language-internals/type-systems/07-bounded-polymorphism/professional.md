@@ -1,55 +1,11 @@
-# Bounded Polymorphism — Professional Level
+# Bounded Polymorphism — Professional
 
-> **Topic:** Bounded Polymorphism
-> **Focus:** Engineering with bounds at scale — monomorphization vs witness-table dispatch trade-offs, C++ pre-concepts SFINAE error-hell vs concepts, designing ecosystem-wide bound hierarchies, API evolution under coherence, and choosing the right mechanism per constraint.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Bounded Polymorphism** with measurable outcomes and limited coordination?
 
-## Introduction
-
-> Focus: **The decisions a staff engineer makes around bounds** — code size vs dispatch cost, error-message quality, API stability across an ecosystem, and which of the (now many) bound mechanisms to reach for under real constraints.
-
-At this level the question is no longer "how do bounds work" but "how do I *wield* them in a system that ships, evolves, and is depended upon." Four pressures dominate:
-
-1. **Cost.** A bounded generic can be **monomorphized** (one specialized copy per type — fast, but binary bloat and compile-time cost) or **dispatched dynamically** (one copy, a witness/vtable hop per call — small, but a runtime cost and an object-safety constraint). Choosing per-API is a real engineering decision, not a default.
-2. **Diagnostics.** C++ templates pre-concepts had no *declared* bounds; constraints were enforced implicitly via **SFINAE**, producing the infamous pages-long error dumps. **C++20 concepts** retrofit declared bounds onto templates, turning a wall of instantiation errors into one line: "`T` does not satisfy `Sortable`." This is one of the largest practical improvements in C++'s history, and it's pure bounded polymorphism.
-3. **Evolution under coherence.** Once you ship a trait/typeclass with instances across an ecosystem, adding a supertrait, a method, or a new default is a *compatibility event*. Coherence means you can't just add an instance somewhere; you must reason about what existing code recompiles or breaks.
-4. **Mechanism choice.** Modern languages give you several ways to express "this code needs a capability": subtype bound, dictionary-passing trait (static or `dyn`), structural `concept`, even duck-typed templates. Picking correctly per constraint — and knowing the migration paths between them — is the senior-to-staff jump.
-
-> 🎓 **Why this matters at the professional level:** These choices have a half-life of years. A trait you make object-unsafe forecloses `dyn` forever; a generic you monomorphize across hundreds of types inflates every downstream binary; a concept you write badly leaks implementation into your contract. Bounds are an API surface, and at scale, API surfaces are forever.
-
-This page covers the monomorphization/dynamic-dispatch cost model in production terms, the SFINAE-vs-concepts story end to end, designing and evolving bound hierarchies for whole ecosystems, and a decision framework for choosing among the available mechanisms.
-
----
-
-## Prerequisites
-
-- **Required:** The senior page — dictionary translation, coherence, orphan rules, associated types, the expression problem.
-- **Required:** Production experience with at least one bounded-generics ecosystem (Rust crates, a C++ template-heavy codebase, a Haskell/Scala library, or a large Java generic API).
-- **Required:** Comfort reading compiler errors and reasoning about binary size and compile times.
-- **Helpful:** Having debugged a template error dump, or migrated an API across a breaking trait change.
-
-You do **not** need: compiler-internal trait-solver algorithms, formal type-theory proofs, or the higher-kinded `Functor`/`Monad` tower (adjacent, separate topic).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Monomorphization** | Compiling a separate specialized copy of a bounded generic per concrete type. Static dispatch, inlining, no runtime witness — at the cost of code size and compile time. |
-| **Dynamic dispatch / witness-table dispatch** | One generic copy; the bound's operations reached at runtime through a vtable/dictionary pointer (`dyn Trait`, an interface-typed value). Small code, an indirection per call. |
-| **Object safety** | The conditions a trait must meet to be usable as `dyn` (no generic methods, no `Self`-by-value returns, etc.). |
-| **SFINAE** | "Substitution Failure Is Not An Error." C++'s pre-concepts mechanism: a template overload is silently discarded if substituting the type fails, used to emulate bounds. |
-| **Concept (C++20)** | A *declared, named* predicate on types (`template<class T> concept Sortable = requires(T a){ ... };`) that constrains templates with readable diagnostics. |
-| **`requires` clause / expression** | C++20 syntax stating a template's constraints, or testing whether expressions are valid for a type. |
-| **Constraint subsumption** | C++20 rule letting the compiler pick the *more constrained* overload when several concepts apply. |
-| **Specialization** | Providing a more specific impl that overrides a generic one (Rust unstable; C++ template specialization; Haskell `OVERLAPPING`). |
-| **Code bloat** | Binary-size growth from monomorphizing a generic across many types. |
-| **Sealed / sealed trait** | A trait/interface whose set of implementers is fixed by the author, controlling evolution (`sealed` in Java/Kotlin/Scala; the "sealed trait" idiom in Rust). |
-| **Coherence event** | An API change (new supertrait, new method, new instance) whose effect must be analyzed against the global coherence invariant. |
-| **`impl Trait` / existential** | Returning/accepting "some type satisfying a bound" without naming it (`impl Trait` in Rust, `some`/`any` in Swift). |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -153,37 +109,6 @@ The mechanisms aren't mutually exclusive: large systems route the *common, hot* 
 
 ---
 
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Monomorphization** | Pre-printing a custom manual for every appliance model — instant to use, but a warehouse full of manuals. |
-| **Dynamic dispatch** | One generic manual plus a per-appliance lookup card — compact, but you flip to the card every step. |
-| **Object safety** | A rule that only appliances with a *standard* plug fit the universal socket; a hardwired unit (returns `Self`) can't. |
-| **SFINAE errors** | A compliance failure reported as a 300-page audit dump instead of "missing signature on page 1." |
-| **C++20 concepts** | The same audit, now reported as one line: "Form 7 (Sortable) not satisfied." |
-| **Sealed trait** | A membership club where only the founder can admit new members — so the founder can change the rules safely. |
-| **Default method as evolution insurance** | Shipping a contract amendment that auto-applies to existing signatories rather than requiring everyone to re-sign. |
-| **Adding a supertrait (breaking)** | Retroactively requiring every existing licensee to *also* hold a second license. |
-
----
-
-## Mental Models
-
-### The "one copy or N copies" model
-
-Every time you reach for a bound, ask: *will this become one copy (dynamic) or N copies (mono)?* That single question predicts binary size, compile time, inlining, and whether heterogeneous storage is possible. Hot + small + few types → N copies pays off. Cold + large + many types → one copy wins. When the answer is "both, at different points," design the trait to support both (keep it object-safe) and route per call site.
-
-### The "bound is a frozen contract" model
-
-Treat a *published* trait's required-method set and supertrait set as **immutable** the moment a second team depends on it. Everything you might want to add later must be expressible as a *defaulted* method or a *separate* trait. Design as if you can never tighten — because in a live ecosystem, you effectively can't without a major version and an ecosystem-wide migration. This reframes trait design from "what do I need now" to "what will I need to add without breaking anyone."
-
-### The "diagnostics are part of the bound" model
-
-A bound's *error message* is part of its API. SFINAE bounds technically work but fail unreadably, costing every user hours. A named concept/trait fails with one line. When you write a constraint, imagine the message a downstream engineer sees when their type *doesn't* satisfy it — and choose the mechanism (named concept over `enable_if`, a trait alias over a sprawling `where` clause) that makes that message clear. Good bounds are *legible in failure*, not just in success.
-
----
-
 ## Code Examples
 
 ### Static vs dynamic, same trait (Rust)
@@ -271,30 +196,6 @@ fn evens(n: u32) -> impl Iterator<Item = u32> {
 
 ---
 
-## Pros & Cons
-
-| Aspect | Pros | Cons |
-|--------|------|------|
-| **Monomorphization** | Fastest dispatch, full inlining, zero-cost abstraction. | Code bloat, slow/large builds, i-cache pressure for many hot copies. |
-| **Dynamic dispatch** | One copy, small binaries, heterogeneous storage, ABI-friendly. | Indirection per call, boxing, requires object safety. |
-| **C++20 concepts** | Readable diagnostics, subsumption-based overloads, bounds as documentation. | Migration effort from SFINAE; structural (no nominal guarantee); concept design has its own subtleties. |
-| **SFINAE (legacy)** | Universally available pre-C++20; very flexible detection. | Write-only, catastrophic errors, fragile overload ordering. |
-| **Fine-grained trait hierarchies** | Consumers bound by exactly what they use; evolvable. | More traits to learn; supertrait planning required up front. |
-| **Sealed traits** | Free evolution + exhaustive matching for the owner. | Closed to third-party extension; a deliberate loss. |
-
----
-
-## Use Cases
-
-- **High-performance generic algorithms** (sorting, numeric kernels, parsers) — monomorphized bounded generics for zero-cost dispatch.
-- **Plugin / heterogeneous systems** (renderers, middleware chains, codecs) — object-safe traits + `dyn`/interfaces for one copy and mixed storage.
-- **Large C++ template libraries** — concepts to replace SFINAE, fixing error ergonomics and overload resolution (the STL's `ranges` is built on concepts).
-- **Foundational ecosystem traits** (`serde`'s `Serialize`, `std`'s `Iterator`, a company-wide `Metric`/`Codec` trait) — fine-grained, defaulted, carefully evolved under coherence.
-- **ABI-stable boundaries** (dynamic libraries, plugin ABIs) — dynamic dispatch because monomorphization can't cross a stable ABI.
-- **API boundaries hiding concrete types** — `impl Trait`/existentials to expose a capability without leaking implementation.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Static fast path + `dyn` slow/heterogeneous path
@@ -372,87 +273,24 @@ fn parse_bytes(_b: &[u8]) -> Result<Vec<u8>, std::io::Error> { /* big, shared */
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. Given a trait used in (a) a hot 4-type sort and (b) a heterogeneous plugin registry, decide static vs dynamic dispatch for each and justify with the cost model. Could one trait serve both? What must be true of it?
-2. Take an object-*unsafe* trait and refactor it to be object-safe without losing functionality. What did you move, and why does the vtable now accept it?
-3. Convert a real `std::enable_if` SFINAE constraint to a C++20 concept. Compare the error message when you pass a non-conforming type. Quantify the difference in lines.
-4. For a published trait, classify five proposed changes (add defaulted method, add required method, add supertrait, add blanket impl, loosen a function bound) as breaking or not, and explain each via coherence/impl obligations.
-5. A teammate adds `impl Serialize for Vec<T> where T: Serialize` (a blanket impl) to a shared crate and downstream builds break. Diagnose the coherence conflict and propose a fix.
-6. Demonstrate monomorphization bloat: instantiate a nontrivial generic over 20 types, measure binary size, then apply the "outline the cold path" refactor and measure again.
-7. Explain why `-> impl Trait` can't be used for a function that returns one of two different iterator types in different branches, and give the two idiomatic fixes.
+1. Define the user or business outcome that **Bounded Polymorphism** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
----
+## Verify your work
 
-## Cheat Sheet
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
 
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│            BOUNDED POLYMORPHISM (Professional)                    │
-├──────────────────────────────────────────────────────────────────┤
-│ DISPATCH COST MODEL:                                             │
-│   MONO (static): N copies, inline, fastest | bloat, slow builds  │
-│     -> hot, small, few types                                     │
-│   DYN (vtable): 1 copy, indirection       | smaller, heterogen.  │
-│     -> cold, large body, mixed types; needs OBJECT SAFETY        │
-├──────────────────────────────────────────────────────────────────┤
-│ OBJECT SAFETY (to allow dyn): no Self-by-value return,           │
-│   no generic methods. One bad method poisons the whole trait.    │
-├──────────────────────────────────────────────────────────────────┤
-│ C++:  SFINAE (enable_if) = implicit bound, error-dump hell       │
-│       CONCEPTS (C++20)  = declared bound, 1-line error,          │
-│                            subsumption-based overloads           │
-│       -> write concepts, never new SFINAE                        │
-├──────────────────────────────────────────────────────────────────┤
-│ TRAIT EVOLUTION (published = frozen-ish):                        │
-│   +defaulted method ...... usually OK                            │
-│   +required method ....... BREAKS impls                          │
-│   +supertrait ............ BREAKS impls                          │
-│   +blanket impl .......... BREAKS (overlap)                      │
-│   loosen fn bound ........ OK | tighten ...... BREAKS callers    │
-│   -> grow via defaults & new traits; never tighten               │
-├──────────────────────────────────────────────────────────────────┤
-│ MECHANISM PICKER: static bound (hot) | dyn (heterogeneous/ABI)   │
-│   | subtype iface (OO) | impl Trait (hide type) | explicit fn arg│
-├──────────────────────────────────────────────────────────────────┤
-│ Bloat fix: "outline the cold path" — generic shell, shared body  │
-│ Orphan-free ecosystems: trait-owner ships foreign-type impls     │
-└──────────────────────────────────────────────────────────────────┘
-```
+## Review questions
 
----
-
-## Summary
-
-- The defining professional decision is **monomorphization vs dynamic dispatch**: N specialized copies (fast, inlinable, but bloat + slow builds) vs one copy behind a witness table (small, heterogeneous, but an indirection and **object-safety** requirement). Monomorphize hot/small/few-typed; dynamically dispatch cold/large/heterogeneous; mix both behind one (object-safe) trait when needed.
-- A single **object-unsafe** method (`-> Self`, generic method) forecloses `dyn` for the whole trait — a far-reaching design consequence.
-- C++'s evolution from **SFINAE** (implicit, undiagnosable bounds, error-dump hell) to **C++20 concepts** (declared, named, one-line errors, subsumption-based overloads) is bounded polymorphism finally arriving in C++ — write concepts, retire SFINAE.
-- A **published trait's required surface and supertrait set are effectively frozen**: grow only via *defaulted* methods and *new* traits; required methods, supertraits, blanket impls, and bound-tightening are breaking changes. Plan hierarchies up front; design for legible failure.
-- **Coherence** turns API evolution into a discipline (the breaking-change taxonomy), and orphan rules push trait owners to ship foreign-type instances so users avoid orphans.
-- **Mechanism choice** is per-constraint: static bound, `dyn`, subtype interface, `impl Trait`/existential, or an explicit operation argument — chosen by hotness, heterogeneity, ABI, and who owns the types.
-- **Bloat** is real; the "outline the cold path" technique (thin monomorphized shell, shared non-generic body) tames it.
-
----
-
-## What You Can Build
-
-- **A dispatch-cost benchmark harness** comparing a monomorphized bounded generic against `dyn`/interface dispatch across type counts, reporting binary size, compile time, and per-call latency — the data behind the static-vs-dynamic decision.
-- **A SFINAE-to-concepts migration of a small C++ template library**, with before/after error-message screenshots and a line-count of the diagnostic improvement.
-- **An object-safety linter/checklist** that flags trait methods that would foreclose `dyn`, plus refactorings to restore object safety.
-- **A trait-evolution simulator**: a published trait + several downstream impls, then apply each change from the breaking-change taxonomy and observe what recompiles or breaks.
-- **A "bloat budget" tool** that measures monomorphization cost per generic in a real codebase and suggests cold-path outlining candidates.
-- **An ecosystem-friendly foundational trait** (e.g. a `Codec` or `Metric`) designed with fine-grained capabilities, defaulted growth methods, feature-gated foreign-type instances, and documented dispatch guidance — shipped as a small library.
-
----
-
-## Further Reading
-
-- *C++20 Concepts* — the standard's `[concepts]` clause and Bjarne Stroustrup / Gabriel Dos Reis / Andrew Sutton's concepts papers. The definitive source.
-- *A Tour of C++* (2nd/3rd ed.) — Stroustrup. Practical concepts and the `ranges` library built on them.
-- *The Rust Performance Book* and *Rust API Guidelines* — monomorphization cost, object safety, and trait-design-for-evolution guidance. https://rust-lang.github.io/api-guidelines/
-- *Rust RFCs* on object safety, `dyn`, `impl Trait`, and specialization — the engineering rationale in primary form.
-- *Generic Programming and the STL* — Austern. The template-programming tradition concepts formalize.
-- *Effective Modern C++* — Scott Meyers. Template and type-deduction subtleties that motivate concepts.
-- *Haskell type-class evolution writings* (GHC proposals on `DerivingVia`, `QuantifiedConstraints`) — ecosystem-scale typeclass design and evolution.
-- *"Zero-cost abstractions"* talks (Bjarne Stroustrup; the Rust project) — the philosophy behind monomorphized bounds.
-- The `serde` and `ranges` codebases — real, large-scale bounded-polymorphism API design under coherence and evolution pressure.
+- Which measurable outcome justifies investing in Bounded Polymorphism?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

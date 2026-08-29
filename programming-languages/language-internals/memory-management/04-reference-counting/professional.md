@@ -1,21 +1,12 @@
-# Reference Counting — Professional Level
+# Reference Counting — Professional
 
-> **Topic:** Reference Counting
-> **Focus:** Production diagnosis — finding leaks and cycles, profiling count overhead and contention, and the free-threaded-Python / ARC realities you ship against.
+<!-- level-focus -->
+At professional level, focus on this question:
 
+> How should teams adopt and operate **Reference Counting** with measurable outcomes and limited coordination?
+
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
-
-## Introduction
-
-In production, reference counting fails in two characteristic ways and is slow in one characteristic way. It **leaks** (a cycle or a forgotten strong reference keeps memory alive), it **double-frees / use-after-frees** (an unbalanced count, mostly in manual or FFI code), and it **costs CPU** (atomic count contention on hot shared objects). This page is about catching all three with real tools, and about the two production realities you actually ship against today: free-threaded Python's refcount story and Swift/ARC's retain-cycle diagnosis.
-
-The professional skill is not knowing that cycles leak — it's being handed a memory graph at 3 a.m. and finding *which* cycle, *which* retainer, and *whether* the regression is a leak or just delayed reclamation.
-
-## Prerequisites
-
-- Senior-tier material: the cost model, optimizations, and cross-language implementations.
-- Comfort reading a heap dump / retainer graph.
-- Familiarity with a profiler (perf, Instruments, py-spy, or equivalent).
 
 ## Diagnosing Cycle Leaks in Production
 
@@ -161,10 +152,26 @@ The practical takeaway: free-threaded Python doesn't make your code automaticall
 - **Weak references aren't free.** Zeroing weak references (Swift `weak`, Python `weakref`) maintain side structures; very large numbers of them have their own overhead and teardown cost.
 - **Stack overflow on deep frees.** Dropping the head of a million-node `Rc`/`shared_ptr` linked list can recurse a million deep. Production data structures flatten destruction into an explicit loop.
 
-## Summary
+---
 
-- Production refcounting fails as **leaks** (cycles or forgotten strong refs), **use-after-free/double-free** (unbalanced counts, mostly at FFI boundaries), and **CPU cost** (atomic count contention).
-- **Diagnose leaks** with `gc`/`tracemalloc`/`objgraph` (Python), Xcode Memory Graph / Instruments (Swift), and `valgrind`/`heaptrack`/ASan (Rust, C++) — always separating "true leak" from "delayed reclamation."
-- **Diagnose count overhead** with CPU profilers and `perf c2c`, looking for hot `retain`/`release`/`clone`/`INCREF` self-time and cache-line HITM contention on shared counts.
-- **Free-threaded Python** is the current frontier: removing the GIL turns refcount updates into contention points, mitigated by biased counting, immortal objects, and deferred counting — profile it like you'd profile `Arc`.
-- The durable fixes are **architectural**: break cycles with weak references, stop cloning/sharing hot counts in inner loops, immortalize true singletons, and keep finalizers out of cycles.
+## Apply it
+
+1. Define the user or business outcome that **Reference Counting** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
+
+## Verify your work
+
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
+
+## Review questions
+
+- Which measurable outcome justifies investing in Reference Counting?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

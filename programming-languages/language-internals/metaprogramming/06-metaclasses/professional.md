@@ -1,24 +1,11 @@
-# Metaclasses — Professional Level
+# Metaclasses — Professional
 
-> **Topic:** Metaclasses
-> **Focus:** Metaclasses in production frameworks — when the deepest magic earns its keep, and the simpler tools that now replace it.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Metaclasses** with measurable outcomes and limited coordination?
 
-## Introduction
-
-By the professional tier the interesting question about metaclasses is not "how
-does `type.__call__` work" but "should this code exist at all, and if a framework
-forces it on me, how do I keep it debuggable?" Metaclasses are the deepest reliable
-magic a dynamic language offers: they run at *class-creation time*, they compose
-badly, and they turn an ordinary `class` statement into the entry point of a small
-program. They are also the engine under some of the most-used libraries in the
-world. The job here is to recognize the legitimate uses, prefer the lighter tools
-that have superseded most of them, and survive the codebases that overused them.
-
-The governing principle (Tim Peters): *"Metaclasses are deeper magic than 99% of
-users should ever worry about. If you wonder whether you need them, you don't."*
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Where Metaclasses Actually Ship
@@ -151,29 +138,24 @@ If a reviewer sees `metaclass=` in new application code, the first question shou
 
 ---
 
-## War Stories
+## Apply it
 
-- **The ORM that owned `class`:** teams adopting a metaclass-heavy ORM discover that
-  `class User(Base):` runs hundreds of lines of registry/mapper code at import; a
-  circular import between two model modules manifests as a baffling
-  metaclass-time error far from its cause.
-- **The `__init_subclass__` migration:** large codebases have ripped out homegrown
-  registry metaclasses in favor of `__init_subclass__` and reported that the code got
-  shorter, the type checker started understanding it, and onboarding got easier — the
-  same functionality with a fraction of the magic.
-- **Ruby `method_missing` typo:** a misspelled attribute in a Rails model silently
-  became a dynamic-finder lookup that returned `nil` instead of raising, hiding a bug
-  until it surfaced as corrupted data downstream — fixed by defining the methods
-  explicitly and tightening `respond_to_missing?`.
+1. Define the user or business outcome that **Metaclasses** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
----
+## Verify your work
 
-## Summary
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
 
-Metaclasses are real, powerful, and almost always the wrong tool for application
-code. Their legitimate home is framework internals — declarative ORMs, ABCs, enums,
-plugin registries — where one carefully-owned metaclass serves thousands of user
-classes. For everything else, `__init_subclass__`, `__set_name__`, and class
-decorators (PEP 487 and friends) deliver the same outcomes with far less magic, better
-tooling, and easier debugging. The professional skill is recognizing the few cases
-that justify a metaclass and reaching for the lighter tool in all the rest.
+## Review questions
+
+- Which measurable outcome justifies investing in Metaclasses?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

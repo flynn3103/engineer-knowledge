@@ -1,20 +1,11 @@
 # Database and Distributed Systems — Middle
 
-> **Topic:** [Database and Distributed Systems](../README.md)
-> **Focus:** Idempotency keys in practice, message queues (producer/consumer patterns), caching strategies and invalidation, rate limiting, and optimistic vs. pessimistic locking.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **Database and Distributed Systems** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-At junior level you learned the mechanics of `database/sql`, transactions, and the *idea* of idempotency. At this level you build the actual patterns: idempotency keys that survive real retries, a queue consumer that doesn't lose or duplicate work, a cache that doesn't serve stale data forever, and locking strategies for concurrent updates to the same row.
-
----
-
-## Prerequisites
-
-- Comfortable with transactions, connection pooling, and parameterized queries (junior level).
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -146,17 +137,6 @@ return ErrTooManyConflicts
 
 ---
 
-## Pros & Cons
-
-| Approach | Pros | Cons |
-|---|---|---|
-| Idempotency keys | Safe retries, no duplicate side effects | Requires a persisted record and unique constraint per operation |
-| Cache-aside with invalidation | Simple, avoids serving updates twice | A brief window of cache-miss traffic hits the DB right after invalidation |
-| Optimistic locking | No lock held, scales under low contention | Requires retry logic on conflict; can starve under high contention |
-| Pessimistic locking | No caller-side retry needed | Serializes access, can bottleneck under high contention |
-
----
-
 ## Best Practices
 
 1. Require an idempotency key on any client-retriable write endpoint, backed by a unique constraint.
@@ -193,47 +173,24 @@ return ErrTooManyConflicts
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```
-Idempotency key   → unique constraint + ON CONFLICT DO NOTHING
-Queue consumer    → assume at-least-once, dedupe by message ID
-Cache write path  → invalidate (delete), don't update directly
-Rate limiter      → token bucket, x/time/rate
-Optimistic lock   → version column + conditional UPDATE + retry on 0 rows affected
-Pessimistic lock  → SELECT ... FOR UPDATE, held for the transaction
-```
+1. Find a real component where **Database and Distributed Systems** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
----
+## Verify your work
 
-## Summary
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
 
-- Idempotency keys with a unique constraint make retried writes safe by design.
-- Queue consumers should assume at-least-once delivery and dedupe explicitly.
-- Cache-aside with invalidation-on-write (not update-on-write) avoids stale-data races.
-- Rate limiting protects both your own service and the downstreams you call.
-- Optimistic locking scales better under low contention; pessimistic locking avoids caller-side retries at the cost of serializing access.
+## Review questions
 
----
-
-## Further Reading
-
-- Stripe — *Idempotent Requests* (API design reference, patterns transfer): <https://stripe.com/docs/api/idempotent_requests>
-- `golang.org/x/time/rate`: <https://pkg.go.dev/golang.org/x/time/rate>
-
----
-
-## Related Topics
-
-- [Database and Distributed Systems — Junior](junior.md)
-- [HTTP and APIs — Middle](../05-http-and-apis/middle.md) — idempotency from the client-retry side.
-
----
-
-## Check your understanding
-
-1. Explain Database and Distributed Systems — Middle Level in your own words and name the problem it solves.
-2. How would you apply the ideas around Introduction, Prerequisites, Core Concepts in a realistic engineering change?
-3. What failure mode or misuse should you look for, and what evidence would reveal it?
-4. Which local design trade-off would make you choose or reject Database and Distributed Systems — Middle Level in an existing codebase?
-5. What observable result would convince you that the approach improved the system?
+- Which boundary is most affected by Database and Distributed Systems?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

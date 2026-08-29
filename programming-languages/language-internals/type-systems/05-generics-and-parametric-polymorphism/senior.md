@@ -1,65 +1,11 @@
-# Generics & Parametric Polymorphism — Senior Level
+# Generics & Parametric Polymorphism — Senior
 
-> **Topic:** Generics & Parametric Polymorphism
-> **Focus:** *Parametricity* — the theorem that makes parametric polymorphism a reasoning tool, not just a reuse tool. Why a fully-parametric `T -> T` can only be the identity, what "theorems for free" buys you, where parametricity leaks (reflection, `null`, side effects), and the harder corners: rank-1 vs. higher-rank polymorphism, specialization for performance, and the expression problem.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Generics & Parametric Polymorphism** under failure, load, and change?
 
-## Introduction
-
-> Focus: **Parametric polymorphism is not only about reuse — it is about *ignorance as a guarantee*.** Because a fully-parametric function *cannot inspect* the types it's given, the type signature alone constrains — sometimes *determines* — what the function can do. This is the deepest and most beautiful idea in the topic: **the type tells you the behavior.**
-
-A junior learns generics as "write it once for all types." A middle engineer learns *how* the compiler delivers that across erasure and monomorphization. A senior learns to *reason* with parametricity: to read a polymorphic type signature and derive, for free, theorems about every possible implementation — what it must preserve, what it cannot fabricate, what laws it automatically obeys.
-
-The canonical example: consider a function with signature
-
-```text
-f : forall T. T -> T
-```
-
-— fully parametric, no constraints, no reflection, no side effects. **There is exactly one thing `f` can do: return its argument unchanged.** It cannot construct a `T` (it doesn't know `T`'s constructors), cannot inspect a `T` (it can't branch on a value of unknown type), cannot fetch a `T` from anywhere else (there is no other `T` in scope). The *only* `T` it can return is the one it was handed. The type `forall T. T -> T` **forces** `f` to be the identity function. We didn't read the body. We didn't run a test. The type *proved* it.
-
-This is **parametricity** (Reynolds, 1983) and its practical face, **"theorems for free"** (Wadler, 1989): from a polymorphic type you can mechanically derive a theorem that *every* implementation of that type must satisfy. `map : (A -> B) -> List<A> -> List<B>` must satisfy `map(f) . map(g) = map(f . g)` *for free* — the type guarantees it. `head : forall T. List<T> -> T` must return an element that was *in* the list — it can't conjure a new one. A function `forall T. List<T> -> List<T>` can only *rearrange and drop* elements (reverse, take, filter-by-position) — it cannot duplicate by value-inspection or insert new elements, because it can't see what the elements *are*.
-
-The power and the price are the same fact: **parametric code is blind, and blindness is a contract.** This page makes that contract precise, shows how to *use* free theorems in real engineering (correctness arguments, API design, fewer tests), shows exactly where parametricity **leaks** in real languages (reflection, `instanceof`, `null`, exceptions, mutation, `unsafe`), and then handles the senior-level structural topics: **rank-1 vs. higher-rank** polymorphism (why `(forall T. T -> T) -> ...` is strictly more expressive and why most languages restrict to rank-1), **specialization** for performance (`@specialized`, Rust monomorphization, profile-guided), and the **expression problem** — the deep tension generics participate in but do not alone solve.
-
----
-
-## Prerequisites
-
-- **Required:** Middle level — the four polymorphisms, monomorphization vs. erasure vs. reified vs. Go's hybrid, dictionaries.
-- **Required:** Comfort reading polymorphic type signatures (`forall T. ...`, `map : (a -> b) -> [a] -> [b]`).
-- **Required:** Functional basics: higher-order functions, function composition (`f . g`).
-- **Helpful:** Exposure to Haskell or another language with serious parametric polymorphism (System F lineage).
-- **Helpful:** A sense of why side effects and `null` complicate equational reasoning.
-
-You do **not** need:
-
-- Category theory or the relational definition of parametricity in full formal detail (we give the operational intuition; the math is optional).
-- Production performance/binary engineering at scale (`professional.md`).
-- Variance or higher-kinded types in depth (sibling topics; touched here).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Parametricity** | The theorem (Reynolds) that polymorphic functions behave uniformly: they map *related* inputs to *related* outputs, regardless of the type instantiated. Formalized via *logical relations*. |
-| **Theorems for free** | (Wadler) The practice of deriving a theorem that every implementation of a polymorphic type must satisfy, purely from the type. |
-| **Free theorem** | A specific such theorem (e.g. the naturality law of `map`). |
-| **Uniformity** | A parametric function does the same thing for all type instantiations; it cannot branch on the type. |
-| **Naturality** | A free-theorem form: a polymorphic function "commutes" with mapping a function over its inputs (`g . f = f' . map g` style laws). |
-| **Rank-1 polymorphism** | All `forall` quantifiers are at the outermost position of a type (`forall T. T -> T`). The default in most languages; supports full inference (Hindley–Milner). |
-| **Higher-rank polymorphism** | A `forall` appears to the *left* of an arrow / nested inside (`(forall T. T -> T) -> (Int, Bool)`). More expressive; breaks full inference; needs annotations. |
-| **System F** | The polymorphic lambda calculus underlying parametric polymorphism; supports arbitrary-rank quantification. |
-| **Logical relation** | The proof technique behind parametricity: relate two instantiations and show the function preserves the relation. |
-| **Specialization** | Generating an optimized concrete version of a generic for a specific type to remove boxing/dispatch (Scala `@specialized`, Rust mono, .NET value-type JIT). |
-| **Expression problem** | The challenge of adding both new types *and* new operations to a datatype without modifying existing code or losing type safety. |
-| **Parametricity leak** | A language feature (reflection, `instanceof`, `null`, exceptions, mutation, `unsafe`) that lets polymorphic code *observe* or *fabricate* type information, breaking free theorems. |
-| **Bottom (`⊥`)** | Non-termination or error (exception, infinite loop). Its existence weakens free theorems ("up to bottom"). |
-| **Relational parametricity** | The formal statement: instantiating a polymorphic term at two related types yields related results. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -156,42 +102,6 @@ The **expression problem** (Wadler's name for a classic tension): you have a dat
 
 ---
 
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Parametricity (ignorance as contract)** | A bonded courier in a sealed-envelope service. They *cannot* open the envelope, so you *know* the contents arrive unaltered — their ignorance is your guarantee. |
-| **Free theorem** | A delivery receipt you can fill in *before* the courier even leaves, because the service's rules force the outcome: "contents unchanged, delivered as-is." |
-| **`forall T. T -> T` is identity** | Hand the sealed courier one envelope; the only envelope they can give back is the one you handed them. |
-| **Parametricity leak (reflection)** | A courier with an X-ray machine: now they *can* peek inside and treat "documents" differently from "jewelry." The guarantee evaporates. |
-| **Leak via `null`/`⊥`** | A courier allowed to "lose" the package (return nothing / never arrive). The receipt now reads "unchanged *or* lost." |
-| **Rank-1 polymorphism** | You choose the envelope size once, at the counter, before handing it over. |
-| **Higher-rank polymorphism** | You hand the clerk a *magic resizer* that *they* can apply to several different parcels inside the back room — strictly more capable, but the counter clerk needs written instructions to use it. |
-| **Specialization** | Pre-printing optimized forms for your *most common* shipment types while keeping the general form for the rest. |
-| **Expression problem** | A product catalog where you want to add both new *products* and new *attributes* without reprinting the whole catalog each time. |
-
----
-
-## Mental Models
-
-### The "Type Is a Proof Obligation" Model
-
-Stop reading a polymorphic signature as documentation and start reading it as a *constraint solver's output*. `forall T. List<T> -> List<T>` isn't "some list transformation" — it's "the set of all functions that rearrange-and-drop, and *nothing else*." The narrower (more polymorphic) the type, the smaller that set, often down to a single function. Designing APIs is choosing how small to make that set.
-
-### The Leak Audit
-
-Whenever you want to *rely* on a free theorem, run a mental audit of the body (or the language): does it use reflection / `instanceof` / `typeof`? Can it return `null` or throw or loop forever? Does it perform effects? Does it use `unsafe`? Each "yes" weakens or voids the theorem. Free theorems are a *property of pure, total, non-reflective parametric code*; everything else is "probably true, verify."
-
-### The Two-Axis Grid (Expression Problem)
-
-Draw a table: rows = data variants, columns = operations. OOP fills it row-by-row (easy new rows, painful new columns). FP fills it column-by-column (easy new columns, painful new rows). The expression problem asks for *both* directions cheap. Keep this grid in mind whenever an interface or sum type starts resisting extension — it tells you which axis is fighting you and which encoding (typeclasses, object algebras) restores it.
-
-### Polymorphism Recursion Down the Rank Ladder
-
-Rank counts how *deeply nested* the `forall` is. Rank-1: caller fixes the type. Rank-2: callee can use a polymorphic argument at many types. Higher: arbitrary nesting (full System F). Expressiveness climbs; inference degrades; annotation burden rises. Most languages stop at rank-1 on purpose.
-
----
-
 ## Code Examples
 
 ### Deriving identity from the type, then watching a leak void it
@@ -275,29 +185,6 @@ class Perimeter s where perimeter :: s -> Double
 
 ---
 
-## Pros & Cons
-
-| Aspect | Pros | Cons |
-|--------|------|------|
-| **Parametricity as reasoning** | Derive correctness theorems from types alone; fewer/sharper tests; trustworthy APIs; safe generalizations. | Only as strong as the language is parametric — reflection/`null`/effects void it. Requires discipline (purity, totality) to fully exploit. |
-| **Maximally polymorphic APIs** | Smaller behavior set → stronger guarantees for callers; self-documenting. | Can be *too* restrictive — sometimes you *want* the implementer to inspect types (then use ad-hoc/bounds). |
-| **Higher-rank polymorphism** | Strictly more expressive (System F); enables `runST`-style capability boundaries, polymorphic arguments. | Breaks full inference → explicit annotations; harder to teach; absent in most mainstream languages. |
-| **Specialization** | Reclaims monomorphization speed for chosen hot types without abandoning polymorphic source. | Code/bytecode bloat; must be applied selectively; adds build complexity (`@specialized`, PGO). |
-| **Generics + expression problem** | With typeclasses/object algebras, opens *both* extension axes. | Generics *alone* don't solve it; choosing the right encoding is subtle and easy to get wrong. |
-
----
-
-## Use Cases
-
-- **Designing libraries you want callers to trust.** Type a transformation `forall T. ...` rather than `Object -> Object` so callers *know* it can't tamper with their data — parametricity makes the guarantee, not the docs.
-- **Property-based testing of generic code.** Lean on free theorems to test one representative type plus the law, instead of per-type test suites. The uniformity is the justification.
-- **Capability/region safety via higher-rank types.** `runST`-style APIs, scoped resources, and "this token can't escape this scope" patterns use rank-2 `forall` as an enforcement mechanism.
-- **Numeric/performance-critical generic code on erased runtimes.** Apply `@specialized` (Scala) or drop to monomorphized paths (Rust) for hot type arguments; keep the polymorphic source for the rest.
-- **Extensible interpreters / DSLs / plugin systems.** When you need to add both cases and operations over time, recognize the expression problem and reach for typeclasses, tagless-final, or object algebras — generics as one ingredient, not the whole recipe.
-- **Auditing third-party generics for safety.** Read their signatures: a parametric `V` in `Cache<K,V>` *can't* inspect your values; a reflective body *can* — the type plus a leak audit tells you which.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Pick the Most Polymorphic Type That Still Compiles
@@ -347,13 +234,24 @@ Profile, identify the handful of type arguments dominating runtime, specialize *
 
 ---
 
-## Summary
+## Apply it
 
-- **Parametricity** turns parametric polymorphism from a reuse mechanism into a *reasoning* mechanism: because fully-parametric code *cannot inspect* its type variables, the **type signature constrains — often determines — the behavior**. Ignorance is a contract.
-- **Theorems for free** (Wadler) derive, from a polymorphic type alone, a theorem every implementation must satisfy: `forall T. T -> T` *is* identity; `map`'s type *forces* naturality; `forall T. List<T> -> List<T>` can only **permute and drop**, never fabricate or value-inspect elements.
-- These theorems pay off in engineering: **fewer/sharper tests, trustworthy APIs, safe refactors, and reliable reasoning about third-party generics.**
-- Free theorems hold only as strongly as the language is parametric. **Leaks** — reflection/`instanceof`/`typeof`, `null`/`⊥`, side effects, `unsafe`, reified generics — weaken or void them. Pure, total, non-reflective code (Haskell-style) gets the strongest theorems; Java/C#/Go give *design guidance, verify by audit*.
-- **Rank-1 polymorphism** (forall outermost; caller fixes the type) is the inferable default everywhere. **Higher-rank** (forall nested left of an arrow) is strictly more expressive (full System F), enables capability boundaries like `runST :: (forall s. ST s a) -> a`, but breaks full inference and demands annotations — which is why most languages stop at rank-1.
-- **Specialization** (Rust/C++ mono, Scala `@specialized`, .NET value-type JIT, profile-guided) reclaims monomorphization speed for chosen hot types without giving up the polymorphic source — a per-call-site slider on the monomorphization↔erasure spectrum.
-- The **expression problem** — adding new variants *and* new operations without editing closed code or losing type safety — is a tension generics *participate in but don't solve alone*; the real solutions combine generics with typeclasses/traits, object algebras, or tagless-final encodings. Recognizing it by name is half the fix.
-- Senior mantra: **read the type as a theorem, audit for leaks, prefer the most polymorphic type that compiles, keep it pure to keep the theorem strong, and specialize only where measurement demands.**
+1. State the system invariant that **Generics & Parametric Polymorphism** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
+
+## Verify your work
+
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
+
+## Review questions
+
+- Which invariant must remain true when Generics & Parametric Polymorphism fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

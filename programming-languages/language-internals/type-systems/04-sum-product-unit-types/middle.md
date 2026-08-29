@@ -1,54 +1,11 @@
-# Sum, Product & Unit Types — Middle Level
+# Sum, Product & Unit Types — Middle
 
-> **Topic:** Sum, Product & Unit Types
-> **Focus:** The full algebra of types — including function types as exponentials — plus how compilers lay out sums and products in memory, and how exhaustiveness checking actually works.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **Sum, Product & Unit Types** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-> Focus: **The algebra is real, and it's predictive.** Once you can multiply, add, and exponentiate types, you can reason about isomorphisms, derive `Option`/`Either`/function types from first principles, and predict memory layout.
-
-At the junior level you learned the four facts: product multiplies, sum adds, Unit is 1, Void is 0. This level takes that algebra seriously and shows it's not a cute mnemonic — it's a genuine isomorphism between *finite types* and *natural numbers under arithmetic*. Two types with the same number of inhabitants are "the same shape": there's a lossless, reversible conversion between them. That insight lets you reason about refactors with arithmetic, recognize when two designs are secretly equivalent, and understand why the standard library's types are shaped the way they are.
-
-We add the third operation that completes the algebra: **function types are exponentials**. `A -> B` has `|B|^|A|` inhabitants. Once you have `×`, `+`, and `^`, the type system obeys the laws of a *commutative semiring* — distributivity, currying-as-the-exponent-law, and the rest. This is "high-school algebra, but the variables are types."
-
-Then we descend from theory to the machine. A sum needs a **discriminant tag**; a product is just fields laid side by side. We'll look at how real compilers represent these: tagged layouts, niche/null-pointer optimization (where `Option<&T>` costs zero extra bytes), and why a sum's size is "tag plus the largest variant." Finally, we'll dig into **exhaustiveness and reachability checking** — the algorithm the compiler runs to prove your match handles every case and has no dead arms.
-
-> 🎓 **Why this matters at the middle level:** You're now designing data structures other people depend on. Knowing the algebra lets you justify a design ("these two encodings are isomorphic, so prefer the clearer one"), knowing the layout lets you reason about size and performance, and knowing how exhaustiveness works lets you *use* the compiler as a refactoring engine instead of fighting it.
-
----
-
-## Prerequisites
-
-- **Required:** The junior page — product/sum/Unit/Void and basic counting.
-- **Required:** Comfort writing and pattern-matching sum types in at least one language (Rust, Swift, Haskell, OCaml, F#, TypeScript, or Kotlin).
-- **Required:** Basic generics/parametric types (`Vec<T>`, `Option<T>`, `List a`).
-- **Helpful:** A loose memory of high-school exponent and distributive laws (`x^(a+b) = x^a · x^b`, `a(b+c) = ab + ac`).
-- **Helpful:** Any exposure to how a struct is laid out in memory (offsets, padding).
-
-You do **not** need category theory, initial-algebra semantics, or dependent types — those are `senior.md` and `professional.md`.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Isomorphism** | A lossless, reversible pair of conversions between two types. Iso types have the same inhabitant count. |
-| **Cardinality** | The number of inhabitants of a type. `|bool| = 2`. The thing the algebra computes. |
-| **Exponential type** | A function type `A -> B`. Its cardinality is `|B|^|A|`. |
-| **Semiring** | An algebraic structure with `+`, `×`, a 0, and a 1, obeying distributivity. Types form one. |
-| **Currying** | Turning `(A, B) -> C` into `A -> (B -> C)`. The type-algebra image of `c^(a·b) = (c^b)^a`. |
-| **Discriminant / tag** | The integer stored in a sum value recording the active variant. |
-| **Niche optimization** | Storing the tag *inside* unused bit patterns of a payload, so the sum needs no extra space (e.g. `Option<&T>` using the null pointer as `None`). |
-| **Payload** | The data carried by a chosen sum variant. |
-| **Exhaustiveness checking** | Compiler analysis proving a match covers every possible value. |
-| **Reachability / redundancy** | Compiler analysis proving no match arm is dead (shadowed by earlier arms). |
-| **Smart constructor** | A function that validates inputs and returns `Option`/`Result`, used to guarantee an invariant a raw constructor couldn't. |
-| **Newtype** | A single-field product wrapping one type to give it a distinct identity (`UserId(u64)`), `×`-iso to the inner type but not interchangeable. |
-| **Sum of products (SOP)** | The canonical shape of an ADT: a sum whose variants are each products. Every ADT normalizes to this. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -173,37 +130,6 @@ Native sum types are **closed**: the set of variants is fixed at the definition 
 
 ---
 
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Isomorphism** | Two spreadsheets with the same data in different column orders — relabel and they're identical. |
-| **Distributivity** | "Pick a size (S/M/L) of either coffee or tea" = "pick from {S,M,L coffee} or {S,M,L tea}." Same menu, regrouped. |
-| **Function as exponential** | A lookup table: for each of the N keys you fill in one of M values; there are M^N possible tables. |
-| **Currying** | A vending machine with two dials: turning the first dial gives you a machine with one dial left. |
-| **Discriminant tag** | The colored sticker on a luggage carousel telling the handler which conveyor it goes to. |
-| **Niche optimization** | Using the already-blank back of a form as the "no data" marker instead of stapling on an extra page. |
-| **Sum size = biggest variant** | A shipping box sized for your largest item, even when you're only mailing a pencil. |
-| **Exhaustiveness algorithm** | A bingo card: cross off covered squares; if any square is left uncovered, you're not done. |
-
----
-
-## Mental Models
-
-### The "Arithmetic Receipt" Model
-
-Before and after any data refactor, compute both cardinalities. If they match, the refactor is information-preserving (an isomorphism) — you've reshaped, not changed, the data. If the *after* is smaller, you've removed states (often good — you killed illegal ones). If it's larger, you've added states (often a smell — where did the extra possibilities come from?).
-
-### The "Pattern Match = Function-out-of-a-Sum" Model
-
-Stop seeing `match` as control flow and start seeing it as *constructing the unique function out of a sum*. The exponent law `(A+B)->C ≅ (A->C) × (B->C)` says such a function *is* one handler per variant. Exhaustiveness checking is the compiler verifying you actually supplied the full pair — that your function is **total**, defined on every input.
-
-### The "Tag + Box" Model for layout
-
-Picture every sum value as a small tag next to a box sized for the biggest variant. When that box is wastefully large (one giant variant among small ones), put a pointer in the box instead and heap-allocate the giant — the sum shrinks to tag + pointer. This single mental image explains both sum sizing and the standard "box the large variant" optimization.
-
----
-
 ## Code Examples
 
 ### Verifying the algebra by counting (Haskell-style reasoning, runnable in Rust)
@@ -323,28 +249,6 @@ fn depth(t: &Tree) -> u32 {
 
 ---
 
-## Pros & Cons
-
-| Aspect | Pros | Cons |
-|--------|------|------|
-| **Reasoning** | The algebra lets you certify refactors as information-preserving with arithmetic. | The arithmetic is exact only for *finite* types; recursive/infinite types need fixed-point reasoning. |
-| **Layout** | Niche optimization makes many sums (notably `Option<ptr>`) cost zero extra bytes. | A sum is sized for its largest variant; one fat variant bloats every value unless boxed. |
-| **Exhaustiveness** | Decidable, witness-producing checks turn missed cases into compile errors. | Only works on *closed* sums; open/extensible designs lose it. |
-| **Currying/HOF** | The exponent laws make currying, partial application, and "handler-per-variant" natural. | The "function = exponential" intuition breaks for partial/effectful/non-terminating functions. |
-| **Refactoring** | Distributivity gives you principled ways to regroup data. | Isomorphic-but-different ergonomics: choosing the *right* of several equivalent encodings still takes judgment. |
-
----
-
-## Use Cases
-
-- **Justifying a schema change** by showing the before/after cardinalities match (no information lost) or shrink (illegal states removed).
-- **Choosing an encoding** among isomorphic options — e.g. "shared field factored out" vs "shared field per-variant" — using distributivity to confirm they're equivalent, then picking on readability.
-- **Predicting and tuning memory** — knowing a sum is "tag + biggest variant," boxing the outlier, and relying on niche optimization for pointer-shaped options.
-- **Bolting exhaustiveness onto weak languages** — the `assertNever`/`never` trick in TypeScript, the "unreachable variant" guard in others.
-- **Designing curried APIs** — recognizing `(A,B)->C ≅ A->B->C` and exposing whichever form composes better.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Smart constructor to enforce an invariant the type can't
@@ -410,82 +314,24 @@ In TypeScript (and similar), end every discriminated-union switch with `default:
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. Compute the cardinality of `Result<bool, Color>` where `|Color| = 3`. Then compute `Result<Color, bool>`. Are they isomorphic? Why does iso-ness not make them interchangeable in code?
-2. Use the exponent laws to simplify the type `Unit -> (A -> Void)`. What well-known type/value is it?
-3. `(bool, bool, bool)` vs `u8` restricted to `0..=7`: prove they're isomorphic by giving the forward and backward conversions.
-4. Apply distributivity to `(timestamp: u64) × (Click | Key)` and write both encodings as concrete structs/enums. Which would you ship, and why?
-5. Why is `size_of::<Option<&u8>>()` equal to `size_of::<&u8>()`, but `size_of::<Option<u8>>()` is `2`? Explain in terms of niches.
-6. `Option<Option<()>>` — how many values, and what are they? Which two would `.flatten()` merge?
-7. In the TypeScript `assertNever` pattern, what type does `sh` have in the `default` arm when all cases are handled? What changes when you add an unhandled variant, and why does that produce an error?
-8. Show why `Void -> A` has exactly one inhabitant for any `A`, using `0 ^ a` reasoning. What is that one function usually named?
+1. Find a real component where **Sum, Product & Unit Types** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
----
+## Verify your work
 
-## Cheat Sheet
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
 
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│            THE ALGEBRA OF TYPES (semiring + exponentials)        │
-├──────────────────────────────────────────────────────────────────┤
-│ |A × B| = |A|·|B|     |A + B| = |A|+|B|                          │
-│ |Unit| = 1            |Void| = 0                                  │
-│ |A -> B| = |B| ^ |A|   ← functions are EXPONENTIALS              │
-├──────────────────────────────────────────────────────────────────┤
-│ Identities / laws:                                               │
-│   A×1 ≅ A      A+0 ≅ A      A×0 ≅ 0                              │
-│   A×(B+C) ≅ A×B + A×C          (distributivity → refactors)     │
-│   (A×B)->C ≅ A->(B->C)         (currying = (c^b)^a)             │
-│   (A+B)->C ≅ (A->C)×(B->C)     (match = function out of a sum)  │
-│   Unit->A ≅ A     Void->A ≅ Unit (absurd)                       │
-├──────────────────────────────────────────────────────────────────┤
-│ Derived standard types:                                          │
-│   Option<A> ≅ 1 + A      Result<T,E> ≅ E + T     bool ≅ 1 + 1   │
-│   Option<Option<A>> ≅ 2 + A   (two empties — flatten!)          │
-├──────────────────────────────────────────────────────────────────┤
-│ Layout:                                                           │
-│   product = fields + padding (order may be reshuffled)           │
-│   sum     = tag + max(variant payloads)                          │
-│   niche   = tag hidden in unused bits ⇒ Option<&T> is free       │
-│   fix fat variant: Box it → sum shrinks to tag + pointer         │
-├──────────────────────────────────────────────────────────────────┤
-│ Exhaustiveness:                                                   │
-│   decidable on CLOSED sums; produces a witness for missing case  │
-│   wildcard `_` / non_exhaustive / open hierarchies disable it    │
-└──────────────────────────────────────────────────────────────────┘
-```
+## Review questions
 
----
-
-## Summary
-
-- Finite types and natural numbers are **isomorphic under arithmetic**: same cardinality ⇒ same information ⇒ lossless conversion. The algebra is a refactor receipt.
-- Types form a **commutative semiring**: `A×1≅A`, `A+0≅A`, `A×0≅0`, and crucially **distributivity** `A×(B+C) ≅ A×B + A×C`, which justifies regrouping data between "shared field factored out" and "shared field per variant."
-- **Function types are exponentials**: `|A->B| = |B|^|A|`. The exponent laws *are* programming idioms — currying (`(A×B)->C ≅ A->(B->C)`), pattern matching (`(A+B)->C ≅ (A->C)×(B->C)`), and `absurd` (`Void->A ≅ Unit`).
-- The standard types are algebra: `Option<A> ≅ 1 + A`, `Result<T,E> ≅ E + T`, `bool ≅ 1 + 1`. Nested options are `2 + A` — two empties, hence `.flatten()`.
-- **Products** lay out as fields-plus-padding (order may be reshuffled); **sums** lay out as **tag + largest variant**. **Niche optimization** hides the tag in unused bit patterns, making `Option<&T>` the same size as `&T` for free. Box fat variants to shrink sums.
-- **Exhaustiveness checking** is a decidable, witness-producing algorithm over *closed* sums — which is why native sums enable it and faked/open ones don't. Bolt it onto weak languages with the `never`/`assertNever` (Void) trick.
-- Closed sums favor *many operations over few fixed cases*; the opposite trade-off (the expression problem) is the OO/interface world, covered next level.
-
----
-
-## What You Can Build
-
-- **A cardinality calculator.** Parse a small ADT grammar (sums, products, Unit, Void, references to named types) and compute the number of inhabitants, flagging infinite (recursive) types.
-- **An isomorphism checker / converter generator.** Given two finite ADTs of equal cardinality, generate the `to`/`from` functions witnessing the isomorphism.
-- **A `size_of` explorer.** A program that prints the size and alignment of various sums and demonstrates niche optimization and the box-the-fat-variant trick with before/after numbers.
-- **A toy exhaustiveness checker.** Implement Maranget's usefulness algorithm for a tiny pattern language and have it report the missing-case witness.
-- **A curry/uncurry library** for tuples of arity 2–5, with property tests asserting the round-trip identities (the exponent laws) hold.
-
----
-
-## Further Reading
-
-- *Thinking with Types* — Sandy Maguire. Chapter on the algebra of types: isomorphisms, the semiring, and exponentials, with exercises.
-- "The Algebra (and Calculus!) of Algebraic Data Types" — Joel Burget / various write-ups expanding Conor McBride's "differentiating data structures" line of work.
-- "Compiling Pattern Matching to Good Decision Trees" — Luc Maranget. The exhaustiveness/usefulness algorithm that real compilers use.
-- The Rust Reference, "Type layout" and "Enumerations" sections — discriminants, `repr`, and niche/null-pointer optimization. https://doc.rust-lang.org/reference/type-layout.html
-- *Programming in Haskell* — Graham Hutton — for `curry`/`uncurry` and reasoning about functions as values.
-- "Parametricity" / Wadler, *Theorems for Free!* — why the shape of a (polymorphic) type constrains the functions of that type (a payoff of seeing functions as exponentials).
-- *Domain Modeling Made Functional* — Scott Wlaschin — distributivity and choice-of-encoding shown as everyday domain modeling.
+- Which boundary is most affected by Sum, Product & Unit Types?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

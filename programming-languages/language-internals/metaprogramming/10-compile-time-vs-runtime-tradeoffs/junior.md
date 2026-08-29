@@ -1,72 +1,11 @@
-# Compile-Time vs Runtime Trade-offs — Junior Level
+# Compile-Time vs Runtime Trade-offs — Junior
 
-> **Topic:** Compile-Time vs Runtime Trade-offs
-> **Focus:** The single most important question in metaprogramming — *when does the "extra" work happen, while you build the program or while it runs?* And why that one choice ripples through speed, startup, safety, and flexibility.
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **Compile-Time vs Runtime Trade-offs** in one small example and prove the result?
 
-## Introduction
-
-> Focus: **There are two moments when a program can do work — when you compile it and when you run it. Metaprogramming lets you choose which one.**
-
-Most code you write does one obvious job: it runs and computes a result. But some code's job is to *produce or shape other code, or to inspect and adapt the program itself.* That is **metaprogramming** — code about code. The question that organizes this entire section is deceptively simple:
-
-> **When does the meta-level run — at build time or at run time?**
-
-This is called the **compile-time vs runtime** trade-off, and it is *the* axis everything else in this section hangs off. The same goal — say, "convert this object to JSON" — can be solved two completely different ways:
-
-- **At compile time:** a tool reads your data type while you build, and *generates* a tailor-made JSON function. By the time the program runs, that function is plain, ordinary code. (Examples: macros, code generators, annotation processors, C++ templates, Rust's `#[derive(Serialize)]`.)
-- **At run time:** the program ships *without* a custom function. When it actually needs to serialize, it **inspects the object live** — "what fields does this thing have?" — and works it out on the spot. (Examples: reflection, dynamic proxies, `eval`, metaclasses.)
-
-Both produce the same JSON. But they make wildly different promises about speed, startup time, binary size, when errors show up, and how flexible the program is. A senior engineer doesn't memorize a "right answer" — they learn the *trade-offs* and pick the side that fits the job.
-
-> 🎓 **Why this matters for a junior:** You will constantly meet two libraries that do "the same thing," and you'll wonder why one is described as "fast" or "native-image-friendly" and the other as "flexible" or "dynamic." The difference is almost always *where the meta-level runs*. Understanding this one axis turns a confusing zoo of frameworks (Spring vs Quarkus, Jackson vs serde, Guice vs Dagger) into a single clear question.
-
-In one sentence: **compile-time metaprogramming does the clever work once, while you build, so the running program is plain and fast; runtime metaprogramming carries the cleverness with it and pays for it every time it runs, in exchange for being able to adapt to things it couldn't have known at build time.**
-
-This page covers what "compile time" and "run time" actually mean, the core trade-off dimensions in plain language, and the same "serialize an object" example done both ways. The next level (`middle.md`) compares the dimensions head-to-head with measurements; `senior.md` covers the modern industry shift toward compile-time; `professional.md` covers multi-stage programming and real migration stories.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** The difference between *compiling* a program and *running* it. (You write code → a compiler/build step turns it into something runnable → you run it.)
-- **Required:** What a function is, and the idea that one function can produce or call another.
-- **Required:** Basic familiarity with at least one language that has a build step (Java, Go, Rust, C++) or one dynamic language (Python, JavaScript).
-- **Helpful but not required:** Having used a library that "magically" turns an object into JSON or maps a database row to a struct.
-- **Helpful but not required:** Having heard the words "reflection," "macro," or "code generation."
-
-You do **not** need to know:
-
-- How a compiler is built (parsing, type-checking, codegen — that's the compilers topic).
-- The internals of reflection or the JIT (that's `senior.md` and `professional.md`).
-- Anything about GraalVM native-image or AOT compilation yet — we introduce it gently here.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Compile time** | The moment your source code is being turned into a runnable artifact (a binary, a `.jar`, bytecode). Work done here happens **once, on the developer's/CI's machine**, before any user runs the program. |
-| **Run time** | The moment the finished program is actually executing on a real machine, doing its job for users. |
-| **Build time** | Often used interchangeably with compile time; technically the whole build pipeline (compile + code generation + packaging). |
-| **Metaprogramming** | Code whose job is to generate, inspect, or transform other code or program structure — "code about code." |
-| **The meta-level** | The "extra" layer of work that isn't the program's direct business logic — e.g. figuring out how to serialize, wire dependencies, or build a proxy. |
-| **Compile-time metaprogramming** | Doing the meta-level work during the build: macros, code generation, annotation processors, templates, `derive`. Output is ordinary code. |
-| **Runtime metaprogramming** | Doing the meta-level work while the program runs: reflection, dynamic proxies, `eval`, monkeypatching, metaclasses. |
-| **Reflection** | A program inspecting *itself* at run time — listing a class's fields/methods, reading annotations, calling methods by name. The classic runtime technique. |
-| **Code generation (codegen)** | A build step that *writes source code* (or bytecode) for you, which then compiles normally. |
-| **Macro** | Code that runs at compile time and expands into other code (Rust macros, Lisp macros, C++ templates are macro-like). |
-| **Closed-world** | The program "knows everything" at build time — all types, all plugins are fixed. Enables aggressive compile-time work and AOT. |
-| **Open-world** | New types/code can appear at run time (plugins, dynamic loading). Needs runtime techniques. |
-| **AOT (Ahead-Of-Time) compilation** | Compiling all the way to a native binary *before* shipping, with no runtime compiler. Friendly to compile-time approaches, hostile to heavy reflection. |
-| **Native image** | A self-contained native binary (e.g. GraalVM) produced by AOT. Famous for fast startup but strict about runtime reflection. |
-| **Cold start** | The first-time startup delay of a program (especially serverless), before it can serve a request. Heavily affected by how much meta-work happens at boot. |
-| **Startup tax** | The time a program spends at boot doing meta-level work (e.g. scanning classes via reflection) before it's ready. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -150,49 +89,6 @@ Two modern forces have pushed the industry *toward* compile-time:
 - **Native images / AOT.** To make a self-contained native binary that starts instantly, the toolchain wants a **closed world** — everything known at build time. Heavy runtime reflection fights this; it needs special configuration or simply breaks. So teams shift the meta-work to compile time.
 
 This is why you'll hear that newer frameworks (Quarkus, Micronaut, Dagger) "moved things to compile time" while older ones (Spring, Guice) "do it at run time."
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Compile-time metaprogramming** | A tailor measures you once and sews a custom suit. Wearing it later is effortless — it just fits. |
-| **Runtime metaprogramming** | A "one size fits all" garment with adjustable straps that figures out your size *each time you put it on*. Flexible, but fussy every wear. |
-| **Reflection** | Opening a box and looking inside to discover what's there, *right now*, instead of reading a label printed in advance. |
-| **Code generation** | A factory that, given a blueprint, stamps out a finished part. The part is ordinary once made. |
-| **Startup tax / cold start** | A restaurant that re-reads the entire recipe book every morning before it can take the first order. |
-| **Compile-time = fail fast** | A spell-checker that underlines your typo as you write, not after you've mailed the letter. |
-| **Runtime = fail late** | Finding the typo only when the recipient calls to complain. |
-| **Closed-world (AOT)** | A sealed ship-in-a-bottle: beautiful and complete, but you can't add new pieces after it's sealed. |
-| **Open-world (runtime)** | A LEGO set you can keep adding bricks to while it's already built. |
-| **Multi-stage (having it both ways)** | A coffee machine you *program* once (compile-time choice of recipe) that then runs that recipe instantly every morning. |
-
----
-
-## Mental Models
-
-### The "Pay Once vs Pay Every Time" Model
-
-The cleanest way to remember the whole topic. Ask: *does this meta-work get paid for once (at build) or every time (at run)?*
-
-- A code generator: **pay once.** The cost lives in your CI build. Users never feel it.
-- A reflective serializer: **pay every call.** Each request re-inspects the object. Multiply by a million requests.
-
-Most performance arguments in this topic reduce to "compile-time pays once; runtime pays per-operation."
-
-### The "When Do You Know?" Model
-
-For any decision the program needs to make, ask: *when do I actually know the answer?*
-
-- If you know it **at build time** (the type is fixed, the plugins are fixed) → push the meta-work to compile time. Why defer work you could've done already?
-- If you only know it **at run time** (the schema comes from a config file, a plugin appears later) → you *have* to do it at run time. Compile-time literally cannot help.
-
-This single question — *"is the variation known at build time or only at runtime?"* — is the heart of the decision framework you'll formalize in later levels.
-
-### The "Frozen vs Live" Model
-
-A compiled artifact is **frozen** — it can't change after the build. That's why it's fast and safe, and also why it can't adapt. A reflective/dynamic program stays **live** — it can inspect and change itself while running. That's why it's flexible, and also why it's slower and harder to verify ahead of time. Speed/safety and flexibility sit on opposite ends of "frozen vs live," and you choose where to sit.
 
 ---
 
@@ -297,42 +193,6 @@ SERIALIZE A USER
 
 ---
 
-## Pros & Cons
-
-| Dimension | Compile-time approach | Runtime approach |
-|-----------|----------------------|------------------|
-| **Performance** | Pre-baked, inlinable, **zero meta-cost at run time**. | Per-operation inspection cost; can defeat optimizer inlining. |
-| **Startup time** | Fast — nothing to scan at boot. | Slower — may scan/wire on startup (the cold-start tax). |
-| **Error timing** | Errors caught **at build** (fail fast). | Errors surface **in production** (method not found at 3 a.m.). |
-| **Flexibility** | Frozen at build; closed-world. | Adapts to data/plugins unknown until run time. |
-| **Binary size** | Can bloat (generated code, monomorphization). | Reflection metadata also has size, but often less generated code. |
-| **Tooling / IDE** | Generated code is real — autocomplete, step-through. | Magic is opaque to static analysis and refactoring tools. |
-| **Build simplicity** | More complex builds (generators to maintain, slower builds). | Simple builds; the cost ships with the program. |
-| **AOT / native-image** | Friendly — closed-world fits AOT. | Hostile — reflection needs config or breaks under trimming. |
-| **Learning curve** | Need to understand the generator/macro system. | "Just use reflection" is initially simpler to write. |
-
----
-
-## Use Cases
-
-**Lean compile-time when:**
-
-- The variation is **known at build time** (you know your types, your routes, your plugins).
-- **Startup speed matters** — serverless functions, CLIs, short-lived jobs.
-- You ship an **AOT / native-image** binary, or your bundler **tree-shakes** (web).
-- The code is in a **hot path** where per-call overhead would hurt.
-- You want **build-time guarantees** that wiring/serialization is correct.
-
-**Lean runtime when:**
-
-- The variation is **only known at run time** — plugin systems, dynamic schemas, user-supplied scripts.
-- You need **hot reload, a REPL, or live introspection**.
-- The build must stay **dead simple** and the per-call cost is negligible (cold paths, low volume).
-- You're prototyping and flexibility beats peak performance.
-- The set of types/behaviors is **open** and grows after deployment.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Prefer compile-time when the answer is known at build time
@@ -381,68 +241,24 @@ Before choosing, ask: *are we deploying to native-image / a trimmed bundle / a s
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. In your own words: what's the difference between work done at *compile time* and work done at *run time*, and why does the distinction matter for performance?
-2. You have a `Product` type whose fields are fixed and known. You need fast JSON serialization in a hot loop. Compile-time or runtime? Why?
-3. You're writing a plugin host that loads `.so`/`.dll` plugins from a folder *the user chooses at startup*. Compile-time or runtime for dispatching to them? Why?
-4. A reflective serializer "works fine" in tests but fails after the team switches to GraalVM native-image. Explain what changed and why.
-5. Name one cost of compile-time metaprogramming that runtime approaches avoid.
-6. Name one capability of runtime metaprogramming that compile-time approaches simply cannot provide.
-7. Why is "fast cold start" so often a reason teams move meta-work from run time to compile time?
-8. A typo'd method name fails "at 3 a.m. in production" with one approach and "on your screen during the build" with the other. Which is which, and why?
+1. Choose one small, known input for **Compile-Time vs Runtime Trade-offs**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
----
+## Verify your work
 
-## Cheat Sheet
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
 
-```text
-┌────────────────────────────────────────────────────────────────────┐
-│            COMPILE-TIME vs RUNTIME METAPROGRAMMING                 │
-├────────────────────────────────────────────────────────────────────┤
-│ THE ONE QUESTION:                                                 │
-│   When is the variation known?                                    │
-│     known at build time   → COMPILE-TIME                          │
-│     only known at run time → RUNTIME                              │
-├────────────────────────────────────────────────────────────────────┤
-│ COMPILE-TIME (macros, codegen, derive, templates, processors)     │
-│   + zero runtime meta-cost, inlinable, fast                       │
-│   + fast startup / great cold start                               │
-│   + errors caught at BUILD (fail fast)                            │
-│   + AOT / native-image friendly                                   │
-│   - slower builds, generator maintenance                          │
-│   - frozen (closed-world): no late plugins                        │
-│   - can bloat the binary                                          │
-├────────────────────────────────────────────────────────────────────┤
-│ RUNTIME (reflection, proxies, eval, metaclasses, monkeypatch)     │
-│   + adapts to data/plugins unknown until run time                 │
-│   + simple build, ship-and-go                                     │
-│   + can inspect live program state                                │
-│   - per-operation overhead, defeats inlining                      │
-│   - startup tax (scanning at boot → slow cold start)              │
-│   - errors surface in PRODUCTION (fail late)                      │
-│   - breaks/needs config under native-image & tree-shaking         │
-├────────────────────────────────────────────────────────────────────┤
-│ MODERN SHIFT (why compile-time is winning many fights):           │
-│   serverless cold-start + native-image + observability            │
-│   Spring→Quarkus, Guice→Dagger, Jackson→serde                     │
-│ BUT runtime still wins where genuine late dynamism is required.    │
-└────────────────────────────────────────────────────────────────────┘
-```
+## Review questions
 
----
-
-## Summary
-
-- **Metaprogramming** is code about code, and its single most important question is **when the meta-level runs: compile time or run time.**
-- **Compile-time** (macros, code generation, annotation processors, templates, `derive`) does the clever work **once, during the build**, leaving plain, fast, optimizable code for run time.
-- **Runtime** (reflection, dynamic proxies, `eval`, metaclasses, monkeypatching) does the clever work **while the program runs**, paying per-operation but gaining the ability to adapt to things unknown until run time.
-- The trade-off touches **performance, startup time, error timing, flexibility, binary size, tooling, build complexity, and AOT compatibility** — all flowing from "pay once vs pay every time" and "frozen vs live."
-- **Compile-time** wins on speed, fast startup/cold-start, fail-fast errors, and native-image compatibility. **Runtime** wins on flexibility: plugins, dynamic schemas, hot reload, REPLs.
-- The **decision framework** is one question: *is the variation known at build time (→ compile-time) or only at run time (→ runtime)?* — plus how much you care about startup, AOT, and dynamism.
-- The **modern industry shift is toward compile-time** (Quarkus/Micronaut vs Spring, Dagger vs Guice, serde vs Jackson), driven by serverless cold-start, native-image, and observability — **but runtime still wins** where real, late dynamism is required.
-- Junior habit: when you see two libraries that "do the same thing" but one is "fast/native-friendly" and the other "flexible/dynamic," ask **where their meta-level runs.** That single question explains the difference.
-
----
-
-*Continue to `middle.md` for a dimension-by-dimension head-to-head with real measurements and named frameworks, or revisit the other metaprogramming topics in this section to see each technique as a point on this compile-time/runtime axis.*
+- What problem does Compile-Time vs Runtime Trade-offs solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

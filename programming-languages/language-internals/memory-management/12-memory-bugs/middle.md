@@ -1,43 +1,11 @@
-# Memory Bugs — Middle Level
+# Memory Bugs — Middle
 
-> **Topic:** Memory Bugs
-> **Focus:** The mechanisms behind real leaks (closures, slices, goroutines, thread-locals) and a repeatable methodology — heap dumps, profilers, RSS-vs-live divergence — for diagnosing them.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **Memory Bugs** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-At the junior level the lesson was *recognition*: the GC frees the unreachable, leaks are forgotten references, watch the post-GC floor. At the middle level the job changes from "I think this leaks" to **"prove it, locate it, and explain the reference chain."**
-
-That requires two things. First, a deeper catalog of *how* leaks actually happen in practice — not just "unbounded map," but the subtle mechanisms: a closure that captures a giant object, a Go slice that pins a 100 MB backing array, a goroutine blocked forever holding a reference, a `ThreadLocal` that outlives its thread pool. Second, a **methodology** with tools: heap dumps and dominator trees, allocation profilers, and the discipline to read RSS-vs-live divergence correctly.
-
-The goal of this tier is that when memory climbs, you can sit down with a profiler, capture the right artifact, and walk a colleague through the exact retention path: *"this `byte[]` is held by this cache entry, which is held by this static map, which is rooted in this classloader."*
-
----
-
-## Prerequisites
-
-- The junior-level model: reachability, roots, post-GC floor, live-set vs RSS, "what keeps this alive?"
-- Comfort reading a stack trace and basic profiler output.
-- Familiarity with at least one of: Java/JVM, Go, Python, or a managed runtime you operate.
-- Knowing how to put a service under sustained, repeatable load (a load tool, a script, or replayed traffic).
-
----
-
-## Glossary
-
-| Term | Meaning |
-|---|---|
-| **Heap dump** | A snapshot of every object on the heap and the references between them, at one instant. The raw material for retention analysis. |
-| **Dominator tree** | A transformation of the object graph where object A *dominates* B if every path from a root to B goes through A. Lets you ask "what single thing, if removed, frees the most memory?" |
-| **Retained size** | Total memory that would be freed if an object became unreachable — i.e., the object *plus* everything only it keeps alive. |
-| **Shallow size** | The size of just the object itself, not what it references. |
-| **Allocation profile** | A report of *where* (which call stacks) allocations happen, by count and bytes. Targets churn, not retention. |
-| **Retention path / GC root path** | The chain of references from a GC root down to a suspect object — the answer to "what keeps this alive?" |
-| **Goroutine / thread leak** | A goroutine or thread that never terminates, keeping its stack and captured references alive forever. |
-| **Backing array** | In Go, the underlying contiguous array a slice points into. A small slice can pin a huge backing array. |
-| **Off-heap / native memory** | Memory allocated outside the managed heap (direct buffers, mmap, JNI/cgo). Invisible to heap dumps. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -117,34 +85,6 @@ When you open a heap dump, *shallow size* (the object itself) is almost useless 
 | Flat | Flat | Healthy |
 
 This 2×2 is one of the most useful triage tools you'll learn. If your Java heap dump looks clean but RSS climbs, *stop looking at the heap* — the leak is in direct `ByteBuffer`s, JNI, or memory the OS hasn't reclaimed. Chasing the wrong region wastes days.
-
----
-
-## Real-World Analogies
-
-- **Dominator tree = "the load-bearing wall."** In a building, some walls are decorative; others, if removed, collapse whole floors. The dominator tree finds the load-bearing reference — the one object holding up everything else.
-
-- **Slice retention = a sticky note on a filing cabinet.** You wanted one sticky note (the substring). But the way you grabbed it, the note is glued to the entire cabinet (the backing array), so you can't throw the cabinet away. Photocopy the note (copy the bytes) and the cabinet is free.
-
-- **Goroutine leak = workers waiting in a back room.** You keep sending new workers into a room to wait for instructions that never come. None leave. The room (and their lunchboxes — their captured references) fills up forever.
-
-- **Churn vs leak = a leaky faucet vs a clogged drain.** A leak (clogged drain) slowly fills the sink to overflow. Churn (faucet on full blast) keeps the sink at constant level but exhausts the water bill — the drain keeps up, but at huge cost.
-
----
-
-## Mental Models
-
-### The "snapshot diff" model
-
-A single heap dump tells you what's big *now*. The leak is often clearer in the *difference* between two dumps taken minutes apart under load. Whatever grew between snapshot A and snapshot B is your suspect. "What objects increased in count between these two dumps?" is frequently the fastest path to the culprit — it cuts through the noise of legitimately large baseline objects.
-
-### The retention-path walk
-
-When the profiler points at a suspect object, mentally (and literally, in the tool) walk *upward* toward the root: object ← held by entry ← held by map ← held by static field ← classloader. Each hop answers "and what keeps *that* alive?" until you hit a root. That walk *is* the bug report.
-
-### Allocation flame graph for churn
-
-For churn, picture a flame graph where width = bytes allocated. The widest frames are your hottest allocation sites. You're not asking "what's still alive?" (retention) but "what keeps *minting* garbage?" (rate). The fix usually lives in a hot loop.
 
 ---
 
@@ -233,31 +173,6 @@ The discipline is: *measure, classify, capture, rank, trace, fix, re-measure.* S
 
 ---
 
-## Pros & Cons
-
-**Heap dumps + dominator trees**
-- Pro: definitive — they show the exact retention path to a root.
-- Con: heavyweight (a multi-GB dump can pause or crash a tight container), and they only see the *managed* heap.
-
-**Allocation profilers (sampling)**
-- Pro: cheap enough for production; pinpoint churn hot spots.
-- Con: sampling means small/rare allocators may be missed; they answer "what allocates," not "what retains."
-
-**Periodic `MemStats` / metrics logging**
-- Pro: trivially cheap, always-on, great for detecting *that* you're leaking and the slope.
-- Con: tells you *that*, not *what* — you still need a dump to locate it.
-
----
-
-## Use Cases
-
-- A worker process whose memory grows one job at a time → heap-dump diff to find the per-job retained object.
-- A service with periodic latency spikes but flat memory → allocation profile to find churn in a hot path.
-- A Go gateway whose goroutine count climbs → goroutine dump to find the blocked-forever pattern.
-- A JVM app server whose RSS climbs while heap is flat → off-heap/native investigation, not a heap dump.
-
----
-
 ## Coding Patterns
 
 - **Copy-to-trim:** when returning a small slice/substring of a large buffer, copy it so the big backing store can be collected.
@@ -289,10 +204,24 @@ The discipline is: *measure, classify, capture, rank, trace, fix, re-measure.* S
 
 ---
 
-## Summary
+## Apply it
 
-- Leaks have **specific mechanisms** beyond unbounded maps: closures capturing large objects, Go slices pinning backing arrays, substring sharing, goroutine/thread leaks, and `ThreadLocal` leaks in pooled threads.
-- **Retention (a leak) and churn (allocation pressure) are different illnesses** with opposite cures and different tools — heap dumps vs allocation profiles.
-- **Retained size and the dominator tree** turn "this is big" into "this single object holds up everything"; **walk the retention path to a root** to get the real bug.
-- The **RSS-vs-live 2×2** is your triage compass: it tells you whether to look in the managed heap or off-heap before you waste time.
-- The methodology is **measure → classify → reproduce under load → capture → rank → trace → fix → re-measure**, and you always re-measure under the same load to prove the fix.
+1. Find a real component where **Memory Bugs** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
+
+## Verify your work
+
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
+
+## Review questions
+
+- Which boundary is most affected by Memory Bugs?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

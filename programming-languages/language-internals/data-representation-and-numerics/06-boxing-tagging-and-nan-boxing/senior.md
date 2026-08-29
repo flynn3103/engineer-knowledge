@@ -1,56 +1,11 @@
-# Boxing, Tagging & NaN-Boxing — Senior Level
+# Boxing, Tagging & NaN-Boxing — Senior
 
-> **Topic:** Boxing, Tagging & NaN-Boxing
-> **Focus:** Designing a complete value representation for a dynamic-language runtime — building a full NaN-boxed `Value`, comparing boxing vs tagging vs NaN-boxing as engineering design points, the "nun-boxing" inverse, and how the choice ripples into inline caches, GC, and the JIT.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Boxing, Tagging & NaN-Boxing** under failure, load, and change?
 
-## Introduction
-
-> Focus: **You are designing the value representation for a dynamic language. Boxing, tagging, NaN-boxing — which, and why, and what does the rest of the VM inherit from that choice?**
-
-The value representation is the single most consequential decision in a dynamic-language runtime. Every load, every store, every arithmetic operation, every property access, every GC scan touches a `Value`. Get the representation wrong and the entire VM pays a tax on every instruction; get it right and the common cases — array indexing, small-int arithmetic, float math — run near the speed of statically typed code. This page treats the three strategies not as curiosities but as *design points*, each with a coherent set of consequences for memory, speed, GC, and JIT complexity.
-
-The three are not equals competing on one axis. **Boxing** is the baseline: maximally uniform, maximally simple, maximally slow for primitives. **Pointer tagging** keeps small integers and immediates inline, paying with reduced integer range and per-use untagging; it's the workhorse of OCaml, Ruby, Lisp, and (for integers) V8. **NaN-boxing** makes *floats* the privileged inline case and squeezes everything else into NaN payloads; it's the choice of float-heavy runtimes — SpiderMonkey, LuaJIT, JavaScriptCore. The right answer depends on a single empirical question about your language: **are the hot values integers or floats?**
-
-This is also where representation stops being a local concern and becomes architectural. The tag you check on every operation is exactly the type the **inline cache** specializes on. The pointer you mask out of a NaN must still be *findable by the garbage collector* — so your GC must understand the encoding. The JIT's deoptimization guards are tag checks. The representation is the substrate that hidden classes, inline caches, and the optimizing compiler all stand on. We'll build a complete NaN-boxed `Value`, derive the encodings from first principles, and trace each consequence outward.
-
-In one sentence: **the value representation is a budget of bits and branches spent once and charged on every instruction — and boxing, tagging, and NaN-boxing are three coherent ways to spend it, each dictating the shape of the GC, the inline caches, and the JIT above it.**
-
----
-
-## Prerequisites
-
-- **Required:** `middle.md` — alignment tag bits, the OCaml/Ruby/V8 encodings, IEEE-754 NaN structure, the 48-bit pointer fact.
-- **Required:** Working understanding of garbage collection (at least: the GC must find all live pointers; precise vs conservative scanning).
-- **Required:** Comfort with how an interpreter dispatches and how a JIT specializes hot code (inline caches, deoptimization — at a conceptual level).
-- **Helpful:** Familiarity with at least one real VM's source (V8, SpiderMonkey, LuaJIT, JavaScriptCore, or CRuby).
-- **Helpful:** Two's complement, sign-extension, and the cost model of branch misprediction and cache misses.
-
-You do **not** yet need:
-
-- 5-level paging, ARM pointer authentication (PAC), or top-byte-ignore in depth (that's `professional.md`).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Value** | The uniform one-word representation of any runtime value: number, pointer, or immediate. |
-| **Boxed double / HeapNumber** | A `double` stored on the heap because the inline representation can't hold it (V8's name: HeapNumber). |
-| **Immediate** | A value encoded entirely inline: small int, `true`, `false`, `null`/`undefined`, sometimes chars/short symbols. |
-| **NaN-boxing** | Encoding non-double values in the NaN payload, so a `Value` is always a `double` bit pattern. |
-| **Nun-boxing (inverse)** | The inverse encoding: pointers/integers are canonical and doubles are *offset* by a constant so no real double collides with the NaN tag space. |
-| **EncodedJSValue** | JavaScriptCore's 64-bit value encoding (a tagged/offset-double hybrid). |
-| **Tag check** | The runtime test that classifies a `Value` before operating on it; on the JIT fast path it becomes a deopt guard. |
-| **Inline cache (IC)** | A per-call-site cache that records the observed type(s) and specializes; the tag is what it keys on. |
-| **Hidden class / Shape / Map** | A runtime descriptor of an object's field layout, enabling fast property access; orthogonal to but co-designed with value representation. |
-| **Precise GC** | A collector that knows exactly which words are pointers (vs scalars) — requires the GC to decode the value representation. |
-| **Conservative GC** | A collector that treats any word that *looks like* a pointer as one; tolerates not understanding the representation but over-retains. |
-| **Deoptimization** | Falling back from optimized code to the interpreter when a guard (often a tag check) fails. |
-| **Pointer compression** | Storing 32-bit offsets into a base instead of full 64-bit pointers, halving pointer memory (V8). |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -132,36 +87,6 @@ This is the deep reason the topic connects to hidden classes and inline caches: 
 ### 7. Pointer Compression: An Orthogonal Lever
 
 V8's **pointer compression** is a different bit-budget trick that interacts with tagging: store 32-bit offsets from a heap base instead of full 64-bit pointers, halving the memory of every pointer-bearing value and improving cache density. It composes with SMI tagging (the low bit still distinguishes int from pointer; the pointer is now a 31-bit compressed reference). It's a reminder that representation design is multi-dimensional: tag *and* width *and* base-relative addressing are all in play.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Representation charged per instruction** | The exchange rate at a border crossing — paid on *every* transaction, so a tiny per-trade cost dominates total throughput. |
-| **Boxing pushes cost to GC** | A warehouse that stores every item in its own crate: easy to label, but the cleanup crew drowns in crates. |
-| **Tagging/NaN-boxing pushes cost to ops** | Stamping a code on each item: storage is dense, but every handler must read the code before acting. |
-| **Nun-boxing inverse** | Deciding the *default* currency at the border so the most common trade needs no conversion, and the rare one pays. |
-| **GC must decode values** | The recycling sorter must read each item's material code to route it — mislabel one and it goes to the wrong stream (crash). |
-| **Tag is IC currency** | A frequent-flyer status that the gate agent checks to decide your boarding lane; the check must be instant. |
-| **Pointer compression** | Using apartment numbers (relative to a building) instead of full street addresses — shorter, denser, but only valid within the building. |
-
----
-
-## Mental Models
-
-### The "Where Do You Pay?" Model
-
-Every representation pays the same total complexity bill; they differ in *where*. Boxing pays at allocation and GC time (many small objects). Tagging and NaN-boxing pay at operation time (decode on every use). For a workload that allocates rarely but operates constantly, the operation cost dominates — favoring boxing's simplicity is wrong, and inline encodings win. For a workload that's allocation-bound, the calculus shifts. Always ask: *for this language's actual programs, where is the cost concentrated?*
-
-### The "Privileged Type" Model
-
-Each encoding crowns one type as royalty — stored canonically with zero decode cost — and exiles the rest to tagged/masked representations. Boxing crowns *pointers* (everything is a pointer). Tagging crowns *small integers and immediates*. NaN-boxing crowns *doubles*. Nun-boxing crowns *pointers/integers* and offsets doubles. Pick the royalty to match your hot path: a numeric scripting language crowns doubles, a symbolic/AST-heavy language crowns pointers, an integer-index-heavy language crowns small ints.
-
-### The "Representation as Foundation" Model
-
-Picture the VM as a building. The value representation is the foundation; the GC, inline caches, hidden classes, and JIT are the floors above. You can't change the foundation without disturbing every floor: a new tag scheme means new GC decode logic, new IC guards, new JIT fast paths. This is why mature VMs almost never change their core representation — the blast radius is the entire engine. Design it once, deliberately.
 
 ---
 
@@ -261,34 +186,6 @@ Here the *pointer* path is free and the *double* path pays an add/subtract — t
 
 ---
 
-## Pros & Cons
-
-| Aspect | Pros | Cons |
-|--------|------|------|
-| **NaN-boxing — float workloads** | Native FP arithmetic; uniform 8-byte value; dense arrays. | Pointer/int access masks; intricate, fragile bit logic. |
-| **NaN-boxing — uniformity** | One value type simplifies the interpreter's value plumbing. | Hard 48-bit pointer dependency; breaks under exotic address layouts. |
-| **Tagging — integer workloads** | Allocation-free small ints; portable (only needs alignment). | Reduced range; float operations box and slow down. |
-| **Boxing — simplicity** | Trivial GC; trivial reasoning; no decode on access. | Allocation/GC/cache-miss tax on every primitive. |
-| **Nun-boxing — pointer/int workloads** | Zero-cost pointer & int access. | Doubles pay an offset add; encoding still intricate. |
-| **All inline schemes — GC coupling** | Dense heap, fewer objects. | GC must decode every value; bugs are memory-safety bugs. |
-| **All inline schemes — JIT** | Tag checks double as IC guards / deopt guards. | Polymorphic sites mispredict; representation shapes JIT perf directly. |
-
----
-
-## Use Cases
-
-- **Designing a new dynamic-language VM:** pick the representation from the workload. Numeric/graphics scripting → NaN-boxing (Lua, JS). Symbolic/functional with integer-heavy logic → tagging (OCaml, Lisp, Ruby).
-- **Porting a runtime to a new architecture:** revisit the 48-bit pointer assumption; tagging ports more easily than NaN-boxing.
-- **Optimizing an existing interpreter:** moving from boxed-everything to tagged small ints often yields large wins on integer-heavy benchmarks with modest engineering.
-- **Co-designing GC and values:** when you can decode the representation, you can build a precise, moving GC; if you can't (FFI opacity), you may be forced conservative.
-
-Avoid inline encodings when:
-
-- **You're embedding in a host with opaque pointers** that violate alignment or address-width assumptions.
-- **Full 64-bit integer arithmetic with no boxing fallback is a hard requirement** — tagging and inline-int NaN-boxing both cap inline range.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Single source of truth for the encoding
@@ -383,130 +280,24 @@ return from_double(r);
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. You're designing a VM for a graphics-scripting language where 80% of operations are on floats. Which representation, and what's the one-line justification?
-2. Write the `is_double` predicate and explain why it must check the fraction, not just the exponent, to avoid misclassifying ±Infinity.
-3. Your precise GC traces a NaN-boxed value as a pointer and the program crashes. List two distinct ways the bug could have arisen.
-4. Explain how a JIT's deoptimization guard for `a + b` reduces to a tag check from the value representation.
-5. Contrast NaN-boxing and nun-boxing (offset doubles): which operation is zero-cost in each, and which pays? Which would JavaScriptCore-style code choose and why?
-6. A moving GC compacts the heap and relocates an object. What must happen to every NaN-boxed Value that pointed at it, and what goes wrong if you write the raw new address?
-7. Why can a representation that NaN-boxes doubles *also* tag small integers inline? What's the cost of supporting both?
-8. Your inline-int fast path adds two near-maximal 32-bit ints. Trace what the representation does, and explain the silent transition the script can't observe.
+1. State the system invariant that **Boxing, Tagging & NaN-Boxing** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
----
+## Verify your work
 
-## Cheat Sheet
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
 
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│        VALUE REPRESENTATION AS A DESIGN POINT (SENIOR)           │
-├──────────────────────────────────────────────────────────────────┤
-│ PRIVILEGED TYPE (zero-decode, inline):                           │
-│   boxing       → pointers (everything is a pointer)               │
-│   tagging      → small ints + immediates                         │
-│   NaN-boxing   → doubles (optionally + inline ints)              │
-│   nun-boxing   → pointers/ints; doubles stored OFFSET            │
-├──────────────────────────────────────────────────────────────────┤
-│ WHERE YOU PAY:                                                   │
-│   boxing       → allocator + GC (many small objects)             │
-│   inline       → every operation (decode/untag/mask)             │
-├──────────────────────────────────────────────────────────────────┤
-│ CHOOSE BY WORKLOAD:                                              │
-│   floats dominate   → NaN-boxing   (Lua, JS, SpiderMonkey)        │
-│   integers dominate → tagging      (OCaml, Ruby, Lisp)           │
-│   pointers dominate → nun-boxing   (JavaScriptCore-style)        │
-├──────────────────────────────────────────────────────────────────┤
-│ RIPPLES UPWARD:                                                  │
-│   GC must DECODE every value to find pointers (precise GC)        │
-│   tag check == inline-cache guard == JIT deopt guard             │
-│   pointer compression tightens the tag bit-budget                │
-├──────────────────────────────────────────────────────────────────┤
-│ MUST-HANDLE EDGES:                                               │
-│   canonicalize real NaN (don't alias boxed tags)                 │
-│   ±Inf / -0.0 are real doubles (check the fraction!)             │
-│   48-bit pointer overflow; moving-GC re-box; FFI pointers        │
-└──────────────────────────────────────────────────────────────────┘
-```
+## Review questions
 
----
-
-## Summary
-
-- The **value representation** is the most consequential decision in a dynamic-language VM because it is charged on *every* instruction: classify (tag check), extract (untag), operate.
-- The three strategies are **design points**, each crowning one **privileged type** stored inline with zero decode cost: boxing crowns pointers, tagging crowns small ints/immediates, NaN-boxing crowns doubles. The **nun-boxing** inverse crowns pointers/ints and stores doubles *offset* (JavaScriptCore's spirit).
-- The choice is **workload-relative**: privilege whatever your language operates on most. Float-heavy → NaN-boxing; integer-heavy → tagging; pointer/symbol-heavy → nun-boxing.
-- They differ in *where* complexity lands: boxing pushes it to the **allocator and GC** (many objects); inline encodings push it to **every operation** (decode logic).
-- A complete NaN-boxed `Value` makes doubles the default (no encoding), sets the **sign + qNaN** for 48-bit pointers, and uses small qNaN-space tags for **immediates** (`true`/`false`/`null`) and optionally **inline 32-bit ints** — combining tagging and NaN-boxing.
-- The representation **ripples upward**: the precise GC must *decode* every value to find pointers (a decode bug is a memory-safety bug); the **tag check is the inline-cache and JIT deopt guard**; pointer compression tightens the bit budget.
-- The **hard edges** are non-negotiable: canonicalize genuine NaN so it doesn't alias boxed tags, treat ±Inf and `-0.0` as real doubles (check the fraction), handle 48-bit pointer overflow, re-box pointers after moving-GC compaction, and guard the inline-int overflow/promotion path.
-- A senior's instinct: representation is a **foundation** — design it once, deliberately, from the measured value distribution, knowing the GC, ICs, and JIT all stand on it.
-
----
-
-## Further Reading
-
-- *Crafting Interpreters* — Robert Nystrom: the canonical, complete NaN-boxing walkthrough with all edge cases.
-- *JavaScriptCore source & blog* — the `EncodedJSValue` encoding (offset-double / nun-boxing-style) and "Speculation in JavaScriptCore."
-- *SpiderMonkey* — the `JS::Value` boxing/NaN-boxing history (punbox vs nunbox).
-- *LuaJIT* — Mike Pall's writings on the NaN-boxed `TValue` and why it enables the trace JIT's speed.
-- *V8 design docs* — SMI representation, HeapNumber, and "Pointer Compression in V8."
-- *Real World OCaml* — tagged 63-bit ints and the GC's interaction with the representation.
-- *The Garbage Collection Handbook* — Jones, Hosking, Moss: precise vs conservative scanning and tagged values.
-- *Inline Caches* — the original Deutsch & Schiffman Smalltalk work and modern hidden-class IC papers.
-
----
-
-## Related Topics
-
-- This folder: [`junior.md`](junior.md), [`middle.md`](middle.md), [`professional.md`](professional.md), [`interview.md`](interview.md), [`tasks.md`](tasks.md).
-- Sibling topics: IEEE-754 floating-point representation and integer representation under `data-representation-and-numerics/`.
-- Cross-cutting: garbage collection, interpreter/VM and JIT design, inline caches and hidden classes under `language-internals/` (conceptual link — the value tag is what those mechanisms specialize on).
-
----
-
-## Diagrams & Visual Aids
-
-### Where Each Strategy Pays Its Cost
-
-```text
-                allocator/GC cost        per-operation cost
-BOXING          ███████████████          ░
-TAGGING         ░░                       ████████
-NaN-BOXING      ░░                       ████████ (floats: ░)
-NUN-BOXING      ░░                       ████████ (ptrs/ints: ░)
-```
-
-### Complete NaN-Boxed Value Map
-
-```text
-bits & QNAN != QNAN ─────────────────────────────▶ DOUBLE (native, no decode)
-
-bits & QNAN == QNAN:
-   sign set (TAG_PTR) ──────────────▶ POINTER  (mask low 48 bits)
-   INT_TAG high bit ────────────────▶ SMALL INT (read low 32 bits)
-   low code 1/2/3 ──────────────────▶ false / true / null
-```
-
-### Representation as the VM Foundation
-
-```text
-        ┌───────────────────────────────────────┐
-        │   JIT  (deopt guards = tag checks)     │
-        ├───────────────────────────────────────┤
-        │   Inline Caches (keyed on the tag)     │
-        ├───────────────────────────────────────┤
-        │   Garbage Collector (decodes values)   │
-        ├───────────────────────────────────────┤
-        │   VALUE REPRESENTATION  ◄── foundation │
-        └───────────────────────────────────────┘
-   change the foundation → disturb every floor above
-```
-
-### NaN-Boxing vs Nun-Boxing (who pays?)
-
-```text
-NaN-boxing:   DOUBLE  free  ──  POINTER masks  ──  INT in payload
-nun-boxing:   POINTER free  ──  INT free       ──  DOUBLE + OFFSET (add/sub)
-              └ pick the free path = your hottest operation ┘
-```
+- Which invariant must remain true when Boxing, Tagging & NaN-Boxing fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

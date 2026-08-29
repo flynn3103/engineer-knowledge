@@ -1,33 +1,12 @@
-# Allocators — Senior Level
+# Allocators — Senior
 
-> **Topic:** Allocators
-> **Focus:** Design trade-offs across modern general-purpose allocators (jemalloc, tcmalloc, mimalloc, glibc, scudo), thread scalability, fragmentation control, RSS vs. virtual size, returning memory to the OS, and language-level allocator hooks.
+<!-- level-focus -->
+At senior level, focus on this question:
 
+> Which system invariant is affected by **Allocators** under failure, load, and change?
+
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
-
-## Introduction
-
-At scale, the allocator is rarely the *correctness* problem and frequently the *performance* problem. On a 64-core box running a multithreaded service, a naive global-lock allocator serializes every thread through a single mutex and your throughput collapses. Meanwhile a long-running process can see its resident memory creep upward for hours — not because of a leak, but because of *fragmentation* and the allocator's reluctance to give pages back to the OS.
-
-This tier is about the *design space* of production general-purpose allocators. They converge on a remarkably similar template — **per-thread caches over per-arena bins over the OS** — but differ in the details that matter: how they shard to avoid lock contention, how aggressively they bound fragmentation, and how and when they return memory. We'll compare jemalloc, tcmalloc, mimalloc, glibc malloc, and scudo, and connect allocator design to the language hooks (`operator new`, `std::pmr`, Rust's `GlobalAlloc`, Go's mheap, Zig's allocator-passing) that let you choose or replace the allocator.
-
-## Prerequisites
-
-- The middle-tier mechanisms: size classes, segregated free lists, bins, splitting/coalescing, bump/pool/slab/buddy allocators.
-- Concurrency basics: locks, contention, false sharing, atomics, thread-local storage.
-- Virtual memory: pages, page tables, the difference between *virtual address space* and *physical RSS*, demand paging, `madvise`.
-- Cache hierarchy: lines, locality, why touching a fresh page costs a page fault.
-
-## Glossary
-
-- **tcache / thread cache:** A per-thread cache of free objects that satisfies most allocations with no lock.
-- **Arena:** A largely independent sub-heap with its own bins and lock; threads map to arenas to spread contention.
-- **Central free list:** A shared (locked) reservoir that thread caches draw from and flush to in batches.
-- **Free-list sharding:** mimalloc's technique of giving each *page* its own free list keyed by the owning thread, making cross-thread frees cheap and local frees lock-free.
-- **Decay / purging:** Returning unused pages to the OS after a delay (`madvise(MADV_DONTNEED/MADV_FREE)`).
-- **RSS (Resident Set Size):** Physical memory actually backing your process — what the OS and OOM killer care about.
-- **Blowup:** The pathological fragmentation where a multithreaded allocator's memory grows proportional to thread count.
-- **MADV_FREE vs MADV_DONTNEED:** Lazy vs. eager page reclamation hints to the kernel.
 
 ## Core Concepts
 
@@ -109,22 +88,6 @@ The allocator isn't only a C concern — every systems language exposes a seam t
 
 The senior takeaway: arena and pool patterns aren't exotic — they're surfaced as first-class tools (`std::pmr`, `Vec::new_in`, Zig's `ArenaAllocator`) precisely because choosing the right allocator per data structure is a routine performance lever.
 
-## Real-World Analogies
-
-- **Per-thread caches = each barista has their own till.** They make change from their own drawer (no waiting). Only when a drawer runs low or overflows does someone walk to the central safe (the locked central list), and they refill in a stack of bills, not one coin at a time.
-- **Arenas = multiple checkout lanes.** One lane (lock) serializes everyone; N lanes spread the crowd. Assign shoppers (threads) to lanes to minimize queueing.
-- **Decay/purging = returning rented equipment.** You don't return the ladder the instant you finish one shelf — you might need it again in a minute. You return it after it's sat idle for a while, balancing rental cost (RSS) against re-fetch cost (page faults).
-
-## Mental Models
-
-1. **Contention, not search, dominates at scale.** The expensive thing is the shared cache line and the lock, not the fit algorithm. Design pushes work into per-thread, lock-free fast paths.
-
-2. **RSS is a hysteresis system.** Memory comes from the OS quickly under load and goes back *slowly and deliberately* (decay). "My RSS won't drop" is usually decay/`MADV_FREE` behavior, not a leak — verify with allocator stats before chasing a phantom.
-
-3. **Allocator choice is a workload bet.** You're betting on a particular distribution of sizes, lifetimes, and cross-thread free patterns. The right move is to *measure*, not to cargo-cult "jemalloc is faster."
-
-4. **The fast path is everything.** 95%+ of allocations should be a handful of instructions on a thread-local list. Everything else (arena refill, page purge, syscall) is rare and amortized.
-
 ## Code Examples
 
 ### Swapping the global allocator in Rust
@@ -194,30 +157,6 @@ void dump_stats(void) {
 
 The gap between `allocated` (what your program actually holds) and `resident` (physical pages) *is* your fragmentation + undecayed-page bill — the number to watch on a long-running service.
 
-## Pros & Cons
-
-**Per-thread caching + arenas (the modern template)**
-
-- Pros: near-linear scaling across cores; lock-free common path; great locality.
-- Cons: more memory in flight (caches per thread); blowup risk on bad remote-free patterns; more tuning surface.
-
-**Aggressive purging (low decay)**
-
-- Pros: low, predictable RSS; friendly to co-tenant processes and OOM limits.
-- Cons: page-fault/zeroing churn if the workload reallocates the just-freed pages; higher syscall rate.
-
-**Hardened allocators (scudo, hardened_malloc)**
-
-- Pros: detect/contain heap corruption, mitigate exploits.
-- Cons: measurable throughput and memory overhead from checks and quarantine.
-
-## Use Cases
-
-- **High-throughput multithreaded C++/Rust services:** jemalloc or tcmalloc to cut lock contention and control RSS.
-- **Latency-sensitive systems with tight RSS budgets:** tune decay; prefer allocators with explicit purge control.
-- **Security-exposed native code (browsers, Android, parsers of untrusted input):** scudo / hardened_malloc.
-- **Per-data-structure optimization:** `std::pmr` / `Vec::new_in` / Zig arena passing to localize allocation strategy without global changes.
-
 ## Coding Patterns
 
 - **Pick the allocator globally, optimize locally.** Set a good `#[global_allocator]` / link jemalloc for the whole process; then use `pmr`/`new_in`/arenas for the hottest specific structures.
@@ -242,6 +181,26 @@ The gap between `allocated` (what your program actually holds) and `resident` (p
 - **Benchmarking the wrong thing.** A loop that allocates and immediately frees one size lives entirely in the thread cache and tells you nothing about fragmentation. Use representative size/lifetime mixes.
 - **Assuming Go/Java let you swap allocators.** They don't expose that seam the way C/C++/Rust do; you tune the runtime/GC instead.
 
-## Summary
+---
 
-Modern general-purpose allocators converge on one template — **lock-free per-thread caches over sharded, locked arenas over the OS** — because at scale the binding constraint is *lock contention*, not fit search. They differ in how they shard (jemalloc/glibc arenas, tcmalloc per-CPU caches, mimalloc per-page free-list sharding), how aggressively they bound *fragmentation* and *blowup*, and how they manage **RSS** via decay-based purging (`MADV_FREE`/`MADV_DONTNEED`). The metric that actually matters is RSS and tail latency under a real workload, not microbenchmark throughput — and the honest engineering answer to "which allocator" is to measure. Languages surface this design space as first-class hooks (`operator new`/`std::pmr`, Rust `GlobalAlloc`/`Allocator`, Go's mcache/mcentral/mheap, Zig's allocator-passing), letting you pick the allocator globally and optimize allocation strategy locally. The professional tier turns these levers into a concrete tuning and profiling workflow.
+## Apply it
+
+1. State the system invariant that **Allocators** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
+
+## Verify your work
+
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
+
+## Review questions
+
+- Which invariant must remain true when Allocators fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

@@ -1,8 +1,11 @@
 # Ecosystem & Tooling Maturity — Senior
 
-> **What?** Ecosystem maturity treated as a *risk surface* and a *moving target* — not a fixed property you check once. Junior counted the ecosystem; middle vetted individual libraries. Senior reasons about the ecosystem as a whole over the *lifetime* of the system: the long-tail gaps that kill you silently, supply-chain risk as a structural property, dependency sprawl, and the question of when a young ecosystem is acceptable risk versus disqualifying.
-> **How?** Stop asking "does the ecosystem have what I need *today*?" and start asking "what's the *worst* gap I'll hit in two years, how exposed am I to the failure modes of code I don't control, and what's my move when a dependency goes bad?" Maturity is not a checkbox — it's a bet on a moving system.
+<!-- level-focus -->
+At senior level, focus on this question:
 
+> Which system invariant is affected by **Ecosystem & Tooling Maturity** under failure, load, and change?
+
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## 1. Maturity is a moving target, not a snapshot
@@ -94,7 +97,7 @@ Young ecosystems aren't automatically wrong. The senior skill is calibrating the
 | Team capacity | Strong team that *can* fill gaps in-house | Team already stretched |
 | The specific gaps | Cosmetic / fillable | Auth, crypto, your cloud's SDK, observability |
 | Trajectory | Clearly accelerating, well-funded | Stalled, single-vendor, declining |
-| Escape cost | Cheap to migrate out | Deep lock-in (see [`08-language-longevity-and-lock-in-risk`](../08-language-longevity-and-lock-in-risk/)) |
+| Escape cost | Cheap to migrate out | Deep lock-in (see [`08-language-longevity-and-lock-in-risk`](../08-language-longevity-and-lock-in-risk/README.md)) |
 
 Concrete: choosing a young ecosystem to build an *internal CLI* used by your team is fine — if a gap appears, you fill it or switch, and nobody outside is hurt. Choosing the *same* young ecosystem for the *core ledger of a bank* is reckless — the missing FIPS-validated crypto library or the absent first-party cloud SDK isn't a Tuesday inconvenience, it's a launch-blocking, audit-failing crisis.
 
@@ -141,16 +144,24 @@ When you evaluate a language for an organization that will grow, **simulate the 
 
 ---
 
-## 10. What's next
+## Apply it
 
-| Topic | File |
-|---|---|
-| Org-level golden paths, private registries, SBOMs, governance, the economics of tooling investment | `professional.md` |
-| Interview questions — staff-level supply-chain and adoption-risk reasoning | `interview.md` |
-| Practice — risk-audit a dependency tree, score young vs mature ecosystems | `tasks.md` |
+1. State the system invariant that **Ecosystem & Tooling Maturity** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
-Related: ecosystem risk feeds directly into [`05-when-to-introduce-a-new-language`](../05-when-to-introduce-a-new-language/) and [`07-total-cost-of-ownership-and-team-skills`](../07-total-cost-of-ownership-and-team-skills/).
+## Verify your work
 
----
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
 
-**Memorize this:** maturity is a moving target, not a checkbox. The easy 80% is always there — the long tail (your specific DB driver, your cloud's SDK, your observability agent) is where ecosystems silently kill you. Supply-chain risk, dependency sprawl, and compile-time-at-scale are structural properties of the ecosystem you pick. A young ecosystem isn't disqualifying — but choosing it means *you* are personally signing up for the gaps.
+## Review questions
+
+- Which invariant must remain true when Ecosystem & Tooling Maturity fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

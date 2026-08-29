@@ -1,30 +1,12 @@
-# Weak References — Middle Level
-> **Topic:** Weak References
-> **Focus:** The mechanisms — reachability strength, clearing semantics, notification queues, and weak-keyed/weak-valued maps.
+# Weak References — Middle
 
+<!-- level-focus -->
+At middle level, focus on this question:
+
+> Where does **Weak References** belong in a maintainable component, and which trade-off selects the design?
+
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
-
-## Introduction
-
-At the junior level a weak reference was a "maybe-pointer." Now we look at *how* the runtime decides when to clear it, *how* it can tell you that clearing happened, and *how* the standard library packages all of this into ready-made collections (`WeakHashMap`, `WeakValueDictionary`, `WeakMap`). The recurring decision you'll learn to make is **which strength to use** and **which side of a map to make weak** — choosing wrong silently leaks memory or silently loses data.
-
-## Prerequisites
-
-- Junior tier: weak references reference without retaining; you must dereference defensively.
-- A working idea of GC *phases*: the collector traces reachable objects from roots, then reclaims the rest.
-- Maps/dictionaries and the concept of a key's lifetime vs. a value's lifetime.
-
-## Glossary
-
-| Term | Meaning |
-|------|---------|
-| **Soft reference** | Cleared only under memory pressure (Java); for memory-sensitive caches. |
-| **Weak reference** | Cleared at the next GC once the referent is only weakly reachable. |
-| **Phantom reference** | Never returns the object; enqueued *after* the object is finalized, for post-mortem cleanup. |
-| **ReferenceQueue** | A queue the GC pushes references onto when it clears them, so you can run cleanup. |
-| **Reachability strength** | The "strongest" kind of reference chain that reaches an object; determines its fate. |
-| **Weak-keyed map** | Entry dies when the *key* becomes unreachable elsewhere (`WeakHashMap`, `WeakKeyDictionary`). |
-| **Weak-valued map** | Entry dies when the *value* becomes unreachable elsewhere (`WeakValueDictionary`). |
 
 ## Core Concepts
 
@@ -83,12 +65,6 @@ This is the choice juniors most often get wrong. A map associates keys with valu
 - **Weak-valued map** (Python `WeakValueDictionary`, common via a wrapper in Java): the entry is collected when the **value** has no other strong references. Use for **canonicalizing / interning**: "look objects up by id, but don't keep them alive just because they're in the registry."
 
 A classic trap: putting the **value** in a `WeakHashMap` *keyed by something else* but having the value strongly reference the key — that strong link from value to key keeps the key alive, so the entry never clears. Weak-collection design requires checking that the weak side isn't kept alive through the back door.
-
-## Mental Models
-
-- **"Strength is a max over all paths."** To predict an object's fate, find the *strongest* reference reaching it. Everything weaker is noise until the stronger paths vanish.
-- **Soft = "keep until it hurts," Weak = "keep only while convenient," Phantom = "tell me when it's truly dead."**
-- **A weak collection is self-pruning, but only as fast as the GC.** Entries don't vanish the instant the referent is unused — they vanish at some GC *after* that, and the slot lingers until the queue is drained.
 
 ## Code Examples
 
@@ -159,25 +135,6 @@ function read(node) {
 - **Canonicalize-without-pinning:** use a weak-valued map (interning table) so the registry never prolongs lifetimes.
 - **Notify-and-purge:** pair weak references with a queue (or `FinalizationRegistry`) to delete stale bookkeeping promptly instead of waiting to stumble on a cleared reference.
 
-## Pros & Cons
-
-**Pros**
-- Standard weak collections turn "self-cleaning cache/registry" into a one-liner.
-- ReferenceQueues let cleanup be prompt and event-driven instead of polling-by-accident.
-- The strength spectrum gives precise control over *how reluctantly* something is kept.
-
-**Cons**
-- Choosing the wrong side (key vs value) to weaken silently leaks or silently drops data.
-- Queue-draining is your responsibility; forget it and stale slots accumulate (a "logical" leak even though referents are freed).
-- Soft references' "under memory pressure" rule is JVM-implementation-defined and unpredictable.
-
-## Use Cases
-
-- **Canonicalizing maps / interning tables** — weak-valued.
-- **Per-object metadata / side tables** — weak-keyed.
-- **Caches** — soft (Java) or weak depending on whether you want "keep until memory tight" vs "keep only while in active use."
-- **Listener registries** — weak references to subscribers, drained via a queue.
-
 ## Best Practices
 
 - **Decide key-weak vs value-weak by asking "what should drive eviction?"** If the *annotated object* dying should remove the entry, weaken the key. If the *stored object* being unused should remove it, weaken the value.
@@ -192,6 +149,26 @@ function read(node) {
 - **Polling a queue too rarely.** Referents are freed (good) but the map's internal slots and the reference objects themselves pile up until you drain.
 - **Assuming a value-weak map keeps your object alive.** It does not — if you stop holding the value, it can vanish from the dictionary between two lookups.
 
-## Summary
+---
 
-The mechanism behind weak references is a **reachability spectrum** — strong, soft, weak, phantom — where the runtime keeps each object according to the *strongest* path that reaches it, and clears weaker references when stronger paths vanish. **ReferenceQueues** turn passive clearing into active notification so you can purge stale bookkeeping. The standard weak collections package this up, but the design choice that matters is **which side to weaken**: weaken the key to annotate objects, weaken the value to canonicalize them. Get that backwards and you leak or lose data — which is exactly the failure mode senior engineers learn to design against.
+## Apply it
+
+1. Find a real component where **Weak References** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
+
+## Verify your work
+
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
+
+## Review questions
+
+- Which boundary is most affected by Weak References?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

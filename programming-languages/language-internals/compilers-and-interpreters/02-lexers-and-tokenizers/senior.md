@@ -1,20 +1,11 @@
-# Lexers & Tokenizers — Senior Level
+# Lexers & Tokenizers — Senior
 
-> **Topic:** Lexers & Tokenizers
-> **Focus:** Where the clean lexer/parser separation breaks — significant whitespace, interpolation, and context-sensitivity.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Lexers & Tokenizers** under failure, load, and change?
 
-## Introduction
-
-The textbook story — tokens are a regular language, so a lexer is a clean,
-context-free-from-the-parser DFA — is *mostly* true and *importantly* false. Real
-languages have features where the lexer must know about indentation state, re-enter
-expression mode mid-string, or even consult the symbol table to tokenize correctly.
-The senior skill is recognizing these breaches of the clean separation and the
-standard techniques for handling them, because they're where lexer bugs and
-language-design pain concentrate.
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Significant Whitespace: INDENT/DEDENT
@@ -76,18 +67,6 @@ Other context-sensitive tokenization:
 
 ---
 
-## Mental Models
-
-- **"A DFA with a backpack."** Real lexers are finite automata augmented with state —
-  an indentation stack, a mode stack — when pure regularity isn't enough.
-- **"Synthetic tokens."** INDENT/DEDENT are tokens the parser sees but the programmer
-  never typed; the lexer manufactures structure.
-- **"The wall has doors."** The lexer/parser separation is a useful wall, but
-  interpolation, the lexer hack, and JS `/` are the doors that let semantic/grammatical
-  context leak back into tokenization.
-
----
-
 ## Code Examples
 
 INDENT/DEDENT with an indentation stack (sketch):
@@ -138,12 +117,24 @@ state STRING:  on '"'   -> emit STRING_END
 
 ---
 
-## Summary
+## Apply it
 
-The clean "tokens are regular" model holds until real languages demand state and
-context: significant whitespace needs an indentation stack emitting synthetic
-INDENT/DEDENT tokens; string interpolation needs lexer modes that re-enter expression
-parsing; and the C lexer hack, JS `/` ambiguity, and C++ `>>` show tokenization
-consulting semantic or grammatical context. Senior lexer work is modeling that state
-explicitly, keeping the inevitable feedback minimal and documented, and testing the
-seams where the lexer/parser wall has doors.
+1. State the system invariant that **Lexers & Tokenizers** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
+
+## Verify your work
+
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
+
+## Review questions
+
+- Which invariant must remain true when Lexers & Tokenizers fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

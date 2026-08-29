@@ -1,53 +1,11 @@
-# Practical Type-System Patterns — Professional Level
+# Practical Type-System Patterns — Professional
 
-> **Focus:** Applying these patterns at system scale — across service boundaries, in long-lived codebases, in teams. Migration strategy, the cost model, organizational tradeoffs, and war stories where a type either saved a release or where over-typing sank one.
+<!-- level-focus -->
+At professional level, focus on this question:
 
-> **Topic:** Practical Type-System Patterns
+> How should teams adopt and operate **Practical Type-System Patterns** with measurable outcomes and limited coordination?
 
----
-
-## Introduction
-
-> Focus: **Where do these patterns pay off across a whole system and a whole team — and what is the real, fully-loaded cost of adopting them in a codebase that already exists, that ships daily, and that twenty other people maintain?**
-
-By now the patterns are clear: illegal states unrepresentable, parse-don't-validate, newtypes, smart constructors, typestate, phantom types. The junior-through-senior pages established *what* and *how*. This page is about *where, when, how much, and at what cost* — the decisions you make as the person responsible for an architecture, not just a function.
-
-At system scale, new forces appear that don't exist in a single file:
-
-- **Boundaries are everywhere.** Every HTTP handler, every queue consumer, every DB read, every gRPC call is a place where typed and untyped worlds meet. "Parse at the boundary" stops being a slogan and becomes an *architectural layer* — and you have to decide where that layer lives and who owns it.
-- **The type is a contract across teams.** When your `Money` type or `UserId` newtype crosses a service boundary, it must survive serialization, versioning, and a team that didn't read your design doc. The type's guarantee is only as strong as its weakest deserialization path.
-- **Migration, not greenfield.** You almost never get to design the perfect type model from scratch. You inherit a million lines of `any`, nullable-everything, and string-typed ids, and you have to improve it *incrementally* without halting feature work.
-- **The cost is organizational.** A clever type isn't free even if it compiles instantly — it costs every future reader's comprehension, every onboarding engineer's ramp, every refactor's risk. The fully-loaded cost includes people, not just CPU.
-
-> 🎓 **Why this matters for a professional:** Your leverage is no longer the bugs *you* prevent — it's the bugs *the whole org* can no longer write. A well-placed newtype at a service boundary can eliminate a category of incident across every team that consumes your API, for years. But a misjudged typestate API can become the thing everyone files tickets to work around. The professional skill is portfolio management: investing type-system effort where the risk-adjusted return is highest, and explicitly *declining* to over-invest where it isn't.
-
----
-
-## Prerequisites
-
-- **Required:** Fluency with every pattern from the junior through senior pages.
-- **Required:** Experience owning a service or library with external consumers.
-- **Required:** Having done at least one incremental migration of a real codebase (typing, lint, framework, etc.).
-- **Helpful:** Exposure to gradual typing (TS `strict` rollout, Python `mypy`, Sorbet for Ruby), and to schema/codegen tooling (OpenAPI, protobuf, GraphQL).
-- **Helpful:** Having been on call for an incident caused by a type-shaped bug (null, wrong-id, unvalidated input).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Boundary layer** | The architectural layer (DTOs, deserializers, request parsers) where untyped external data becomes typed domain values, and vice versa. |
-| **Anti-corruption layer (ACL)** | A boundary that translates an external system's model into your clean internal model, preventing their concepts from leaking in. |
-| **Gradual typing** | Adding/strengthening types incrementally in an existing codebase rather than all at once. |
-| **`strict` rollout** | Enabling stricter type checking (e.g. TS `strictNullChecks`) file-by-file or with a ratchet so it never regresses. |
-| **Ratchet** | A CI mechanism that prevents new violations while tolerating existing ones, so the count only goes down. |
-| **Codegen** | Generating types/clients from a schema (OpenAPI, protobuf, GraphQL SDL) so the wire contract and the types can't drift. |
-| **Cost model** | The fully-loaded cost of a type technique: design time, read time, onboarding, refactor friction, build time, error-message legibility. |
-| **Misuse-resistance** | The degree to which an API makes incorrect use impossible or hard, as opposed to merely documented as wrong. |
-| **Type-level contract** | A guarantee expressed in a type that crosses a team or service boundary and must hold on both sides. |
-| **Smart constructor at the edge** | Routing all deserialized data through validating constructors so even internal/DB data is re-parsed into valid domain types. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -111,36 +69,6 @@ At scale, the failure mode flips: juniors under-type; seniors sometimes *over*-t
 - A runtime check plus a test communicates the constraint more clearly to more people.
 
 Choosing the runtime check here is not a failure of skill — it's the skill. The goal is shipped, maintainable, correct software, not maximal type cleverness.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Boundary layer** | Customs at a border: everything entering is inspected and stamped once; inside the country, you move freely without re-inspection. |
-| **Anti-corruption layer** | A translator at a negotiation who converts the other party's terms into yours, so their jargon never confuses your team. |
-| **Ratchet migration** | A socket wrench that only turns one way — the bolt tightens with every motion and never loosens. |
-| **Type as cross-team contract** | A shipping container's ISO standard: it survives transfer between truck, ship, and crane because every party reconstructs the same interface. |
-| **Cost model / portfolio** | An investment portfolio: you allocate limited capital (cleverness) to the highest risk-adjusted returns, and decline low-return bets. |
-| **Misuse-resistance** | Child-proof caps: the *wrong* way to open is engineered to be hard, so a whole population of accidents never happens. |
-| **Over-typing sinking a release** | Gold-plating a bridge so heavily it's too expensive to finish and too rigid to adapt when the river shifts. |
-
----
-
-## Mental Models
-
-### The "guarantee ends at the wire" model
-
-Every type guarantee is local to one process's memory. The moment a value is serialized — to JSON, protobuf, a DB column — its type is gone; it's bytes. At every boundary you must *re-parse* to re-establish the guarantee, and you must assume the sender is malicious or buggy. Draw your system as islands of strong typing connected by untyped wires; the parsing layer is the bridge guard on each island. A guarantee you don't reconstruct at the boundary is a guarantee you don't have.
-
-### The "improvement as a monotonic function" model
-
-In a long-lived codebase, don't think in terms of "is it perfectly typed?" Think in terms of *direction*: is the type safety monotonically increasing? A ratchet that never regresses, applied over a year of normal feature work, transforms a codebase more reliably than any heroic rewrite — which usually stalls. Your job is to install the ratchet and keep the gradient pointing up, not to reach the summit in one leap.
-
-### The "cleverness is a shared bank account" model
-
-The team has one account of comprehension capital. Every clever type withdraws from it; every clear, conventional type leaves it untouched. Withdraw for the bets that prevent expensive, likely incidents (auth, money, public API). Don't drain the account on internal code where a comment and a test would do. When the account is overdrawn, velocity collapses: PRs stall in review, refactors get abandoned, and people route around the "scary" modules. Manage the balance.
 
 ---
 
@@ -247,31 +175,6 @@ impl TryFrom<RawOrder> for Order {
 
 ---
 
-## Pros & Cons
-
-| Aspect | Pros | Cons |
-|--------|------|------|
-| **System-wide bug prevention** | A boundary newtype eliminates a bug class across every consumer, for years. | Requires discipline to keep *all* boundaries parsing; one leaky deserializer breaks the guarantee. |
-| **Cross-team contracts** | Codegen from a shared schema stops type drift between services. | Schema/codegen tooling is infrastructure to build and maintain. |
-| **Migration** | The ratchet improves a codebase monotonically during normal work, no rewrite. | Slow; the baseline of debt lingers for a long time. |
-| **Misuse-resistance** | Chokepoint APIs made un-misusable prevent org-wide incidents. | Over-applied at a chokepoint, a bad type becomes an org-wide friction everyone fights. |
-| **Cost control** | Explicit cost model directs effort to highest-ROI spots. | Requires saying "no" to clever types people *want* to write — political cost. |
-| **Onboarding** | Conventional patterns ramp new hires fast. | Heavy type machinery raises the ramp and creates bus-factor risk. |
-
----
-
-## Use Cases
-
-- **Service boundaries:** parse inbound payloads into domain types; re-parse cross-service values; codegen shared contracts.
-- **High-risk domains org-wide:** money, identity/auth, PII, anything where a wrong value is an incident — invest type effort heavily here.
-- **Chokepoint libraries:** an internal SDK or client used by many teams is the highest-leverage place for typestate/newtype misuse-resistance.
-- **Legacy hardening:** ratchet `strictNullChecks`/`mypy`/Sorbet onto an existing codebase; introduce newtypes for the ids that have caused incidents.
-- **Event/message schemas:** discriminated unions for events, with explicit unknown-case handling at version boundaries.
-
-**Decline to invest** when: the code is a short-lived prototype; the domain rules are still churning weekly; the team can't maintain the technique; or a runtime check plus a test communicates the rule to more people more clearly.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: ports-and-adapters with type-enforced core
@@ -330,12 +233,24 @@ switch (event.type) {
 
 ---
 
-## Summary
+## Apply it
 
-- At system scale, "parse, don't validate" becomes an **architectural boundary layer**: inbound raw data is parsed into rich domain types in one owned place, the core operates only on typed values, and outbound values are serialized at the edge. The compiler enforces that nothing untyped reaches the core.
-- **Every type guarantee is local to a process.** It ends at the wire. Across service boundaries you must *re-parse* deserialized data — even from your own DB and sister services — and treat it as untrusted. Use **codegen from a shared schema** so cross-team types can't drift.
-- **Cross-version sum types** are dangerous even when local exhaustiveness is green; design explicit unknown-case handling into wire protocols so old consumers survive new cases.
-- **Migrate with a ratchet, not a rewrite:** turn on the stricter check, grandfather existing violations, fail CI on new ones, and burn the baseline down during normal work. Type safety increases monotonically.
-- The **cost model** of a type technique includes design time, read time, onboarding, refactor friction, build time, and error legibility — multiplied across team size and code lifetime. The return is incidents-prevented × cost × consumers × lifetime.
-- **Misuse-resistance** at chokepoint libraries is the highest-leverage place to spend type effort: a wrong-state call you make impossible is an incident that can never happen across every consuming team.
-- The professional **judgment** runs both ways: juniors under-type, seniors sometimes over-type. Decline to encode rules in types when they churn fast, when error messages cost more than the bug, when the team can't maintain the pattern, or when a runtime check plus a test communicates better. Cleverness is shared capital — allocate it to the highest risk-adjusted returns and *say no* to gold-plating. Optimize for shipped, maintainable correctness.
+1. Define the user or business outcome that **Practical Type-System Patterns** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
+
+## Verify your work
+
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
+
+## Review questions
+
+- Which measurable outcome justifies investing in Practical Type-System Patterns?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

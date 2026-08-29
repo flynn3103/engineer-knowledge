@@ -1,60 +1,11 @@
-# Dynamic Dispatch & Proxies — Middle Level
+# Dynamic Dispatch & Proxies — Middle
 
-> **Topic:** Dynamic Dispatch & Proxies
-> **Focus:** Going from "what is a proxy" to *how the machinery works* — JDK dynamic proxies vs class proxies, JS traps and `Reflect`, Python's attribute protocol, Ruby dynamic methods, and the proxy-driven frameworks (Spring AOP, mocking, lazy loading) you actually use.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **Dynamic Dispatch & Proxies** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-> Focus: **How is interception actually implemented, and which mechanism does each framework choose — and why?**
-
-At the junior level a proxy was "a receptionist." At this level you need to know the *kinds* of receptionists, because the kind decides what you can and can't intercept:
-
-- **Interface proxies** (Java `java.lang.reflect.Proxy`) generate a class implementing your interfaces and route every interface method to one handler. They can't intercept calls made through the concrete type, and they can't proxy a class with no interface.
-- **Class proxies** (CGLIB, ByteBuddy, ASM) generate a **subclass** of the target at runtime, overriding its methods to call your interceptor. They work on concrete classes but can't override `final` methods (you can't override what can't be overridden).
-- **Attribute/metaobject hooks** (Python `__getattr__`/`__getattribute__`/`__setattr__`/`__call__`, Ruby `method_missing`, JS `Proxy` traps) intercept at the language's metaobject protocol level rather than by generating a new type.
-
-This distinction explains real behavior: why `@Transactional` on a `private` or `final` method silently does nothing, why self-invocation bypasses your aspect, why Mockito can't mock a `final` class without its inline mock maker, and why Vue 3 switched from `Object.defineProperty` to `Proxy` to support array-index and new-property reactivity.
-
-In one sentence: **the proxy mechanism you pick determines the *seam* — the exact set of calls you can intercept — and most "why didn't my aspect fire?" bugs are seam bugs.**
-
----
-
-## Prerequisites
-
-- **Required:** Comfortable reading and writing Java interfaces and classes; JavaScript objects/functions; Python classes; basic Ruby.
-- **Required:** You've read `junior.md` (proxy basics, the three actions, self-invocation).
-- **Required:** Know what reflection is — `Method.invoke`, `getattr`, `obj.send`.
-- **Helpful:** You've used Spring, Mockito, or Hibernate and wondered how a method got "wrapped."
-- **Helpful:** A sense of what a *decorator/annotation* marks (`@Transactional`, `@Cacheable`).
-
-You do **not** yet need: raw bytecode reading, ASM visitor APIs, JIT deoptimization, or invokedynamic internals (those are `senior.md`/`professional.md`).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **JDK dynamic proxy** | `java.lang.reflect.Proxy.newProxyInstance` — generates a class implementing given **interfaces**, routing all calls to an `InvocationHandler`. |
-| **InvocationHandler** | The interface with `Object invoke(Object proxy, Method method, Object[] args)` — receives every proxied call. |
-| **CGLIB** | "Code Generation Library." Creates a runtime **subclass** of a concrete class, overriding non-final methods to call a `MethodInterceptor`. |
-| **ByteBuddy** | A modern, fluent bytecode-generation library; the engine behind newer Mockito and Hibernate proxying. |
-| **ASM** | A low-level bytecode framework (visitor over class structure). CGLIB and ByteBuddy build on it. |
-| **MethodInterceptor (CGLIB)** | `intercept(obj, method, args, methodProxy)` — CGLIB's per-call hook; `methodProxy.invokeSuper` calls the real (super) method. |
-| **AOP** | Aspect-Oriented Programming — modularizing cross-cutting concerns (tx, logging, security) as *aspects* applied via proxies (Spring) or weaving (AspectJ). |
-| **Advice** | The code an aspect runs around a join point: `@Before`, `@After`, `@Around`. |
-| **Self-invocation** | An internal `this.method()` call that bypasses the surrounding proxy, so advice doesn't run. |
-| **`__getattr__`** | Python hook called **only when normal attribute lookup fails**. |
-| **`__getattribute__`** | Python hook called on **every** attribute access; overriding it is powerful and recursion-prone. |
-| **`__call__`** | Makes an instance callable like a function: `obj()` runs `obj.__call__()`. |
-| **JS trap** | A handler on a `Proxy`'s handler object: `get`, `set`, `has`, `deleteProperty`, `apply`, `construct`, etc. |
-| **`Reflect`** | A JS namespace whose methods mirror each trap and perform the *default* operation. The forwarding companion to `Proxy`. |
-| **Revocable proxy** | `Proxy.revocable(target, handler)` — a proxy plus a `revoke()` that disables it (all traps throw afterward). |
-| **Dynamic finder** | A method synthesized from its name (ActiveRecord `find_by_name`) via `method_missing`. |
-| **LazyInitializationException** | Hibernate error from using a lazy proxy after its session/transaction closed. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -125,50 +76,6 @@ The discipline: in every trap you don't fully override, **return `Reflect.<trap>
 - **Spring AOP** wraps beans in a proxy; `@Transactional`/`@Cacheable`/`@Async` are advice applied around the proxied methods. Self-invocation and final/private methods are the classic non-firing causes.
 - **Mockito** generates a subclass (ByteBuddy) whose every method is intercepted to record the call and return a stubbed/`null`/default value. `when(mock.foo()).thenReturn(x)` programs the interceptor.
 - **Hibernate lazy loading** returns a proxy (CGLIB/ByteBuddy) for an associated entity. The proxy holds only the id; the first method call triggers a SQL `SELECT`. If the session is closed by then, you get `LazyInitializationException`.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Interface proxy** | A temp who can do exactly the jobs on a posted job description (interface) and nothing else. |
-| **Class proxy (subclass)** | An understudy trained to be a *specific* actor, who can cover any scene the actor can — except scenes locked by contract (final methods). |
-| **`final` method** | A line in the contract marked "only the star performs this" — no understudy allowed. |
-| **Self-invocation** | The actor improvising backstage; the understudy and the stage manager (proxy) never see it. |
-| **`Reflect`** | The stagehand's default cue sheet: "if no special note, do the standard thing." |
-| **Revocable proxy** | A keycard you can deactivate remotely; after revocation, every door it opened is now locked. |
-| **Lazy proxy** | A "ship when ordered" catalog item — looks in stock, but the warehouse only fetches it the moment you actually open the box. |
-| **Mockito mock** | A crash-test dummy shaped exactly like the real part, recording every force applied to it. |
-
----
-
-## Mental Models
-
-### The "Where's the Seam?" Model
-
-Before adding an aspect, ask: *through which reference does the call travel, and does that reference pass through the proxy?* External call through the proxied bean → advised. Internal `this` call → not advised. A `final` method → no seam to override → never advised. Most AOP confusion dissolves once you locate the seam.
-
-### The "Generated Subclass" Model (class proxies)
-
-A CGLIB/ByteBuddy proxy is a **real subclass** with overridden methods like:
-
-```text
-class Foo$$Enhancer extends Foo {
-    @Override Object bar(args) {
-        return interceptor.intercept(this, barMethod, args, superCallHelper);
-    }
-}
-```
-
-That immediately explains the limits: `final` can't be overridden, `private` isn't in the override set, `static` isn't virtual, and the constructor runs (Spring uses Objenesis to skip it for some cases). It also explains why `getClass()` returns `Foo$$EnhancerBy...`, not `Foo`.
-
-### The "Two Flavors of Hook" Model (revisited, precise)
-
-- **Missing-only** (`__getattr__`, `method_missing`): fires after normal lookup fails. Safe; existing members keep working.
-- **Everything** (`__getattribute__`, JS `get`): fires on every access. Maximum power, recursion danger, performance cost on the hot path.
-
-Choose missing-only unless you must shadow real members; reach for everything only when building a true full-transparency proxy or a reactive system.
 
 ---
 
@@ -252,11 +159,9 @@ class TracingProxy:
             return wrapper
         return attr
 
-
 class Service:
     version = "1.0"
     def hello(self, n): return f"hi {n}"
-
 
 p = TracingProxy(Service())
 print(p.version)   # intercepted (a real class attribute) — __getattr__ would NOT see this
@@ -342,30 +247,6 @@ people.find_by_age(54)       # => {name: "Linus", age: 54}
 
 ---
 
-## Pros & Cons
-
-| Aspect | Pros | Cons |
-|--------|------|------|
-| **Interface proxy (JDK)** | No extra dependency; pure JDK; clean. | Interface-only; can't proxy concrete classes; only interface methods. |
-| **Class proxy (CGLIB/ByteBuddy)** | Works on concrete classes; intercepts overridable methods. | Can't touch `final`/`private`/`static`; subclass changes `getClass()`; heavier. |
-| **Metaobject hooks (Python/Ruby/JS)** | Extremely flexible; no codegen; synthesize anything. | "Every access" hooks are slow and recursion-prone; can swallow typos. |
-| **AOP via proxies** | One aspect → many methods; declarative. | Self-invocation/final blind spots; debugging through generated frames. |
-| **Reflection-based forward** | Generic — one handler for all methods. | Reflective `invoke` is slower than a direct call; wraps exceptions. |
-
----
-
-## Use Cases
-
-- **Transactions / caching / retry / security** as aspects (Spring `@Transactional`, `@Cacheable`, `@Retryable`, `@PreAuthorize`).
-- **Mocking** — generate a proxy that records interactions and returns stubs (Mockito, `unittest.mock`).
-- **Lazy loading** — return a proxy that fetches the real data on first use (Hibernate associations).
-- **Reactive state** — wrap data in a `Proxy` to track reads and trigger updates on writes (Vue 3, MobX-style).
-- **Dynamic finders / DSLs** — synthesize methods from names (`find_by_*`, fluent query builders) via `method_missing`/`__getattr__`.
-- **Remote stubs** — make a network call look like a local method call; the method name + args become the request payload.
-- **Input validation / observable objects** — intercept `set` to validate or notify listeners.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Forward through the right "super" call
@@ -421,88 +302,24 @@ When advice *must* apply to internal calls, cross a proxy boundary: separate bea
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. Your Spring bean implements an interface. Which proxy type does Spring use by default? What changes if you set `proxyTargetClass=true`?
-2. Why can't a CGLIB proxy intercept a `final` method? Tie it to the "generated subclass" mental model.
-3. Give the exact `this`-identity reason why self-invocation bypasses advice. Then list three fixes.
-4. In Python, write a one-line difference between when `__getattr__` fires and when `__getattribute__` fires for `obj.existing_field`.
-5. Why must a JS `set` trap return a boolean? What does `Reflect.set` give you for free?
-6. In the CGLIB example, why is `methodProxy.invokeSuper(obj, args)` correct but `method.invoke(obj, args)` a bug?
-7. Explain `LazyInitializationException` in terms of the lazy proxy and the session lifetime. How would you avoid it?
-8. Implement a Ruby `method_missing` that turns `name=` setters into a hash write, and `name` getters into a hash read. What does `respond_to_missing?` need to allow?
+1. Find a real component where **Dynamic Dispatch & Proxies** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
----
+## Verify your work
 
-## Cheat Sheet
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
 
-```text
-┌──────────────────────────────────────────────────────────────────────┐
-│                 PROXY MECHANISMS — MIDDLE LEVEL                        │
-├──────────────────────────────────────────────────────────────────────┤
-│ INTERFACE proxy  java.lang.reflect.Proxy → InvocationHandler.invoke   │
-│   * interfaces only   * intercepts interface methods                  │
-│ CLASS proxy      CGLIB / ByteBuddy → subclass + MethodInterceptor     │
-│   * concrete classes  * NOT final/private/static                      │
-│   * forward via methodProxy.invokeSuper (NOT method.invoke)           │
-├──────────────────────────────────────────────────────────────────────┤
-│ Python   __getattr__       missing only (safe)                        │
-│          __getattribute__  every access (recursion danger)            │
-│          __setattr__ / __call__ / __getitem__                         │
-│ JS       Proxy traps get/set/has/deleteProperty/apply/construct       │
-│          + Reflect.<trap> = default behavior; set MUST return bool    │
-│          Proxy.revocable → revoke()                                   │
-│ Ruby     method_missing  (+ respond_to_missing?)  → dynamic finders   │
-├──────────────────────────────────────────────────────────────────────┤
-│ Frameworks decoded:                                                   │
-│   Spring AOP   bean wrapped in proxy; @Transactional = around-advice  │
-│   Mockito      ByteBuddy subclass; records calls, returns stubs       │
-│   Hibernate    lazy entity = proxy; 1st call = SELECT; closed session │
-│                 → LazyInitializationException                          │
-├──────────────────────────────────────────────────────────────────────┤
-│ Non-firing causes: self-invocation · final/private · wrong proxy type │
-└──────────────────────────────────────────────────────────────────────┘
-```
+## Review questions
 
----
-
-## Summary
-
-- The central fork is **interface proxy** (JDK `Proxy`, interfaces only, `InvocationHandler.invoke`) vs **class proxy** (CGLIB/ByteBuddy, subclass a concrete class, `MethodInterceptor.intercept`).
-- A class proxy works by **overriding**, so it cannot touch `final`, `private`, or `static` methods — that's the seam, and most "aspect didn't fire" bugs are seam bugs.
-- **Self-invocation** bypasses the proxy because the internal call's `this` is the target, not the proxy. Fix with self-injection, `AopContext`, separate beans, or AspectJ weaving.
-- Python: `__getattr__` fires only on **missing** attributes; `__getattribute__` fires on **all** access (powerful, recursion-prone — use `object.__getattribute__` internally). `__call__` makes instances callable.
-- JS: `Proxy` traps intercept operations; **`Reflect`** mirrors each trap to give default behavior, and the `set` trap must return a boolean. `Proxy.revocable` yields a switch-off-able proxy.
-- Ruby: `method_missing` (+ `respond_to_missing?`) powers dynamic finders like `find_by_name`.
-- The frameworks you use — Spring AOP, Mockito, Hibernate lazy loading — are all proxies; knowing the mechanism predicts their failure modes (`LazyInitializationException`, un-advised final/self calls, mock-of-final limits).
-
----
-
-## What You Can Build
-
-- **A JDK-proxy-based "around" timer** that times every interface method and prints a histogram, plus a CGLIB version for a class with no interface — and observe `final` methods escaping.
-- **A self-invocation demonstrator** in Spring (or plain CGLIB): show that an internal call skips the advice, then fix it three different ways.
-- **A full-transparency Python proxy** via `__getattribute__` that forwards everything and counts calls per method name — without infinite recursion.
-- **A validating JS object** that enforces a schema in the `set` trap and forwards reads/writes via `Reflect`.
-- **A `find_by_*` dynamic-finder collection** in Ruby with proper `respond_to_missing?`.
-- **A lazy proxy** that defers an "expensive" object's construction until the first method call, and prints when the real construction happens.
-
----
-
-## Further Reading
-
-- *Spring Framework Reference — AOP* — proxy mechanisms, JDK vs CGLIB, self-invocation. https://docs.spring.io/spring-framework/reference/core/aop.html
-- *ByteBuddy User Guide* — https://bytebuddy.net
-- *CGLIB wiki* — `Enhancer`, `MethodInterceptor`, `MethodProxy`.
-- *Mockito — How it works / inline mock maker* — https://javadoc.io/doc/org.mockito/mockito-core/latest/
-- *Vue 3 Reactivity in Depth* — why `Proxy` replaced `Object.defineProperty`. https://vuejs.org/guide/extras/reactivity-in-depth.html
-- *Python Data Model — attribute access* — https://docs.python.org/3/reference/datamodel.html#customizing-attribute-access
-- *MDN — Proxy and Reflect.*
-
----
-
-## Related Topics
-
-- This folder, other levels: [`junior.md`](junior.md), [`senior.md`](senior.md), [`professional.md`](professional.md), [`interview.md`](interview.md), [`tasks.md`](tasks.md).
-- Sibling metaprogramming topics in this section — reflection, runtime code generation, decorators/annotations, and AST manipulation — provide the building blocks (reflective invoke, bytecode generation) that proxies rely on.
-- The runtime-systems topic on virtual dispatch (vtables, inline caches) covers the *mechanical* side of method dispatch; this page stays on the *interception/synthesis* side.
+- Which boundary is most affected by Dynamic Dispatch & Proxies?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

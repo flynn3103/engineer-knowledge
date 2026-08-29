@@ -1,62 +1,11 @@
-# Code Generation — Senior Level
+# Code Generation — Senior
 
-> **Topic:** Code Generation
-> **Focus:** Modern back-end frameworks — LLVM's SelectionDAG and GlobalISel, SSA-based register allocation, the scheduling/allocation phase-ordering battle — and how real targets (x86-64, AArch64, RISC-V, Wasm) shape every decision.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Code Generation** under failure, load, and change?
 
-## Introduction
-
-> Focus: **How does a production back end actually structure these passes?** The middle page gave you textbook algorithms in isolation. A real compiler — LLVM, GCC, V8, Go — wires them into a multi-stage machine with its own intermediate forms, target abstractions, and hard-won compromises.
-
-A senior engineer working near the back end rarely implements maximal munch from scratch. Instead they reason about *frameworks*: how LLVM lowers IR through a target-specific DAG, selects instructions on it, allocates registers on a machine-level SSA, schedules, and emits; how GCC's RTL plays the same role; how a JIT skips most of this for speed. The questions shift from "what's the algorithm" to "what's the *architecture* of the back end, and where do the trade-offs live."
-
-This page is organized around three production realities:
-
-1. **Selection has modernized past trees.** Real back ends select over **DAGs** (shared subexpressions) and, increasingly, over **machine IR in SSA form** (LLVM's GlobalISel). The DAG approach (SelectionDAG) and the global-ISel approach embody different bets about compile time, correctness, and cross-block optimization.
-2. **Allocation has gone SSA-aware.** The classical interference graph predates the realization that **SSA form has chordal interference graphs**, which are *optimally colorable in polynomial time*. SSA-based allocators (and the destruction of SSA via parallel-copy/`phi` lowering) reshaped the field.
-3. **Phase ordering is managed, not solved.** Production compilers interleave, repeat, and pressure-bound the three core passes. Understanding *how* LLVM and GCC sequence them is the senior-level deliverable.
-
-Throughout, the **target** is not a footnote — it's the forcing function. x86-64's variable-length CISC, AArch64's clean fixed-width RISC with rich addressing, RISC-V's deliberately minimal ISA, and WebAssembly's structured stack machine each bend selection, allocation, and scheduling differently.
-
-> 🎓 **Why this matters at this level:** When a back-end bug, a missed optimization, or a target bring-up lands on your desk, you need a map of where decisions are made. "The vectorizer ran before selection, so the DAG already had wide types" or "this spill is because the SSA allocator split the live range at the loop edge" are the kinds of sentences that separate someone who can fix the back end from someone who can only stare at it.
-
-`professional.md` takes the final step into TableGen target descriptions, JIT runtime codegen and patching, PIC, and DWARF debug-info generation.
-
----
-
-## Prerequisites
-
-- **Required:** The middle page — tree covering, graph coloring, linear scan, list scheduling, the phase-ordering conflict.
-- **Required:** Solid **SSA** understanding: `phi` nodes, dominance, why SSA simplifies dataflow.
-- **Required:** Comfort reading LLVM IR and assembly for at least one target.
-- **Helpful but not required:** Exposure to LLVM's pass structure or GCC's RTL, even superficially.
-- **Helpful but not required:** Knowledge of vectorization / SIMD, since vector types reach the back end as wider operations.
-- **Helpful but not required:** A working model of pipelined / superscalar / out-of-order microarchitecture.
-
-You do **not** yet need: TableGen syntax, JIT memory management and patching, or DWARF encoding (all `professional.md`).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **SelectionDAG** | LLVM's per-basic-block DAG of operations; LLVM legalizes, combines, and instruction-selects on it. |
-| **GlobalISel** | LLVM's newer, SSA-based, global (not per-block) instruction selector: IRTranslator → Legalizer → RegBankSelect → InstructionSelect. |
-| **Legalization** | Rewriting illegal types/operations (e.g. i128 on a 64-bit target, unsupported vector widths) into legal ones the target supports. |
-| **DAG combine** | A peephole-style rewrite pass over the SelectionDAG before/after selection. |
-| **Machine IR (MIR)** | LLVM's post-selection IR of target instructions, initially in SSA form with virtual registers. |
-| **SSA-based register allocation** | Allocation exploiting that SSA interference graphs are **chordal** → optimal coloring in polynomial time. |
-| **Live-range splitting** | Cutting a value's live range into pieces (so part stays in a register, part spills) instead of all-or-nothing spilling. |
-| **Rematerialization** | Recomputing a cheap value at its use instead of spilling/reloading it (e.g. a constant, an address). |
-| **PHI elimination / SSA destruction** | Replacing `phi` nodes with parallel copies on incoming edges before/around allocation. |
-| **Register bank** | A class of registers (GPR vs FPR/vector); GlobalISel's RegBankSelect assigns each value a bank. |
-| **Scheduling region** | The instruction window a scheduler reorders within (basic block, superblock, software-pipelined loop). |
-| **Pressure tracking** | Estimating register pressure during scheduling to avoid over-exposing ILP. |
-| **Calling convention lowering** | Materializing the ABI: argument/return placement, varargs, sret, struct splitting, prologue/epilogue. |
-| **Bundling (VLIW)** | Grouping instructions that issue together on a statically-scheduled wide-issue machine. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -140,39 +89,6 @@ ABI lowering is a substantial, target-specific back-end stage, not a detail. It 
 - **AArch64 (RISC):** fixed 4-byte instructions, 31 GPRs + 32 vector registers, three-operand non-destructive form, shifted-register and extended-register operands, no condition-code-laden every instruction (ARM64 dropped most predication that ARM32 had). Register-rich → fewer spills; clean selection; scheduling matters on in-order cores.
 - **RISC-V (clean RISC):** deliberately minimal base ISA with optional extensions (M, A, F, D, C, V). Selection is simple and uniform; the compressed (C) extension brings back some size optimization; the modularity means the back end must respect which extensions the subtarget has.
 - **WebAssembly (structured stack machine):** *not a register machine at all*. Code generation targets a stack of operands and **structured control flow** (`block`/`loop`/`if`/`br` to labels, no arbitrary jumps). There's effectively **no register allocation in the classical sense** — values live on the operand stack and in locals; the Wasm engine's *own* JIT does real register allocation when it compiles Wasm to machine code. Emitting Wasm means reconstructing structured control flow (the relooper / stackifier problem) and managing the operand stack, a fundamentally different codegen shape.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **SelectionDAG legalization** | Translating a document into a language that lacks certain words by paraphrasing each missing word into available ones. |
-| **DAG vs tree selection** | A road map where some roads are shared by many routes (DAG) vs a pure branching river delta (tree) — sharing changes the optimal plan. |
-| **GlobalISel pipeline** | An assembly line of specialized stations (translate, legalize, bank, select) vs SelectionDAG's one big workshop. |
-| **SSA chordal coloring** | A scheduling problem that looks NP-hard but, because of how the meetings nest (chordal), turns out to have a clean optimal timetable. |
-| **Live-range splitting** | Renting a parking spot only for the hours you actually need the car downtown, not all day. |
-| **Rematerialization** | Recomputing 2+2 on the spot instead of writing "4" on a sticky note and walking to fetch it. |
-| **Pressure-aware scheduling** | A chef parallelizing prep only up to the number of free counters, not beyond. |
-| **PHI elimination / parallel copies** | Untangling a group of people who must simultaneously swap seats — sometimes you need an empty chair (temp) to do it. |
-| **Wasm structured control flow** | Writing a story using only nested chapters and sections, never "jump to page 200" — structure is mandatory. |
-| **Machine model** | A train timetable encoding exactly how long each leg takes and which platforms it can use. |
-
----
-
-## Mental Models
-
-### The "Lower, Legalize, Select, Allocate, Schedule, Emit" Pipeline
-
-Memorize the production spine: take optimized IR, **lower** it toward the machine, **legalize** away unsupported types/ops, **select** target instructions, **allocate** registers (splitting/rematerializing as needed), **schedule** (pre- and post-RA), then **emit**. Every back end — LLVM, GCC, a JIT — is a variation on this spine. When something's wrong, locate the stage.
-
-### The "Pressure Surface" Model
-
-Picture register pressure as a surface over the program — high mountains in hot loops, valleys in cold setup code. SSA gives you the exact height everywhere. Allocation's job is to keep the surface under the K ceiling: where it pokes through, you *split or spill* — but only the part that pokes through. Scheduling can *raise* the surface (more ILP), so it must watch the ceiling. This single picture unifies allocation and the scheduling conflict.
-
-### The "Target Is a Forcing Function" Model
-
-Don't think "the back end, plus a target." Think "the target *is* the problem; the back end is its answer." x86's 16 registers force tight allocation; Wasm's stack machine forces structured control flow and no classical allocation; RISC-V's minimalism forces simple selection. When you change targets, you're not tweaking — you're solving a different problem with the same vocabulary.
 
 ---
 
@@ -261,32 +177,6 @@ The output uses `local.get`, `f32.mul`, `f32.add`, `local.set`, and structured `
 
 ---
 
-## Pros & Cons
-
-| Choice | Pros | Cons |
-|--------|------|------|
-| **SelectionDAG** | Mature, powerful DAG combines, strong pattern matching from TableGen. | Per-basic-block (no global selection); high compile-time cost; complex. |
-| **GlobalISel** | Global, SSA-based, faster at `-O0`, cleaner/debuggable pipeline. | Less mature outside AArch64; quality can trail SelectionDAG at high opt. |
-| **SSA-based allocation** | Optimal coloring (chordal), exact pressure, clean spill/color split. | Requires correct, subtle SSA destruction (parallel-copy cycles). |
-| **Live-range splitting** | Surgical spilling; far better quality than all-or-nothing. | More complex allocator; more bookkeeping. |
-| **Rematerialization** | Avoids memory traffic for cheap values. | Only applies to cheap-to-recompute values; needs accurate cost model. |
-| **Pressure-aware scheduling** | Mitigates the scheduling/allocation conflict directly. | Throttles ILP; needs a good pressure estimate and machine model. |
-| **CISC target (x86-64)** | Dense code, powerful instructions, strong memory model. | Register-poor, complex encoding, harder assembler/selection. |
-| **RISC targets (AArch64/RISC-V)** | Register-rich, clean selection, simpler encoding. | More instructions; lean harder on scheduling and the machine model. |
-| **Wasm target** | Portable, sandboxed, structured. | No classical allocation; structured-control-flow reconstruction; double JIT (Wasm then engine). |
-
----
-
-## Use Cases
-
-- **Back-end bring-up for a new target.** You map the ISA onto the framework: define register banks/classes, calling convention, instruction patterns, and a scheduling model.
-- **Diagnosing a missed optimization.** Knowing the pipeline lets you find *where* an FMA wasn't fused (DAG combine? legalization?) or *why* a value spilled (pressure peak? failed split?).
-- **Choosing SelectionDAG vs GlobalISel** for a project balancing compile time (GlobalISel at `-O0`) against peak code quality (SelectionDAG at `-O2/-O3`).
-- **Tuning for a microarchitecture.** Adjusting the scheduling model (latencies, ports) to match an in-order or VLIW core where the compiler's schedule actually determines throughput.
-- **Compiling to Wasm.** Understanding that you must reconstruct structured control flow and that the *real* register allocation is downstream in the engine.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Locate the Decision with `-stop-after` / `-print-after-all`
@@ -336,3 +226,27 @@ Before optimizing allocation quality, ensure parallel-copy sequentialization han
 - **Pre-colored ABI registers constrain selection and allocation.** Argument/return/`rsp` registers are fixed; the allocator and selector must route around them, and forgetting one corrupts the call.
 - **`-O3` vectorization changes what the back end sees.** Wide vector types and FMA candidates arrive from the middle end; a "missed" FMA may actually be a legalization or target-support issue, not a selection bug. Check the type legality before blaming selection.
 - **Frame-pointer omission breaks naive unwinding.** At high opt the FP is often gone; debuggers and profilers must use unwind tables (DWARF CFI). Tools that assume an FP chain will misread optimized stacks.
+
+---
+
+## Apply it
+
+1. State the system invariant that **Code Generation** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
+
+## Verify your work
+
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
+
+## Review questions
+
+- Which invariant must remain true when Code Generation fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

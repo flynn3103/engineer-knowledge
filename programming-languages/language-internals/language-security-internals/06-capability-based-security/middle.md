@@ -1,62 +1,11 @@
-# Capability-Based Security — Middle Level
+# Capability-Based Security — Middle
 
-> **Topic:** Capability-Based Security
-> **Focus:** The object-capability model as a set of rules — no ambient authority, the three sources of capabilities, attenuation, revocation, and how to *retrofit* least authority onto ordinary code.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **Capability-Based Security** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-> Focus: **The object-capability (ocap) model stated as rules you can check**, and the engineering of attenuation, delegation, and revocation.
-
-At the junior level a capability was "a key": an unforgeable token that fuses designation and authority. That intuition is correct but informal. At this level we make it a *model* with rules precise enough to reason about and to audit.
-
-The **object-capability model** (ocap) is the cleanest statement of capability security, due to Mark Miller, Jonathan Shapiro, and the lineage of KeyKOS/EROS/E. Its rules are deceptively short:
-
-1. **No ambient authority.** There is no way to *name* a resource except through a reference you already hold. No global `open`, no path namespace, no "look it up." If you do not hold a reference to something, that something does not exist for you.
-2. **Authority propagates only by reference-passing.** A subject can obtain a new capability in exactly three ways: it was *endowed* with it at creation, it was *introduced* to it (passed as an argument by someone who holds it), or it *created* the resource itself (parenthood). This is summarized as **"connectivity begets connectivity."**
-3. **References are unforgeable.** You cannot manufacture a valid reference from data. In a memory-safe language this is the type system and GC; in a kernel it is an opaque handle the kernel translates.
-
-From these three rules everything else follows: confined subjects, the impossibility of the confused deputy, POLA as the default, and the ability to *prove* what a component can reach by following its references.
-
-This page covers: the ocap rules and what each forbids; the difference between a capability and a *facet* (a wrapper that attenuates); the **caretaker/revoker** pattern that makes capabilities revocable; how delegation and attenuation actually compose; and the practical work of **retrofitting** least authority onto code that was written assuming ambient `fs` and `net`.
-
----
-
-## Prerequisites
-
-- **Required:** The junior level — confused deputy, ambient authority, the fusion of designation and authority, POLA.
-- **Required:** Comfort with closures / first-class functions and object references in at least one memory-safe language (JS, Python, Java, Go).
-- **Required:** A working idea of what "trust boundary" means.
-- **Helpful:** Familiarity with dependency injection as a design technique.
-- **Helpful:** Exposure to Unix file descriptors and how `open()` returns a handle.
-
-You do **not** yet need:
-
-- Capability-OS kernel internals (seL4 cap derivation trees) — that's `senior.md`/`professional.md`.
-- Formal confinement proofs or the take-grant / ocap calculus — `senior.md`.
-- WASI host-runtime implementation details — `senior.md`.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Object-capability model (ocap)** | A capability model where capabilities *are* references in a memory-safe language; the three rules (no ambient authority, propagation only by reference-passing, unforgeable references) define it. |
-| **Facet** | A distinct object that wraps another and exposes a *subset* of its behavior — the standard way to attenuate. Multiple facets can front one underlying object. |
-| **Attenuation** | Producing a capability that is *strictly weaker* than one you hold (read-only, single resource, rate-limited, expiring). |
-| **Amplification** | The (rarer) inverse: combining capabilities to gain authority neither had alone. Requires explicit support (e.g., a sealer/unsealer pair). |
-| **Caretaker / revoker** | A forwarding facet you insert between holder and resource so you can later *sever* the link — the canonical revocation pattern. |
-| **Sealer / unsealer** | A paired capability: the sealer boxes a value so only the matching unsealer can open it. The ocap equivalent of encrypt/decrypt for in-process values; enables rights amplification. |
-| **Endowment** | The capabilities a subject is born with, given by its creator. |
-| **Introduction** | Gaining a capability because someone who holds it passed it to you. |
-| **Parenthood** | Gaining a capability by *creating* the resource it controls. |
-| **Confinement** | The property that a subject cannot leak or acquire authority beyond what it was given — provable from the three rules. |
-| **Powerbox** | A trusted broker that holds broad authority and hands out narrow, attenuated capabilities on request (often with user consent). The "file open dialog" is a powerbox. |
-| **Ambient authority** | (Recap) Authority available from the environment without being explicitly granted for the call. The thing ocap forbids. |
-| **Trusted Computing Base (TCB)** | The set of components whose correctness security depends on. Capability discipline aims to *shrink* it. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -117,37 +66,6 @@ Most real code is ambient: it `import os`, `import requests`, reads env vars, op
 4. **Attenuate at boundaries.** Where a module only needs to read one directory, give it a facet for that directory, not the real `open`.
 
 The end state: a thin "impure shell" at the top that holds all real authority, and a large "capability-pure core" that can only act through what it was handed. This mirrors functional-core/imperative-shell design, but the discipline is about *authority*, not side effects.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Facet** | A receptionist who will pass your message to the CEO but won't let you into the CEO's office. A controlled front for a powerful object. |
-| **Attenuation** | A guest Wi-Fi password that gets you internet but not the internal network. |
-| **Caretaker / revocation** | A parking valet's keypad fob the garage can deactivate. The fob still exists; it just stops opening the gate. |
-| **Delegation diamond** | You lend a contractor a building key; they lend it to a subcontractor. Building management can rekey the lock once and lock out both. |
-| **Powerbox** | The hotel front desk: the only place with master access, handing out single-room cards on request. |
-| **Sealer / unsealer** | A tamper-evident diplomatic pouch: only the holder of the matching seal can open it. |
-| **Confinement** | A clean room: whatever's inside can only interact through the airlocks you installed. |
-| **Composition root** | The building's main electrical panel: all power enters here and is distributed on labeled circuits. |
-
----
-
-## Mental Models
-
-### The "Authority Narrows Downhill" Model
-
-Picture authority as water entering at the top of your program (the composition root, the powerbox). As it flows down the call graph, every hand-off can only *narrow* the stream (attenuate) — never widen it. A leaf function is at the bottom holding a trickle: exactly one read handle. Contrast ambient authority, where every function stands in the same ocean. Designing well is arranging the plumbing so each component sits in the smallest puddle that lets it work.
-
-### The "Revoke Is a Forwarder You Kill" Model
-
-You cannot delete a reference out of someone's hand. So revocation is never about *their* reference — it is about *the thing their reference points at*. Always interpose a forwarder you control. Revocation = "make the forwarder forward to a wall." Carry this and you will design revocability in from the start, instead of discovering you handed out raw keys you can never reclaim.
-
-### The "Follow the References to Audit" Model
-
-To answer "what could this component possibly do?", do not read a policy file. Start from the references it was endowed with and the arguments it was passed, and take the transitive closure: what those references let it reach, what *those* let it reach, and so on. Under the three rules, that closure is the *complete* answer — there is no hidden ambient back door. Security review becomes graph reachability.
 
 ---
 
@@ -269,32 +187,6 @@ parse(chosen)   # cannot read anything the user didn't choose
 
 ---
 
-## Pros & Cons
-
-| Aspect | Pros | Cons |
-|--------|------|------|
-| **Revocation** | Clean and transitive via caretakers — kill one forwarder, revoke a whole delegation tree. | Requires interposing forwarders up front; raw caps can't be reclaimed. |
-| **Attenuation** | Composes freely; authority narrows downhill. | Wrapper layers add indirection and a little overhead. |
-| **Auditability** | "What can it reach?" = reference closure; review becomes reachability. | Demands the no-ambient discipline hold *everywhere*. |
-| **Retrofit** | Incremental — push authority to the edge module by module. | Real ecosystems assume ambient `fs`/`net`; many libraries resist injection. |
-| **TCB size** | Powerbox concentrates broad authority in one auditable place. | The powerbox itself is highly trusted and must be correct. |
-| **Confinement** | Untrusted code is bounded by what you handed it — provably. | One leaked capability (logged token, escaped reference) breaches the boundary. |
-| **Amplification** | Sealer/unsealer enables safe, explicit privilege combination. | Subtle; misused, it becomes a covert authority channel. |
-
----
-
-## Use Cases
-
-- **Plugin / extension sandboxes.** Hand a plugin a powerbox-mediated set of facets; revoke on uninstall or misbehavior.
-- **Per-tenant or per-request authority.** Each request carries an attenuated capability (one tenant's data, read-only), so a bug can't cross tenants.
-- **Revocable sharing.** "Anyone with the link" sharing where you can later disable a specific link — a caretaker over a signed URL.
-- **Mediating untrusted libraries.** Wrap a third-party SDK behind a facet that exposes only the methods you actually use, denying it ambient reach.
-- **Privilege separation in services.** Split a monolith so the component parsing untrusted input holds *no* database or network capability; it returns data to a separate component that does.
-
-When it's the wrong fit: hard real-time paths where wrapper indirection is unaffordable; environments where you cannot stop ambient authority (a language with unavoidable global `open` and no sandbox) so the guarantees can't actually hold.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Composition root holds all authority
@@ -387,88 +279,24 @@ useCamera(cap)   // app had no camera authority until the user said yes
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. State the three ocap rules. For each, give one concrete code construct that *violates* it.
-2. Explain the difference between a *capability* and a *facet*. Why do real designs hand out facets almost everywhere?
-3. You handed an untrusted plugin a raw, writable file handle a week ago and now need to cut its access. Can you? Explain what you should have done instead, in terms of forwarders.
-4. Write (in pseudocode) a read-only facet over a `{read, write, delete}` object. Then explain why a `Proxy` that forwards *all* gets would *not* be an attenuation.
-5. Trace a delegation diamond: A → B and A → C, both through one caretaker. A calls `revoke()`. What happens to B and C, and why is this easier than ACL revocation?
-6. Define "powerbox" and give a real example from an OS or browser. Why does concentrating broad authority there *help* rather than hurt?
-7. A module is fully dependency-injected but still contains `import requests`. Has the no-ambient-authority rule been satisfied? Justify.
-8. Why can revocation stop future access but not "un-leak" data the holder already copied? Tie this to the distinction between authority and information.
+1. Find a real component where **Capability-Based Security** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
----
+## Verify your work
 
-## Cheat Sheet
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
 
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│              OBJECT-CAPABILITY MODEL (ocap)                      │
-├──────────────────────────────────────────────────────────────────┤
-│ THREE RULES                                                      │
-│   1. No ambient authority   (no global open / lookup / registry) │
-│   2. Propagate by reference  (endow | introduce | parent — only) │
-│   3. References unforgeable  (memory safety / opaque handles)    │
-│   => reachable authority = transitive closure of held refs       │
-├──────────────────────────────────────────────────────────────────┤
-│ FACET = wrapper exposing a SUBSET of an object's behavior        │
-│   attenuate (drop verbs) | audit | rate-limit | revoke           │
-├──────────────────────────────────────────────────────────────────┤
-│ ATTENUATION  monotone & free: only ever WEAKER (read-only, 1 file)│
-│ AMPLIFICATION needs a key (sealer/unsealer, powerbox)            │
-├──────────────────────────────────────────────────────────────────┤
-│ REVOCATION = interpose a CARETAKER (forwarder you control)       │
-│   you keep the kill switch; holder keeps a ref to a dead forwarder│
-│   delegation tree == revocation tree (kill one node, revoke all) │
-├──────────────────────────────────────────────────────────────────┤
-│ POWERBOX = the ONE trusted broker holding broad authority,       │
-│            handing out narrow caps on policy / user consent       │
-│   (the OS "open file" dialog is a powerbox)                      │
-├──────────────────────────────────────────────────────────────────┤
-│ RETROFIT RECIPE                                                  │
-│   find authority sources -> push to composition root             │
-│   -> inject downward -> attenuate at boundaries                  │
-│   end state: thin impure shell + capability-pure core            │
-├──────────────────────────────────────────────────────────────────┤
-│ TRAPS                                                            │
-│   * transparent proxy = no attenuation                           │
-│   * raw delegation = unrevocable forever                         │
-│   * one `import os` = ambient authority back                     │
-│   * revocation stops ACCESS, not already-copied DATA             │
-└──────────────────────────────────────────────────────────────────┘
-```
+## Review questions
 
----
-
-## Summary
-
-- The **object-capability (ocap) model** makes "a capability is a key" precise with three checkable rules: **no ambient authority**, **propagation only by reference-passing** (endowment / introduction / parenthood), and **unforgeable references**.
-- When those rules hold, a component's reachable authority equals the **transitive closure of the references it holds** — making "what can this do?" a graph-reachability question instead of a policy question.
-- A **facet** is a wrapper exposing a subset of an object's behavior. Facets do the real work: **attenuation** (drop verbs), auditing, rate-limiting, and revocation.
-- **Attenuation is monotone and free** — you can always make a capability weaker. Making one *stronger* (**amplification**) requires holding another capability (sealer/unsealer, powerbox). Authority can never silently grow.
-- **Revocation is forwarding, not deletion.** You cannot reach a holder's reference, so you interpose a **caretaker** you control and sever it later. The delegation tree *is* the revocation tree, which is why capability revocation is clean where ACL revocation is hard.
-- The **powerbox** is the sanctioned home for broad authority: one trusted, audited broker that hands out narrow, attenuated capabilities on policy or user consent (e.g., the OS file dialog).
-- You **retrofit** least authority by finding authority sources, pushing them to a composition root, injecting downward, and attenuating at boundaries — yielding a thin impure shell over a capability-pure core.
-- The crucial caveat: **no-ambient-authority is a property of the runtime, not your style.** Without a substrate that withholds ambient power, you have good hygiene, not enforced confinement — and one `import os` breaks it.
-
----
-
-## What You Can Build
-
-- **A caretaker library.** A small `makeCaretaker(target) -> { facet, revoke }` in your language of choice. Demonstrate a delegation diamond and a single `revoke()` cutting off all holders.
-- **An attenuating file facet.** Given a full file handle, produce read-only, append-only, and single-write facets. Write tests proving the dropped verbs are unreachable.
-- **A retrofit case study.** Take a 200-line ambient script, refactor all authority to a composition root, and produce a before/after diagram of "what each function can reach."
-- **A powerbox prototype.** A broker holding `/data` and an HTTP client; expose `requestDir(name)` and `requestHost(host)` that return attenuated facets, and log every grant.
-- **A sealer/unsealer demo.** Implement a brand pair and use it to pass a privileged value safely through an untrusted transformation that must not read it.
-
----
-
-## Further Reading
-
-- *Robust Composition: Towards a Unified Approach to Access Control and Concurrency Control* — Mark S. Miller, PhD dissertation, 2006. The definitive ocap text (caretakers, facets, sealers, the powerbox). http://www.erights.org/talks/thesis/
-- *Capability Myths Demolished* — Miller, Yee, Shapiro. Dismantles the common misconceptions that ACLs and capabilities are equivalent. http://srl.cs.jhu.edu/pubs/SRL2003-02.pdf
-- *The E Language and the ocap model* — erights.org. The reference implementation of object capabilities. http://www.erights.org/
-- *Proxy and Reflect (`Proxy.revocable`)* — MDN. The caretaker pattern built into JavaScript. https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy/revocable
-- *A Security Kernel Based on the Lambda-Calculus* — Jonathan Rees (W7). Capabilities as plain lexical scope. https://mumble.net/~jar/pubs/secureos/
-- *POLA Today Keeps the Virus Away* — Marc Stiegler. Why least authority matters for everyday software. https://cap-lore.com/CapTheory/POLA/
+- Which boundary is most affected by Capability-Based Security?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

@@ -1,48 +1,11 @@
-# Nominal vs Structural Typing — Professional Level
+# Nominal vs Structural Typing — Professional
 
-> **Topic:** Nominal vs Structural Typing
-> **Focus:** Engineering decisions in long-lived systems — Rust traits with coherence/orphan rules, hybrid type-system design, branding strategy at scale, migration paths, and choosing nominal-vs-structural (and where) as an architectural lever rather than a language accident.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Nominal vs Structural Typing** with measurable outcomes and limited coordination?
 
-## Introduction
-
-> Focus: **You own a codebase that will live for years. Where do you put nominal boundaries, where do you exploit structural flexibility, and how do you keep both sound, fast, and evolvable as teams and dependencies change?**
-
-The previous tiers established the theory. The professional question is *governance*: a type system is a contract enforcement mechanism, and nominal vs structural decides whether your contracts are *enforced by name* (deliberate, auditable, evolvable) or *satisfied by shape* (flexible, retroactive, accidental). At scale this is not a language footnote — it determines whether a 3 a.m. incident is "the compiler caught it in CI" or "we passed an `OrderId` where a `UserId` was expected and refunded the wrong account."
-
-Three forces dominate at this level. First, **Rust traits** are the most instructive nominal interface system in mainstream use: explicit `impl Trait for Type`, plus **coherence** and the **orphan rule** that guarantee at most one canonical implementation globally — a property structural systems fundamentally cannot offer, and the reason Rust can do typeclass-style dispatch without ambiguity. Second, **hybrid design**: every serious language mixes the models (Go structural interfaces + nominal named types; TypeScript structural + branded nominal escape hatches; Scala nominal classes + structural refinement types), and the engineering skill is placing each boundary deliberately. Third, **migration and branding strategy**: how you introduce nominal IDs into a structural codebase without a big-bang rewrite, and how you keep structural type-checking fast in a million-line monorepo.
-
-> 🎓 **Why this matters at the professional level:** You set the conventions a team follows for years and you answer for the production consequences. "Use a branded `UserId` everywhere" or "rely on Go's structural interfaces for the plugin boundary" are architecture decisions with cost, ergonomics, and failure-mode implications. You must justify them, migrate to them incrementally, and know precisely which guarantees each gives — including the ones (coherence, opacity, retroactive conformance) that are mutually exclusive.
-
-This page covers: Rust trait coherence/orphan rules and the newtype workaround, designing hybrid boundaries, branding/newtype strategy and migration at scale, performance of structural checking in large builds, and a decision framework for choosing the model per boundary.
-
----
-
-## Prerequisites
-
-- **Required:** Senior-tier theory — variance, row polymorphism, coinductive structural checking, implementation cost models, opacity.
-- **Required:** Real experience shipping and evolving a typed codebase (API versioning, breaking-change management).
-- **Helpful:** Rust trait experience, or having maintained a large TypeScript or Go codebase.
-- **Helpful:** Familiarity with build-time type-check performance pain (slow `tsc`, large generic graphs).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Trait (Rust)** | A nominal interface; a type participates only via an explicit `impl Trait for Type`. |
-| **Coherence** | The guarantee that there is at most **one** implementation of a given trait for a given type across the whole program. |
-| **Orphan rule** | Coherence's enforcement mechanism: you may `impl Trait for Type` only if your crate owns the trait or the type. |
-| **Newtype workaround** | Wrapping a foreign type to legally implement a foreign trait without violating the orphan rule. |
-| **Refinement type (Scala)** | A nominal type narrowed by an inline structural requirement (`A { def f(): Int }`). |
-| **Brand discipline** | A codebase-wide convention for where and how branded/newtype values are minted and consumed. |
-| **Boundary type** | A type that sits at a module/service/API edge where you choose nominal (enforced contract) vs structural (flexible interop). |
-| **Type-relation cache** | A compiler structure memoizing structural subtype results to keep large builds tractable. |
-| **Expand/contract migration** | Introducing a new (e.g. branded) type alongside the old, migrating consumers, then removing the old — without a flag day. |
-| **Capability interface** | A small structural interface describing one ability (Go's `io.Reader`), maximizing retroactive conformance. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -117,30 +80,6 @@ Done this way, branding pays for itself: each newly-surfaced error is a place th
 ### 6. Performance of Structural Checking in Big Builds
 
 Structural type-checking cost is real engineering at scale. In large TypeScript monorepos, `tsc` spends much of its time computing the assignability relation over deep generic graphs; the compiler memoizes relation results, but pathological types (huge unions, deeply nested conditional/mapped types, recursive instantiations) defeat the cache and cause multi-minute checks or "type instantiation is excessively deep" errors. Mitigations: name and reuse types (so they memoize), cap generic depth, prefer interfaces (which TS caches better than large anonymous intersections), and use project references/incremental builds. Nominal systems sidestep most of this — identity is a pointer — which is one underrated reason nominal languages often type-check faster on equivalent designs.
-
----
-
-## Real-World Analogies
-
-**Coherence = one official adapter per device.** Imagine a standard guaranteeing exactly one certified power adapter per device model worldwide. Plug anything in and behavior is predictable. Structural "any plug that fits" loses that guarantee — two different "fitting" plugs might behave differently.
-
-**Orphan rule = you can only certify what you own.** You may issue safety certifications for *your* product or for *your* standard — not certify someone else's product against someone else's standard, because two issuers would conflict.
-
-**Newtype workaround = relabeling to gain authority.** To certify a third-party part, you incorporate it into *your* assembly and certify the assembly — now it's yours to vouch for.
-
-**Branding migration = adding serial numbers at intake.** You start stamping serial numbers on items as they enter the warehouse (the boundary), and gradually every downstream process learns to require the serial — mix-ups vanish without halting operations.
-
----
-
-## Mental Models
-
-**Model 1 — "Coherence vs. flexibility is a dial, not a feature."** Every boundary picks a point. Maximal retroactive conformance (structural) and global coherence (nominal) are opposite ends; you can't have both at the same boundary.
-
-**Model 2 — "Newtype is the universal lever in nominal systems."** It separates same-shaped meanings, re-homes foreign trait impls (orphan rule), and creates opaque evolvable types. When in doubt in a nominal language, a newtype is often the answer.
-
-**Model 3 — "Brand at the door, trust inside."** Mint nominal values once at system boundaries; the interior then has compile-time guarantees with no per-call validation.
-
-**Model 4 — "Type-check time is a budget."** Structural flexibility has a build-time cost. Treat the type-relation cache like any other hot cache: feed it named, reusable types; don't thrash it with anonymous mega-types.
 
 ---
 
@@ -228,38 +167,6 @@ A pragmatic hybrid: nominal `Resource` plus an inline structural requirement (re
 
 ---
 
-## Pros & Cons
-
-### Designing with nominal boundaries
-
-| Pros | Cons |
-|------|------|
-| Coherence: one canonical conformance → reliable dispatch & laws. | Orphan rule blocks foreign+foreign impls; needs newtype wrappers. |
-| Opacity → safe representation evolution. | More ceremony; explicit impls everywhere. |
-| Confusion bugs (ID/unit swaps) caught at compile time. | Mocking/interop need adapters or generics. |
-| Breaking changes surface as compile errors. | Steeper for ad-hoc/data-shaped code. |
-
-### Designing with structural boundaries
-
-| Pros | Cons |
-|------|------|
-| Retroactive conformance → instant interop, easy mocks. | No coherence; "two ways to be an X" is unresolvable. |
-| Minimal boilerplate at integration seams. | Accidental conformance & same-shape confusion. |
-| Great for JSON/config/ports-and-adapters. | Representation is the contract → harder evolution. |
-| Capability interfaces compose freely. | Type-check cost grows; large builds need cache discipline. |
-
----
-
-## Use Cases
-
-- **Plugin/port boundaries:** structural capability interfaces (Go `io.*`, a TS port interface) so implementers and mocks conform without coupling.
-- **Money, IDs, tokens, units:** nominal newtypes/brands so a swap is a compile error; mint at the boundary, trust inside.
-- **Re-homing foreign trait impls (Rust):** newtype wrapper to satisfy the orphan rule.
-- **Public, versioned contracts:** nominal interfaces so consumers opt in and breakage is loud.
-- **Large monorepo build health:** structural-typing performance tuning (named types, project references, depth caps).
-
----
-
 ## Coding Patterns
 
 **Pattern: single mint point + lint guard.** All brand/newtype values are created in one module; a lint rule forbids casts elsewhere. The brand becomes unforgeable.
@@ -307,11 +214,24 @@ A pragmatic hybrid: nominal `Resource` plus an inline structural requirement (re
 
 ---
 
-## Summary
+## Apply it
 
-- **Rust traits** are nominal interfaces whose distinguishing power is **coherence** (≤1 impl per trait/type program-wide), enforced by the **orphan rule** (impl only if you own the trait or the type). The **newtype workaround** legally re-homes foreign trait impls.
-- **Coherence and unrestricted retroactive conformance are mutually exclusive.** Structural (Go/TS) buys interop and easy mocks but no coherence; coherent-nominal (Rust/Haskell) buys canonical dispatch and laws but forbids implicit/foreign conformance. Choose the point per boundary.
-- **Hybrid design is the norm:** structural capability interfaces at integration seams, nominal newtypes/brands at domain boundaries and public contracts, with opacity for evolvability.
-- **Branding at scale** is an expand/contract migration: define brands + smart constructors, mint at boundaries, fix the surfaced errors (your latent swap bugs), lint against ad-hoc casts, then contract.
-- **Performance:** structural type-checking cost is real in large builds; feed the relation cache named/reusable types, cap generic depth, use incremental builds. Nominal identity is a pointer and largely sidesteps this.
-- The professional lens treats nominal-vs-structural as an **architectural lever** for contract enforcement, evolvability, and failure modes — not a fixed property of your language.
+1. Define the user or business outcome that **Nominal vs Structural Typing** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
+
+## Verify your work
+
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
+
+## Review questions
+
+- Which measurable outcome justifies investing in Nominal vs Structural Typing?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

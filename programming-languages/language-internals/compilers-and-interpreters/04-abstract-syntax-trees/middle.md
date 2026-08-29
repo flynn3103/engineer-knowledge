@@ -1,67 +1,11 @@
-# Abstract Syntax Trees — Middle Level
+# Abstract Syntax Trees — Middle
 
-> **Topic:** Abstract Syntax Trees
-> **Focus:** How ASTs are represented — sum types vs class hierarchies — and the visitor pattern, transformers, and source spans that make them usable.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **Abstract Syntax Trees** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-> Focus: **How do you actually represent an AST in code, how do you add operations to it without rewriting everything, and how do you transform one tree into another while keeping good error messages?**
-
-At the junior level an AST was "a tree of nodes, each with a kind." That is true, but it papers over the two decisions that shape every real compiler and dev tool:
-
-1. **How is a node represented?** As a variant of a **sum type** (Rust/OCaml `enum Expr { Lit, BinOp, Call, ... }`), where the whole AST is one type and you `match` on it? Or as a **class hierarchy** (Java/C# `abstract class Node` with one subclass per kind), where you add operations using the **visitor pattern**? These two choices pull in opposite directions, and the tension has a name — the **expression problem**.
-
-2. **How do you traverse and rewrite the tree?** A read-only walk is easy. But compilers don't just read trees — they *rewrite* them: desugaring `a += b` into `a = a + b`, lowering a `for` into a `while`, constant-folding `2 * 3` into `6`. You can mutate the tree in place, or you can build a **new** tree (a *transformer* / *rewriter*), which is what most modern, immutable-AST tools do.
-
-And underneath both: every node carries a **source position / span** so that when something goes wrong three phases later, the error message can still point at the right line and column in the *original* file.
-
-In one sentence: **the AST's representation is a deliberate trade-off (sum type vs class hierarchy), the visitor pattern is the workaround that lets class-based ASTs grow new operations, and source spans are the thread that keeps diagnostics honest as the tree is transformed.**
-
-> 🎓 **Why this matters at the middle level:** This is the level where you stop *using* ASTs and start *designing* them. Whether you are writing a Babel plugin, an ESLint rule, a small interpreter, or a refactoring tool, you are constantly choosing how to add an operation, deciding whether to mutate or rebuild, and trying not to lose the source location. Getting these right is the difference between a tool that works and one that produces "error at line 0" garbage.
-
-This page covers: sum-type vs class-hierarchy ASTs and the expression problem; the visitor pattern in depth (double dispatch, `accept`/`visit`, why it exists); traversal orders; transformers vs in-place mutation and immutable ASTs; and source spans surviving transformations. `senior.md` then goes into desugaring pipelines, typed ASTs, and multiple IRs; `professional.md` into memory layout and incremental red-green trees.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** The junior material — what an AST is, that it drops syntactic noise, and how to walk a tree by switching on node kind.
-- **Required:** Comfort with at least one OOP language (Java, C#, TypeScript) *and* familiarity with `enum`/`match` or `switch` in some language.
-- **Required:** Recursion over trees.
-- **Helpful but not required:** Knowing what *polymorphism* and *dynamic dispatch* mean in OOP.
-- **Helpful but not required:** Having used ESLint, Babel, or Python's `ast` even once.
-
-You do **not** need to know:
-
-- Type theory or semantic analysis internals (touched on here, detailed in `senior.md`).
-- Memory layout, arenas, or red-green trees (`professional.md`).
-- Parser construction — we still start *after* the tree exists.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Sum type / tagged union** | A type that is "one of" several variants, each carrying its own data: Rust `enum`, OCaml/Haskell ADTs, TypeScript discriminated unions. The natural fit for an AST. |
-| **Class hierarchy** | An `abstract class Node` with one concrete subclass per node kind. The OOP way to model an AST. |
-| **Exhaustive matching** | A `match`/`switch` that the compiler checks covers *every* variant. Add a new node kind and the compiler lists every place you forgot to handle it. |
-| **Visitor pattern** | A way to add a new operation over a class hierarchy without editing the node classes: an interface with one `visit` method per node type. |
-| **Double dispatch** | Selecting behavior based on *two* runtime types (the node's and the visitor's). The visitor pattern's mechanism. |
-| **`accept` / `visit`** | The two halves of the visitor: a node's `accept(v)` calls back `v.visitFoo(this)`. |
-| **Expression problem** | The fundamental tension: it is easy to add *cases* (node kinds) OR new *operations*, but no naive design makes both easy. |
-| **Traversal order** | The order nodes are visited: pre-order (node first), post-order (children first), in-order (binary trees). |
-| **Transformer / rewriter** | A traversal that returns a *new* tree instead of mutating the old one. |
-| **Immutable AST** | An AST whose nodes are never modified after creation; transforms produce fresh trees. |
-| **In-place mutation** | Editing node fields directly during a walk. Fast but fragile. |
-| **Span / source range** | A `(start, end)` pair of byte offsets (or line/col) tying a node back to the source text. |
-| **Diagnostic** | A compiler/tool message (error, warning) anchored to a span. |
-| **Desugaring** | Rewriting a convenience construct into a simpler core one (`a += b` → `a = a + b`). |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -217,30 +161,6 @@ The hard part is **spans surviving transformation**. When you desugar `a += b` i
 
 ---
 
-## Real-World Analogies
-
-**The visitor as a touring inspector.** Imagine a building with many room *types* (kitchen, server room, lobby). You want to run different *inspections* (fire safety, accessibility, cleaning). You do not want to teach every room how to inspect itself for every inspection — that bloats every room and you cannot add a new inspection without renovating every room. Instead, an *inspector* (the visitor) walks the building; at each room, the room says "I'm a kitchen — run your kitchen routine on me" (`accept`). One inspector = one inspection, applied to all room types. That is double dispatch: the room picks the routine *category*, the inspector supplies the actual *behavior*.
-
-**The expression problem as a spreadsheet you can only grow one way.** Picture a grid of rooms × inspections. Sum types let you add a whole new *inspection column* by writing one formula — but adding a *room row* means editing every column. Class+visitor lets you add a *room row* easily — but a new *inspection column* forces you to update the master template every room references. You can grow rows cheaply or columns cheaply, not both, for free.
-
-**Transformer vs mutation as editing a document.** In-place mutation is editing the original manuscript with a pen — fast, but if someone else was reading it, you have changed their copy too, and there is no "undo." A transformer is "track changes / save as a new version": the old version is untouched, only the changed paragraphs are new, and everything else is the same shared text. That is why version-controlled, immutable trees are easier to reason about.
-
-**Spans as page-and-line citations.** A good error message is like an academic citation: not "something is wrong somewhere" but "page 7, line 12." Even after you photocopy and rearrange the document (transform the tree), a careful editor keeps the original citation so the reader can find the source.
-
----
-
-## Mental Models
-
-**Model 1 — "Choose your representation by which axis grows."** Before writing a node type, ask: will I add more *operations* (passes) or more *kinds* (syntax)? Operations → sum type. Kinds added by third parties → class hierarchy + visitor. This single question explains most real compiler designs.
-
-**Model 2 — "A visitor is a `match` you were forced to spread across an interface."** If you understand `match`/`switch` on node kind, you already understand visitors — they are the same dispatch, mechanically reassembled to fit OOP's lack of pattern matching. Read `visitBinOp` as "the `BinOp` arm of the match."
-
-**Model 3 — "Transform = rebuild the spine, share the rest."** An immutable transform does not copy the whole tree. It copies only the nodes from the root down to what changed; every untouched subtree is reused by reference. Cheap and safe.
-
-**Model 4 — "Spans are luggage tags."** Every node wears a tag saying where it came from. Synthesized nodes inherit the tag of whatever they were desugared from, so no piece of the program is ever 'unaddressable' in an error message.
-
----
-
 ## Code Examples
 
 ### Example 1 — Adding an operation: sum type vs visitor
@@ -355,42 +275,6 @@ The synthesized `+` node carries the span of the original `+=`, so any later err
 
 ---
 
-## Pros & Cons
-
-**Sum-type ASTs**
-
-- ➕ Exhaustive matching: forget a case and it won't compile.
-- ➕ Operations are cheap to add; logic for a pass lives in one place.
-- ➕ No `accept`/`visit` boilerplate.
-- ➖ Adding a node kind ripples through every `match`.
-- ➖ Less natural when third parties must extend the node set.
-
-**Class-hierarchy + visitor ASTs**
-
-- ➕ Adding a node kind is one subclass.
-- ➕ The visitor keeps one operation in one class.
-- ➕ Fits OOP ecosystems and plugin-style extension.
-- ➖ Adding a node kind breaks every visitor (interface grows).
-- ➖ `accept`/`visit` boilerplate; double dispatch is indirect to read.
-
-**In-place mutation vs transformers**
-
-- In-place: ➕ fast, low allocation ➖ fragile, no before/after, aliasing hazards.
-- Transformer/immutable: ➕ safe, composable, diffable, cacheable ➖ more allocation, needs structural sharing to stay cheap.
-
----
-
-## Use Cases
-
-- **Interpreters** evaluate via a post-order walk (sum type `match` or an `Evaluator` visitor).
-- **Linters** are pre/post-order visitors that *report* but rarely rewrite (ESLint).
-- **Codemods / refactors** are transformers that rewrite matched nodes and print the tree back (jscodeshift, Babel plugins).
-- **Desugaring passes** turn convenience syntax into core syntax (`+=`, `for`, string interpolation), preserving spans.
-- **Pretty-printers / formatters** are pre-order visitors that emit text.
-- **Multi-pass compilers** add new operations constantly — a strong argument for sum types where the language allows.
-
----
-
 ## Coding Patterns
 
 **Pattern 1 — One visitor (or one function) per operation.** Keep eval, typecheck, print, and optimize as separate visitors/functions; do not interleave concerns.
@@ -440,83 +324,24 @@ The synthesized `+` node carries the span of the original `+=`, so any later err
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. State the expression problem in one sentence, and say which side sum types favor.
-2. Explain *double dispatch* in the visitor pattern: which two types are dispatched on, and where does each dispatch happen?
-3. Why do sum-type languages rarely need the visitor pattern?
-4. You desugar `for` into `while`. The `while`'s condition node is new — what span should it carry and why?
-5. What is the difference between an in-place mutation pass and a transformer, and when is each appropriate?
-6. In Python's `NodeTransformer`, what happens if a `visit_X` method returns `None`?
-7. Babel exposes `enter` and `exit` for each node. What kind of work belongs in each?
+1. Find a real component where **Abstract Syntax Trees** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
----
+## Verify your work
 
-## Cheat Sheet
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
 
-```text
-REPRESENTATION
-  sum type   enum Expr { Lit, BinOp, ... }   match (exhaustive)   ← functional langs
-  class hier abstract Node + subclasses      visitor pattern      ← OOP langs
+## Review questions
 
-EXPRESSION PROBLEM
-  sum type     : + operation = easy   |  + node kind = hard
-  class+visitor: + node kind = easy   |  + operation = easy-ish (iface grows)
-  pick by: which axis (operations vs kinds) grows more?
-
-VISITOR = double dispatch
-  node.accept(v)  -> dispatch on NODE type  -> v.visitBinOp(this)
-                                             -> dispatch on VISITOR type
-  one visitor = one operation over all node kinds.
-
-TRAVERSAL
-  pre-order  (enter): scoping, printing, top-down facts
-  post-order (exit):  eval, type-infer, fold — needs children first
-
-TRANSFORM
-  in-place  : fast, fragile, aliasing hazards
-  transformer/immutable: return new node, share unchanged subtrees (safe)
-
-SPANS
-  every node carries (start,end). Synthesized nodes inherit the
-  original span. No span -> "error at 0:0".
-  Python: fix_missing_locations after building nodes.
-```
-
----
-
-## Summary
-
-A real AST is shaped by two design decisions. **Representation:** a **sum type** (`enum Expr`, matched exhaustively — the functional-language default, great for adding operations) or a **class hierarchy** (`abstract Node` + subclasses, extended via the **visitor pattern** — the OOP default, great for adding node kinds). The tension between these is the **expression problem**: you can make adding *kinds* cheap or adding *operations* cheap, not both for free. The **visitor pattern** is OOP's answer to that tension — it uses **double dispatch** (`accept` picks the node, `visit` picks the operation) to collect one operation into one class without editing the node classes; sum-type languages get the same effect from `match` in a single, exhaustiveness-checked hop.
-
-**Traversal** comes in pre-order (top-down) and post-order (bottom-up) flavors, and most walkers offer both as `enter`/`exit`. Compilers don't just read trees, they **rewrite** them — either by **in-place mutation** (fast, fragile) or, more often in modern tools, by **transformers** that return a *new* immutable tree while sharing unchanged subtrees. Through all of this, every node carries a **source span**, and synthesized nodes inherit the span of whatever they were desugared from, so diagnostics keep pointing at the right text. `senior.md` builds on this with desugaring pipelines, typed/annotated ASTs, and multiple lowered IRs.
-
----
-
-## What You Can Build
-
-- **A two-backend evaluator+printer** for a tiny expression language, implemented once as a sum-type `match` and once as a visitor, to feel the difference.
-- **A Babel/ESLint-style rename codemod** that walks identifiers and rewrites matches.
-- **A docstring-stripping `NodeTransformer`** in Python that returns a new tree.
-- **A `+=` → `= ... +` desugaring pass** that preserves source spans, with a test that an error on the new node points at the original `+=`.
-- **A formatter** that pretty-prints your AST with consistent spacing, proving the AST forgot the original whitespace.
-
----
-
-## Further Reading
-
-- Philip Wadler, "The Expression Problem" (the original 1998 note) — short and foundational.
-- *Design Patterns* (Gang of Four) — the Visitor pattern chapter, including double dispatch.
-- The Babel handbook — visitors, `path`, scope, and `enter`/`exit`.
-- Python docs: `ast.NodeVisitor` and `ast.NodeTransformer`, plus `fix_missing_locations` and `unparse`.
-- *Crafting Interpreters* — the chapter that builds the AST with the visitor pattern, then contrasts it with pattern matching.
-
----
-
-## Related Topics
-
-- [Junior level](junior.md) — what an AST is and how to walk it.
-- [Senior level](senior.md) — desugaring pipelines, typed/annotated ASTs, and multiple IRs.
-- [Professional level](professional.md) — arena/flat layouts and red-green incremental trees.
-- [Interview questions](interview.md) — visitor, expression problem, and transform questions.
-- [Hands-on tasks](tasks.md) — implement visitors, transformers, and span-preserving desugaring.
+- Which boundary is most affected by Abstract Syntax Trees?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

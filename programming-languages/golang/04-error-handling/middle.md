@@ -1,20 +1,11 @@
 # Error Handling — Middle
 
-> **Topic:** [Error Handling](../README.md)
-> **Focus:** Designing error taxonomies for a service, `errors.Join`, panic/recover boundaries, when to retry vs. fail fast, and building error flows that are boring and debuggable rather than clever.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **Error Handling** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-At junior level you learned the mechanics: wrap, `errors.Is`, `errors.As`. At this level the question becomes design: how do you structure errors across an entire service so that callers — humans debugging an incident, or code deciding whether to retry — can reliably tell *what kind* of failure happened and *what to do about it*, without parsing message strings?
-
----
-
-## Prerequisites
-
-- Comfortable with wrapping, sentinel errors, and custom error types (junior level).
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -149,16 +140,6 @@ func safeGo(fn func()) {
 
 ---
 
-## Pros & Cons
-
-| Approach | Pros | Cons |
-|---|---|---|
-| Error taxonomy (`Kind` + `AppError`) | Consistent handling, one mapping point, easy to reason about | Requires discipline to route all errors through it |
-| `errors.Join` | Reports all failures, not just the first | Slightly more code than returning a single error; still evolving idiom |
-| Retry-only-retryable | Avoids wasted retries and load amplification | Requires explicitly marking which errors are retryable |
-
----
-
 ## Best Practices
 
 1. Define a small, fixed set of error kinds and map them consistently to status codes/log levels in one place.
@@ -193,45 +174,24 @@ func safeGo(fn func()) {
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```go
-errors.Join(err1, err2)          // combine independent failures
-errors.Is(joined, ErrSentinel)   // checks each joined error
-panic("invariant violated")      // programmer errors only
-defer func() { recover() }()     // boundary-only recovery
-```
+1. Find a real component where **Error Handling** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
----
+## Verify your work
 
-## Summary
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
 
-- Design a small, deliberate error taxonomy (kinds mapped to status/retry/log-level) rather than ad hoc error types per function.
-- `errors.Join` reports multiple independent failures; `errors.Is`/`errors.As` still work across it.
-- Retry only errors explicitly classified as transient — blind retries amplify outages.
-- `panic`/`recover` is for programmer errors and boundary-level safety nets, never routine control flow.
-- The best error-handling code is boring and predictable, not clever.
+## Review questions
 
----
-
-## Further Reading
-
-- The Go Blog — *Working with Errors in Go 1.13*: <https://go.dev/blog/go1.13-errors>
-- Go 1.20 release notes — `errors.Join`: <https://go.dev/doc/go1.20#errors>
-
----
-
-## Related Topics
-
-- [Error Handling — Junior](junior.md)
-- [HTTP and APIs — Middle](../05-http-and-apis/middle.md) — mapping error kinds to HTTP responses in practice.
-
----
-
-## Check your understanding
-
-1. Explain Error Handling — Middle Level in your own words and name the problem it solves.
-2. How would you apply the ideas around Introduction, Prerequisites, Core Concepts in a realistic engineering change?
-3. What failure mode or misuse should you look for, and what evidence would reveal it?
-4. Which local design trade-off would make you choose or reject Error Handling — Middle Level in an existing codebase?
-5. What observable result would convince you that the approach improved the system?
+- Which boundary is most affected by Error Handling?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

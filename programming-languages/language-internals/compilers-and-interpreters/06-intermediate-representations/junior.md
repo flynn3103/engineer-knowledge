@@ -1,69 +1,11 @@
-# Intermediate Representations — Junior Level
+# Intermediate Representations — Junior
 
-> **Topic:** Intermediate Representations
-> **Focus:** The data structure that lives *between* the parser and the machine — what it is, why every serious compiler has one, and the simplest forms (three-address code and the control-flow graph) you should be able to draw by hand.
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **Intermediate Representations** in one small example and prove the result?
 
-## Introduction
-
-> Focus: **What sits between "I parsed the source" and "I emitted machine code"?** And **why is there anything there at all?**
-
-When you first imagine a compiler, you picture a single arrow: *source code → machine code*. That picture is wrong for every compiler you will actually use. Real compilers insert a third thing in the middle — an **intermediate representation**, or **IR**. The IR is a data structure (not text you usually write, though it can be printed as text) that captures *what the program does* in a form that is no longer the source language and not yet the target machine.
-
-The front end (lexer, parser, semantic analysis) turns your `.c` / `.rs` / `.java` file into the IR. The back end (optimizer, code generator) turns the IR into x86, ARM, or bytecode. The IR is the **handoff point** — the neutral meeting ground where the front end stops caring about syntax and the back end starts caring about registers.
-
-In one sentence: **an IR is the compiler's own private language, designed not for humans to write but for machines to analyze and transform.**
-
-Why bother? Two reasons that a junior should burn into memory:
-
-1. **It decouples languages from machines.** Suppose you support *M* source languages (C, C++, Rust, Swift) and *N* target machines (x86, ARM, RISC-V, WebAssembly). Without an IR, you write a compiler for every pair: *M × N* full compilers. With one shared IR, every language compiles *to* the IR (*M* front ends) and the IR compiles *to* every machine (*N* back ends). You build *M + N* pieces, not *M × N*. This is the single most important idea on this page, and it is exactly why LLVM exists.
-
-2. **It is the place where optimization happens.** You do not want to optimize raw syntax trees (too close to the messy source) or raw assembly (too close to one specific chip). The IR is the sweet spot: clean, regular, and target-independent enough that one optimization (say, "delete code that computes a value nobody uses") works for *every* language and *every* machine at once.
-
-This page covers the *what* and the simplest *how*: the narrow-waist idea, **three-address code** (the classic linear IR shape, e.g. `t1 = a + b`), and the **control-flow graph** (the picture of basic blocks and the jumps between them that every later analysis stands on). Deeper levels go further: `middle.md` introduces **static single assignment (SSA)** and how you build a CFG; `senior.md` covers real IRs (LLVM IR, GIMPLE, JVM bytecode); `professional.md` covers multi-level IRs, MLIR, and how production compilers stack many IRs on top of each other.
-
-> 🎓 **Why this matters for a junior:** The day you understand that the IR is "just a simpler, more regular program that means the same thing," compilers stop being magic. Every confusing thing a compiler does — inlining, constant folding, vectorization — is a transformation on this in-between structure. Learn the structure, and the transformations become obvious.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** What an **abstract syntax tree (AST)** is — the tree a parser builds from source code. (See `../04-abstract-syntax-trees/junior.md`.)
-- **Required:** Basic control flow in any language: `if`, `while`, `for`, function calls.
-- **Required:** The rough shape of a compiler pipeline: *lexer → parser → ... → code generator*. (See `../01-the-big-picture/junior.md`.)
-- **Helpful but not required:** A vague idea of what assembly looks like — that machines execute small, simple instructions one after another.
-- **Helpful but not required:** Knowing that a variable lives in a register or in memory.
-
-You do **not** need to know:
-
-- How SSA is constructed (that is `middle.md`).
-- LLVM, GIMPLE, or any real IR's exact syntax (that is `senior.md`).
-- Register allocation or instruction selection (that is `../08-code-generation/`).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Intermediate Representation (IR)** | A data structure the compiler uses to represent a program *between* the source and the target. Not the source language, not machine code. |
-| **Front end** | The part of a compiler that reads source and produces IR: lexer, parser, semantic analysis. Language-specific. |
-| **Back end** | The part that turns IR into machine code: optimization and code generation. Machine-specific. |
-| **Narrow waist** | The design where many inputs and many outputs all meet at one shared format in the middle — like the hourglass shape of the internet's IP layer. The IR is a compiler's narrow waist. |
-| **Lowering** | Translating from a *higher-level* representation to a *lower-level* one (AST → IR, or high-level IR → low-level IR). The information loss is intentional. |
-| **Three-address code (TAC)** | A linear IR form where each instruction has at most one operator and (usually) three operands: `result = operand1 op operand2`. |
-| **Temporary (temp)** | A compiler-generated variable, usually written `t1`, `t2`, that holds an intermediate value. The compiler invents as many as it needs. |
-| **Basic block** | A straight-line sequence of instructions with one entry at the top and one exit at the bottom — no jumps *into* the middle, no jumps *out of* the middle. |
-| **Control-flow graph (CFG)** | A graph whose nodes are basic blocks and whose edges are the possible jumps between them. The map of "where can execution go next." |
-| **Edge** | A directed connection in the CFG from one block to a block that can run next. |
-| **Branch / jump** | An instruction that changes which block runs next (`goto`, `if x goto L`). |
-| **Target-independent** | A property of code/IR/optimizations that does not depend on which machine you compile for. |
-| **Optimization** | A transformation that makes the program faster or smaller while keeping its meaning. Most optimizations operate on the IR. |
-| **SSA** | Static Single Assignment — an IR property where every variable is assigned exactly once. Introduced properly in `middle.md`. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -175,39 +117,6 @@ There are two big families of IR you will meet:
 - **Stack-based** IRs (like **JVM bytecode**, **.NET CIL**, and **WebAssembly**) have no named temporaries. Instead they push operands onto an operand stack and apply operators that pop their inputs and push their result. `a + b` becomes "push a, push b, add" — and `add` implicitly takes the top two stack slots. This is compact (great for *distributing* code, e.g. a `.class` file you download) but the implicit stack makes some analyses fiddlier.
 
 You will meet both. For now just know: a register-based IR names every value; a stack-based IR keeps values on an implicit stack. We will say much more in `senior.md`.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Intermediate representation** | A pivot language at the UN. Instead of training translators for every pair of the 6 official languages, everything goes through one neutral hub. |
-| **Narrow waist (M + N)** | A power adapter standard. Every device and every wall socket meets at one plug shape, so you need adapters to the standard, not adapters for every device-to-socket pair. |
-| **Three-address code** | A recipe rewritten so each step does one action: "crack egg into bowl," "add flour to bowl," not "combine the egg, flour, and milk." |
-| **Temporary variable** | The "hold this for a second" sticky note you write a partial sum on while doing long arithmetic. |
-| **Basic block** | A one-way street with no side exits: once you enter, you go straight to the end. |
-| **Control-flow graph** | A subway map. Stations are basic blocks; lines are the edges showing where you can go next. |
-| **Lowering** | Translating an architect's blueprint into a bricklayer's step-by-step instructions. The "room" concept disappears; the brick-by-brick mechanics appear. |
-| **Stack-based IR** | A stack of plates: you put values on top and the operations always work on whatever is at the top. |
-| **Register-based IR** | A whiteboard with named boxes; every value gets its own labeled box. |
-| **Front end / back end split** | An assembly line where one half builds a neutral chassis and the other half customizes it per market. |
-
----
-
-## Mental Models
-
-### The Hourglass Model
-
-Picture an hourglass. The wide top is "all the source languages." The wide bottom is "all the target machines." The narrow neck in the middle is the IR. *Everything* flows through that neck. The genius is that you only have to make each language reach the neck, and each machine accept the neck — never connect a language directly to a machine. Whenever someone says "narrow waist," picture this hourglass.
-
-### The "Simpler Program That Means the Same Thing" Model
-
-The IR is not magic and it is not a tree of abstract symbols. It is *a program* — you can read it top to bottom, and it computes the same answer as your source. It is just written in a deliberately boring, regular, one-step-at-a-time style so the compiler can reason about it mechanically. When IR confuses you, slow down and *execute it in your head*. It will produce the same result as the source. That demystifies it instantly.
-
-### The "Map Before You Travel" Model (for the CFG)
-
-Before the compiler can ask "is this variable ever used?" or "can this branch ever be taken?", it needs a *map* of where execution can go. The CFG is that map. Linear instructions are a list of streets; the CFG is the map showing how the streets connect. Every clever analysis is a walk over this map collecting facts. Draw the CFG first; reason second.
 
 ---
 
@@ -356,37 +265,6 @@ The register form names the result (`%1`). The stack form leaves the result on t
 
 ---
 
-## Pros & Cons
-
-| Aspect | Pros | Cons |
-|--------|------|------|
-| **Reusability** | One IR lets *M* languages share *N* back ends — the M + N saving. | Designing an IR general enough for many languages is hard; it can become a compromise that serves none perfectly. |
-| **Optimization** | A single optimization on the IR benefits every language and every target at once. | An IR too high-level hides machine costs; too low-level loses portability. Picking the level is a real tension. |
-| **Analyzability** | A regular, one-operation-per-instruction form is far easier to analyze than an AST or assembly. | More instructions than the source means more to process; naive IRs can be verbose. |
-| **Separation of concerns** | Front end and back end can be developed by different teams and evolve independently. | An extra translation stage means more code, more bugs-surface, and a thing to keep in sync. |
-| **Portability** | Target-independent IR means new CPUs need only a new back end. | The IR itself must be carefully kept target-neutral, which constrains its design. |
-| **Tooling** | The IR can be printed, verified, diffed, and fuzzed — a stable contract in the middle of the compiler. | You now need an IR *verifier* and IR-level tests, more infrastructure to maintain. |
-
----
-
-## Use Cases
-
-You will encounter or build an IR whenever:
-
-- **You write a compiler or transpiler.** Any tool turning one language into another benefits from an IR in the middle, even a simple one.
-- **You optimize code.** Every optimization pass — constant folding, dead-code elimination, inlining — reads and writes the IR.
-- **You target multiple platforms.** Compile once to IR, then generate code for x86, ARM, and WebAssembly from the same IR.
-- **You build static-analysis or linting tools.** Many bug-finders lower code to an IR (or use SSA form) because it is far more regular than the source.
-- **You write an interpreter with a bytecode VM.** The bytecode *is* an IR — a stack-based one you execute directly. (See `../09-interpreters/`.)
-- **You instrument or profile programs.** Inserting counters, coverage probes, or sanitizer checks is an IR transformation.
-
-An IR is *overkill* when:
-
-- You are writing a one-shot transpiler between two very similar languages, where a direct AST-to-AST walk is simpler.
-- You have exactly one source language and one target and never expect more — though even then, an IR usually pays off the moment you want to optimize.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Emit-as-you-walk (AST → TAC)
@@ -473,3 +351,27 @@ Resist doing everything in one giant pass. Lower to IR in one pass; build the CF
 - **Choosing the wrong IR level.** Too high-level (close to the AST) and you cannot express machine concerns; too low-level (close to assembly) and you lose portability and the ability to optimize generally. This is a genuine design decision, not a detail.
 - **Treating the IR as throwaway.** Beginners sometimes skip the IR and translate AST straight to assembly. It works for toys and collapses the moment you want optimization or a second target. The IR is the investment that pays off later.
 - **Assuming one IR is enough.** Real compilers stack several IRs at different levels. You do not need that on day one, but do not be surprised that LLVM has GENERIC/GIMPLE/RTL-like layering elsewhere and MLIR has many "dialects" — covered in higher levels.
+
+---
+
+## Apply it
+
+1. Choose one small, known input for **Intermediate Representations**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
+
+## Verify your work
+
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
+
+## Review questions
+
+- What problem does Intermediate Representations solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

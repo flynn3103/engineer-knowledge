@@ -1,59 +1,11 @@
-# Runtimes (Language Runtime Support) — Professional Level
+# Runtimes (Language Runtime Support) — Professional
 
-> **Topic:** Runtimes (Language Runtime Support)
-> **Focus:** The runtime as a *product decision* and a *host*. Designing the fat-vs-thin spectrum on purpose; the runtime as the JIT host for managed languages; **embedding** a runtime (Lua, V8) inside an application; foreign-runtime interop; and the production economics — binary size, cold starts, serverless, and runtime cost at scale.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Runtimes (Language Runtime Support)** with measurable outcomes and limited coordination?
 
-## Introduction
-
-> 🎓 At senior level you could implement the runtime's hard parts. At professional level you make *decisions* about runtimes: how much runtime to ship and why, how the runtime hosts a JIT, how to **embed** a runtime inside a larger application, how two runtimes coexist across an FFI boundary, and how the runtime's startup and steady-state costs show up on the bill — in binary size, cold-start latency, and cloud spend.
-
-A language runtime is not just an implementation detail; it is an **architectural commitment** with downstream consequences for deployment, security, performance, and cost. This tier treats four professional concerns:
-
-1. **The runtime as JIT host.** For managed languages (JVM, CLR, V8) the runtime *is* the optimizing compiler at runtime: it profiles, tiers up hot code, inlines across the standard library, and **deoptimizes** when speculation fails. The compiler ahead-of-time emits bytecode/IR; the runtime finishes the job on the live workload. (JIT internals proper belong to the JIT section; here we focus on the runtime's *hosting* role and the cooperation it requires.)
-2. **Embedding a runtime.** Lua and V8 (and Wasm runtimes, and the CLR/JVM via hosting APIs) are designed to be **embedded** inside a host application as a scripting/extension layer. The host owns the OS resources; the embedded runtime owns a sandbox of state. Designing this boundary — lifecycle, memory ownership, threading, isolation — is a recurring professional task.
-3. **Foreign-runtime interop.** Calling C from a managed runtime, or hosting two GCs in one process, raises hard questions about object ownership, GC handles/pinning, callbacks, and who unwinds. (The FFI/interop section owns the mechanics; here we own the *runtime-coexistence* design.)
-4. **Production economics.** Why a 30 MB binary, why a 400 ms cold start, why serverless platforms obsess over runtime startup, and the levers (AOT compilation, snapshotting, tiered runtimes, trimming) that move those numbers.
-
-The unifying idea: **a runtime is a thing you choose, size, host, and pay for** — and the senior engineer who understands its internals becomes the professional who designs systems around it.
-
----
-
-## Prerequisites
-
-- **Required:** Senior tier — GC barriers/safepoints, exception unwinding, async-to-state-machine lowering, startup path.
-- **Required:** Experience deploying real software (binaries, containers, or serverless functions) and an awareness of cold starts and image sizes.
-- **Required:** Comfort with FFI concepts (calling C from a higher-level language).
-- **Helpful:** Exposure to a JIT-hosted runtime (JVM/HotSpot, .NET CLR, V8) and to an embeddable runtime (Lua, V8, Wasmtime).
-- **Helpful:** Familiarity with one AOT path (GraalVM native-image, .NET NativeAOT, Go's static linking).
-
-You do **not** need to know:
-
-- The full JIT optimization pipeline (tiering, IR passes) — that's the JIT/optimization section.
-- The detailed mechanics of an FFI calling convention — that's the FFI/interop section.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **JIT host** | The runtime's role of compiling bytecode/IR to native code *at runtime*, guided by live profiling. |
-| **Tiered compilation** | Start interpreted or lightly-compiled, recompile hot methods at higher optimization (HotSpot C1→C2, V8 Ignition→TurboFan). |
-| **Deoptimization** | The runtime bailing out of optimized code back to the interpreter when a speculative assumption breaks; requires mapping optimized state back to bytecode-level state. |
-| **OSR (on-stack replacement)** | Swapping a running method's frame from interpreted to compiled (or back) *mid-execution*, e.g. for a hot loop. |
-| **Embedding** | Linking a language runtime into a host application as a library and driving it through an API (Lua C API, V8 `Isolate`/`Context`). |
-| **Isolate / context / state** | An isolated unit of runtime state (V8 `Isolate`, a Lua `lua_State`) — its own heap, globals, GC; the unit of sandboxing. |
-| **Host bindings / native functions** | Functions the host registers so embedded scripts can call back into the host (and vice versa). |
-| **GC handle / pinning** | A way to keep a managed object alive and/or immovable across a foreign call so a moving GC doesn't relocate or free it. |
-| **AOT (ahead-of-time)** | Compiling to native code before deployment (GraalVM native-image, NativeAOT) to cut startup and shrink the runtime. |
-| **Snapshot / heap snapshot** | A pre-initialized heap image captured at build time and mapped at startup to skip bootstrap work (V8 snapshots, CRaC, Lambda SnapStart). |
-| **Cold start** | The latency to initialize a process/runtime before it can serve the first request (serverless's central tax). |
-| **Trimming / tree-shaking the runtime** | Removing unused runtime/library code to shrink binaries (IL trimming in .NET, dead-code elimination, `no_std`). |
-| **Closed-world assumption** | AOT requirement that all reachable code is known at build time (no arbitrary runtime reflection/class loading) — enables aggressive trimming. |
-| **Wasm runtime** | An embeddable, sandboxed runtime (Wasmtime, V8/Wasm) hosting portable bytecode with a minimal, capability-based interface. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -119,28 +71,6 @@ Putting it together, choosing a runtime is choosing a point on the spectrum *for
 - **Bare metal / embedded devices:** **`no_std`/thin** (Rust, C) — no GC, no scheduler, predictable timing, tiny footprint.
 
 The professional doesn't ask "which language is fastest?" but "**which runtime profile matches this workload's lifecycle, isolation, and cost constraints?**"
-
----
-
-## Real-World Analogies
-
-**The chef who keeps re-tuning the kitchen mid-service (JIT host).** A JIT-hosted runtime is a chef who starts cooking from a basic recipe (interpreter), watches which dishes get ordered most (profiling), and rebuilds the line around those dishes for speed (tier-up) — but must scrap the new layout instantly if the menu changes unexpectedly (deopt). It's slow at the first seating (warm-up) and brilliant by the dinner rush.
-
-**The arcade cabinet vs. the home console (embedding).** An embeddable runtime is an arcade cabinet you drop into your venue (host app): you control the power, the coin slot, and the cabinet's footprint; the game inside (the script) runs in its own sealed box. Run a hundred cabinets (isolates) for a hundred players rather than one giant machine they all share.
-
-**The international shipment (foreign-runtime interop).** Two countries (runtimes), two sets of customs rules (memory ownership, unwinding). Goods (objects) crossing the border must be declared and held in a bonded warehouse (pinned/handled) or they "disappear" (get collected/moved). An undeclared package (an unrooted object, an un-converted exception) causes an incident at the border.
-
----
-
-## Mental Models
-
-**Model 1 — Three subsystems, one process.** A fat managed runtime is a memory manager + a scheduler + an optimizing compiler, co-resident and cooperating through safepoints and metadata. Performance and bugs alike come from their interaction.
-
-**Model 2 — Guest vs. landlord.** A *bundled* runtime is a landlord that owns the whole building. An *embedded* runtime is a guest the host (landlord) lets in, room by room (isolate), with house rules (resource limits, exposed APIs). Choosing between "be the building" and "be a guest" is an architecture decision.
-
-**Model 3 — The cold-start budget.** Treat startup as a budget: `bootstrap + static init + (JIT warm-up?) + first-request work`. Every runtime choice and optimization (AOT, snapshot, trimming, provisioned warmth) is a line-item reduction in that budget.
-
-**Model 4 — Interop is invariant-matching.** Don't think "calling C"; think "making runtime A's invariants (GC liveness, immovability, unwinding) hold while runtime/zone B has control." Every FFI rule is one invariant being protected.
 
 ---
 
@@ -252,17 +182,6 @@ Snapshotting captures a fully-initialized heap (and, for SnapStart/CRaC, a warme
 
 ---
 
-## Use Cases
-
-- **Multi-tenant edge compute:** V8 isolates / Wasm as the sandbox unit — fast cold start, strong isolation, thousands of tenants per host.
-- **Scriptable applications:** embed Lua/JS for config, game logic, or user extensions without exposing the host's full power.
-- **Serverless functions:** choose AOT/thin runtimes or snapshot a fat one to fit the cold-start SLO and cut billed init time.
-- **High-throughput backends:** accept a fat JIT-hosted runtime's warm-up because uptime amortizes it and peak throughput wins.
-- **Native acceleration of managed code:** call into C/Rust for hot kernels, designing the pinning/handle/unwinding boundary carefully.
-- **Cost optimization at scale:** tune GC and reduce allocations so the runtime's steady-state CPU drops instance count.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1 — One runtime instance per tenant, not one thread
@@ -352,78 +271,24 @@ Measure `process_start → first_request_served`, attribute each segment (bootst
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. What three subsystems coexist in a fat JIT-hosted runtime, and how do they cooperate?
-2. What is deoptimization, and which senior-tier mechanism does it reuse?
-3. Why are V8 isolates the unit of multi-tenancy at the edge instead of containers?
-4. When the host embeds Lua, who owns the runtime lifecycle and the GC, and how is concurrency achieved?
-5. Why must a managed object be pinned across an FFI call, and what's the downside of holding the pin too long?
-6. List the line items of a cold-start budget and a lever that attacks each.
-7. What is AOT's closed-world assumption, what does it enable, and what does it forbid?
-8. For a short-lived serverless function and a long-lived high-throughput backend, which runtime profiles fit and why?
+1. Define the user or business outcome that **Runtimes (Language Runtime Support)** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
-> Answers: (1) A memory manager (GC), a scheduler, and an optimizing JIT compiler; they cooperate through safepoints and stack-map metadata. (2) Bailing out of optimized code to the interpreter when speculation breaks; it reuses the stack-map/state-mapping machinery the GC uses to describe frame state. (3) Isolates start in milliseconds with strong per-instance isolation and tiny overhead, so one host multiplexes thousands of tenants far more cheaply than a container per tenant. (4) The host owns lifecycle (`newstate`/`close`) and the Lua GC manages only that `lua_State`'s values; concurrency = multiple states/instances, not threads sharing one. (5) A moving/concurrent GC could relocate or free it under the native code; pinning keeps it alive and immovable — but long pins fragment the heap and defeat compaction. (6) bootstrap (AOT/snapshot), static init (lazy init/snapshot), JIT warm-up (AOT/snapshot), first-request work (provisioned warmth/caching). (7) All reachable code is known at build time; it enables aggressive trimming/dead-code elimination (small binaries, fast start); it forbids arbitrary runtime reflection/dynamic class loading. (8) Serverless: thin/AOT/snapshot (startup dominates, warm-up is a liability); backend: fat JIT-hosted (warm-up amortizes, peak throughput and dynamic features pay off).
+## Verify your work
 
----
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
 
-## Cheat Sheet
+## Review questions
 
-```text
-RUNTIME AS JIT HOST (JVM/CLR/V8): interpret -> profile -> tier up; deopt on broken speculation
-  (deopt reuses GC stack maps); slow until WARM; warm-up is fatal for short-lived workloads
-
-EMBEDDING (Lua / V8 isolate / Wasm): runtime is a GUEST
-  host owns lifecycle + resources; instance (Isolate/lua_State) = own heap+GC = sandbox unit
-  single-threaded per instance -> concurrency = MANY instances; cap mem/CPU/caps; watchdog runaways
-  edge multi-tenancy = isolate-per-tenant (ms cold start, strong isolation)
-
-FOREIGN-RUNTIME INTEROP = invariant matching:
-  pin + keep-alive (GCHandle/JNI critical/cgo rules) across the call
-  mark thread "in native" so GC doesn't stall; re-attach on callback
-  convert exceptions/panics at the boundary (never cross unwinding models)
-  two GCs -> cross-heap cycles leak (use weak/handles)
-
-PRODUCTION ECONOMICS (you literally pay for a runtime):
-  size      -> AOT/trim/no_std/dynamic-link/distroless
-  cold start-> AOT (skip warm-up) + snapshot/SnapStart/CRaC (skip bootstrap) + provisioned warmth
-  steady    -> GC tuning + allocation reduction = fewer instances
-
-PICK BY LIFECYCLE: long-lived->fat/JIT | short-lived->thin/AOT | multitenant->embedded | metal->no_std
-```
-
----
-
-## Summary
-
-At professional level a runtime is a **decision and a host**, not just a mechanism. Fat managed runtimes are also **JIT hosts**: they interpret, profile, tier up hot code, and **deoptimize** when speculation breaks — reusing the same stack-map metadata the GC needs — which buys peak throughput at the cost of a **warm-up** tax that is fatal for short-lived workloads. Some runtimes are designed to be **embedded** as guests: Lua and V8 isolates (and Wasm) give a host application a sandboxed unit of state (own heap, own GC, single-threaded per instance) that scales by *instances*, making isolate-per-tenant the foundation of edge multi-tenancy. **Foreign-runtime interop** is fundamentally **invariant-matching** — pinning and rooting managed objects, marking threads "in native" for safepoints, and converting exceptions at the boundary so two runtimes can share one process without corrupting each other.
-
-All of this lands on the **bill**: the runtime determines binary/image size, cold-start latency, and steady-state CPU, and the professional levers — **AOT** (skip warm-up), **snapshotting/SnapStart/CRaC** (skip bootstrap), **trimming/`no_std`** (shrink size), and **provisioned warmth** — are deliberate moves of work from runtime to build time or from latency to idle cost. The defining professional skill is not picking "the fast language" but **matching a runtime profile to a workload's lifecycle, isolation, and cost constraints**: fat/JIT for long-lived throughput, thin/AOT/snapshot for serverless, embedded sandboxes for multi-tenant and untrusted code, and `no_std`/thin for bare metal. The internals from earlier tiers are what let you make — and defend — those calls.
-
----
-
-## What You Can Build
-
-- **A Lua/V8 embedding** with registered host functions, a memory cap, and a watchdog that terminates a runaway script — a minimal plugin host.
-- **A cold-start attribution tool** that times bootstrap / static init / warm-up / first request for a JIT-hosted and an AOT build of the same app, then quantifies each lever (AOT, snapshot, lazy init).
-- **An isolate-per-tenant sandbox** that pools V8 isolates, runs untrusted scripts with limits, and measures cold-start and isolation cost per tenant.
-- **An FFI boundary harness** demonstrating a GC-move crash without pinning and its fix with a pin/handle, plus exception-to-error-code conversion across the boundary.
-
----
-
-## Further Reading
-
-- HotSpot/OpenJDK docs on tiered compilation, deoptimization, and the code cache; the JVM JIT design papers.
-- V8 Embedder's Guide (Isolates, Contexts, Handles, snapshots); Cloudflare's "How Workers works" (isolates vs containers).
-- The Lua Reference Manual, Chapter on the C API; "Programming in Lua" embedding chapters.
-- GraalVM native-image and .NET NativeAOT / IL trimming documentation; AWS Lambda SnapStart and OpenJDK CRaC.
-- The JIT/optimization section (JIT internals), the FFI/interop section (calling-convention mechanics), and the memory-management section (GC tuning).
-
----
-
-## Related Topics
-
-- Runtimes (Language Runtime Support) — the hub for this topic.
-- The **foreign-function-interface-and-interop** section: the mechanics of the runtime-coexistence boundary described here.
-- The **memory-management** section: GC tuning, pinning, and compaction that drive the economics.
-- The **runtime-systems** section: the runtime from its own perspective, including scheduler and stack internals.
+- Which measurable outcome justifies investing in Runtimes (Language Runtime Support)?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

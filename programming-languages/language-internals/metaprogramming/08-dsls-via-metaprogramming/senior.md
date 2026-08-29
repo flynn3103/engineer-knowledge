@@ -1,65 +1,11 @@
-# DSLs via Metaprogramming — Senior Level
+# DSLs via Metaprogramming — Senior
 
-> **Topic:** DSLs via Metaprogramming
-> **Focus:** Compile-checked, macro-based DSLs (Rust `html!`, `json!`, `sqlx::query!`), Ruby's `method_missing`/`instance_eval` machinery, and DSL design as an engineering discipline — error quality, leaky abstractions, and when *not* to build one.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **DSLs via Metaprogramming** under failure, load, and change?
 
-## Introduction
-
-> Focus: **When the DSL runs at *compile time* (macros) you can validate it before the program runs — but the cost is harder errors and tooling. How do you design a DSL whose errors speak the domain, and how do you know when to build one at all?**
-
-The earlier tiers built DSLs that run at *runtime*: a fluent builder assembles a query as the program executes; an operator-overloaded expression tree is walked when you call `.sql()`. This tier crosses a fundamental line into **compile-time DSLs**, where the DSL is processed *before* your program runs:
-
-- **Rust procedural and declarative macros.** `vec![1, 2, 3]`, `json!({ "k": v })` (serde_json), `html!` (Yew), and `sqlx::query!("SELECT ...")` all transform DSL syntax into real Rust code *at compile time*. The dramatic example is `sqlx::query!`, which connects to your database **during compilation** to verify the SQL is valid and the result columns match your structs. A typo in a column name becomes a *compile error*, not a 3 a.m. production incident.
-- **Ruby's deep metaprogramming.** `method_missing`, `define_method`, `instance_eval`, and `instance_exec` are how Rails, RSpec, and Rake build their famously fluent DSLs. These run at runtime but reshape what objects respond to, dynamically.
-
-The senior shift is not just learning more techniques — it is treating **DSL design as engineering with real costs**. A DSL is an interface you are imposing on every future reader and maintainer. The questions that matter at this level are: *Do the error messages speak the domain or leak the implementation? Does the abstraction leak under pressure? Does the IDE understand it? And — most important — should this have been a plain library at all?* Compile-time DSLs raise the stakes: they catch more bugs but produce the most baffling error messages in all of programming when they go wrong.
-
-> 🎓 **Why this matters at the senior level:** You will *choose* whether your team adopts or builds a DSL, and you will own the consequences. The senior failure mode is building a clever DSL that the team cannot debug, that the IDE cannot navigate, and that turns a one-line fix into an archaeology expedition. Knowing the cost model — and the macro machinery behind compile-checked DSLs — is what lets you make that call well.
-
-This page covers: macro-based DSLs and the spectrum from declarative `macro_rules!` to procedural macros, compile-time validation (`sqlx::query!`), how Ruby's `method_missing`/`instance_eval` power runtime DSLs, the technique-to-style mapping (which metaprogramming tool yields which DSL flavor), and the design discipline: error quality, leaky abstractions, IDE/tooling, and the "should this be a DSL?" decision. `professional.md` then grounds all of this in production systems (Gradle, SQLAlchemy, Compose) and their organizational trade-offs.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** Everything in `junior.md` and `middle.md`: internal vs external DSLs, chaining/builders, blocks, operator overloading, expression trees, receiver-lambdas.
-- **Required:** What an **AST** is and that compilers transform code through tree representations. We use this directly.
-- **Required:** Reading-level comfort with Rust *or* Ruby (examples lean on both; you need not write either fluently).
-- **Helpful but not required:** Exposure to Rust macros (`macro_rules!`, derive macros) or Ruby metaprogramming. We re-explain the relevant pieces.
-- **Helpful but not required:** Having maintained a codebase built on a heavy DSL (Rails, Gradle) and felt the debugging pain firsthand.
-
-You do **not** need to know:
-
-- How to write a full procedural macro crate end to end (we sketch, not implement).
-- Compiler internals beyond "macros transform token streams into ASTs."
-- Type-theory formalisms; we reason about types operationally.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Compile-time DSL** | A DSL processed by a macro/compiler before the program runs; errors surface at build time. |
-| **Declarative macro** | (Rust `macro_rules!`) pattern-matches token sequences and expands to code. Hygienic, limited. |
-| **Procedural macro** | (Rust) a function that receives a `TokenStream` and returns one — arbitrary code generation; powers `html!`, `sqlx::query!`. |
-| **Macro hygiene** | The guarantee that macro-introduced names do not collide with the caller's names. |
-| **Token stream** | The lexed-but-not-yet-parsed sequence a macro operates on. |
-| **Compile-time validation** | Checking the DSL's correctness during compilation (e.g. `sqlx::query!` validating SQL against a live DB). |
-| **`method_missing`** | (Ruby) a hook invoked when an object receives a message it has no method for — the engine of dynamic DSLs. |
-| **`define_method`** | (Ruby) defines a method at runtime from a name + block; used to generate DSL methods. |
-| **`instance_eval` / `instance_exec`** | (Ruby) evaluate a block with `self` rebound to a chosen object; the block-DSL engine. |
-| **Leaky abstraction** | When the DSL's implementation shows through — usually as an error in implementation terms, not domain terms. |
-| **Error provenance** | Whether a DSL error points at the user's DSL code or at the library's internals. |
-| **Spans** | (Rust macros) source-location metadata letting a macro point errors back at the user's tokens. |
-| **`respond_to_missing?`** | (Ruby) the companion to `method_missing` that keeps reflection/`respond_to?` honest. |
-| **Hygiene leak** | A bug where macro-introduced identifiers capture or are captured by user identifiers. |
-| **Quasiquotation** | Building code templates with holes (`quote!`/`quasiquote` in Rust, `quote` in Lisp/Elixir) — the comfortable way to emit code from a macro. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -188,32 +134,6 @@ At this tier the central skill is judgment. A DSL imposes a second language on e
 
 ---
 
-## Real-World Analogies
-
-**A pre-flight checklist vs. mid-flight troubleshooting.** Compile-time DSLs (`sqlx::query!`) are pre-flight: problems are caught on the ground, before takeoff. Runtime DSLs catch them mid-flight. Both are valuable, but a bug found at compile time is dramatically cheaper than one found in production — exactly why teams accept macro complexity.
-
-**A concierge who answers questions you never explicitly taught them.** `method_missing` is a concierge who, asked anything, improvises a sensible response. Magical when the guest asks reasonable things; disastrous when they typo a request and the concierge confidently does the wrong thing without flagging it.
-
-**A translator standing between a tourist and a local.** A DSL translates domain intent into implementation. A great translator (good error provenance) tells the tourist precisely what went wrong in their *own* language. A poor one shrugs and quotes the local's words verbatim — which is what a leaked stack trace does.
-
-**A power tool with the guard removed.** Procedural macros are power tools: they generate arbitrary code and catch errors early, but their failure modes (hygiene leaks, incomprehensible expansion errors) can cut deep. The guard is good error spans and documentation.
-
----
-
-## Mental Models
-
-**Model 1: "Macros are functions from code to code."** A macro is `TokenStream -> TokenStream`: it consumes the DSL's syntax and emits real code, all before runtime. Read every macro DSL as "what code does this expand to?" — then you are reasoning about ordinary code.
-
-**Model 2: "Validation lives on a spectrum, and the technique picks the point."** From "no checks ever" (`method_missing`) through "runtime checks" (fluent builders) to "compile-time, schema-verified" (`sqlx::query!`). Choosing a DSL technique is choosing where on this line bugs get caught.
-
-**Model 3: "A DSL's quality is its worst error message."** Users judge a DSL not on its happy path — every DSL is pleasant when correct — but on what happens when they make a mistake. Design the error path first.
-
-**Model 4: "Every abstraction leaks; design the leak."** You cannot prevent leaks; you can decide *how* it leaks. A documented `raw_sql()` escape hatch is a designed leak. A macro panic with no span is an undesigned one. Seniors design the leak deliberately.
-
-**Model 5: "Two languages, one debugger."** When a DSL breaks, the user debugs in the *host* language, not the DSL. The further the stack trace is from the user's DSL code, the worse the experience. Minimize that distance.
-
----
-
 ## Code Examples
 
 ### Example 1: A declarative macro DSL with trailing-comma support (Rust)
@@ -303,36 +223,6 @@ The senior move: the abstraction *will* leak (some SQL is inexpressible), so you
 
 ---
 
-## Pros & Cons
-
-**Pros**
-
-- **Compile-time DSLs catch bugs before runtime.** `sqlx::query!` turns production SQL errors into build errors — the single biggest payoff in this topic.
-- **Macros eliminate runtime overhead.** The DSL becomes ordinary code at compile time; there is no parser or tree-walk at runtime.
-- **Ruby-style dynamic DSLs are maximally fluent.** `method_missing`/`instance_eval` produce DSLs (RSpec, Rails) that read almost like prose.
-- **Code generation reduces boilerplate dramatically.** A derive macro or `define_method` can replace hundreds of hand-written lines.
-
-**Cons**
-
-- **Macro errors are the worst in programming.** A malformed proc-macro invocation can produce expansion traces that are nearly unreadable.
-- **Dynamic DSLs have no static safety.** `method_missing` means typos become silent or late `NoMethodError`s; IDEs cannot autocomplete or navigate.
-- **Tooling and debuggability suffer.** Step-debugging generated or `method_missing`'d code is painful; stack traces point at machinery.
-- **High build-time coupling (`sqlx`).** Needing the DB at compile time complicates CI and offline builds (mitigated by cached schema, but it is a cost).
-- **Maintenance burden.** A custom macro or heavy metaprogramming layer is a mini-compiler your team now owns forever.
-
----
-
-## Use Cases
-
-- **Markup / UI at compile time:** Yew `html!`, Leptos `view!` — JSX-like DSLs that type-check expressions and emit virtual-DOM code.
-- **Serialization literals:** serde_json `json!`, collection macros (`vec!`, `hashmap!`) — concise, compile-checked literal construction.
-- **Compile-checked queries:** `sqlx::query!`, Diesel's query builder — SQL validated against the schema at build time.
-- **Testing / behavior specs:** RSpec, minitest's spec DSL — `instance_eval` blocks + dynamic matchers.
-- **Build & config:** Rake, Rails routing/initializers — Ruby block DSLs; conceptually mirrored by Gradle's typed Kotlin DSL.
-- **Dynamic finders/ORMs:** ActiveRecord `find_by_*` — `method_missing` generating query methods on demand.
-
----
-
 ## Coding Patterns
 
 **Pattern: expand to plain code, then reason about the plain code.** When writing or reviewing a macro DSL, mentally (or with `cargo expand`) produce the expansion and verify *that* is correct. The macro is just the generator.
@@ -373,35 +263,24 @@ The senior move: the abstraction *will* leak (some SQL is inexpressible), so you
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-| Idea | One-liner |
-|------|-----------|
-| Declarative macro | `macro_rules!` pattern-matches tokens → expands to code. |
-| Procedural macro | `TokenStream -> TokenStream`; arbitrary compile-time codegen. |
-| Compile-time validation | `sqlx::query!` checks SQL vs live DB at build time. |
-| `method_missing` | Ruby hook → any method name becomes behavior (dynamic DSL). |
-| `instance_eval` | Run a block with `self` rebound → prefix-free config blocks. |
-| `define_method` | Generate methods at runtime (introspectable, unlike `method_missing`). |
-| Validation spectrum | none (`method_missing`) → runtime → compile-time (macros). |
-| Error provenance | Does the error name the domain or leak the implementation? |
-| Design the leak | Provide a safe, documented escape hatch (`raw()` with bound params). |
-| "Should this be a DSL?" | If a plain library is as clear, build the library. |
+1. State the system invariant that **DSLs via Metaprogramming** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
----
+## Verify your work
 
-## Summary
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
 
-The senior tier crosses into **compile-time DSLs**. Rust macros — declarative `macro_rules!` (`vec!`, `hashmap!`) and procedural macros (`html!`, `json!`, `sqlx::query!`) — transform DSL syntax into real code *before the program runs*, with `sqlx::query!` going furthest by validating SQL against a live database at compile time and inferring result types from the schema. On the runtime side, Ruby's `method_missing`, `define_method`, and `instance_eval`/`instance_exec` power the most fluent DSLs in mainstream use (RSpec, Rake, Rails) — at the cost of all static safety and tooling support.
+## Review questions
 
-The deeper lesson is that **DSL design is interface design under a cost model**. The technique you choose places the DSL on a *validation spectrum* from "no checks ever" (`method_missing`) to "compile-time, schema-verified" (`sqlx`). Three properties decide whether a DSL is a gift or a liability: **error provenance** (does it speak the domain or leak the implementation?), **leak resistance** (does the abstraction hold, and is the leak designed?), and **tooling** (autocomplete, navigation, type checking). The senior discipline is to design the error path first, prefer compile-time validation where the payoff is high, keep the host's tooling working, and — most often the right call — write the paragraph justifying the DSL over a plain library before building it. `professional.md` applies all of this to production systems and the organizational trade-offs of shipping a DSL to a whole company.
-
----
-
-## Further Reading
-
-- *The Little Book of Rust Macros* and the Rust Reference's macro chapters — declarative and procedural macros, hygiene, and spans.
-- The `sqlx` README and design notes — how compile-time query checking and offline schema caching actually work.
-- Paolo Perrotta, *Metaprogramming Ruby* — `method_missing`, `define_method`, `instance_eval`, and the DSLs they enable, explained mechanically.
-- Martin Fowler, *Domain-Specific Languages* — the chapters on internal-DSL implementation patterns and on choosing whether to build one.
-- Joe Armstrong / Lisp-tradition writing on macros — the original "code is data" framing that underlies every macro DSL.
+- Which invariant must remain true when DSLs via Metaprogramming fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

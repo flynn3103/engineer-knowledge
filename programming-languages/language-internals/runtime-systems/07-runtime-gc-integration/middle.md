@@ -1,58 +1,11 @@
-# Runtime ↔ GC Integration — Middle Level
+# Runtime ↔ GC Integration — Middle
 
-> **Topic:** Runtime ↔ GC Integration
-> **Focus:** The concrete machinery of the interface: how stack maps are encoded, how safepoints are implemented (flag polling vs page-trap polling), what a write barrier actually compiles to, and how a moving collector updates roots. Not how GC *algorithms* work — only how the compiler and runtime *feed* them.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **Runtime ↔ GC Integration** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-> Focus: **The mechanics of the contract.** How does the compiler actually encode "these slots are pointers"? How does a thread actually notice it must stop? What instructions does a write barrier turn into?
-
-At the junior level, the runtime↔GC interface was a hand-shake: maps tell the GC where pointers are, safepoints tell it when it's safe to look, barriers tell it about changes. Now we open each box and see the gears.
-
-This level is where the abstract becomes mechanical. A **stack map** is a real on-disk data structure indexed by program-counter; we'll see how it's keyed and how derived pointers are handled. A **safepoint poll** is real machine code; we'll see the two dominant implementations — an explicit flag load-and-branch, and the cleverer **page-protection trap** that turns a single read instruction into a poll. A **write barrier** is a real instruction sequence; we'll see the **card-marking** barrier of generational collectors and the **deletion/insertion** barriers of concurrent markers, and how the compiler eliminates barriers it can prove are unneeded.
-
-The discipline of this page: we describe the *interface and its implementation*, and treat the collector behind it as a black box that *consumes* roots and *requests* pauses. *Why* a generational collector wants old→young pointers, *why* concurrent marking needs the tri-color invariant — that reasoning is the memory-management topic and is only sketched here in prose to motivate the barrier code.
-
-> 🎓 **Why this matters at the middle level:** This is the level where you can read disassembly and *recognize* the integration: "that `test`/`jne` after the loop body is a safepoint poll," "that store-then-store pair is a card-marking barrier," "that extra load before the field access is a read barrier." Recognizing the integration in generated code is the skill that turns vague GC anxiety into precise performance work.
-
----
-
-## Prerequisites
-
-- **Required:** Junior level of this topic — roots, precise vs conservative, safepoints, TTSP, the idea of write barriers.
-- **Required:** Comfort reading simple assembly (a `mov`, a `test`, a conditional jump) and the idea of a program counter / instruction pointer.
-- **Required:** Understanding of virtual memory basics: pages, page permissions (read/write/execute), and page faults.
-- **Helpful:** Familiarity with one managed runtime's tooling (JVM `-XX` flags and `-Xlog`, Go's `gctrace`, or .NET's GC config).
-- **Helpful:** The concept of JIT compilation and that the same method may be interpreted, then compiled, with different safepoint strategies.
-
-You do **not** need: the internals of any GC algorithm, the math of generational hypotheses, or formal memory-model proofs. We use those only as motivation.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **PC / instruction pointer** | The address of the currently executing instruction. Stack maps are keyed by it. |
-| **Stack map (keyed by PC)** | A table: given a PC that is a safepoint, which stack offsets and registers hold object references. |
-| **Oop map** | HotSpot's name for a stack map. "oop" = ordinary object pointer. There is also the **OopMapSet** per compiled method. |
-| **Base pointer** | A pointer to the *start* of an object. |
-| **Derived pointer** | A pointer *into the interior* of an object (e.g., `&arr[i]`), or just past it. The GC must track its **base** so it can re-derive it after a move. |
-| **Safepoint poll** | The emitted check that lets a thread notice a stop request. |
-| **Flag-based poll** | Poll implemented as: load a global byte, branch if nonzero. |
-| **Page-trap poll** | Poll implemented as: read a special "polling page"; the runtime makes that page unreadable to force a fault when it wants threads to stop. |
-| **Loop strip mining** | Splitting a big counted loop into an inner chunk plus an outer loop, so a safepoint poll lands on the outer back-edge — bounding TTSP without polling every iteration. |
-| **Card table** | A byte array, one entry per small region ("card") of the heap, used by generational write barriers to mark "this region has a pointer that may cross generations." |
-| **Card-marking barrier** | The write barrier that dirties the card for the modified object. |
-| **SATB (snapshot-at-the-beginning)** | A concurrent-marking discipline (used by G1) whose write barrier records the *old* value being overwritten. |
-| **Incremental-update barrier** | A concurrent-marking discipline whose barrier records the *new* pointer being installed. |
-| **Tri-color invariant** | The marking bookkeeping (white/grey/black) that barriers exist to preserve. Mentioned to motivate barriers; the algorithm itself is GC-internal. |
-| **Barrier elimination** | Compiler optimization that omits a barrier it can prove is unnecessary. |
-| **Handle** | An indirection (a slot in a table the GC updates) used to hold a reference across code the GC doesn't track (e.g., native calls). |
-| **Pinning** | Temporarily forbidding the GC from moving a specific object, so a raw pointer to it stays valid. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -176,38 +129,6 @@ When a moving/compacting collector relocates an object, it must rewrite *every* 
 
 ---
 
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Stack map keyed by PC** | A building's emergency manifest indexed by *time of day*: "at 2pm, rooms 3 and 7 are occupied." You consult the manifest for the current time. |
-| **Derived pointer** | A bookmark stuck *inside* a book. If the library re-shelves the book, the bookmark must move with it and keep its page offset. |
-| **Flag-based poll** | A clock on the wall everyone glances at each lap of the track. |
-| **Page-trap poll** | A tripwire across the track that's normally slack; pull it taut and the next runner trips and stops — no glancing required. |
-| **Loop strip mining** | Telling a long-distance runner to check the clock once per lap instead of every stride. |
-| **Card table** | Sticky notes on filing-cabinet drawers: "something in this drawer changed." You only re-check flagged drawers. |
-| **SATB barrier** | Before shredding a document, you photocopy it — just in case it was the last reference to something important. |
-| **Barrier elimination** | Skipping the photocopy for a draft that never left your desk. |
-| **Handle** | A coat-check ticket. You hold the ticket (stable), not the coat (which staff may move to a different rack). |
-
----
-
-## Mental Models
-
-### The "PC Is The Key" Model
-
-Everything precise about root scanning hinges on one fact: at a safepoint, the GC knows the thread's PC, and the PC indexes the stack map. Think of the stack map as a giant dictionary the compiler built, where the key is *where in the code we stopped* and the value is *which slots are pointers there*. The entire precise-GC contract is "stop only where the dictionary has an entry."
-
-### The "Barrier Is A Tax Collector At Every Pointer Store" Model
-
-Picture a tollbooth the compiler installs on the road of every `ptr.field = x`. Most of the time the booth waves you through (fast path: marking not active). When the collector is working, the booth charges a small fee (record the old or new pointer). The compiler is constantly trying to *demolish* booths it can prove no one needs (barrier elimination). Your throughput in pointer-heavy code is partly a function of how many booths survived.
-
-### The "Two Maps, Two Phases" Model
-
-Hold two distinct maps in mind. The **stack map** is *static* metadata, generated at compile time, telling the GC where roots are *for a given PC*. The **card table** (and SATB queue) is *dynamic* state, updated at run time by barriers, telling the GC where the *heap* changed since it last looked. Root scanning uses the first; incremental/concurrent heap tracking uses the second. The integration produces and maintains both.
-
----
-
 ## Code Examples
 
 ### Recognizing a safepoint poll in JVM disassembly
@@ -313,31 +234,6 @@ Safepoint "G1CollectForAllocation", Time since last: ..., Reaching safepoint: 18
 
 ---
 
-## Pros & Cons
-
-| Mechanism | Pros | Cons |
-|-----------|------|------|
-| **PC-keyed stack maps** | Exact roots; enables moving GC; compact when delta-encoded. | Codegen complexity; must handle derived pointers; metadata size in huge codebases. |
-| **Flag-based polls** | Simple, portable, easy to reason about. | Three instructions per poll site; a branch the predictor must learn. |
-| **Page-trap polls** | Single instruction; hardware-forced stop; per-thread with thread-local pages. | Relies on signal/fault machinery; trickier to debug; OS-specific. |
-| **Card-marking barrier** | Cheap (2 unconditional instructions); enables generational collection. | Some false dirtying; coarse granularity (whole card rescanned). |
-| **SATB barrier** | Stable snapshot; bounded marking termination; good for G1-style. | Records possibly-dead pointers (floating garbage until next cycle); pre-read cost. |
-| **Incremental-update barrier** | Tracks exactly the new edges. | Can require re-scanning; marking termination is trickier. |
-| **Loop strip mining** | Bounds TTSP without per-iteration poll cost. | Small code-size/throughput overhead; tuning the strip size. |
-| **Handles/pinning** | Lets native code coexist with a moving GC. | Indirection cost (handles) or fragmentation/stall risk (pinning). |
-
----
-
-## Use Cases
-
-- **Diagnosing latency spikes.** `-Xlog:safepoint` or Go's scheduler/GC traces let you attribute a pause to TTSP vs collection — a routine middle-level investigation.
-- **Reading hot-path disassembly.** Recognizing polls and barriers in generated code tells you the true cost of a loop or a pointer-heavy data structure.
-- **Choosing a collector for a workload.** Knowing that G1 emits SATB + card barriers (more per-store cost, concurrent marking) versus ParallelGC's lean card barrier (STW, higher throughput) is a concrete tradeoff you can reason about.
-- **Writing JNI/cgo/P-Invoke correctly.** Understanding handles, pinning, and that long native calls affect safepoints is the difference between correct and crash-prone native glue.
-- **Reducing allocation and pointer churn.** Knowing barriers fire on pointer stores motivates value-oriented designs in hot paths.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Bound TTSP in machine-generated or numeric loops
@@ -412,117 +308,24 @@ Local, non-escaping objects let the compiler eliminate barriers (and sometimes t
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```text
-┌──────────────────────────────────────────────────────────────────────┐
-│            RUNTIME ↔ GC INTEGRATION — MECHANICS                       │
-├──────────────────────────────────────────────────────────────────────┤
-│ STACK MAP  : function PC -> {slots/regs holding pointers}             │
-│   compact (bitmaps/deltas); handles BASE + DERIVED pointers          │
-│   moving GC rewrites each mapped slot to the new address             │
-├──────────────────────────────────────────────────────────────────────┤
-│ SAFEPOINT POLLS:                                                      │
-│   flag-based  : load global byte; test; jne handler   (3 insns)      │
-│   page-trap   : read polling page; mprotect-unread to force fault    │
-│   placed at   : loop back-edges, method entry/return                 │
-│   strip mining: poll once per STRIP iters (bounds TTSP cheaply)      │
-├──────────────────────────────────────────────────────────────────────┤
-│ WRITE BARRIERS (compiler-emitted on pointer stores):                 │
-│   card mark   : store; (obj>>9); card_table[idx]=dirty  (generational)│
-│   SATB        : record OLD value before overwrite        (G1)        │
-│   incr-update : record NEW value after store             (CMS-style) │
-│   fast/slow   : inline "marking active?" test + out-of-line slow path│
-│   elimination : freshly-allocated/non-escaping stores skip barriers  │
-├──────────────────────────────────────────────────────────────────────┤
-│ MOVING GC needs: precise maps to update roots; handles for native;   │
-│                  pinning to opt a single object out of moving        │
-├──────────────────────────────────────────────────────────────────────┤
-│ DIAGNOSE: -Xlog:safepoint -> "Reaching safepoint"(TTSP) vs           │
-│           "At safepoint"(collection). Fix the big one.               │
-└──────────────────────────────────────────────────────────────────────┘
-```
+1. Find a real component where **Runtime ↔ GC Integration** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
----
+## Verify your work
 
-## Summary
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
 
-- A **stack map** is concrete metadata keyed by **program counter**: at each safepoint PC, it lists which stack slots and registers hold object references. The GC consults it for the stopped thread's PC.
-- Maps must track **derived pointers** (interior pointers) by their **base**, so a moving GC can reconstruct them after relocation. This is a chief source of stack-map complexity in optimized code.
-- **Safepoint polls** come in two flavors: **flag-based** (load-test-branch, ~3 instructions) and **page-trap** (a single read of a polling page the runtime `mprotect`s unreadable to force a fault). Polls sit at loop back-edges and method boundaries.
-- The **counted-loop** problem (no poll inside a long tight loop) is solved by **loop strip mining**, which polls once per strip — bounding **time-to-safepoint** without per-iteration cost.
-- **Write barriers** are compiler-emitted code on pointer stores. **Card-marking** (generational) dirties a card-table byte; **SATB** (G1) records the old value pre-overwrite; **incremental-update** records the new value. All use a cheap inline fast path plus an out-of-line slow path, and the compiler **eliminates** barriers it can prove unneeded.
-- A **moving** collector uses precise maps to rewrite each root slot to the object's new address. Pointers the GC can't see (raw pointers in native code) go stale; the cures are **handles** (GC-updated indirection) and **pinning**.
-- Operationally, `-Xlog:safepoint` (and Go/.NET equivalents) splits a pause into **TTSP** (reaching safepoint) and **collection** (at safepoint) — the single most useful diagnostic for "GC is slow."
+## Review questions
 
----
-
-## Further Reading
-
-- *The Garbage Collection Handbook* (2nd ed.) — Jones, Hosking, Moss. Chapters on stack maps, safepoints, and barrier design.
-- *HotSpot Runtime Overview* and *HotSpot Glossary* — OpenJDK. Oop maps, OopMapSet, safepoint mechanics. https://openjdk.org/groups/hotspot/docs/HotSpotGlossary.html
-- *Safepoints: Meaning, Side Effects and Overheads* — Nitsan Wakart (Psychosomatic, Lobotomy, Saw blog). Excellent on TTSP and page-trap polling. https://psy-lob-saw.blogspot.com/
-- *Async-profiler wiki* — explains safepoint bias and why some profilers only sample at safepoints.
-- *Getting Started with the G1 Garbage Collector* and the G1 papers — for SATB + remembered-set barriers (motivation only).
-- *Go's hybrid write barrier* — proposal and runtime comments. https://go.googlesource.com/proposal/+/master/design/17503-eliminate-rescan.md
-- *The Z Garbage Collector* wiki — load (colored-pointer) barriers, for contrast with store barriers. https://wiki.openjdk.org/display/zgc/Main
-- *Inside the JVM: Safepoints* — various OpenJDK source comments in `safepoint.cpp` and `oopMap.cpp`.
-
----
-
-## Diagrams & Visual Aids
-
-### Stack Map Lookup At A Safepoint
-
-```text
-Thread stopped at PC = 0x4012ab
-        │
-        ▼
-  stackMap(0x4012ab) ──► { slot[2]=ptr(base), slot[5]=ptr,
-                           rbx=ptr, r12=derived(base=slot[2]) }
-        │
-        ├─► scan those slots/regs as roots
-        └─► (moving GC) after relocation, rewrite each with new address;
-            r12_new = newbase + (r12_old - oldbase)
-```
-
-### Two Poll Implementations
-
-```text
-FLAG-BASED                          PAGE-TRAP
-  movb (poll_flag), al                test eax, (polling_page)   ; 1 insn
-  test al, al                         (normal: page readable -> no-op)
-  jne  handler                        (stop wanted: mprotect page NO-READ
-  (3 insns, branch)                    -> next poll FAULTS -> handler)
-```
-
-### Card-Marking Barrier
-
-```text
-Heap:   [ ...old object... ] field=──► [ young object ]
-store obj.field = young
-   │
-   ├─ real store
-   └─ barrier:  card = (addr(obj) >> 9);  card_table[card] = DIRTY
-Young GC later: scan ONLY dirty cards for old->young pointers.
-```
-
-### SATB vs Incremental-Update (concurrent marking)
-
-```text
-Before:  A.f ──► X        (marker hasn't reached X yet)
-Mutator does:  A.f = Y    (overwrites the pointer to X)
-
-SATB barrier:           record OLD = X  ► keep X alive this cycle
-Incremental-update:     record NEW = Y  ► rescan A to find Y
-
-Both prevent "X (or Y) silently freed while still reachable."
-```
-
-### A Safepoint Log Line, Decoded
-
-```text
-Safepoint "G1CollectForAllocation",  Reaching safepoint: 187 ms,  At safepoint: 4 ms
-                                       └─ TTSP (a thread wouldn't stop)  └─ actual GC
-   ===> the 187 is the bug; the GC itself was fast.
-```
+- Which boundary is most affected by Runtime ↔ GC Integration?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

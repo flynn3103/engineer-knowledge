@@ -1,66 +1,11 @@
-# Lexers & Tokenizers — Junior Level
+# Lexers & Tokenizers — Junior
 
-> **Topic:** Lexers & Tokenizers
-> **Focus:** Turning a raw stream of characters into a clean stream of tokens — the very first thing every compiler and interpreter does.
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **Lexers & Tokenizers** in one small example and prove the result?
 
-## Introduction
-
-> Focus: **What is a token, and how does a lexer chop source code into a list of them?**
-
-When you write `x = 42 + y`, your editor shows you eight characters of meaning and some spaces. The computer sees a flat sequence of bytes: `x`, ` `, `=`, ` `, `4`, `2`, ` `, `+`, ` `, `y`. Before a compiler can do anything intelligent — parse the grammar, check types, generate code — it has to group those bytes into meaningful chunks: the *name* `x`, the *equals sign* `=`, the *number* `42`, the *plus* `+`, the *name* `y`. Each of those chunks is a **token**, and the component that produces them is the **lexer** (also called a *scanner* or *tokenizer*).
-
-The lexer's whole job is narrow and concrete: **read characters from left to right, skip whitespace and comments, and emit a token every time it recognizes a complete unit — a keyword, an identifier, a number, a string, an operator, or a piece of punctuation.** It throws away the boring stuff (spaces, tabs, newlines, `// comments`) and keeps the meaningful stuff, tagging each piece with what *kind* of thing it is and where in the source it came from.
-
-In one sentence: **a lexer is a meat grinder for source code — characters go in one end, a tidy stream of labeled tokens comes out the other.**
-
-> 🎓 **Why this matters for a junior:** Every parser, syntax highlighter, linter, code formatter, and language server starts with lexing. It is the simplest phase of a compiler to understand fully, and getting it right teaches you the single most important pattern in all of compiler construction: *recognize a category of input, consume exactly the right number of characters, and produce a structured value.* If you understand lexing deeply, the rest of the front-end gets much less mysterious.
-
-This page covers: what a token actually is (a *type*, a *lexeme*, and a *source position*), how a hand-written lexer reads character by character, the rules it follows (whitespace skipping, keyword-vs-identifier lookup, longest-match), and a complete working lexer for a tiny calculator language. Later levels go deeper: `middle.md` covers the theory (regular expressions, finite automata, longest-match formally), `senior.md` covers the hard cases (significant whitespace, string interpolation, the C "lexer hack"), and `professional.md` covers performance and incremental lexing for editors.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** How to write and run a program with functions, loops, and arrays/lists in at least one language (Python, Go, Java, JavaScript, or C all work).
-- **Required:** What a string is and how to index into it (`s[i]`) and check characters (`c >= '0' && c <= '9'`).
-- **Required:** Basic `switch`/`if-else` branching on a single character.
-- **Helpful but not required:** A vague sense that a program is compiled or interpreted in *phases* (lex → parse → analyze → generate).
-- **Helpful but not required:** Having seen a regular expression like `[a-zA-Z_][a-zA-Z0-9_]*` even if you don't fully understand it.
-
-You do **not** need to know:
-
-- Finite automata, NFA/DFA, or Thompson's construction (that's `middle.md`).
-- How to write a parser or a grammar (that's the next topic in this folder).
-- Anything about Unicode normalization, string interpolation, or the typedef problem (that's `senior.md`).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Lexer** | The component that turns a character stream into a token stream. Also called *scanner* or *tokenizer*. |
-| **Token** | A single meaningful unit of source code: a keyword, identifier, literal, operator, or punctuation mark. The lexer's output. |
-| **Lexeme** | The actual run of characters a token was made from. For the token "number 42", the lexeme is the string `"42"`. |
-| **Token type / kind** | The *category* of a token: `IDENTIFIER`, `NUMBER`, `PLUS`, `LPAREN`, `KEYWORD_IF`, etc. |
-| **Token value** | The interpreted payload, e.g. the integer `42` parsed from the lexeme `"42"`. Not every token has one. |
-| **Source position / span** | Where in the file the token came from: line, column, byte offset, or a start/end pair. Essential for error messages. |
-| **Whitespace** | Spaces, tabs, newlines, carriage returns. Usually skipped (but not always — see significant whitespace at higher levels). |
-| **Comment** | Text the programmer wrote for humans (`// ...`, `/* ... */`, `# ...`). Usually skipped by the lexer. |
-| **Identifier** | A programmer-chosen name: `x`, `total`, `parseUser`. Matches a pattern like *letter followed by letters/digits*. |
-| **Keyword** | A reserved word with built-in meaning: `if`, `while`, `return`, `func`. Looks like an identifier but is special. |
-| **Literal** | A value written directly in the source: `42`, `3.14`, `"hello"`, `true`. |
-| **Operator** | A symbol that combines values: `+`, `-`, `==`, `<=`, `&&`. |
-| **Punctuation / delimiter** | Structural symbols: `(`, `)`, `{`, `}`, `,`, `;`. |
-| **Maximal munch / longest match** | The rule that the lexer always takes the *longest* token it can. `<=` is one token, not `<` then `=`. |
-| **Lookahead** | Peeking at the next character (or few characters) without consuming it, to decide what token you're building. |
-| **EOF** | "End of file" — a special token the lexer emits when the input runs out, so the parser knows when to stop. |
-| **Cursor / position** | The index of the next character the lexer will read. The lexer advances it as it consumes characters. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -157,40 +102,6 @@ Why not just let the parser read characters directly? Two reasons:
 2. **It's faster.** The lexer does one cheap left-to-right pass and hands the parser a compact stream. The parser never has to re-examine whitespace or comments again.
 
 The token stream is the clean interface between the messy world of characters and the structured world of grammar.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Lexer** | A mailroom clerk who sorts a pile of loose mail into labeled bins. |
-| **Character stream** | The unsorted pile of letters, flyers, and postcards. |
-| **Token** | A single piece of mail, stamped with its category ("bill", "postcard", "junk"). |
-| **Token type** | The label on the bin: BILL, LETTER, PACKAGE. |
-| **Lexeme** | The actual envelope and its printed address. |
-| **Skipping whitespace** | Throwing the empty padding and bubble wrap straight in the recycling. |
-| **Skipping comments** | Tossing the junk flyers no one downstream cares about. |
-| **Keyword lookup** | Checking each "letter" against a list of VIP senders; if the address matches, it goes in the special VIP bin instead of the generic one. |
-| **Maximal munch** | When two stamps are stuck together, treating them as one combined postage, not two separate stamps. |
-| **Source position** | Writing on each item which page and line of the original stack it came from, so you can find it again. |
-| **EOF token** | The "no more mail" note the clerk leaves so the next office knows the batch is finished. |
-
----
-
-## Mental Models
-
-### The Conveyor Belt Model
-
-Picture a conveyor belt carrying characters one at a time past you. You stand at a station with a label gun. You watch the characters go by; the moment you recognize a complete unit (a name, a number, a symbol), you grab that run of characters, slap a label on it, and drop it into the outgoing bin. Whitespace and comments you let fall off the end of the belt unlabeled. You never go backward — the belt only moves forward — but you *are* allowed to glance one step ahead before deciding where a token ends. This forward-only, look-one-ahead model is exactly how a hand-written lexer works.
-
-### The "Read Until It Stops Fitting" Model
-
-For each kind of token, you have a rule for what characters belong to it. To read an identifier, you keep consuming characters *as long as they're letters or digits*. The moment you hit a character that *doesn't* fit — a space, a `+`, a `(` — you stop, and that character becomes the start of the next token. Every token-reading helper has this shape: "consume the first character that starts this token, then keep consuming while the following characters still fit." Internalize this and you can write a lexer for almost anything.
-
-### The "Type, Text, Place" Model
-
-Whenever you produce a token, ask three questions: *What kind is it?* (the type), *What were the exact characters?* (the lexeme), *Where did it come from?* (the position). If your token answers all three, your downstream parser, error reporter, and IDE will all have what they need. A token that only answers the first question is a token you'll regret later.
 
 ---
 
@@ -479,36 +390,6 @@ This is the "list of regular expressions, try each in order" approach. It's quic
 
 ---
 
-## Pros & Cons
-
-| Aspect | Pros | Cons |
-|--------|------|------|
-| **Separating lexing from parsing** | The parser deals with clean tokens, not raw characters — far simpler grammar code. | One more phase to write and keep in sync; some context-sensitive cases force the two to talk (covered later). |
-| **Hand-written lexer** | Full control, great error messages, fast, easy to handle weird cases. | More code than a generated one; you implement maximal munch and lookahead yourself. |
-| **Generated lexer (lex/flex, ANTLR)** | Write regular expressions, get a lexer; concise for simple languages. | Harder to produce friendly error messages; awkward for context-sensitive tokens; another build step. |
-| **Regex-per-rule tokenizer** | Fastest to prototype; very readable. | Can be slow at scale (regex backtracking); ordering bugs; clumsy for indentation/interpolation. |
-| **Throwing away whitespace/comments** | Smaller, cleaner token stream. | Formatters and refactoring tools *need* comments and exact spacing, so they keep them as "trivia." |
-
----
-
-## Use Cases
-
-Lexing is the entry point for nearly every tool that reads code or structured text:
-
-- **Compilers and interpreters.** Lex → parse → analyze → generate. The lexer is always step one.
-- **Syntax highlighters.** Your editor lexes the visible code and colors each token by its type (keywords blue, strings green, comments gray).
-- **Linters and formatters.** `gofmt`, `prettier`, `eslint`, `clang-format` all tokenize first. Formatters keep comments and whitespace as trivia so they can put them back.
-- **Configuration and data formats.** JSON, YAML, TOML, INI parsers all begin with a tokenizer.
-- **Template engines and query languages.** SQL, GraphQL, Jinja, regex engines themselves — all lex their input first.
-- **Calculators and small DSLs.** Any time you let users type expressions, the first thing you write is a lexer.
-
-It is the **wrong** focus when:
-
-- You're parsing a trivial fixed format (e.g. comma-separated numbers) — `split(",")` is fine, no lexer needed.
-- The input is binary, not text — you want a binary decoder, not a character lexer.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: The peek/advance pair
@@ -618,198 +499,24 @@ tok = self.read_number()      # reads several chars
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. Tokenize `let total = (a + 12) * 3` by hand. List every token with its type and lexeme. How many tokens (including EOF)?
-2. Why does the lexer read an identifier *first* and only then check whether it's a keyword, instead of checking for keywords directly?
-3. Show the token stream for `x<=y`. Now show it if your lexer forgot maximal munch and only emitted single-character operators. Which one can the parser use?
-4. What single token does the calculator lexer produce for `3.14`? What two (or three) tokens does it produce for `3 . 14`? Why the difference?
-5. Run the calculator lexer mentally on `print # done`. What tokens come out? Trace where the comment gets skipped.
-6. The empty string `""` should produce how many tokens, and which one(s)?
-7. Add a `==` (equality) operator to one of the example lexers. Which existing branch do you modify, and what lookahead do you need?
-8. Why does the lexer emit an `EOF` token instead of just returning the list and letting the parser check `len`?
+1. Choose one small, known input for **Lexers & Tokenizers**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
----
+## Verify your work
 
-## Tricky Questions
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
 
-**Q1: Is `if` a keyword to the lexer, or just an identifier that the parser treats specially?**
+## Review questions
 
-It depends on the design, but the most common approach makes the *lexer* responsible: it scans `if` as an identifier, looks it up in a keyword table, finds a match, and emits a distinct `KEYWORD_IF` token. The parser then sees a keyword token directly. Some languages instead lex everything as `IDENT` and let later phases distinguish — but the standard, fast pattern is the lexer's keyword table.
-
-**Q2: Does the lexer skip whitespace, or does it produce whitespace tokens?**
-
-In most languages, it skips whitespace silently — whitespace is a separator, not a token. But tools that need to reproduce source exactly (formatters, IDEs) keep whitespace and comments as "trivia" attached to tokens. And in whitespace-significant languages (Python, Haskell), the lexer must emit special indentation tokens. So the honest answer is "usually skips, sometimes keeps, occasionally turns into a token."
-
-**Q3: For `1+2`, how many tokens does the lexer produce, and does whitespace matter?**
-
-Three tokens: `NUMBER(1)`, `PLUS`, `NUMBER(2)`, plus an EOF. Whitespace does *not* matter here — `1+2`, `1 + 2`, and `1  +  2` all produce the identical token stream, because the lexer treats spaces purely as separators and discards them.
-
-**Q4: Why does `<=` become one token but `< =` (with a space) becomes two?**
-
-Maximal munch operates on *adjacent* characters. In `<=`, the `<` and `=` are adjacent, so the lexer extends the operator to the two-character `<=`. In `< =`, the space breaks adjacency: the lexer reads `<`, then skips the space, then reads `=` separately. The lexer only ever combines characters that touch.
-
-**Q5: Can the lexer tell that `) ( + +` is invalid?**
-
-No — and it's not supposed to. The lexer's job is only to recognize *individual* tokens. Each of `)`, `(`, `+`, `+` is a perfectly valid token. Whether they can appear in that *order* is a grammar question, which the parser answers. Keeping this boundary clean is fundamental to compiler design.
-
-**Q6: If you delete the EOF token, what breaks?**
-
-The parser loses a reliable signal that input is finished. Instead of cleanly checking `token.type == "EOF"`, it has to check the list length everywhere it reads, which is error-prone and tends to cause "index out of range" crashes when it reads one past the end. The EOF token is a tiny convention that removes a whole class of bugs.
-
----
-
-## Cheat Sheet
-
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│                     LEXER / TOKENIZER                            │
-├──────────────────────────────────────────────────────────────────┤
-│ JOB: characters in  ─►  tokens out                               │
-│      (skip whitespace + comments, label the meaningful runs)     │
-├──────────────────────────────────────────────────────────────────┤
-│ A TOKEN =  type   ("NUMBER", "IDENT", "PLUS", "EOF" ...)         │
-│            lexeme ("42", "total", "+")                            │
-│            span   (line, col / byte offset)                      │
-├──────────────────────────────────────────────────────────────────┤
-│ THE LOOP:                                                        │
-│   skip whitespace & comments                                     │
-│   at EOF?  -> emit EOF, stop                                      │
-│   letter?  -> read ident, then keyword-table lookup              │
-│   digit?   -> read number                                        │
-│   quote?   -> read string                                        │
-│   symbol?  -> read operator (longest match!)                     │
-│   else     -> error: unexpected character                        │
-├──────────────────────────────────────────────────────────────────┤
-│ TWO PRIMITIVES:                                                  │
-│   peek()    look at current char, don't consume                  │
-│   advance() return current char, move cursor forward             │
-├──────────────────────────────────────────────────────────────────┤
-│ KEY RULES:                                                       │
-│   * maximal munch: always take the LONGEST valid token           │
-│     (<= is one token; check long operators before short)         │
-│   * keywords = identifiers + a table lookup                      │
-│   * capture position BEFORE consuming the token                  │
-│   * always emit a trailing EOF token                             │
-│   * lexer recognizes tokens; PARSER checks their order           │
-└──────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## Summary
-
-- A **lexer** (scanner, tokenizer) turns a flat stream of characters into a clean stream of **tokens** — the first phase of every compiler, interpreter, highlighter, and linter.
-- A **token** carries three things: a **type** (its category), a **lexeme** (the exact characters), and a **position/span** (where it came from, for error messages).
-- The lexer is a simple loop: **skip whitespace and comments, switch on the first character, read a complete token, repeat.** It emits an **EOF** token at the end.
-- **Identifiers and keywords share the same character pattern**; the lexer reads an identifier, then looks the lexeme up in a **keyword table** to decide which it is.
-- **Maximal munch (longest match)** is the core rule: always grab the longest valid token, so `<=` is one token, not two. Implement it by checking longer operators before shorter ones.
-- The lexer recognizes tokens *individually*; it does **not** understand grammar. `) ) +` is fine to the lexer and a problem for the parser. This clean split is the point.
-- Build lexers around two primitives — **peek** and **advance** — and one helper per token kind. Track line and column from the very start.
-- This level is the foundation. Higher levels add the theory (regular languages and finite automata), the hard cases (significant whitespace, string interpolation, the C lexer hack), and performance for huge files and live editors.
-
----
-
-## What You Can Build
-
-- **A calculator language lexer.** Extend the examples to handle `% ** == != < > <= >=` and a `mod` keyword. Test that maximal munch picks the right operators.
-- **A JSON tokenizer.** Numbers, strings (with escapes), `true`/`false`/`null`, and the `{ } [ ] : ,` punctuation. A great first "real format" lexer.
-- **A syntax highlighter for a small language.** Lex the input, then print each token wrapped in a color code based on its type. You now have a toy editor highlighter.
-- **A token-stream pretty-printer.** Read a file and print one labeled token per line with positions. Useful for debugging any language you're implementing.
-- **An "unexpected character" linter.** Run your lexer over a directory and report the exact line and column of any character it can't recognize.
-- **A configuration-file reader.** Tokenize a tiny INI-style format (`key = value`, `# comments`, `[sections]`) and turn the token stream into a dictionary.
-
----
-
-## Further Reading
-
-- *Crafting Interpreters* — Robert Nystrom. Chapter 4 ("Scanning") is the best beginner-friendly hand-written-lexer walkthrough in existence. Free online.
-- *Compilers: Principles, Techniques, and Tools* ("the Dragon Book") — Aho, Lam, Sethi, Ullman. Chapter 3 is the classic treatment of lexical analysis.
-- *Writing An Interpreter In Go* — Thorsten Ball. Builds a lexer from scratch in clear, idiomatic Go.
-- *Engineering a Compiler* — Cooper & Torczon. A rigorous but readable chapter on scanners and finite automata.
-- The `flex` manual — the GNU lexer generator; useful even if you hand-write, to understand the generated approach.
-- *Let's Build a Compiler* — Jack Crenshaw. A gentle, old-school series that starts with a character-at-a-time scanner.
-
----
-
-## Related Topics
-
-- Next levels of this same topic: middle (the theory of regular languages and finite automata, formal maximal munch), senior (significant whitespace, string interpolation, the C lexer hack, Unicode identifiers), professional (lexer performance, interning, incremental lexing for editors), interview (questions and answers), and tasks (exercises, including a full lexer capstone).
-- The next phase after lexing is **parsing** — turning the token stream into a syntax tree. That is the sibling topic in this same compilers-and-interpreters folder, and it consumes exactly the token stream you produce here.
-- Lexing builds on the idea of **regular expressions and regular languages**, covered in the language-internals theory material; a token type is just a regular expression over characters.
-- Downstream phases — semantic analysis, type checking, and code generation — all rely on the source positions the lexer attaches, so error reporting threads back to this phase.
-
----
-
-## Diagrams & Visual Aids
-
-### Characters In, Tokens Out
-
-```text
-SOURCE TEXT:   l e t   x   =   3 . 1 4   +   y
-               └─┬─┘   │   │   └──┬──┘   │   │
-                 ▼     ▼   ▼      ▼      ▼   ▼
-TOKENS:     [KEYWORD "let"] [IDENT "x"] [ASSIGN "="]
-            [NUMBER "3.14"] [PLUS "+"]  [IDENT "y"]
-            [EOF ""]
-
-   (the spaces are skipped — they don't become tokens)
-```
-
-### The Main Loop
-
-```text
-            ┌───────────────────────────┐
-            │   skip whitespace/comment │
-            └─────────────┬─────────────┘
-                          ▼
-                   ┌─────────────┐    yes
-                   │  at EOF?    │ ─────────►  emit EOF, STOP
-                   └──────┬──────┘
-                          │ no
-                          ▼
-            ┌──────────────────────────────┐
-            │  switch on current character │
-            ├──────────────────────────────┤
-            │  letter  -> read identifier  │──► keyword-table lookup
-            │  digit   -> read number      │
-            │  quote   -> read string      │
-            │  symbol  -> read operator    │──► longest match
-            │  other   -> ERROR            │
-            └──────────────┬───────────────┘
-                           ▼
-                     emit token, loop
-```
-
-### Maximal Munch
-
-```text
-INPUT:  < = y
-
-step 1: see '<'         candidate token: "<"
-step 2: peek next '='   "<=" is also a valid token, and it's LONGER
-            ───────────────►  take "<="     (maximal munch)
-step 3: cursor now at 'y'
-
-RESULT:  [LE "<="]  [IDENT "y"]
-
-INPUT:  < space = y
-        the space breaks adjacency:
-RESULT:  [LT "<"]  [ASSIGN "="]  [IDENT "y"]
-```
-
-### A Token's Anatomy
-
-```text
-            source:  ... = 3.14 + ...
-                          └──┬─┘
-                             │
-                  ┌──────────▼───────────┐
-                  │  TOKEN               │
-                  │   type   = NUMBER    │
-                  │   lexeme = "3.14"    │
-                  │   value  = 3.14      │
-                  │   line   = 3         │
-                  │   col    = 9         │
-                  └──────────────────────┘
-```
+- What problem does Lexers & Tokenizers solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

@@ -1,54 +1,11 @@
-# Floating-Point (IEEE 754) — Middle Level
+# Floating-Point (IEEE 754) — Middle
 
-> **Topic:** Floating-Point (IEEE 754)
-> **Focus:** The bit layout in detail, normalized vs subnormal numbers, rounding modes (and why the default is "round half to even"), machine epsilon and ULP, catastrophic cancellation, non-associativity, and how to compare floats *correctly*.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **Floating-Point (IEEE 754)** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-> Focus: **You know floats are approximate. Now: *how* approximate, *which way* do they round, and *when* does a small error become a catastrophic one?**
-
-At junior level "compare with a tolerance" was the whole lesson. That advice has a hidden flaw: **what tolerance?** A fixed `1e-9` is wrong for comparing two values near a billion (where the gap between adjacent doubles is bigger than `1e-9`) and wrong for comparing two values near `1e-30` (where it's enormous relative to the numbers). To choose tolerances correctly you need to understand the *spacing* of floating-point numbers — and that spacing has a name: the **ULP** (unit in the last place).
-
-This level makes the model quantitative. We will pin down the exact bit fields, the meaning of all-zero and all-one exponents (which give you zero, subnormals, infinity, and NaN), the **four rounding modes** the standard defines and why "round half to even" (banker's rounding) is the default, **machine epsilon**, and the two error-amplifying phenomena every numerical programmer must recognize on sight: **catastrophic cancellation** (subtracting nearly-equal numbers) and **absorption** (adding a tiny number to a huge one). We will also confront the uncomfortable truth that floating-point addition is **not associative**: `(a + b) + c` can differ from `a + (b + c)`, which means the *order you sum a list* changes the answer.
-
-In one sentence: **the gap between adjacent representable numbers is not constant, and almost every floating-point bug comes from forgetting that.**
-
-The next level (`senior.md`) takes this into hardware: FMA, x87 80-bit extended precision, `-ffast-math`, and deterministic FP across platforms.
-
----
-
-## Prerequisites
-
-- The [junior](junior.md) level: bit layout sketch, `0.1 + 0.2`, NaN/Inf, signed zero, the golden rule.
-- Comfort with binary and powers of 2.
-- Basic algebra — you should be able to follow why `(a − b)` loses precision when `a ≈ b`.
-- Some experience writing loops that accumulate sums.
-
-You do **not** yet need: FMA semantics, x87 internals, compiler fast-math flags, or cross-platform determinism — those are `senior.md`.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **binary32 / binary64** | The IEEE 754 names for 32-bit `float` and 64-bit `double`. |
-| **Normalized number** | A number with the implicit leading 1: `1.fraction × 2^e`. The common case. |
-| **Subnormal / denormal** | A number too small to normalize. The leading bit is 0, the exponent field is all-zeros. Fills the gap between the smallest normal number and zero. |
-| **Significand / mantissa** | The fraction bits plus the implied leading bit. 53 effective bits for double. |
-| **Bias** | Offset added to the true exponent: 127 (binary32), 1023 (binary64). |
-| **ULP (unit in the last place)** | The distance between a float and the next representable float. The "grid spacing" at that magnitude. |
-| **Machine epsilon (ε)** | The gap between 1.0 and the next representable number. `2^-52 ≈ 2.22e-16` for double, `2^-23 ≈ 1.19e-7` for float. |
-| **Round to nearest, ties to even** | The default rounding mode. On an exact tie, round toward the value with an even last bit. Also called *banker's rounding*. |
-| **Round toward zero / +∞ / −∞** | The three "directed" rounding modes (truncate, ceiling, floor). |
-| **Catastrophic cancellation** | Loss of significant digits when subtracting two nearly-equal numbers. |
-| **Absorption / swamping** | When adding a small number to a large one, the small one's bits fall off the end and are lost. |
-| **Non-associativity** | `(a + b) + c ≠ a + (b + c)` in floating point. |
-| **Kahan summation** | A compensated-summation algorithm that recovers lost low-order bits when summing many numbers. |
-| **Monotonic representation** | The bit-pattern trick: interpreting positive floats as integers preserves ordering, enabling ULP distance. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -141,37 +98,6 @@ The junior advice "use a tolerance" needs three refinements:
 - **ULP-based**: reinterpret the float bits as integers and compare the integer distance. `2` ULPs means "at most two representable values apart." The most precise notion of "almost equal," used in numerical libraries and test frameworks. Caveat: handle signs and NaN specially.
 
 There is no universal tolerance. The right one depends on how the numbers were computed and how much error the algorithm accumulated.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world analogy |
-|---------|--------------------|
-| ULP grid spacing | A ruler whose tick marks get coarser as you move right: millimeters near 0, then centimeters, then meters. |
-| Machine epsilon | The smallest bump you can detect on that ruler right at the "1" mark. |
-| Subnormal numbers | The fine extra tick marks crammed in just before zero so you don't fall off a cliff to nothing. |
-| Round half to even | A fair coin for ties — half up, half down — so a long sequence of rounds doesn't drift. |
-| Catastrophic cancellation | Two tall buildings of nearly equal height; measuring the *difference* in their heights, your tape measure error now dominates. |
-| Absorption | Pouring a teaspoon of water into a swimming pool and trying to measure the level rise. |
-| Non-associativity | Splitting a restaurant bill: rounding each share separately vs rounding the total gives different cents. |
-| Kahan summation | Keeping a running note of the pennies you dropped, and adding them back later. |
-
----
-
-## Mental Models
-
-### "The grid gets coarser as you go right"
-
-Picture the positive number line tiled with a grid. Near `1.0` the cells are `2.2e-16` wide. Each time you double the magnitude, the cells double in width. By `2^53` each cell is `1.0` wide — integers stop being exactly representable. *Every* arithmetic result snaps to a grid cell. The width of the local cell *is* one ULP, and it's the natural unit for "how close is close." Carrying this picture, you instantly know that "tolerance `1e-9`" is meaningless without knowing *where* on the line you are.
-
-### "Error has a budget, and ε is the unit"
-
-Each correctly-rounded operation injects at most `ε/2` relative error. Chain `N` operations and (worst case) the error can grow like `N × ε`, or in well-conditioned problems like `sqrt(N) × ε`. Think of every computation as *spending* an error budget. Cancellation is a *withdrawal of significant digits*; it can blow your whole budget in one subtraction. This framing tells you *where* to be careful: not everywhere, but at the cancellations and the long sums.
-
-### "Subtraction reveals the lie"
-
-Floats lie about their low-order bits — those are rounding noise. Most operations keep the lie hidden in the bottom. Subtraction of near-equal numbers *promotes the lie to the top*: it cancels the trustworthy high digits and leaves the noisy low digits as your whole answer. Whenever you see `a - b` with `a ≈ b`, alarm bells.
 
 ---
 
@@ -341,30 +267,6 @@ bool within_ulps(double a, double b, int64_t max_ulps) {
 
 ---
 
-## Pros & Cons
-
-| Aspect | Pros | Cons |
-|--------|------|------|
-| **ULP awareness** | Lets you choose correct tolerances and reason about error. | Requires understanding non-uniform spacing — not obvious. |
-| **Round-to-even default** | Eliminates statistical bias in long computations and accounting. | Surprises programmers expecting "0.5 rounds up." |
-| **Subnormals** | Gradual underflow avoids a precision cliff at the smallest normals. | Can be 10–100× slower; sometimes disabled for performance. |
-| **Relative comparison** | Scale-independent equality testing. | Breaks near zero; needs an absolute fallback. |
-| **Kahan summation** | Recovers near-full precision when summing many values. | ~4× the operations; compilers can break it under fast-math. |
-| **Reformulation for cancellation** | Restores accuracy lost to subtraction. | Requires recognizing the problem and knowing the algebra. |
-
----
-
-## Use Cases
-
-- **Numerical libraries** (BLAS, NumPy, Eigen) live and die by ULP reasoning and stable formulas.
-- **Test frameworks** need ULP/relative comparison to assert "approximately equal" without flakiness.
-- **Statistics** — use Welford's algorithm for variance, not `E[x²] − E[x]²`, to avoid cancellation.
-- **Financial analytics** (not transactions) — when you *do* use doubles, Kahan summation keeps long sums accurate.
-- **Signal processing / audio** — subnormal handling matters; a decaying filter tail produces subnormals that tank performance.
-- **Scientific simulation** — error-budget reasoning decides whether `float` precision suffices or you need `double`.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: `isclose` with both tolerances
@@ -462,144 +364,24 @@ print(math.log1p(1e-16))      # 1e-16 — correct
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. What is `math.ulp(1.0)`, `math.ulp(1e6)`, and `math.ulp(1e16)` in your language? Why do they differ by powers of 2?
-2. Why does rounding ties *up* introduce bias, while ties-to-even does not? Round `0.5, 1.5, 2.5, 3.5` both ways and sum.
-3. Predict and verify: `2**53 + 1 == 2**53`. At what magnitude do consecutive integers stop being representable?
-4. Solve `x² + 1e8·x + 1 = 0` with the naive quadratic formula and with the stable version. Compare to the true roots.
-5. Sum the list `[1.0, 1e16, -1e16, 1.0]` left-to-right and smallest-magnitude-first. Explain the difference.
-6. Implement Kahan summation and compare `sum([0.1]*10_000_000)` against it. How far does naive summation drift?
-7. Why does `math.isclose(1e-18, 0.0)` return `False`? Fix it.
-8. Compute `sqrt(x+1) - sqrt(x)` for `x = 1e16` naively and via the conjugate trick. Which is right?
+1. Find a real component where **Floating-Point (IEEE 754)** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
----
+## Verify your work
 
-## Cheat Sheet
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
 
-```text
-┌─────────────────────────────────────────────────────────────────────┐
-│              FLOATING-POINT — MIDDLE CHEAT SHEET                    │
-├─────────────────────────────────────────────────────────────────────┤
-│ binary64:  E=1..2046 normal | E=0 zero/subnormal | E=2047 Inf/NaN   │
-│ machine epsilon ε = 2^-52 ≈ 2.22e-16 (double), 2^-23 (float)        │
-│ ULP doubles every power of 2; ULP(2^52)=1.0                         │
-├─────────────────────────────────────────────────────────────────────┤
-│ Rounding modes (default = nearest, ties to EVEN / banker's):       │
-│   nearest-even | nearest-away | toward 0 | toward +∞ | toward −∞    │
-│   round(2.5)=2, round(0.5)=0  ← ties to even, NOT "always up"       │
-├─────────────────────────────────────────────────────────────────────┤
-│ Error mechanisms to recognize on sight:                            │
-│   CANCELLATION : a - b with a ≈ b  → high digits vanish             │
-│   ABSORPTION   : big + tiny        → tiny falls off the end         │
-│   NON-ASSOC    : (a+b)+c ≠ a+(b+c) → sum order matters              │
-├─────────────────────────────────────────────────────────────────────┤
-│ Comparing floats:                                                  │
-│   absolute  abs(a-b) < atol           (only near a known scale)    │
-│   relative  abs(a-b) <= rtol*max(|a|,|b|)  (fails near 0)          │
-│   combined  max(atol, rtol*max(...))  ← use isclose/allclose       │
-│   ULP       integer distance of bit patterns                       │
-├─────────────────────────────────────────────────────────────────────┤
-│ Fixes:                                                             │
-│   Kahan / pairwise summation   |  Welford variance                 │
-│   conjugate trick              |  log1p / expm1                     │
-│   accumulate in double         |  sort smallest-magnitude first    │
-└─────────────────────────────────────────────────────────────────────┘
-```
+## Review questions
 
----
-
-## Summary
-
-- The exponent field's reserved values (all-zeros, all-ones) carve out **zero, subnormals, infinity, and NaN**; everything between is a normal number with an implicit leading 1.
-- **Subnormals** provide gradual underflow below `2^-1022` but can be dramatically slower on real hardware.
-- Representable numbers are spaced in **ULPs** that double every power of 2; **machine epsilon** is the ULP at 1.0 (`2^-52` for double).
-- The default rounding mode is **round to nearest, ties to even** (banker's rounding) — chosen to eliminate the upward bias of "always round 0.5 up."
-- **Catastrophic cancellation** (subtracting near-equal numbers) and **absorption** (adding tiny to huge) are the two error amplifiers to recognize instantly.
-- Floating-point arithmetic is **not associative**: sum order changes the result, making parallel reductions non-deterministic in the low bits.
-- Compare floats with a **combined relative+absolute tolerance** (`isclose`/`allclose`) or with **ULP distance** — never a single fixed `eps`, and never `==`.
-- Fix accuracy problems with **Kahan/pairwise summation, Welford's variance, the conjugate trick, and `log1p`/`expm1`** — and accumulate in `double`.
-
----
-
-## Further Reading
-
-- David Goldberg, *What Every Computer Scientist Should Know About Floating-Point Arithmetic*, 1991 — the rounding and error-analysis sections especially.
-- Nicholas Higham, *Accuracy and Stability of Numerical Algorithms*, 2nd ed. — the rigorous treatment of cancellation, summation, and conditioning.
-- William Kahan's writings (Berkeley) on summation and the design of IEEE 754.
-- Bruce Dawson, *Comparing Floating Point Numbers, 2012 Edition* — the definitive practical guide to ULP comparison. https://randomascii.wordpress.com/2012/02/25/comparing-floating-point-numbers-2012-edition/
-- Python `math.isclose` PEP 485 — the rationale for combined relative/absolute tolerance.
-- *Float Exposed* — interactive bit/ULP explorer. https://float.exposed/
-
----
-
-## Related Topics
-
-- This folder: [`junior.md`](junior.md), [`senior.md`](senior.md), [`professional.md`](professional.md), [`interview.md`](interview.md), [`tasks.md`](tasks.md).
-- Sibling numerics topics: integer overflow, fixed-point arithmetic, and decimal/arbitrary-precision types in the parent section.
-
----
-
-## Diagrams & Visual Aids
-
-### Exponent-field decode table
-
-```text
-   raw E (11 bits)      fraction F        meaning
-   ────────────────     ──────────        ─────────────────────────────
-   000 0000 0000        = 0               +0 / -0  (depending on sign)
-   000 0000 0000        ≠ 0               subnormal: 0.F × 2^(-1022)
-   001..7FE (1..2046)   any               normal:   1.F × 2^(E-1023)
-   111 1111 1111        = 0               +Inf / -Inf
-   111 1111 1111        ≠ 0               NaN (F = payload)
-```
-
-### ULP grows with magnitude
-
-```text
-   value:     1.0        2.0        4.0   ...   2^52        2^53
-   ULP:    2.2e-16    4.4e-16    8.9e-16        1.0          2.0
-            └─ fine near 1 ─┘            └─ at 2^52 integers stop being exact ─┘
-
-   gap DOUBLES every time you cross a power of two
-```
-
-### Catastrophic cancellation
-
-```text
-   a = 1.0000000000000003   (~16 good digits)
-   b = 1.0000000000000001   (~16 good digits)
-       └──── identical high digits ────┘
-   a - b = 0.0000000000000002
-           └ only 1-2 trustworthy digits left; rest is rounding noise ┘
-
-   The subtraction PROMOTED the noise to the top.
-```
-
-### Absorption (swamping)
-
-```text
-   1e16  =  1 0000 0000 0000 000.        (16 significant digits used up)
-   +  1.0                       ↑ the "1" wants to go HERE, past the last bit
-   ────────────────────────────
-   =  1e16    ← the 1.0 fell off the end of the significand and vanished
-```
-
-### Choosing a comparison
-
-```text
-              are both values near zero?
-                       │
-              ┌────────┴────────┐
-             yes               no
-              │                 │
-        use ABSOLUTE      know the scale exactly?
-        tolerance          ┌─────┴─────┐
-        abs(a-b)<atol     yes         no
-                           │           │
-                      absolute     RELATIVE or ULP
-                                   rtol*max(|a|,|b|)
-                                   or integer ULP distance
-
-   In practice: isclose(a, b, rel_tol=..., abs_tol=...) covers all cases.
-```
+- Which boundary is most affected by Floating-Point (IEEE 754)?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

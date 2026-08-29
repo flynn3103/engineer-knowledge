@@ -1,62 +1,11 @@
-# Bytecode & Virtual Machines — Senior Level
+# Bytecode & Virtual Machines — Senior
 
-> **Topic:** Bytecode & Virtual Machines
-> **Focus:** Interpreter dispatch techniques, superinstructions and stack caching, bytecode verification, lazy linking, and the handoff to the JIT.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Bytecode & Virtual Machines** under failure, load, and change?
 
-## Introduction
-
-> Focus: **Making the interpreter fast (dispatch, superinstructions, stack caching), making it safe (verification), making it link (lazy resolution), and handing hot code to the JIT.**
-
-At the middle level, the interpreter loop was a `switch` and bytecode was a format you could parse. A senior engineer needs to know the parts that production VMs obsess over:
-
-1. **Dispatch.** The `switch`-based loop is the *slow* way. Real interpreters use **direct threading**, **computed goto**, or **tail-call threading** to cut the per-instruction overhead — chiefly to dodge the CPU branch-predictor penalty that a single shared `switch` causes. On top of that: **superinstructions** (fuse common opcode pairs) and **stack caching** (keep the top of the operand stack in CPU registers).
-
-2. **Verification.** Before the JVM runs bytecode it doesn't trust, a **verifier** proves the bytecode is type-safe and stack-balanced — *statically*, before a single instruction executes. This is what makes it safe to run untrusted bytecode (applets, plugins, sandboxes). Wasm's design takes this further: validation is linear-time and total.
-
-3. **Linking and resolution.** A `.class` references other classes and methods *by name* (symbolic references). The VM resolves those to concrete addresses **lazily**, the first time each is actually used.
-
-4. **The JIT handoff.** Bytecode is the *input* to a just-in-time compiler. We won't build a JIT here, but you must understand *why bytecode is the natural handoff point* and what properties make it JIT-friendly.
-
-In one sentence: **this page is about the engineering that turns "a switch over opcodes" into a fast, safe, linkable runtime.**
-
-> 🎓 **Why this matters at this level:** These topics separate "I wrote a toy VM" from "I understand why HotSpot, V8, CPython, and Wasm engines are built the way they are." Dispatch technique alone can be a 2–3× interpreter speedup; verification is the entire security story for running untrusted code; and the JIT handoff is *the* reason bytecode formats look the way they do.
-
----
-
-## Prerequisites
-
-- **Required:** `junior.md` and `middle.md` — stack vs register VMs, instruction anatomy, jumps/backpatching, the constant pool, class-file structure.
-- **Required:** Comfort with C-level thinking: function pointers, `goto`, the cost of a branch, and roughly what a CPU pipeline and branch predictor are.
-- **Required:** Knowing what a JIT compiler is at a conceptual level (translates bytecode → machine code at runtime).
-- **Helpful:** Familiarity with type systems (the verifier reasons about types) and with the idea of a dataflow / fixpoint analysis.
-
-You do **not** need to build a JIT or know SSA/register allocation — those are downstream topics. We treat the JIT as the *consumer* of bytecode.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Dispatch** | The mechanism the interpreter uses to jump from one opcode's handler to the next. |
-| **Switch dispatch** | A `while(true){ switch(op){...} }` loop. Portable, but one indirect branch the CPU mispredicts. |
-| **Direct threading** | Each bytecode is (or points to) the *address* of its handler; handlers jump directly to the next. Needs computed goto / labels-as-values. |
-| **Computed goto** | A GCC/Clang extension (`&&label`, `goto *ptr`) used to implement direct/token threading in C. |
-| **Token threading** | Bytecode stays as small tokens; a jump table maps token → handler address. The common "direct threading" in interpreters. |
-| **Tail-call threading** | Each handler is a function ending in a tail call to the next handler; the compiler turns tail calls into jumps (`musttail`). |
-| **Branch predictor** | CPU hardware guessing branch targets. A single shared dispatch branch is hard to predict; per-opcode branches predict better. |
-| **Superinstruction** | A single opcode that fuses a frequent *sequence* (e.g. `LOAD+LOAD+ADD`) to cut dispatches. |
-| **Stack caching** | Keeping the top N operand-stack entries in CPU registers instead of memory, reducing loads/stores. |
-| **Verification** | A static check (before execution) that bytecode is type-safe, stack-balanced, and well-formed. |
-| **Stack-map frame** | Per-jump-target type snapshot the JVM verifier uses to check merges in (near) linear time (Java 6+). |
-| **Symbolic reference** | A class/method/field referred to by *name* in the constant pool, not yet resolved to an address. |
-| **Resolution / linking** | Turning a symbolic reference into a concrete pointer/offset — done **lazily** on first use. |
-| **Hot path / hot method** | Code executed often enough that the VM decides to JIT-compile it. |
-| **Tiered compilation** | Running interpreted first, then JIT-compiling progressively hotter code at higher optimization. |
-| **OSR (on-stack replacement)** | Swapping a running interpreted frame for a compiled one mid-execution (e.g. a hot loop). |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -136,34 +85,6 @@ Why is *bytecode* (not source, not a syntax tree) the right input to the JIT?
 - It's **language-agnostic** — Kotlin, Scala, Clojure all reach the same JIT through the same bytecode, so the optimizer is written once.
 
 We don't build the JIT here (that's the next topic). The key senior takeaway: **bytecode's design — small, regular, verified, language-neutral — exists in large part to be an excellent JIT input, not just an interpreter input.**
-
----
-
-## Real-World Analogies
-
-**1. Dispatch = a switchboard vs. direct extensions.** Switch dispatch is an old phone exchange where every call goes back through one operator who then connects you — a bottleneck the operator can't anticipate. Threaded dispatch is direct extensions: each handler already knows where calls usually go next, so it forwards them itself. The branch predictor "learns the office's calling patterns."
-
-**2. Verification = a contract review before signing.** Before you run untrusted code, the verifier reads the whole contract and proves no clause lets it reach into memory it shouldn't, overflow the stack, or jump somewhere illegal. Native code is a contract with no review — you find out it was malicious by being robbed.
-
-**3. Lazy linking = forwarding mail.** A `.class` ships with *names* ("send to Bar.foo"), not street addresses. The first time you actually mail something there, the post office looks up the address, delivers it, and writes the address on a sticky note so next time is instant.
-
-**4. Superinstructions = abbreviations for common phrases.** Instead of spelling out "load, load, add" every time, you coin one symbol meaning all three — fewer glances at the page (dispatches) for the same meaning.
-
-**5. Stack caching = keeping your current tools on the bench, not in the drawer.** The top items you're actively using stay in registers (on the bench); only when you need older items do you go back to memory (the drawer).
-
----
-
-## Mental Models
-
-**Model 1: The interpreter's enemy is the branch predictor, not the ALU.** Arithmetic in a handler is nearly free; the cost is the *mispredicted indirect branch* at dispatch. Every dispatch technique is really a branch-prediction optimization. Internalize that and the whole "switch vs threading vs tail-call" landscape makes sense.
-
-**Model 2: Verification is type-checking the bytecode as if it were a program in a tiny typed language.** The verifier runs an abstract interpretation: it propagates types through the instructions and checks consistency at merges. Stack-map frames are just *annotations that let it check one pass instead of iterating to a fixpoint.*
-
-**Model 3: "Symbolic now, concrete later" is the JVM's linking philosophy.** Compile-time keeps everything as names; runtime resolves on first touch and caches. This is what lets independently-compiled classes link without a global link step.
-
-**Model 4: Bytecode is a *staging area* between two compilers.** The front-end compiler lowers source → bytecode; the JIT raises bytecode → native. Bytecode is engineered to be a *good middle* for *both* — small enough to ship and verify, regular enough to optimize.
-
-**Model 5: Interpret first, compile what's hot.** Don't JIT everything (compilation isn't free and most code runs rarely). Profile cheaply via the interpreter; spend optimization budget only on hot code. This is the economic logic of every tiered VM.
 
 ---
 
@@ -271,44 +192,6 @@ On a sufficiently warmed function, `dis(..., adaptive=True)` can reveal speciali
 
 ---
 
-## Pros & Cons
-
-**Threaded dispatch (vs switch)**
-
-| Pros | Cons |
-|------|------|
-| 1.5–2.5× interpreter speedup | Computed goto is GCC/Clang-only (not standard C, not MSVC) |
-| Better branch prediction | Harder to read/debug than a switch |
-| Foundation for superinstructions | Tail-call form depends on compiler tail-call guarantees |
-
-**Verification**
-
-| Pros | Cons |
-|------|------|
-| Enables safely running *untrusted* bytecode | Adds load-time cost (mitigated by stack-map frames) |
-| Lets the JIT trust structural invariants | The verifier itself is complex, security-critical code |
-| Catches malformed/malicious classes early | Restricts what valid bytecode can express |
-
-**JIT (bytecode as input)**
-
-| Pros | Cons |
-|------|------|
-| Near-native speed for hot code | Compilation latency / memory; warmup cost |
-| Profile-guided (better than static AOT in some cases) | Non-deterministic performance; harder to reason about |
-| One JIT serves many languages via shared bytecode | Hard to build; large attack surface |
-
----
-
-## Use Cases
-
-- **Computed-goto / threaded dispatch:** CPython, Ruby YARV, Lua, virtually every serious bytecode interpreter where the JIT is absent or hasn't kicked in.
-- **Tail-call threading:** CPython 3.14 experimental interpreter; emerging as a portable alternative to computed goto.
-- **Verification:** JVM (untrusted applets/plugins historically; today still validates every loaded class), WebAssembly (every module validated before instantiation), .NET (CIL verification, though often skipped for full-trust).
-- **Lazy linking:** the JVM's entire class-loading/linking model; lets large apps start without loading everything.
-- **Tiered JIT + OSR:** HotSpot (C1/C2), V8 (Ignition interpreter → Sparkplug/Maglev/TurboFan), the modern Wasm engines (baseline + optimizing tiers), CPython's emerging JIT.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Choose dispatch by portability requirement
@@ -381,64 +264,24 @@ If your format is verified, precompute a type/depth snapshot at each jump target
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. Why is `switch` dispatch slow, and what specifically does computed-goto threading improve? Name the hardware mechanism.
-2. Contrast token/direct threading with tail-call threading. What does each need from the compiler?
-3. What is a superinstruction, and what is stack caching? What cost does each attack?
-4. List four things the JVM verifier proves. Why is it the prerequisite for running untrusted bytecode?
-5. What are stack-map frames, and how do they change the verifier's algorithmic cost?
-6. Explain lazy linking: what is a symbolic reference, when is it resolved, and why cache the result?
-7. Give four reasons bytecode (not source, not an AST) is the natural input to a JIT.
-8. What is OSR, and why is the interpreter↔JIT boundary the hard part?
-9. Why must any opcode specialization have a deopt path?
+1. State the system invariant that **Bytecode & Virtual Machines** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
----
+## Verify your work
 
-## Cheat Sheet
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
 
-```
-DISPATCH (fastest → most portable)
-  tail-call threading (musttail; per-handler regalloc)   ~ fastest, portable-ish
-  computed goto / token threading (&&label, goto *tbl)   GCC/Clang, 1.5–2.5× over switch
-  switch dispatch                                         portable, 1 mispredicted branch
-  → the enemy is the BRANCH PREDICTOR, not arithmetic
+## Review questions
 
-SUPERINSTRUCTIONS  fuse hot opcode sequences → fewer dispatches
-STACK CACHING      keep top-of-stack in registers → fewer loads/stores
-ADAPTIVE/QUICKEN   rewrite generic opcode → specialized (with GUARD + DEOPT)
-
-VERIFICATION (JVM, before execution) proves:
-  type safety | stack balance & consistent merges | legal jump targets | init-before-use
-  STACK-MAP FRAMES → linear single pass (was iterative fixpoint pre-Java6)
-  = the security boundary for UNTRUSTED bytecode
-  Wasm: validation is linear, total, single-pass BY DESIGN (structured CF, explicit types)
-
-LINKING  symbolic ref (name in pool) --first use--> RESOLVE --> cache (inline cache)
-  lazy → fast startup; errors surface at first call, not load
-
-JIT HANDOFF  interpret (profile) → hot → JIT to native (tiered) → OSR mid-loop
-  bytecode is ideal JIT input: parsed, compact, verified, profile-hookable, lang-neutral
-```
-
----
-
-## Summary
-
-- **Dispatch** is the interpreter's biggest lever. Switch dispatch suffers from a single mispredicted indirect branch; **computed-goto/token threading** and **tail-call threading** give each opcode its own well-predicted branch, commonly 1.5–2.5× faster. **Superinstructions** cut the *number* of dispatches; **stack caching** cuts memory traffic per instruction; **adaptive specialization** rewrites generic opcodes into fast ones (always with a deopt guard).
-- **Verification** statically proves bytecode is type-safe, stack-balanced, and well-formed *before* it runs — the foundation for executing **untrusted** bytecode. **Stack-map frames** make it a linear single pass. **WebAssembly** is designed so validation is linear, total, and single-pass by construction.
-- **Linking** keeps references **symbolic** (names in the constant pool) and **resolves them lazily** on first use, caching the result — enabling fast startup and independent compilation.
-- **Bytecode is the handoff point to the JIT**: a parsed, compact, verified, profile-hookable, language-neutral format that a tiered compiler turns into native code for hot paths (with OSR and deopt back to the interpreter).
-
-`professional.md` zooms out to system-level concerns: WebAssembly as a deliberately-designed modern bytecode (linear memory, capability-based safety, validation/JIT economics), the BEAM and CPython internals, designing your own production bytecode (opcode budget, evolution, deopt), and the security of running untrusted bytecode at scale.
-
----
-
-## Further Reading
-
-- Anton Ertl & David Gregg, "The Structure and Performance of Efficient Interpreters" — the definitive measurement of dispatch techniques and branch prediction.
-- *The Java Virtual Machine Specification*, ch. 4.10 (verification) and the `StackMapTable` attribute.
-- PEP 659, "Specializing Adaptive Interpreter" (CPython) and the 3.14 tail-calling interpreter notes.
-- The WebAssembly spec's "Validation" chapter — note how short and total it is by design.
-- *Crafting Interpreters* (Nystrom), the "A Virtual Machine" and "Optimization" chapters for hands-on dispatch and inline-cache intuition.
-- HotSpot and V8 design write-ups on tiered compilation and OSR (for the JIT-consumer side of the handoff).
+- Which invariant must remain true when Bytecode & Virtual Machines fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

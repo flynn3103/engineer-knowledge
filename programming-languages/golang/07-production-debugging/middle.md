@@ -1,20 +1,11 @@
 # Production Debugging — Middle
 
-> **Topic:** [Production Debugging](../README.md)
-> **Focus:** Distributed tracing, correlating logs/metrics/traces, diagnosing slow queries and high latency systematically, and reading a flame graph fluently.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **Production Debugging** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-At junior level you learned the individual tools — pprof, structured logs. At this level you connect them into a coherent investigation: tracing a single request across service boundaries, correlating a latency spike with a specific downstream call, and diagnosing "why is this endpoint slow" methodically rather than by intuition alone.
-
----
-
-## Prerequisites
-
-- Comfortable with `net/http/pprof`, structured logging, and basic goroutine-profile reading (junior level).
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -111,16 +102,6 @@ A non-zero, growing `WaitCount`/`WaitDuration` means requests are queuing for a 
 
 ---
 
-## Pros & Cons
-
-| Tool | Pros | Cons |
-|---|---|---|
-| Distributed tracing | Shows exactly where time went across service boundaries | Requires instrumentation effort across every service in the chain |
-| `EXPLAIN ANALYZE` | Directly shows the database's actual execution plan | Requires representative data volume to be meaningful — a tiny dev database can mislead |
-| `db.Stats()` pool metrics | Cheap, built-in signal for pool sizing issues | Doesn't diagnose *why* queries are slow, only that connections are contended |
-
----
-
 ## Best Practices
 
 1. Instrument distributed tracing from the start for any multi-service architecture — retrofitting during an incident is much harder.
@@ -156,45 +137,24 @@ A non-zero, growing `WaitCount`/`WaitDuration` means requests are queuing for a 
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```
-Flame graph        → width = time, look for WIDE bars at any depth
-db.Stats()         → WaitCount/WaitDuration rising = pool undersized, not query slower
-EXPLAIN ANALYZE    → actual execution plan, run against real data volume
-Trace + logs + metrics → correlate via ONE shared request/trace ID
-```
+1. Find a real component where **Production Debugging** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
----
+## Verify your work
 
-## Summary
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
 
-- Distributed tracing (OpenTelemetry) follows a single request across service boundaries via linked spans.
-- Correlate logs, metrics, and traces with the same request/trace ID from day one, not retrospectively.
-- Read a flame graph by width (time spent), not depth (call nesting).
-- Check connection-pool wait metrics before assuming a latency spike means slower code.
-- Diagnose slow queries with `EXPLAIN ANALYZE` against production-representative data.
+## Review questions
 
----
-
-## Further Reading
-
-- OpenTelemetry Go docs: <https://opentelemetry.io/docs/languages/go/>
-- Brendan Gregg — *Flame Graphs*: <https://www.brendangregg.com/flamegraphs.html>
-
----
-
-## Related Topics
-
-- [HTTP and APIs — Middle](../05-http-and-apis/middle.md) — connection pooling from the client side.
-- [Database and Distributed Systems — Middle](../06-database-and-distributed-systems/middle.md)
-
----
-
-## Check your understanding
-
-1. Explain Production Debugging — Middle Level in your own words and name the problem it solves.
-2. How would you apply the ideas around Introduction, Prerequisites, Core Concepts in a realistic engineering change?
-3. What failure mode or misuse should you look for, and what evidence would reveal it?
-4. Which local design trade-off would make you choose or reject Production Debugging — Middle Level in an existing codebase?
-5. What observable result would convince you that the approach improved the system?
+- Which boundary is most affected by Production Debugging?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

@@ -1,31 +1,12 @@
-# GC Tuning in Production — Senior Level
-> **Topic:** GC Tuning in Production
-> **Focus:** Choosing a collector for a workload, the deep mechanics of concurrent compaction, and a disciplined diagnosis-then-tune workflow.
+# GC Tuning in Production — Senior
 
+<!-- level-focus -->
+At senior level, focus on this question:
+
+> Which system invariant is affected by **GC Tuning in Production** under failure, load, and change?
+
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
-
-## Introduction
-
-By now you can read a GC log and turn the knobs. The senior question is harder and more consequential: **which collector should this service run, and how do I prove it?** This is where the triangle stops being a diagram and becomes a budget you allocate against an SLO.
-
-Collector choice is the single highest-leverage GC decision, because it determines the *shape* of your trade-off — and it's mostly a one-line flag. A trading engine and a nightly ETL job have opposite needs; running G1 on both is a missed opportunity in both directions. This tier gives you a defensible framework for the choice, the mechanics behind why low-pause collectors cost throughput, and a workflow that prevents the most common senior mistake: tuning before measuring.
-
-## Prerequisites
-
-- Middle tier: heap sizing, generations, `GOGC`/`GOMEMLIMIT`, reading GC logs, the frequency-vs-cost trade.
-- Familiarity with the idea of a **write/read barrier** (compiler-inserted bookkeeping around pointer access).
-- Comfort with percentiles and the concept of an **SLO** (a target like "p99 < 50 ms").
-
-## Glossary
-
-- **Concurrent compaction** — relocating live objects to defragment the heap *while the application runs*. The hard problem ZGC and Shenandoah solve.
-- **Colored / load barrier (ZGC)** — metadata stored in unused high bits of a pointer plus a tiny check on every pointer *load*; lets the GC relocate objects and fix references lazily.
-- **Brooks pointer / forwarding pointer (Shenandoah)** — an extra indirection word per object pointing to its current location, so the app always reaches the up-to-date copy.
-- **Evacuation** — copying live objects out of a region so the region can be reclaimed wholesale.
-- **Floating garbage** — objects that became dead *during* a concurrent cycle but won't be reclaimed until the next one; the price of concurrency.
-- **Allocation stall (ZGC)** — when allocation outruns the concurrent collector and a thread must wait; the failure mode of concurrent collectors.
-- **IHOP (`InitiatingHeapOccupancyPercent`)** — the old-gen occupancy at which G1 starts a concurrent marking cycle.
-- **Promotion failure / evacuation failure** — no room to promote/evacuate survivors, forcing a fallback Full GC. The G1 nightmare.
 
 ## Collector Selection: A Decision Framework
 
@@ -81,16 +62,6 @@ Tools: `-Xlog:gc*` / JFR / async-profiler on the JVM; `GODEBUG=gctrace=1`, `ppro
 **Step 3 — Pick the collector.** Only now, with allocation reduced and heap sized, choose the collector that matches the residual SLO (the table above). Switching collectors before steps 1–2 means you're tuning the wrong thing.
 
 **Step 4 — Micro-tune.** `MaxGCPauseMillis`, `IHOP`, region size, `GOGC` fine-tuning. Last, and only against a measured target. Change one knob, re-measure p99/GC%, keep or revert.
-
-## Mental Models
-
-**Model 1: "Collector choice sets the *shape*; knobs set the *position*."** You choose which two corners of the triangle you're near by collector, then fine-position with flags.
-
-**Model 2: "Barriers are the exchange rate."** Every concurrent collector taxes ordinary pointer access to buy short pauses. Throughput-per-latency is a literal exchange rate you're paying on every memory op.
-
-**Model 3: "Heap-after-GC is the truth serum."** Pause and frequency wobble with load. The *floor* of heap-after-GC over time tells you the real live set — and whether it's growing (a leak) or flat (healthy churn).
-
-**Model 4: "Stay ahead of the mutator."** A concurrent collector is in a race with allocation. Tuning low-pause collectors is mostly about ensuring the collector always wins that race (enough headroom, enough GC CPU), because losing it = stalls.
 
 ## Code Examples
 
@@ -159,6 +130,26 @@ GOGC=200 GOMEMLIMIT=14GiB ./server
 - **Switching collectors to fix a code problem.** ZGC won't save a service that allocates 10 GB/s of garbage — it'll stall. Fix allocation first.
 - **Tuning to the mean.** A change that lowers average pause but worsens p999 is a regression for users. Always evaluate against the tail.
 
-## Summary
+---
 
-The senior-level decision is **collector selection**, made by **workload shape**: Parallel for throughput/batch, G1 as the balanced latency-service default, ZGC/Shenandoah when you need **sub-millisecond pauses independent of heap size** on large heaps — paying a real **~10–15% throughput and memory tax** to get there. That tax is mechanical: concurrent compaction relies on **per-access barriers** (ZGC's colored-pointer load barrier, Shenandoah's forwarding pointer) to relocate objects while the app runs, and on staying ahead of the mutator to avoid **allocation stalls**. Above all, follow the **diagnosis-then-tune order — measure, reduce allocation, size the heap, pick the collector, micro-tune** — and use **heap-after-GC over time** as your truth serum to separate a real leak from a tunable GC problem.
+## Apply it
+
+1. State the system invariant that **GC Tuning in Production** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
+
+## Verify your work
+
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
+
+## Review questions
+
+- Which invariant must remain true when GC Tuning in Production fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

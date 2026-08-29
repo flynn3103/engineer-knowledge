@@ -1,32 +1,12 @@
-# Allocators — Professional Level
+# Allocators — Professional
 
-> **Topic:** Allocators
-> **Focus:** Production tuning and profiling — `MALLOC_CONF`, heap profiling with jeprof/tcmalloc, fragmentation diagnosis, decay tuning, container-aware sizing, custom-allocator deployment, and allocator security hardening.
+<!-- level-focus -->
+At professional level, focus on this question:
 
+> How should teams adopt and operate **Allocators** with measurable outcomes and limited coordination?
+
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
-
-## Introduction
-
-In production, allocator work is mostly *operations*: a service whose RSS climbs until the OOM killer fires, a p99 latency spike traced to a `malloc` slow path, a container that mysteriously uses 4× the memory of the same binary on a laptop. None of these are fixed by rewriting `malloc`. They're fixed by *choosing* the right allocator, *configuring* it via environment variables, and *profiling* it with the tooling each allocator ships.
-
-This tier is a practitioner's playbook: how to tell fragmentation from a leak, which knobs (`MALLOC_CONF`, `MALLOC_ARENA_MAX`, decay times) move which numbers, how to read a `jeprof` heap profile, and how to deploy and secure a custom or hardened allocator. The throughline: **make the allocator observable, then turn the right knob, then verify the RSS/latency curve actually moved.**
-
-## Prerequisites
-
-- Senior-tier understanding: per-thread caches, arenas, decay, RSS vs. virtual size, internal/external fragmentation, blowup.
-- Comfort reading `/proc/<pid>/smaps`, `RSS`/`VSZ` from `top`/`ps`, and basic flame graphs.
-- Familiarity with `perf`, `strace`, and at least one profiler.
-- A service you can load-test and observe over hours, not seconds — allocator behavior is a *steady-state* property.
-
-## Glossary
-
-- **`MALLOC_CONF`:** jemalloc's (and tcmalloc-compatible) environment/config string for runtime options.
-- **jeprof:** jemalloc's heap-profile renderer (fork of pprof); turns sampled allocation dumps into call-graph/flame views.
-- **Dirty / muzzy pages (jemalloc):** Freed pages not yet purged. *Dirty* = unpurged; *muzzy* = `MADV_FREE`'d but still mapped. Two decay timers control each.
-- **Decay time:** How long jemalloc waits before purging idle dirty/muzzy pages back to the OS.
-- **Quarantine:** A delayed-reuse buffer (scudo/hardened_malloc) that holds freed chunks to catch use-after-free.
-- **`mallctl`:** jemalloc's programmatic introspection/control API.
-- **Release rate (tcmalloc):** How aggressively tcmalloc returns free pages to the OS.
 
 ## Core Concepts
 
@@ -149,22 +129,6 @@ Allocator metadata is a prime exploitation target: heap overflows that smash chu
 
 When you deploy a custom allocator, you *opt out* of these protections unless you reimplement them — a real consideration for security-sensitive code paths.
 
-## Real-World Analogies
-
-- **Decay tuning = thermostat hysteresis.** Purge too eagerly and you thrash (heat/cool/heat). A dead band (decay interval) keeps the system stable — return pages only after they've been idle a while.
-- **`allocated` vs `RSS` = inventory vs. warehouse footprint.** You might hold $1M of goods (allocated) but rent a warehouse sized for $2M (RSS) because the goods are spread out and you haven't consolidated. The gap is fragmentation.
-- **Quarantine = a holding cell for released memory**, so anyone still clutching a stale key (dangling pointer) is caught red-handed instead of unlocking someone else's room.
-
-## Mental Models
-
-1. **Observe before you tune.** Every allocator ships introspection (`mallctl`, `malloc_stats_print`, pprof). Wire it into metrics first; turning knobs blind is how you trade one pathology for another.
-
-2. **One knob, one number, one verification.** Change `dirty_decay_ms`, watch RSS and `madvise` rate, confirm the trade went the way you intended. Don't change five options at once.
-
-3. **Defaults are host-shaped, production is cgroup-shaped.** The biggest, cheapest wins in containers come from making the allocator respect the *limit*, not the *host*.
-
-4. **Security is a budget you spend deliberately.** Hardened/quarantined allocation costs throughput and RSS; apply it to untrusted-input surfaces, not uniformly.
-
 ## Code Examples
 
 ### Forcing a trim and dumping stats (glibc)
@@ -226,30 +190,6 @@ void handle(Request& r) {
 
 Mixing lifetimes in one allocator is one of the most common real-world fragmentation causes; segregating them is often a bigger win than any knob.
 
-## Pros & Cons
-
-**Aggressive decay / high release rate**
-
-- Pros: minimal RSS, container/OOM-friendly, predictable footprint.
-- Cons: more `madvise`/page-fault syscalls; latency jitter under realloc-heavy churn.
-
-**Profiling always-on (sampled)**
-
-- Pros: leaks and churn visible in production; root-cause without reproduction.
-- Cons: small CPU/memory cost; profile storage and rotation to manage.
-
-**Hardened allocator in production**
-
-- Pros: contains heap-corruption exploits; turns silent corruption into a clean crash.
-- Cons: throughput and RSS overhead; some debugging tools assume the default heap.
-
-## Use Cases
-
-- **Long-running service with creeping RSS:** diagnose `allocated` vs `RSS`, tune decay / `MALLOC_ARENA_MAX`, segregate lifetimes.
-- **Container OOM kills despite "small" live set:** cap arenas to cgroup CPUs, lower release timers.
-- **Latency p99 spikes on allocation:** raise thread-cache size, reduce purge aggressiveness, move purging to a background thread.
-- **Security-exposed native daemon:** deploy scudo/hardened_malloc on the untrusted-input path.
-
 ## Coding Patterns
 
 - **Allocator stats as first-class telemetry.** Export `allocated`/`resident`/`retained` (or tcmalloc equivalents) on your metrics endpoint; alert on the fragmentation ratio.
@@ -276,6 +216,26 @@ Mixing lifetimes in one allocator is one of the most common real-world fragmenta
 - **Custom allocator drops hardening silently.** Replacing the system allocator on a security-sensitive path removes scudo/glibc protections unless you reimplement them.
 - **Stats not epoch-refreshed.** jemalloc `stats.*` are cached; forgetting the `epoch` `mallctl` returns stale numbers and a wrong diagnosis.
 
-## Summary
+---
 
-Professional allocator work is observe → tune → verify. The decisive diagnostic is **`allocated` vs. `RSS`**: equal-and-climbing means a leak (find the missing free); a persistent gap means fragmentation or unpurged pages (tune decay, cap arenas, segregate lifetimes). Each production allocator exposes the levers and the telemetry: glibc via `MALLOC_ARENA_MAX`/`M_*` and `malloc_trim`/`mallinfo2`; jemalloc via `MALLOC_CONF` (`narenas`, `dirty_decay_ms`, `prof`) plus `mallctl`/`jeprof`; tcmalloc via per-CPU caches, release rate, and pprof. Containers demand cgroup-aware sizing — capping arenas is the highest-ROI fix. Always-on sampled heap profiling turns incidents into call-graphs instead of guesswork. And where input is untrusted, hardened allocators (scudo, hardened_malloc, glibc safe-linking) trade measured overhead to contain heap-corruption exploits — a budget you spend deliberately, and one a custom allocator silently forgoes.
+## Apply it
+
+1. Define the user or business outcome that **Allocators** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
+
+## Verify your work
+
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
+
+## Review questions
+
+- Which measurable outcome justifies investing in Allocators?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

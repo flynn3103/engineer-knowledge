@@ -1,8 +1,11 @@
 # Performance vs Productivity Tradeoffs — Middle
 
-> **What?** A repeatable *method* for resolving the performance/productivity tension with numbers instead of opinions: set targets, find where time actually goes, and only then decide whether a slower language is a problem worth the cost of a faster one.
-> **How?** Define latency/throughput SLOs first; profile to locate the bottleneck; reason Amdahl-style about how much a language switch could *possibly* help; and treat developer velocity as a measurable cost you're trading away. When the hot path is small, you rewrite *it* — not the whole system.
+<!-- level-focus -->
+At middle level, focus on this question:
 
+> Where does **Performance vs Productivity Tradeoffs** belong in a maintainable component, and which trade-off selects the design?
+
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## 1. Start with a number, not a language
@@ -99,7 +102,7 @@ There is a symmetric mistake to "ignoring performance": **paying for performance
 Choosing Rust for a CRUD API "because it's fast" means, concretely:
 
 - Features ship slower while the team fights the borrow checker and writes more boilerplate.
-- Hiring is harder and slower (smaller pool, see [`07-total-cost-of-ownership-and-team-skills`](../07-total-cost-of-ownership-and-team-skills/)).
+- Hiring is harder and slower (smaller pool, see [`07-total-cost-of-ownership-and-team-skills`](../07-total-cost-of-ownership-and-team-skills/README.md)).
 - Every change costs more developer-hours than the same change in Python or Go.
 
 And the performance you bought? On an I/O-bound CRUD service, it's the 4.7% from §2 — a win nobody asked for. **You paid a large, certain productivity cost for a small, often-irrelevant performance benefit.** That's a bad trade, and it's the trade premature performance choices make by default.
@@ -144,7 +147,7 @@ This is exactly how the productive languages survive in performance-sensitive do
 
 The pattern: **the productive language orchestrates; the fast language does the 5% of crunching.** You get developer velocity for the bulk of the code and native speed for the part that's measurably hot. This is why "Python is slow" is mostly false for data science — the slow Python is calling fast C the entire time.
 
-Before you rewrite a whole service, ask: *can I extract just the hot function?* Often yes — and it turns a one-quarter rewrite into a one-week extension. (The cost of running multiple languages is its own topic; see [`04-interop-and-polyglot-architectures`](../04-interop-and-polyglot-architectures/) and [`05-when-to-introduce-a-new-language`](../05-when-to-introduce-a-new-language/).)
+Before you rewrite a whole service, ask: *can I extract just the hot function?* Often yes — and it turns a one-quarter rewrite into a one-week extension. (The cost of running multiple languages is its own topic; see [`04-interop-and-polyglot-architectures`](../04-interop-and-polyglot-architectures/README.md) and [`05-when-to-introduce-a-new-language`](../05-when-to-introduce-a-new-language/README.md).)
 
 ---
 
@@ -204,16 +207,24 @@ Note the shape: a real gap existed, the language *could* have fixed it, and we *
 
 ---
 
-## 11. What's next
+## Apply it
 
-| Topic | File |
-|---|---|
-| The many axes of perf/productivity; lifecycle shifts; cost-of-compute | `senior.md` |
-| Org-level: velocity as strategy, funding rewrites, portfolio approach | `professional.md` |
-| Interview framing of the tradeoff | `interview.md` |
-| Decision exercises with SLOs and profiles | `tasks.md` |
-| Profiling and capacity techniques in depth | the `profiling-techniques` and `system-design-estimation` skills |
+1. Find a real component where **Performance vs Productivity Tradeoffs** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
----
+## Verify your work
 
-**Memorize this:** resolve the tradeoff with numbers, not opinions. Set an SLO, do the Amdahl ceiling check, profile the real system, and try the cheap fixes (index, cache, algorithm) before the expensive one (rewrite). When the hot path is genuinely yours and genuinely small, rewrite *it* — and keep the productive language for everything else.
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
+
+## Review questions
+
+- Which boundary is most affected by Performance vs Productivity Tradeoffs?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

@@ -1,72 +1,11 @@
-# Type Inference — Middle Level
+# Type Inference — Middle
 
-> **Focus:** How global inference actually works — fresh type variables, constraints, unification, and the let-polymorphism that lets `\x -> x` be reused at every type.
+<!-- level-focus -->
+At middle level, focus on this question:
 
-> **Topic:** Type Inference
+> Where does **Type Inference** belong in a maintainable component, and which trade-off selects the design?
 
----
-
-## Introduction
-
-> Focus: **How can a language infer types for a *whole program* with no annotations at all?** And **what is the machine that does it?**
-
-At the junior level, inference was "read the value on the right." That only scales to *local* inference — Go `:=`, Java `var`, C++ `auto`. Those languages still make you annotate function signatures. But ML, OCaml, and Haskell can take an entirely unannotated program and figure out every type, including parameter and return types, with no help from you:
-
-```haskell
-compose f g x = f (g x)   -- no annotations anywhere
--- inferred: (b -> c) -> (a -> b) -> a -> c
-```
-
-That is **global** (whole-program) inference, and it is powered by one of the most elegant algorithms in programming languages: the **Hindley-Milner** type system, implemented as **Algorithm W**. This page demystifies it. The algorithm is not magic and not AI — it's a mechanical four-step process you could do on paper:
-
-1. Give every unknown a **fresh type variable** (a placeholder).
-2. Walk the code and, from how things are *used*, generate **constraints** (equations between types).
-3. **Unify** — solve those equations by substituting variables, like solving simultaneous equations in algebra.
-4. **Generalize** at `let` bindings so a definition can be reused at many types.
-
-In one sentence: **Hindley-Milner treats type inference as solving a system of equations — invent unknowns, collect equations from usage, and solve them.**
-
-> 🎓 **Why this matters at the middle level:** Once you see inference as constraint-solving, three things click: *why* HM gives you the most general type automatically, *why* it produces those famously cryptic errors (a unification clash surfaces wherever the solver hit the contradiction, not where your bug is), and *why* the `let` vs. lambda distinction matters so much. You stop fearing the type checker and start reading it.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** The junior level of this topic — local inference, the "read the initializer" rule, the edges-vs-insides split.
-- **Required:** Comfort reading function types like `a -> b -> c` (a function taking an `a` and a `b`, returning a `c`).
-- **Required:** What a *generic* / *parametrically polymorphic* function is — one that works for any type, like `identity`.
-- **Helpful but not required:** Any exposure to ML, OCaml, or Haskell syntax. We keep examples small.
-- **Helpful but not required:** Having solved simultaneous equations (`x + y = 5; x - y = 1`). Unification is the same idea on types.
-
-You do **not** need:
-
-- The full operational rules of Algorithm W or a proof of soundness (that's `senior.md`).
-- Constraint-based reformulations (Algorithm M, HM(X)), or how typeclasses thread through (`senior.md`/`professional.md`).
-- Bidirectional checking or higher-rank types (`senior.md`).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Hindley-Milner (HM)** | A type system supporting *parametric polymorphism* with *complete* type inference: every well-typed program has an inferable, most-general type. Used by ML, OCaml, Haskell (its core). |
-| **Algorithm W** | The classic procedure (Damas & Milner, 1982) that implements HM inference: fresh variables, constraint generation, unification, generalization. |
-| **Type variable** | A placeholder for an unknown type, written `a`, `b`, `t0`, `α`. "I don't know this type yet." |
-| **Fresh variable** | A brand-new type variable not used anywhere else, minted whenever the inferencer meets an unknown. |
-| **Constraint** | An equation between two type expressions, e.g. `a = Int`, or `t0 -> t1 = Bool -> t2`. Generated from how values are used. |
-| **Unification** | Solving a set of type equations by finding a substitution that makes both sides equal. (Robinson, 1965.) |
-| **Substitution** | A mapping from type variables to types, e.g. `{a ↦ Int, b ↦ Bool}`. The "answer" unification produces. |
-| **Occurs-check** | The rule that forbids unifying `a` with a type *containing* `a` (e.g. `a = a -> b`), which would create an infinite type. |
-| **Generalization** | Turning free type variables in a type into a `forall` so the binding can be used at many types. Happens at `let`. |
-| **Instantiation** | The reverse: replacing a `forall`-bound variable with a fresh one each time a polymorphic value is *used*. |
-| **Let-polymorphism** | HM's rule that `let`-bound definitions are generalized (polymorphic) but lambda parameters are not. The crux of HM. |
-| **Principal type** | The single *most general* type of an expression, of which every other valid type is a special case. HM always finds it. |
-| **Monomorphic** | Having one fixed type, no `forall`. Lambda parameters are monomorphic within their body. |
-| **Rank-1 polymorphism** | All `forall`s sit at the outermost level of a type. HM is exactly rank-1; this is its key limitation. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -159,37 +98,6 @@ HM hits a sweet spot: inference is **decidable** (always terminates with yes/no)
 
 ---
 
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Fresh type variable** | A blank in a crossword. You don't know the letter yet, but you've reserved the square. |
-| **Constraint generation** | Reading the crossword *clues* — each clue constrains what can fill the blanks. |
-| **Unification** | Filling the grid so all crossing words agree. A conflict (two clues demand different letters in one square) is a type error. |
-| **Occurs-check** | A rule that a clue can't define a word in terms of *itself* — no infinite recursion in the puzzle. |
-| **Generalization (`let`)** | Buying a *template* contract you can fill in with any client's name, many times. |
-| **Instantiation (use site)** | Each time you actually sign that template for a specific client, filling in their name. |
-| **Monomorphic lambda parameter** | A form already filled in with one client's name — you can't reuse it for a different client. |
-| **Principal type** | The most general version of a recipe ("works with any flour"), of which "works with wheat flour" is just a special case. |
-
----
-
-## Mental Models
-
-### The "Simultaneous Equations" Model
-
-Treat the whole program as a system of type equations. Every unknown is a variable; every use of a value adds an equation. **Unification is Gaussian elimination for types.** A solvable system gives you the program's types; an unsolvable one (a contradiction like `Int = Bool`) is a type error. Once you hold this model, "the compiler inferred a type" stops being mysterious — it solved your equations.
-
-### The "Counter of Fresh Variables" Model
-
-Imagine an integer counter starting at 0. Every time the inferencer meets an unknown, it stamps the next `t0`, `t1`, `t2`. By the end, every blank has a number. Unification then collapses many of those numbers into concrete types or into each other (`t3 = t7 = Int`). Watching this counter tick is the most concrete way to "run Algorithm W in your head."
-
-### The "let Generalizes, lambda Doesn't" Model
-
-Picture two kinds of boxes. A `let` box is a **rubber stamp**: stamp it on `True`, on `0`, on `"x"` — it adapts each time (polymorphic). A lambda-parameter box is a **single-use sticker**: the first thing you stick it to fixes its type, and a second, differently-typed use tears it. When inference unexpectedly says two uses "must be the same type," check whether you're inside a lambda parameter rather than a `let`.
-
----
-
 ## Code Examples
 
 ### Tracing `\x -> x + 1` by hand
@@ -279,36 +187,6 @@ Rust isn't full HM, but its local inference uses the same "collect constraints f
 
 ---
 
-## Pros & Cons
-
-| Aspect | Pros | Cons |
-|--------|------|------|
-| **Annotation burden** | Whole programs typecheck with *zero* annotations. Maximum signal-to-noise. | The *absence* of types can hurt readability and makes errors harder to localize. |
-| **Generality** | Always finds the *principal* (most general) type — free reusability. | "Most general" can be *too* general; an over-polymorphic type can defer an error to a confusing place. |
-| **Performance** | Inference is decidable and near-linear in practice. | Pathological cases (deeply nested `let`s) can be exponential in theory (rare in practice). |
-| **Error quality** | Sound: if it typechecks, it's type-safe. | Cryptic errors — unification reports the clash *wherever* it was found, often far from the real bug. |
-| **Expressiveness** | Clean for parametric polymorphism. | Rank-1 only. Subtyping, higher-rank, overloading, polymorphic recursion all break or require annotations. |
-| **Refactoring** | Change an implementation; types re-flow automatically. | A tiny change can shift an inferred type program-wide, surfacing errors in unrelated files. |
-
----
-
-## Use Cases
-
-HM-style global inference shines when:
-
-- **You're writing in the ML family** — OCaml, Standard ML, Haskell (core), F#, Elm, ReasonML, parts of Scala/Rust. The model *is* the language.
-- **The domain is data transformation** — parsers, compilers, interpreters, type-driven business logic — where parametric polymorphism is everywhere and annotations would be pure noise.
-- **You want maximum reuse for free.** Functions get their most general type, so `map`, `fold`, `compose` work across all types without thought.
-- **You value "if it compiles, it's probably right."** HM's soundness plus exhaustive pattern checking catches a large class of bugs at compile time.
-
-Lean on explicit annotations even in HM languages when:
-
-- **A function is a public API.** A top-level signature is documentation *and* an error-localization anchor.
-- **The inferred type is too general or ambiguous** (often with typeclasses — see `senior.md`).
-- **You need a feature beyond rank-1** — higher-rank, polymorphic recursion. Then annotation is mandatory, not optional.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Write top-level signatures even though inference doesn't need them
@@ -366,59 +244,24 @@ When an error points deep inside a helper, add a type signature to the *boundary
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│              HINDLEY-MILNER / ALGORITHM W                        │
-├──────────────────────────────────────────────────────────────────┤
-│ Four steps:                                                      │
-│   1. FRESH      mint a type variable t0, t1, ... per unknown     │
-│   2. CONSTRAIN  each USE of a value adds an equation             │
-│   3. UNIFY      solve the equations → a substitution             │
-│   4. GENERALIZE at `let`, turn free vars into `forall`           │
-├──────────────────────────────────────────────────────────────────┤
-│ Unification rules:                                               │
-│   var = T            ⇒ bind {var ↦ T}  (if occurs-check passes)  │
-│   A->B = C->D        ⇒ unify A=C and B=D                         │
-│   Int = Bool         ⇒ TYPE ERROR (constructor clash)            │
-│   a = (a -> b)       ⇒ OCCURS-CHECK FAILS (infinite type)        │
-├──────────────────────────────────────────────────────────────────┤
-│ let-polymorphism (the crux):                                     │
-│   let id = \x->x    ⇒ id : forall a. a -> a   (generalized)      │
-│   \id -> ...        ⇒ id : t0  (MONOMORPHIC — one fixed type)    │
-├──────────────────────────────────────────────────────────────────┤
-│ Principal type: HM always finds the MOST GENERAL type            │
-│   \x -> x   :  forall a. a -> a                                  │
-├──────────────────────────────────────────────────────────────────┤
-│ Limits (need annotations):                                       │
-│   rank-2+ polymorphism   (forall in argument position)          │
-│   subtyping, overloading/typeclasses, polymorphic recursion     │
-├──────────────────────────────────────────────────────────────────┤
-│ Errors: reported where the clash is FOUND, not where the bug is │
-└──────────────────────────────────────────────────────────────────┘
-```
+1. Find a real component where **Type Inference** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
----
+## Verify your work
 
-## Summary
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
 
-- **Global (whole-program) inference** is what separates ML/OCaml/Haskell from the local inference of `var`/`auto`/`:=`. It needs *no* annotations, even on function signatures.
-- The engine is **Hindley-Milner**, implemented as **Algorithm W**, and it runs in four mechanical steps: **fresh variables** for unknowns, **constraints** from usage, **unification** to solve them, **generalization** at `let`.
-- **Unification** is Gaussian elimination for types: bind variables, match constructors, error on clashes. The **occurs-check** forbids infinite types like `a = a -> b`, which is why self-application doesn't typecheck.
-- **Let-polymorphism** is the crux: `let`-bound names are generalized to `forall` and reusable at many types; **lambda parameters are monomorphic** and locked to one. `let id = \x->x` works; `\id -> (id True, id 0)` does not.
-- HM always finds the **principal (most general) type** — free reusability, no accidental over-specialization.
-- HM is **decidable and fast**, but only **rank-1**. Higher-rank polymorphism, subtyping, overloading/typeclasses, and polymorphic recursion all break inference and demand annotations — the subject of `senior.md`.
-- The price of "no annotations" is **error localization**: unification reports the clash wherever it's found, often far from the real bug. The cure is to annotate boundaries — which is why idiomatic Haskell still writes top-level signatures.
+## Review questions
 
----
-
-## Further Reading
-
-- *Principal Type-Schemes for Functional Programs* — Luis Damas & Robin Milner, POPL 1982. The original Algorithm W paper.
-- *A Machine-Oriented Logic Based on the Resolution Principle* — J. A. Robinson, 1965. The source of unification and the occurs-check.
-- *Types and Programming Languages* — Benjamin C. Pierce. Chapter 22, "Type Reconstruction," is the canonical textbook treatment of HM.
-- *Write You a Haskell* — Stephen Diehl. Implements Algorithm W from scratch in readable steps. http://dev.stephendiehl.com/fun/
-- *The Hindley-Milner type system* — the Wikipedia article is unusually good and includes the inference rules.
-- *Real World OCaml* — the chapter on the type system shows let-polymorphism and the value restriction in practice. https://dev.realworldocaml.org/
-- *How OCaml type checker works — or what polymorphism and garbage collection have in common* — Oleg Kiselyov. A deep, accessible walkthrough.
+- Which boundary is most affected by Type Inference?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

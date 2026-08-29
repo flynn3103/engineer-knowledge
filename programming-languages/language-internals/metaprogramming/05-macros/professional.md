@@ -1,52 +1,11 @@
-# Macros — Professional Level
+# Macros — Professional
 
-> **Topic:** Macros
-> **Focus:** Macros as an engineering decision at scale — when they earn their keep versus when they wreck a codebase; compile-time budgets, error-message engineering, debuggability, API stability, security, and how to lead a team that uses macros without being ruled by them.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Macros** with measurable outcomes and limited coordination?
 
-## Introduction
-
-> 🎓 Junior: what a macro is and the C foot-guns. Middle: syntactic macros and hygiene. Senior: Rust's two systems, hygiene formally, and the neighbouring designs. Professional: the decisions that determine whether a macro is an asset or a liability for *a team, over years* — because a macro is a piece of API that you cannot change easily, that the compiler runs on every build, that produces the error messages your colleagues will curse, and that the next engineer must understand before they can change anything near it.
-
-By this level the mechanics are not the hard part — judgment is. Every macro is a small compiler embedded in your codebase, and it inherits every compiler's responsibilities: parse user input charitably, produce code that is correct *and* fast, emit errors that point at the user's mistake (not your generated tokens), and stay stable across releases so you do not break downstream users. Most macro disasters in real codebases are not bugs in the expansion; they are *engineering* failures — a macro that should have been a function, a derive that doubled the build time, an error message that sent a team on a two-hour debugging detour, a clever DSL nobody else could maintain after the author left.
-
-The animating principle is **Greenspun's Tenth Rule**, stated tongue-in-cheek but pointing at something real: *"Any sufficiently complicated C or Fortran program contains an ad-hoc, informally-specified, bug-ridden, slow implementation of half of Common Lisp."* The serious reading: powerful programs tend to grow a metaprogramming layer whether you plan for it or not. The professional question is not *whether* to allow that layer, but whether to make it **deliberate, scoped, documented, and tested** — or to let it metastasize as a pile of clever undocumented macros.
-
-This page is about that judgment: the decision matrix for "macro vs. not," the operational costs (compile time, error quality, debuggability, IDE support), API stability and security concerns, and how to set team policy so macros stay a force multiplier rather than a tax. It draws examples from across the spectrum — C build-config macros, Lisp DSLs, Rust derive ecosystems, Elixir frameworks.
-
----
-
-## Prerequisites
-
-- **Required:** All prior tiers — textual/syntactic/procedural macros, hygiene, fragment specifiers, `syn`/`quote`, `cargo expand`.
-- **Required:** Experience reading and reviewing other people's code; some exposure to maintaining a library with external users.
-- **Required:** A working notion of build pipelines and CI (where compile-time cost is paid).
-- **Helpful but not required:** Having debugged a macro-generated error message in anger.
-
-You do **not** need to know:
-
-- Compiler-internals beyond what `senior.md` covered.
-- Any specific framework's macro implementation in detail (we generalize).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Greenspun's Tenth Rule** | The aphorism that complex programs grow an ad-hoc metaprogramming layer; a caution to make that layer deliberate. |
-| **Expansion contract** | The documented promise of what syntax a macro accepts and what code it generates — a macro's "API." |
-| **Compile-time budget** | The build time a macro consumes per invocation × invocation count; a real cost that scales with the codebase. |
-| **Error-message engineering** | Deliberately shaping a macro's failure output (spans, `compile_error!`, messages) so errors point at user code. |
-| **Span hygiene** | (Rust) Choosing `call_site` vs `def_site`/`mixed_site` spans so generated identifiers and errors land where intended. |
-| **`trybuild` / expectation tests** | Tests that assert a macro produces a *specific compile error* for bad input — testing the failure path. |
-| **Macro API stability** | The constraint that a public macro's accepted syntax is part of your semver surface; changing it breaks users. |
-| **Build determinism** | A macro must produce the same output for the same input every build (no time, randomness, network, or filesystem reads that change). |
-| **`build.rs` / codegen** | Build-script code generation; an alternative to macros for large or external-data-driven generation. |
-| **IDE friendliness** | Whether tooling (autocomplete, go-to-definition, type hints) works *through* the macro for users. |
-| **X-macro** | A C idiom: a single list of items expanded multiple ways (enum + name table + handler table) from one source of truth. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -114,27 +73,6 @@ Procedural macros run **arbitrary code at compile time on the developer's and CI
 ### 7. Greenspun in Practice: Designing the Metaprogramming Layer
 
 Large systems accrete a metaprogramming layer. The professional move is to make it intentional: a small, documented, tested set of macros with clear ownership, rather than a sprawl of one-off clever macros. Decide as a team: which DSLs are sanctioned, who owns them, where the expansion contracts are documented, and what the bar is for adding a new macro (usually: "a senior reviewer agrees no non-macro mechanism suffices"). The goal is to capture the *leverage* of macros — eliminating real boilerplate, enabling compile-time checks — while containing their *entropy*.
-
----
-
-## Real-World Analogies
-
-**A macro is a power tool, and you are running the shop.** A nail gun (macro) drives a hundred nails in the time a hammer drives one. In skilled hands on the right job, it is transformative. Handed to everyone for every task, you get nails in walls that should have had screws, the occasional injury, and a shop nobody else can safely work in. The professional's job is not to ban the nail gun — it is to decide which jobs it is for, train people, and keep the safety on for the rest.
-
-**Macros are the spice, not the meal.** A pinch transforms a dish (one well-placed derive, one compile-time-checked DSL). A handful ruins it (a codebase where you cannot read a function without expanding three macros first). Taste as you go — `cargo expand` is tasting.
-
-**A public macro is a tattoo, not a marker drawing.** A function signature you can change with a deprecation cycle (marker — wipes off). A widely-used public macro's syntax is a tattoo: removing it hurts everyone wearing it. Decide what to ink before you ink it.
-
----
-
-## Mental Models
-
-- **Default to "not a macro."** The burden of proof is on the macro: it must do something no function, generic, trait, or `const fn` can. Most "macros for convenience" fail this test.
-- **A macro is a compiler you ship.** It has the same duties: charitable parsing, correct & fast output, excellent diagnostics, stable interface, reproducible behavior. Hold it to a compiler's standard.
-- **Three bills come due:** compile time (every build), cognitive load (every reader), and API rigidity (every downstream user). The run-time win must outweigh all three.
-- **Errors are the UI.** Users meet your macro when something is wrong. If the failure message is bad, the macro is bad, however elegant the happy path.
-- **Keep macros thin.** Macro for syntax/timing/codegen; ordinary, tested functions for logic. A thin macro over a thick function is debuggable; a thick macro is not.
-- **Make the metaprogramming layer deliberate.** Greenspun says it will exist; your job is to make it owned, documented, and bounded rather than emergent and chaotic.
 
 ---
 
@@ -227,23 +165,6 @@ $ clang++ -ftime-trace foo.cpp # emits a Chrome-tracing JSON of compile phases
 
 ---
 
-## Use Cases
-
-Strong, professionally-defensible uses:
-
-- **Compile-time validation of literals** — `format!`/`println!` argument checking, `sqlx::query!` schema checks, compile-time regex/route validation. Converts run-time bugs into build failures; hard to overstate the value.
-- **Per-type boilerplate the type system cannot infer** — serialization, comparison, builders, error enums (`thiserror`). Massive, correct, free-of-typos code generation.
-- **Single-source-of-truth code generation** — the X-macro; enum + table + dispatch from one list; FFI bindings generated from a declaration.
-- **Framework ergonomics with bounded scope** — routing attributes, test harnesses, instrumentation — *when* the framework owns and documents them.
-
-Uses to push back on in review:
-
-- **Macros to save a few keystrokes** where a function/generic works.
-- **Clever control-flow DSLs** invented in-house with no documentation and one author.
-- **Macros that embed business logic** (untestable, undebuggable) instead of delegating to functions.
-
----
-
 ## Coding Patterns
 
 **Pattern: thin macro, thick function.** The macro handles only syntax/laziness/codegen; all logic lives in an ordinary, tested function the expansion calls.
@@ -298,71 +219,24 @@ Uses to push back on in review:
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. Give the decision checklist for "should this be a macro?" What single question disqualifies most candidate macros?
-2. Why is a macro fairly described as "a compiler you ship," and what duties does that framing impose?
-3. Name the three bills that come due for every macro, and who pays each.
-4. Why is a public macro's accepted syntax a semver concern, and how is changing it harder than changing a function signature?
-5. What are the security and determinism constraints on procedural macros, and why do they matter for CI?
-6. What does "thin macro, thick function" mean and why is it the most important maintainability habit?
+1. Define the user or business outcome that **Macros** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
-<details>
-<summary>Answers</summary>
+## Verify your work
 
-1. Can a function / generic+trait / `const fn` do it? Do you need to control evaluation, new syntax, compile-time validation of literals, or per-type codegen? If only the first set applies (it could be a function), it should not be a macro — that disqualifies most "convenience" macros.
-2. It parses user input, generates correct/fast code, and reports errors — exactly a compiler's job. It imposes the duties of charitable parsing, good diagnostics, a stable interface, and deterministic, reproducible output.
-3. **Compile time** (paid every build, by CI and every developer), **cognitive load** (paid by every reader/reviewer), and **API rigidity** (paid by every downstream user when you want to change it).
-4. Users write code against the macro's accepted syntax; changing it breaks their builds. It is harder than a function signature because macros lack overloading and default-argument deprecation paths, so graceful migration is awkward.
-5. Proc-macros run arbitrary code at compile time on dev/CI machines (supply-chain risk; vet dependencies) and must be deterministic (same input → same output) or they break reproducible builds and caching. CI runs them with your credentials, so both matter operationally.
-6. The macro does only what a function cannot (syntax, lazy evaluation, codegen) and delegates all real logic to an ordinary, unit-testable, debuggable function it calls. It keeps the hard-to-debug surface minimal and the testable surface maximal.
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
 
-</details>
+## Review questions
 
----
-
-## Cheat Sheet
-
-```text
-DEFAULT = NOT A MACRO. Burden of proof is on the macro.
-JUSTIFIED ONLY IF you need: control of evaluation | new syntax/DSL |
-                            compile-time validation of literals | per-type codegen
-DISQUALIFIED IF a function / generic+trait / const fn would do it.
-
-A MACRO IS A COMPILER YOU SHIP → owes: charitable parse, fast+correct output,
-                                         great errors, stable API, determinism.
-
-THREE BILLS
-  compile time   → every build (measure: cargo build --timings / clang -ftime-trace)
-  cognitive load → every reader/reviewer (keep thin; document the expansion contract)
-  API rigidity   → every downstream user (accepted syntax = semver surface)
-
-ERRORS = THE UI
-  forward user spans | compile_error!/syn::Error, NEVER panic! | test failures (trybuild)
-
-OPERATIONAL
-  prefer macro_rules! > proc-macro; consider build.rs for big/data-driven codegen
-  keep macros PURE + DETERMINISTIC (no clock/net/env/unsorted-FS reads)
-  VET proc-macro deps — they run arbitrary code in CI with your secrets
-  pattern: THIN MACRO over THICK (tested) FUNCTION
-  C: X-macro for single-source-of-truth; beware name-clobbering #defines
-
-GREENSPUN: the metaprogramming layer will exist — make it owned, scoped, documented.
-```
-
----
-
-## Summary
-
-At professional scale a macro stops being a language feature and becomes an **engineering decision with a long tail**. The default answer is *no*: a macro is justified only when it does something a function, generic, trait, or `const fn` cannot — controlling evaluation, providing new syntax, validating literals at compile time, or generating per-type code. Every macro is **a compiler you ship**, owing charitable parsing, fast and correct output, excellent diagnostics, a stable interface, and deterministic behavior. It bills you three ways — **compile time** (every build), **cognitive load** (every reader), and **API rigidity** (every downstream user) — and its **error messages are its true user interface**, so spans, `compile_error!`, and failure-path tests matter as much as the happy path. Procedural macros add **supply-chain and determinism** constraints because they run arbitrary code in CI. The durable habits are: keep macros **thin over thick tested functions**, **budget and measure compile time**, **document the expansion contract**, **treat public syntax as semver**, and **bound the metaprogramming layer** deliberately — heeding **Greenspun's Rule** that the layer will form whether or not you plan for it. Used this way, macros remain what they should be: a precise tool that erases real boilerplate and turns run-time failures into build failures, rather than a clever tax the rest of the team pays forever. The `interview.md` and `tasks.md` files turn these principles into questions and hands-on exercises across C, Lisp/Scheme, Rust, Elixir, and C++.
-
----
-
-## Further Reading
-
-- Philip Greenspun's Tenth Rule (origin and the serious reading of it) — and Robert Morris's corollary.
-- *The Rust API Guidelines* and *The Cargo Book* on `--timings`; David Tolnay's `trybuild` for testing macro diagnostics.
-- *Out of the Tar Pit* (Moseley & Marks) — on accidental complexity, the broader frame for "should this exist?"
-- The `serde`, `diesel`, and `tracing` codebases — real, large-scale proc-macro engineering with strong error-message discipline to study.
-- C: the GCC manual on conditional compilation and the X-macro idiom; the long history of `<windows.h>` `min`/`max` clashes as a cautionary tale.
-- Try it: take a clever macro in your codebase, run `cargo expand` (or `gcc -E`), and ask whether a thin-macro-over-function rewrite would be clearer — then measure its build cost with `cargo build --timings`.
+- Which measurable outcome justifies investing in Macros?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

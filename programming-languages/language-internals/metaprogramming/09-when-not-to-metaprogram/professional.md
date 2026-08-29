@@ -1,25 +1,11 @@
-# When NOT to Metaprogram — Professional Level
+# When NOT to Metaprogram — Professional
 
-> **Topic:** When NOT to Metaprogram
-> **Focus:** The economics of the "magic budget" — how senior engineers and teams decide that boring code wins.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **When NOT to Metaprogram** with measurable outcomes and limited coordination?
 
-## Introduction
-
-Every metaprogramming technique in this section is a power tool, and the professional
-skill is mostly knowing when to leave it in the box. The temptation is constant:
-reflection to save a switch statement, a metaclass to enforce a convention, a DSL to
-make config "nicer," a clever macro to delete some boilerplate. Each looks like a win
-in isolation. The cost shows up later and elsewhere — in the debugging session that
-can't set a breakpoint, the new hire who can't read the code, the refactor that the IDE
-can't follow, the production failure that surfaces as "method not found" instead of a
-compile error. This tier is about pricing those costs honestly and defaulting to boring.
-
-Kernighan's law is the north star: *"Debugging is twice as hard as writing the code in
-the first place. Therefore, if you write the code as cleverly as possible, you are, by
-definition, not smart enough to debug it."*
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## The Magic Budget
@@ -131,28 +117,24 @@ The mirror image keeps this honest. Reach for it when:
 
 ---
 
-## War Stories
+## Apply it
 
-- **The DSL trap.** A team's elegant in-house DSL became the thing no new hire could
-  extend; the maintainers became a bottleneck, and the system was eventually rewritten as
-  a plain typed API — slower to read, faster to change, and finally owned by everyone.
-- **The reflection-heavy system that wouldn't AOT.** A service built on runtime reflection
-  couldn't be compiled to a GraalVM native image (closed-world) without enormous
-  configuration; the fix was migrating reflection to code generation — exactly the modern
-  pressure pushing teams off runtime magic.
-- **Spring annotation archaeology.** Debugging "why did this method run twice / not at
-  all" through layers of `@Transactional`/`@Async`/`@EventListener` proxies cost days; the
-  resolution was making the cross-cutting behavior explicit at the boundaries.
+1. Define the user or business outcome that **When NOT to Metaprogram** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
----
+## Verify your work
 
-## Summary
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
 
-The professional discipline of metaprogramming is mostly restraint. Treat indirection as a
-**magic budget** the codebase can overdraw; price the real costs (comprehension,
-debugging, tooling, error quality, startup, staffing); and default to the simplest tool —
-escalating up the ladder only when the previous rung demonstrably fails. Metaprogramming
-earns its place at the framework level for genuine cross-cutting concerns and large,
-painful boilerplate, ideally via compile-time techniques with readable output. For almost
-everything else, boring code — explicit, greppable, debuggable, and understandable by a
-junior in six months — is the senior choice.
+## Review questions
+
+- Which measurable outcome justifies investing in When NOT to Metaprogram?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

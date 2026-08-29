@@ -1,44 +1,11 @@
 # Interfaces — Junior
 
-> **Topic:** [Interfaces](../README.md)
-> **Focus:** Implicit interface satisfaction, defining and using interfaces, type assertions, the empty interface, and why Go interfaces feel different from Java/C# interfaces.
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **Interfaces** in one small example and prove the result?
 
-## Introduction
-
-A Go interface is a set of method signatures. Any type that has all those methods **automatically** satisfies the interface — there's no `implements` keyword, no explicit declaration required.
-
-```go
-type Writer interface {
-    Write(p []byte) (n int, err error)
-}
-```
-
-Any type with a `Write([]byte) (int, error)` method satisfies `Writer`, whether or not its author ever heard of this interface. This is **structural typing**, and it's one of the most Go-idiomatic ideas in the language: interfaces are usually defined by the *consumer* of a type, describing only the behavior it needs — not by the type's author trying to anticipate every future use.
-
----
-
-## Prerequisites
-
-- Comfortable with structs and methods (value vs. pointer receivers).
-- Basic familiarity with functions as parameters.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Interface** | A named set of method signatures. Any type implementing all of them satisfies the interface. |
-| **Implicit satisfaction** | A type satisfies an interface just by having the right methods — no explicit declaration. |
-| **Empty interface (`any`)** | `interface{}` (or its alias `any`, Go 1.18+) — has zero methods, so every type satisfies it. |
-| **Type assertion** | `v, ok := x.(T)` — checks/extracts the concrete type stored in an interface value. |
-| **Type switch** | `switch v := x.(type) { case T1: ...; case T2: ... }` — branches on the concrete type. |
-| **Method set** | The set of methods a type (or pointer to it) has, determining which interfaces it satisfies. |
-| **Nil interface vs. nil concrete value in an interface** | An interface holding a `nil` pointer of a concrete type is **not** itself `== nil` — a classic Go gotcha. |
-| **Mock** | A test double implementing an interface with controllable, predictable behavior, used in place of a real dependency. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -169,26 +136,6 @@ func copyAll(dst io.Writer, src io.Reader) (int64, error) {
 
 ---
 
-## Pros & Cons
-
-| | Pros | Cons |
-|---|---|---|
-| **Implicit satisfaction** | Decouples types from interfaces; retrofit interfaces onto existing types freely | Can't tell from a type's definition alone which interfaces it satisfies — you have to check |
-| **Small interfaces** | Easy to implement, easy to mock, compose well | Sometimes need several small interfaces instead of one big one, which can feel verbose |
-| **Empty interface (`any`)** | Maximum flexibility for generic-ish code | Loses compile-time type safety; usually a sign generics (Go 1.18+) might be a better fit |
-
----
-
-## Use Cases
-
-| Situation | Approach |
-|---|---|
-| A function needs "something with a `Read` method," not a specific type | Accept `io.Reader`, not a concrete `*os.File` |
-| Testing code that depends on an external service | Define a small interface for just the methods used; swap in a mock |
-| A function genuinely needs to accept any type | `any`, with a type switch/assertion inside |
-
----
-
 ## Best Practices
 
 1. Define interfaces where they're **consumed**, not where the implementing type is defined.
@@ -217,59 +164,24 @@ func copyAll(dst io.Writer, src io.Reader) (int64, error) {
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```go
-// Define
-type Reader interface { Read(p []byte) (n int, err error) }
+1. Choose one small, known input for **Interfaces**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
-// Implicit satisfaction — no "implements" keyword
-type MyReader struct{}
-func (r MyReader) Read(p []byte) (int, error) { ... }
+## Verify your work
 
-// Type assertion (safe)
-v, ok := x.(ConcreteType)
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
 
-// Type switch
-switch v := x.(type) {
-case string: ...
-case int: ...
-}
+## Review questions
 
-// any / empty interface
-func f(v any) { ... }
-```
-
----
-
-## Summary
-
-- Go interfaces are satisfied implicitly — any type with the right methods qualifies, with no explicit declaration.
-- Pointer vs. value receivers determine a type's method set and which interfaces it can satisfy.
-- Small, consumer-defined interfaces are idiomatic Go and make testing/mocking natural.
-- `any` accepts anything but loses static type information — recover it via type assertion or type switch.
-- A `nil` concrete pointer stored in an interface is **not** a `nil` interface — a classic and important gotcha.
-
----
-
-## Further Reading
-
-- Effective Go — *Interfaces*: <https://go.dev/doc/effective_go#interfaces>
-- Go Wiki — *CodeReviewComments: Interfaces*: <https://go.dev/wiki/CodeReviewComments#interfaces>
-
----
-
-## Related Topics
-
-- [Error Handling](../04-error-handling/junior.md) — `error` is itself just an interface.
-- [Go Runtime](../02-go-runtime/junior.md) — how interface values are represented internally.
-
----
-
-## Check your understanding
-
-1. Explain Interfaces — Junior Level in your own words and name the problem it solves.
-2. How would you apply the ideas around Introduction, Prerequisites, Glossary in a realistic engineering change?
-3. What failure mode or misuse should you look for, and what evidence would reveal it?
-4. What small example would prove that you can apply Interfaces — Junior Level correctly?
-5. What observable result would convince you that the approach improved the system?
+- What problem does Interfaces solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

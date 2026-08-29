@@ -1,57 +1,11 @@
-# Eager vs. Lazy Evaluation — Professional Level
+# Eager vs. Lazy Evaluation — Professional
 
-> **Topic:** Eager vs. Lazy Evaluation
-> **Focus:** Laziness in production systems — the compiler's strictness analysis that recovers performance automatically, lazy initialization under concurrency (and why double-checked locking is a minefield), deferred logging, and choosing eager vs. lazy as an architecture decision with real failure modes.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Eager vs. Lazy Evaluation** with measurable outcomes and limited coordination?
 
-## Introduction
-
-> Focus: **When laziness leaves the textbook and enters a multi-threaded, latency-bound, observable production system, what actually breaks — and who fixes it?** Sometimes the compiler. Sometimes you, with a lock you'd better get exactly right.
-
-The earlier levels treated laziness as a programmer's tool and Haskell's default. At the professional level, three forces converge that change the calculus:
-
-1. **The compiler fights back.** Pervasive laziness is slow if taken literally (a thunk allocation per expression). Real compilers run **strictness analysis** (more precisely, *demand analysis*) to *prove* that a function always forces an argument, then evaluate it eagerly with no thunk — recovering most of the cost of "lazy by default" automatically. Understanding what the analyzer can and can't prove explains why some Haskell is fast and some leaks.
-
-2. **Concurrency makes lazy initialization dangerous.** "Compute this once, the first time it's needed" — the most common form of laziness in mainstream production code (a lazy singleton, a cached config, a memoized expensive object) — becomes a **thread-safety problem** when two threads race to that first access. This is where **double-checked locking**, `volatile`/`Atomic`/`memory_order`, `Lazy<T>`, `LazyThreadSafetyMode`, `sync.Once`, and Java's holder idiom live, and where decades of subtly broken code originate.
-
-3. **Laziness becomes an observability and latency property.** Deferred logging (`Supplier<T>`, `() => message`) trades predictable cost for conditional cost. Lazy DB queries (deferred `IEnumerable`, ORM lazy loading) trade upfront work for surprise N+1 queries and `LazyInitializationException` outside a session. Laziness moves *when and where* cost and failure occur — which is an architecture decision, not a micro-optimization.
-
-This page covers: strictness/demand analysis and how it interacts with `seq`/inlining/worker-wrapper; thread-safe lazy initialization done correctly across Java/C#/C++/Go; the double-checked-locking pitfall and its language-specific fixes; deferred logging and `Supplier`-based APIs; ORM lazy loading and the N+1 / detached-entity traps; and a decision framework for eager vs. lazy at system scale. This is the deepest level; there is no further file.
-
----
-
-## Prerequisites
-
-- **Required:** Senior-level material — call-by-need, thunks, WHNF/NF, space leaks, `seq`/`foldl'`/`BangPatterns`/`deepseq`.
-- **Required:** Working knowledge of one memory model (Java JMM, C++ `std::memory_order`, or Go's memory model) — what `volatile`/`atomic`/happens-before mean.
-- **Required:** Practical concurrency: threads, races, why "publish a partially-constructed object" is a bug.
-- **Helpful but not required:** Exposure to an ORM (Hibernate/JPA, EF Core) and its lazy-loading behavior.
-- **Helpful but not required:** Some compiler-pipeline intuition (passes, inlining, optimization).
-
-You do **not** need to be a compiler engineer; you need to reason about what the analyzer guarantees and where you must intervene.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Strictness analysis** | A compiler analysis proving a function *always* forces an argument, so it can be evaluated eagerly (no thunk) without changing semantics. |
-| **Demand analysis** | The modern generalization (GHC): infers *how much* and *whether* each argument is used (strictness + usage/cardinality). |
-| **Worker/wrapper** | A GHC transformation that, using strictness info, splits a function into an unboxed strict "worker" and a thin "wrapper" — the payoff of strictness analysis. |
-| **Lazy initialization** | Defer creating/computing a value until its first use; cache thereafter. The mainstream "lazy." |
-| **Double-checked locking (DCL)** | An optimization: check the flag without a lock, lock only if unset, check again inside the lock. Notoriously broken without correct memory barriers. |
-| **Happens-before** | The memory-model relation guaranteeing visibility of one thread's writes to another. Locks/`volatile`/atomics establish it. |
-| **Safe publication** | Making a fully-constructed object visible to other threads without them seeing a half-built version. |
-| **`Lazy<T>`** | (.NET) Thread-safe (configurable) lazy value. Java has `Supplier`-backed idioms; C++ has `std::call_once`. |
-| **`sync.Once`** | (Go) Runs an initializer exactly once with correct memory ordering. The blessed lazy-init primitive. |
-| **`Supplier<T>` / thunk param** | A deferred computation passed so the callee decides whether to run it (deferred logging, default values). |
-| **Deferred (lazy) loading** | (ORM) Related entities/collections fetched only on access. Source of N+1 and detached-entity errors. |
-| **N+1 query** | One query for parents, then one per parent for children — a lazy-loading performance disaster. |
-| **`LazyInitializationException`** | (Hibernate) Accessing a lazy association after the persistence session closed. |
-| **Memoization** | Caching a computed result so repeats are free. Lazy init is memoization keyed by "first access." |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -143,30 +97,6 @@ At system scale the choice is about *moving cost and failure in time and space*:
 - **Lazy** defers cost to first use → fast startup, pay-as-you-go, but unpredictable first-hit latency ("cold start" spikes), surprise failures at the deferred moment (lazy DB call fails mid-request), and harder capacity planning.
 
 Real systems mix both deliberately: eager-load the critical path and config at boot (fail fast, warm caches), lazy-load rarely-used or huge resources. Serverless cold starts, JIT warmup, connection-pool pre-warming, and CDN cache priming are all explicit *eager-vs-lazy* trade-offs at the infrastructure level.
-
----
-
-## Real-World Analogies
-
-**The compiler as an efficiency consultant.** Strictness analysis is a consultant who watches your lazy factory and notes: "you *always* end up building this part, every time — stop writing IOUs for it and just build it now." It only eliminates deferral that was guaranteed to resolve, so it never changes *what* gets built, only *when* — safely.
-
-**The shared coffee machine (lazy init race).** First person to the office is supposed to brew the coffee, then everyone shares the pot. If two people arrive at once and both start brewing (no lock), you get two half-pots and chaos. Worse, someone grabs a cup *while it's still filling* (half-constructed object). The lock + barrier is "one person brews, and nobody drinks until the pot light is fully green."
-
-**The lazy bartender (deferred logging).** You ask the bartender to "prepare an elaborate cocktail *if* a VIP shows up." If no VIP comes, the cocktail is never made — no wasted gin. The order (the `Supplier`) is cheap to give; the work is conditional.
-
-**The ORM tourist (N+1).** A tourist who asks the guide one question, walks to the next exhibit, asks again, walks back — 100 round trips. The eager tourist asks for the whole tour script upfront (one `JOIN FETCH`). Same information, 100x fewer trips.
-
----
-
-## Mental Models
-
-**Model 1: Strictness analysis = "prove the deferral is pointless, then skip it."** The compiler only un-defers work that was certain to happen. Your `!`/`foldl'` annotations are hints that make the proof easier or fill gaps the analysis can't reach.
-
-**Model 2: Lazy init = memoization keyed on first access, and first access is a race.** Every "compute once, cache" is a critical section. The question is always "what makes the first-access path correct under concurrency?" — and the answer is a memory barrier, by some name.
-
-**Model 3: Laziness relocates cost and failure in spacetime.** Eager pins cost at point of definition/boot; lazy floats it to point of first use. Wherever you float it, that's where the latency spike and the failure now live. Design that location deliberately.
-
-**Model 4: Default laziness is a liability you inherit.** ORM lazy loading, deferred LINQ, lazy IO — you didn't write the laziness, but you own its failure modes. Know your framework's defaults; they are architectural decisions made for you.
 
 ---
 
@@ -279,47 +209,6 @@ o.getItems().size();   // ✗ throws: no session to force the lazy collection
 
 ---
 
-## Pros & Cons
-
-**Lazy initialization (production) — pros**
-
-- **Fast startup / pay-on-use** — skip building things never touched this run.
-- **Memoization for free** — the "once" semantics cache the expensive result.
-- **Lower baseline memory** when many resources go unused.
-
-**Lazy initialization — cons**
-
-- **Concurrency correctness is hard** — DCL footguns, safe-publication, memory barriers.
-- **First-hit latency spikes** — the deferred cost lands on an unlucky request (cold start).
-- **Failure moves to first use** — a config/DB failure surfaces mid-request, not at boot (no fail-fast).
-
-**Deferred logging / `Supplier` APIs — pros/cons**
-
-- **Pro:** converts unconditional expensive work into conditional work; big win on hot paths with disabled logging.
-- **Con:** tiny allocation + readability cost; misuse (capturing mutable state in the thunk) reintroduces closure traps.
-
-**ORM lazy loading — pros/cons**
-
-- **Pro:** convenient object graphs without manual joins; load only what you touch.
-- **Con:** N+1 query explosions and `LazyInitializationException`; a framework default that becomes your incident.
-
-**Strictness analysis (compiler) — pros**
-
-- **Recovers most of laziness's runtime cost automatically**, preserving semantics; enables tight, unboxed loops.
-- **Con (for you):** it's invisible and incomplete — where it fails (conditional strictness, cross-module), leaks survive and you must annotate.
-
----
-
-## Use Cases
-
-- **Lazy singletons / config / connection factories:** build once on first use; pick the language's *correct* primitive (`Lazy<T>`, holder idiom, `sync.Once`, magic statics), never hand-rolled DCL.
-- **Hot-path logging/metrics:** use `Supplier`/lambda forms so disabled levels cost nothing.
-- **Expensive optional resources:** lazy-load big in-memory indexes, ML models, report generators that most requests never need.
-- **Eager-load the critical path:** config, auth keys, schema validation, primary connection pool — fail fast at boot, warm caches before serving traffic.
-- **ORM:** lazy-load by default *only* with eyes open; switch to eager `JOIN FETCH`/`Include` wherever you iterate associations or cross a session boundary.
-
----
-
 ## Coding Patterns
 
 **Pattern: never hand-roll lazy init across threads.** Use `Lazy<T>` (C#), the holder idiom or `volatile`+DCL (Java), `sync.Once` (Go), `std::call_once`/magic statics (C++). These encapsulate the memory barrier correctly.
@@ -369,68 +258,24 @@ o.getItems().size();   // ✗ throws: no session to force the lazy collection
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. What does strictness/demand analysis prove, and why is it always safe to apply? What can it *not* recover?
-2. Walk through exactly why non-`volatile` double-checked locking can hand out a half-constructed object.
-3. Give the *correct* thread-safe lazy-init primitive for Java, C#, Go, and C++ — and say what guarantees each one provides.
-4. Why is the initialization-on-demand holder idiom often preferred over `volatile`+DCL in Java?
-5. What is the N+1 query problem, how does ORM lazy loading cause it, and how do you fix it?
-6. Why does `LazyInitializationException` happen, and what does it tell you about where laziness's failure surface lives?
-7. You front-load nothing and lazy-init everything for "fast startup." Name two production failure modes this invites.
-8. How can a deferred-logging `Supplier` log the *wrong* value, and how do you prevent it?
+1. Define the user or business outcome that **Eager vs. Lazy Evaluation** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
-<details>
-<summary>Answers</summary>
+## Verify your work
 
-1. It proves a function *always* forces a given argument (and how much), so the compiler can evaluate it eagerly/unboxed (worker/wrapper) without changing results — safe because it only un-defers evaluation that was guaranteed to occur. It cannot recover cases of *conditional* strictness, cross-module laziness without inlining, or genuinely needed laziness; those still need manual `!`/`foldl'`.
-2. `instance = new Singleton()` is allocate → assign-reference → run-constructor, and the compiler/CPU may reorder assign-reference *before* constructor completion. A second thread on the unlocked path sees a non-null reference pointing at a not-yet-constructed object and uses it. `volatile` forbids that reordering and establishes happens-before.
-3. **Java:** holder idiom (JVM class-init lock → once + safe publication) or `volatile`+DCL. **C#:** `Lazy<T>` with `ExecutionAndPublication` (correct DCL implemented for you). **Go:** `sync.Once` (exactly-once + correct ordering). **C++:** function-local `static` (magic statics, thread-safe since C++11) or `std::call_once`.
-4. It gets laziness *and* thread-safety from the JVM's guaranteed class-initialization lock, with no `volatile`/memory-model reasoning and no synchronization on the hot path — simpler and harder to get wrong.
-5. N+1: one query loads N parents, then accessing a lazy association fires one query per parent (N more). Lazy loading triggers a query on each `.getChild()` access inside a loop. Fix: eager fetch in a single join (`JOIN FETCH` / `Include` / batch fetching) when you know you'll touch the association.
-6. It happens when you access a lazy association after the persistence session/`DbContext` closed — the thunk has no connection to force. It shows that laziness *relocates the failure to the point of first use*, which may be a layer (the view) far from where the entity was loaded.
-7. Cold-start/first-hit latency spikes (the deferred cost lands on a live request) and loss of fail-fast (a bad config/DB only surfaces mid-request instead of at boot, often under load).
-8. The thunk captures a *variable/field* that mutates between creation and forcing, so when the framework forces it (after the level check), it reads the changed value. Prevent it by capturing immutable snapshots (copy the value into a final local) and keeping the thunk pure.
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
 
-</details>
+## Review questions
 
----
-
-## Cheat Sheet
-
-```text
-STRICTNESS / DEMAND ANALYSIS:
-  proves "always forces arg X" → eval eagerly, unboxed (worker/wrapper)
-  semantics-preserving; recovers perf automatically
-  FAILS on: conditional strictness, cross-module no-inline → you annotate (! / foldl')
-
-LAZY INIT ACROSS THREADS — use the vetted primitive, never hand-rolled DCL:
-  Java   holder idiom  OR  volatile + DCL (read volatile into a local)
-  C#     Lazy<T> (ExecutionAndPublication)
-  Go     sync.Once  →  once.Do(init)
-  C++    function-local static (magic statics, C++11+)  OR  std::call_once
-
-BROKEN DCL:
-  non-volatile field → reorder publishes HALF-CONSTRUCTED object → barrier required
-
-DEFERRED LOGGING:
-  log.debug(() -> expensive())   ← thunk forced only if level enabled
-  ⚠ don't capture mutable state in the thunk (closure trap)
-
-ORM LAZY LOADING (framework default = your failure surface):
-  N+1: loop + .getChild() → 1 + N queries → fix: JOIN FETCH / Include
-  LazyInitializationException: access after session closed → fetch in tx / use DTOs
-
-EAGER vs LAZY = move cost & failure in time/space:
-  eager → slow boot, fail-fast, predictable latency, maybe wasted work
-  lazy  → fast boot, pay-on-use, cold-start spikes, failure at first use
-  mix: eager critical path + warm caches; lazy the rare & huge
-```
-
----
-
-## Summary
-
-At production scale, three forces reshape laziness. First, the **compiler** makes pervasive laziness affordable through **strictness/demand analysis**: it proves which arguments are always forced and evaluates them eagerly (unboxed, via worker/wrapper) without changing semantics — recovering most of the runtime cost automatically, while leaving conditional-strictness and cross-module gaps for you to annotate. Second, **concurrency** turns the mainstream form of laziness — *lazy initialization*, "compute once on first use" — into a safe-publication problem. Hand-rolled **double-checked locking** is the field's most infamous footgun: without a memory barrier it can publish a half-constructed object. The correct answers are language-specific vetted primitives: Java's initialization-on-demand holder (or `volatile`+DCL), C#'s `Lazy<T>`, Go's `sync.Once`, C++'s magic statics / `std::call_once`. Third, laziness becomes an **observability, latency, and failure** property: deferred logging via `Supplier`/lambda converts unconditional cost into conditional cost; ORM lazy loading — a *framework default* — silently produces N+1 query storms and `LazyInitializationException` when associations escape the session.
-
-The through-line is that **laziness relocates cost and failure in spacetime**. Eager evaluation front-loads cost (slower boot, more memory, possible waste) in exchange for fail-fast behavior and predictable steady-state latency. Lazy defers cost to first use (fast boot, pay-as-you-go) at the price of cold-start latency spikes and failures that surface mid-request rather than at startup. Mature systems mix the two on purpose: eager-load and warm the critical path so it fails fast and runs predictably, lazy-load the rarely-used and the enormous — and, crucially, use the *right* primitive whenever the deferred work is shared across threads. The discipline that began at the junior level with "know which bracket you wrote" ends here as "know where you want the cost, the failure, and the memory barrier to live."
+- Which measurable outcome justifies investing in Eager vs. Lazy Evaluation?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

@@ -1,67 +1,11 @@
-# Semantic Analysis — Senior Level
+# Semantic Analysis — Senior
 
-> **Topic:** Semantic Analysis
-> **Focus:** Attribute grammars, multi-pass architecture, control-flow-based checks, exhaustiveness, and error recovery that scales to a real language.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Semantic Analysis** under failure, load, and change?
 
-## Introduction
-
-> Focus: **The theory and architecture that make a checker correct, multi-pass, and survivable — not just a single recursive walk.**
-
-The middle level gave you a working analyzer: a scoped symbol table, a bottom-up type checker, an `ErrorType` sentinel, and structured diagnostics. That analyzer is correct for a small language with a clean grammar and a forgiving user. The senior level is about what happens when the language gets real and the inputs get hostile.
-
-Three forces drive the senior content. The first is **theory you can name**: the informal "compute a type from the children's types" is one half of an **attribute grammar** — a *synthesized* attribute. The other half, *inherited* attributes (the expected type pushed *down* from a parent, the current return type, the enclosing loop), is what turns a one-directional walk into a checker that handles bidirectional type checking, match exhaustiveness against an expected type, and contextual rules. Knowing the synthesized/inherited distinction lets you reason about *which* information flows *which way* and therefore how many passes you need.
-
-The second force is **architecture**. A real front end is not one pass. It is a pipeline of passes: collect declarations, resolve types of signatures, type-check bodies, run control-flow checks (definite assignment, reachability, exhaustiveness), and lower. Each pass has a precondition (the previous pass's output) and a postcondition (what it guarantees the next pass). Getting the pass boundaries right is the single biggest determinant of whether the checker stays maintainable as the language grows.
-
-The third force is **error recovery that actually helps**. The middle-level `ErrorType` quarantine stops cascades inside an expression. A real compiler must also recover at the statement and declaration level: a malformed `let`, a function whose body has ten errors, a type that references an undefined type. The senior goal is a compiler that, given a file with a dozen genuine mistakes, reports a dozen *real* diagnostics — no fewer (don't bail early) and no more (no cascades) — and never crashes.
-
-This page also adds the control-flow-based checks that the middle level only gestured at: definite assignment as a proper forward dataflow problem, reachability/dead-code, and `match`/`switch` exhaustiveness — checks that cannot be done with scoping alone because they depend on *paths through the program*.
-
----
-
-## Prerequisites
-
-Before reading this page you should be comfortable with:
-
-- The middle-level material in full: rich symbol records, scoped symbol tables (hash-per-scope and chained), the resolve-then-declare ordering, two-pass forward references, bottom-up type checking with `ErrorType`, assignability vs. equality, and structured diagnostics.
-- Basic graph thinking: nodes, edges, traversal, fixpoint iteration. Control-flow checks are dataflow over a graph.
-- Recursion and the visitor pattern, including threading context *down* a walk (not just returning values *up*).
-- A working idea of subtyping (`A <: B`) and of generic/parametric types at the surface level — enough to know they exist and complicate assignability.
-- Reading code in Python, Java, Rust, and Go at the level used in the examples.
-
-You do **not** need:
-
-- The full theory of type inference (unification, constraint generation, Hindley–Milner). That lives in the type-systems material; here we do *checking* with local, bidirectional inference at most.
-- The internals of borrow checking or trait/overload resolution algorithms — those are professional-level here.
-- Any IR/codegen detail beyond "the next pass consumes the typed AST."
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Attribute grammar** | A grammar whose nodes carry *attributes* computed by rules; the formalism behind semantic analysis. |
-| **Synthesized attribute** | An attribute computed from a node's *children* and passed *up* (e.g., the type of an expression). |
-| **Inherited attribute** | An attribute passed *down* from a node's parent/context (e.g., expected type, current return type). |
-| **S-attributed** | A grammar using only synthesized attributes; computable in one bottom-up pass. |
-| **L-attributed** | A grammar where inherited attributes depend only on the parent and left siblings; computable in one left-to-right depth-first pass. |
-| **Bidirectional type checking** | Mixing *synthesis* (infer a type up) and *checking* (verify against an expected type pushed down). |
-| **Pass** | One traversal of the AST with a defined precondition and postcondition. |
-| **Phase ordering** | The sequence of passes and the dependencies between them. |
-| **Control-flow graph (CFG)** | A graph of basic blocks with edges for possible control transfers; the substrate for flow-based checks. |
-| **Dataflow analysis** | Computing facts (e.g., "definitely assigned") at each program point via fixpoint over the CFG. |
-| **Definite assignment** | A forward dataflow check: a local must be assigned on every path before it is read. |
-| **Reachability** | Whether control can reach a statement; unreachable statements are dead code. |
-| **Exhaustiveness** | Whether a `match`/`switch` covers every possible value of the scrutinee's type. |
-| **Usefulness (of a pattern)** | Whether a `match` arm can ever match a value not matched by earlier arms; the algorithm behind exhaustiveness. |
-| **Error recovery** | Continuing after an error, at expression / statement / declaration granularity, to report more real errors. |
-| **Poison value / ErrorType** | A sentinel attached to an already-failed node so later rules stay silent. |
-| **Cascade** | A flood of secondary errors caused by one real error; the thing recovery exists to prevent. |
-| **Salvage** | Recovery that substitutes a plausible value (e.g., an inferred type) so downstream passes can proceed. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -168,32 +112,6 @@ The unifying principle is **salvage**: at every failure, substitute the most pla
 ### 9. The output contract: a fully decorated, validated AST
 
 After all passes, the AST is decorated: every `Name` has a binding, every expression a type, every `match` a verified-exhaustive flag, every block a "returns-on-all-paths" bit. Equally important is the *contract* the front end gives the back end: **if there were no errors, every invariant codegen relies on holds** — names resolve, types are consistent, control flow is well-formed. Codegen then never needs to handle "what if undefined" — it trusts the front end. (If there *were* errors, the front end typically stops before codegen; the decorated-but-poisoned AST exists only to maximize diagnostics, not to be compiled.)
-
----
-
-## Real-World Analogies
-
-| Analogy | Maps to |
-|---|---|
-| A spreadsheet: some cells compute from cells above (synthesized), some take a target from the header (inherited) | Synthesized vs. inherited attributes |
-| An assembly line where each station assumes the previous finished its job | Phase ordering with preconditions |
-| A road map asking "can you reach this town from the capital?" | Reachability on the CFG |
-| "Was the parcel signed for at every checkpoint on the route?" | Definite assignment (must, intersect over paths) |
-| A checklist that must cover every species in the zoo, or it's incomplete | Exhaustiveness over a sum type |
-| A triage nurse who treats every distinct patient, not the same one ten times | Error recovery: independent errors, no cascades |
-| A "fill in the missing value with a sensible default" form field | Salvage during recovery |
-
----
-
-## Mental Models
-
-**Model 1 — "Up is what you are; down is what's expected."** Synthesized attributes flow *up* and describe what a node *is* (its type, whether it returns). Inherited attributes flow *down* and describe what the context *expects* (expected type, return type, in-loop). Every semantic rule is a relationship between these two flows. Bidirectional type checking is just both arrows at one node.
-
-**Model 2 — "Passes are functions with contracts."** Treat each pass as `f: AST_with_invariant_k -> AST_with_invariant_{k+1}`. Write down each pass's precondition and postcondition. Bugs cluster where a pass assumes an invariant the previous pass didn't actually guarantee. Phase ordering is just topologically sorting these contracts.
-
-**Model 3 — "Scoping is local; flow is global."** If a check can be answered by "what's visible here," it's a scoping/typing check and lives in the recursive walk. If it needs "what happened on the paths that got here," it's a dataflow check and lives on the CFG. Definite assignment, reachability, and "missing return" are the global ones; name resolution and arity are the local ones.
-
-**Model 4 — "Recovery is salvage, not suppression."** Don't *suppress* errors after the first; *salvage* the broken node with a plausible substitute so analysis continues and finds *new, independent* errors, while the sentinel keeps *dependent* errors quiet. The target: one diagnostic per real mistake.
 
 ---
 
@@ -389,29 +307,6 @@ The design rule: a failure in one declaration or statement must not prevent anal
 
 ---
 
-## Pros & Cons
-
-| Aspect | Pros | Cons |
-|---|---|---|
-| Attribute-grammar framing | Clarifies which info flows which way; guides pass count | Pure attribute-grammar tooling is rarely used in production |
-| Bidirectional checking | Local inference without global unification; great diagnostics | Two judgments to keep consistent; subtle around generics |
-| Explicit multi-pass pipeline | Each pass small, testable, with assertable contracts | More code; must keep partial state coherent between passes |
-| CFG-based checks | Correctly handle loops, early returns, breaks | Building/maintaining a CFG is real engineering |
-| Exhaustiveness checking | Turns "added a variant" into a compile error; huge safety win | The full usefulness algorithm is intricate (nested patterns, guards) |
-| Three-level recovery | Error count tracks real mistakes; no crashes | Salvage logic is easy to get subtly wrong (over/under-reporting) |
-
----
-
-## Use Cases
-
-- **A production-grade front end** for a statically typed language: pipeline of passes, CFG-based flow checks, exhaustiveness, robust recovery.
-- **A type checker for a dynamic language** (gradual typing: TypeScript, Sorbet, mypy): bidirectional checking shines where annotations are partial.
-- **A linter that reasons about control flow**: unreachable code, definitely-null dereferences, missing return.
-- **A safe-by-construction DSL**: exhaustiveness over the DSL's variants prevents whole classes of "forgot a case" bugs.
-- **An IDE service**: the same multi-pass, recovery-tolerant analyzer powers error squiggles and quick-fixes on every keystroke, where recovery quality directly shapes the user experience.
-
----
-
 ## Coding Patterns
 
 - **Attribute threading.** Pass inherited attributes (expected type, return type, in-loop, symbol table) *down* as parameters or a context object; return synthesized attributes (type, completes-normally) *up*.
@@ -491,216 +386,24 @@ The design rule: a failure in one declaration or statement must not prevent anal
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. Classify each as synthesized or inherited: the type of `a + b`; the expected type of a function argument; "does this block return on all paths"; the symbol table in scope; the current function's return type.
-2. Why is definite assignment a *forward must* analysis, and what is the merge operator at an `if`/`else` join? How does that change for "variable may be null"?
-3. Give a function body that has *no* explicit `return` yet correctly type-checks as a non-void function. What property of the body makes it valid?
-4. Why do mutually recursive types force a multi-pass design? Which passes, in what order?
-5. Explain how exhaustiveness checking turns "added a new enum variant" into a compile-time forcing function, and why guards can't contribute to exhaustiveness.
-6. Define the three granularities of error recovery and give a concrete salvage substitute for each.
-7. Show a 4-line program where "has at least one `return`" wrongly accepts a non-void function that can fall off the end.
+1. State the system invariant that **Semantic Analysis** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
-<details>
-<summary>Answers</summary>
+## Verify your work
 
-1. `a+b` type: synthesized. Argument's expected type: inherited. "Returns on all paths": synthesized. Symbol table in scope: inherited. Current return type: inherited.
-2. It's forward (facts flow entry→exit, following control flow) and *must* (a variable counts as assigned only if assigned on *every* path), so the merge is **intersection**. "May be null" is a *may* analysis: the merge is **union** (null if null on *any* path).
-3. A body ending in `while (true) { ... }` with no `break`, or one whose every branch `return`s/`throw`s. It's valid because it *cannot complete normally* — control never falls off the end.
-4. `A` mentions `B` and vice versa; whichever is checked first references an undefined name. Pass 1 collects *both* type names/signatures; pass 2/3 then resolve references; pass 4 checks bodies. Collect-before-check breaks the cycle.
-5. Sealed/enum matches must be exhaustive; adding a variant makes every match that lacked a wildcard non-exhaustive → compile error → you must handle it. Guards can fail at runtime, so a guarded arm doesn't guarantee its constructor is covered; it can't make a match total.
-6. Expression: poison with `ErrorType`. Statement: skip the statement but keep scope; for `let x =` with a bad initializer, insert `x` as `ErrorType`. Declaration: insert a recovered signature (params/ret as `ErrorType`) so external calls don't cascade.
-7. `int f(boolean c) { if (c) return 1; }` — has a `return`, but the `c == false` path falls off the end. "Has a return" accepts it; the correct reachability check ("body must not complete normally") rejects it.
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
 
-</details>
+## Review questions
 
----
-
-## Tricky Questions
-
-**Q1.** A reviewer asks why your checker needs five passes when a tree-walking interpreter resolves names in one. What's the principled answer?
-**A.** The interpreter only needs *left-to-right, already-defined* names (it can even resolve at runtime). A static checker must support forward references and mutual recursion (signatures used before they're textually defined) and run flow analyses (definite assignment, reachability) that depend on a complete, typed AST. Those dependencies are not L-attributed, so they cannot all be computed in one left-to-right pass; the pass split is the dependency graph made explicit.
-
-**Q2.** Definite assignment passes on x86 builds of your test but a colleague's port reports a false "may be unassigned." Could the architecture matter?
-**A.** No — definite assignment is a static, machine-independent analysis over the CFG. A discrepancy means the *CFG construction* differs (e.g., one build models a `throw` or `break` edge the other doesn't), or the fixpoint iteration order/termination differs. The bug is in the analysis or CFG, not the target.
-
-**Q3.** Why is exhaustiveness computed by an algorithm about *usefulness* rather than just "count the constructors"?
-**A.** Counting works only for flat enums. Real patterns nest (`Some(Ok(x))`), include literals, ranges, tuples, and guards. Usefulness (Maranget) generalizes "is anything left uncovered?" to arbitrary pattern matrices by specialization, and it simultaneously detects unreachable (useless) arms — one algorithm for both.
-
-**Q4.** Your match-exhaustiveness check accepts `match x { Some(v) if v > 0 => ..., None => ... }` as total. Bug?
-**A.** Yes. The `Some` arm has a guard that can fail, so values like `Some(-1)` are unmatched. A guarded arm cannot establish that its constructor is fully covered; the match is non-exhaustive and should report `Some(_)` (with the guard false) as the witness.
-
-**Q5.** After one undefined-type error in a struct's first field, your compiler emits twenty errors about every other field. What recovery layer is missing?
-**A.** Declaration-level salvage. Resolve the undefined field type to `ErrorType` and keep checking the *other*, independent fields. With the sentinel suppressing dependent errors and salvage allowing independent ones, the count drops to one real error (the undefined type) plus any genuinely separate field problems.
-
-**Q6.** You move reachability before type checking to "fail fast on dead code." What breaks?
-**A.** Reachability for constructs like `while (true)` or pattern matches may depend on resolved types (e.g., whether a called function is `noreturn`, or whether a match is exhaustive and thus has no fall-through). Running it before typing violates its precondition. Flow checks belong *after* names and types are resolved.
-
----
-
-## Cheat Sheet
-
-```text
-SEMANTIC ANALYSIS — SENIOR
-
-ATTRIBUTE GRAMMARS
-  synthesized = up   (what a node IS: its type, "returns on all paths")
-  inherited   = down (what's EXPECTED: expected type, return type, in-loop, table)
-  S-attributed -> 1 bottom-up pass ; L-attributed -> 1 L->R DFS pass
-  forward refs / mutual recursion -> break L-attributed -> EXTRA collect pass
-
-BIDIRECTIONAL CHECKING
-  synth(e) => T        (variables, applications, annotated)
-  check(e, T)          (literals, lambdas, empty collections, generic calls)
-
-PASS PIPELINE (each: precondition -> postcondition)
-  parse -> collect decls -> resolve type refs -> resolve names
-        -> type-check -> control-flow checks -> lower
-  collect-before-check breaks mutual-recursion cycles
-
-CONTROL FLOW (needs a CFG, not tree flags)
-  definite assignment : FORWARD MUST ; merge = INTERSECT ; fixpoint for loops
-  reachability        : statements after return/break/throw/while(true) = dead
-  missing return      : non-void body must NOT "complete normally"
-  may-be-null         : FORWARD MAY ; merge = UNION
-
-EXHAUSTIVENESS
-  usefulness algorithm: is a trailing wildcard still useful? -> missing cases
-  produce a WITNESS (the uncovered pattern) for the message
-  guards do NOT contribute to coverage
-  sealed/enum -> make it an ERROR (adding a variant must break the build)
-
-ERROR RECOVERY (3 levels) = SALVAGE, not suppress
-  expression : ErrorType sentinel, short-circuit every rule
-  statement  : skip stmt, keep scope; bad `let x=` -> x : ErrorType
-  declaration: recovered signature (params/ret = ErrorType)
-  GOAL: error count == # of INDEPENDENT mistakes ; never crash
-```
-
----
-
-## Summary
-
-- Semantic analysis is, formally, **attribute-grammar evaluation**: **synthesized** attributes flow *up* (a node's type, "returns on all paths"); **inherited** attributes flow *down* (expected type, return type, in-loop, symbol table). The flow structure tells you how many passes you need.
-- **Bidirectional type checking** combines *synthesis* (infer up) and *checking* (verify against an expected type pushed down), giving local inference for empty literals, lambdas, and generics without global unification.
-- A real front end is a **pipeline of passes**, each with a precondition and postcondition; correct **phase ordering** (collect signatures before checking bodies) is what makes forward references and mutual recursion work.
-- Some checks are **global** and live on a **control-flow graph**: **definite assignment** (forward *must*, intersect at merges, fixpoint for loops), **reachability** / dead code, and the **"missing return"** check (a non-void body must not *complete normally*).
-- **Exhaustiveness** of `match`/`switch` is computed by a *usefulness* algorithm that yields a concrete **witness**; making it an error turns "added a variant" into a compile-time forcing function. Guards never contribute to coverage.
-- **Error recovery** works at three granularities — expression (`ErrorType`), statement (skip-but-keep-scope), declaration (recovered signature) — and is fundamentally **salvage**: substitute a plausible value so analysis finds *independent* errors while the sentinel suppresses *dependent* ones. The target is one diagnostic per real mistake, and never a crash.
-- The output is a **fully decorated, validated AST**, and the contract to the back end is that — absent errors — every invariant codegen relies on already holds.
-
----
-
-## What You Can Build
-
-- **A multi-pass front end** with explicit pass contracts: collect declarations, resolve type references, resolve names, type-check, run flow checks, lower.
-- **A bidirectional type checker** with `synth`/`check` judgments that types empty literals, lambdas, and generic calls against expected types.
-- **A CFG builder** from the AST (with `break`/`continue`/`return`/`throw` edges) and a **dataflow engine** that runs definite assignment and reachability as fixpoint analyses.
-- **A "missing return" / unreachable-code checker** built on a `completesNormally` synthesized attribute.
-- **An exhaustiveness checker** for a small ADT language that reports the missing pattern as a witness and flags unreachable arms.
-- **A three-level recovery harness** whose diagnostic count, on a corpus of buggy programs, tracks the number of independent mistakes rather than AST depth.
-
----
-
-## Further Reading
-
-- *Compilers: Principles, Techniques, and Tools* (the Dragon Book) — Aho, Lam, Sethi, Ullman. The syntax-directed-translation chapter is the canonical treatment of synthesized/inherited attributes, S- and L-attributed grammars.
-- *Engineering a Compiler* — Cooper & Torczon. Strong chapters on attribute grammars, context-sensitive analysis, and dataflow.
-- Luca Cardelli — *Type Systems* (handbook chapter). The reference framing of checking vs. inference.
-- Benjamin Pierce — *Types and Programming Languages*. The bidirectional-checking and algorithmic-typing material.
-- Luc Maranget — *Warnings for Pattern Matching* (JFP 2007). The usefulness/exhaustiveness algorithm used by OCaml, Rust, and others.
-- *The Java Language Specification*, chapters on Definite Assignment and Unreachable Statements — precise, real-world specifications of flow-based checks.
-- *Modern Compiler Implementation* — Appel. Semantic analysis, dataflow, and liveness.
-
----
-
-## Related Topics
-
-- The previous phase, **parsing**, supplies the AST with source spans that every pass here decorates.
-- The deeper theory of types — inference, subtyping, soundness, polymorphism — lives in the **type-systems** material; this page applies its *checking* side.
-- **Control-flow and dataflow analysis** underlie definite assignment, reachability, and exhaustiveness, and recur in optimization.
-- The next phase, **intermediate-representation generation**, consumes the validated, decorated AST produced here.
-- **Static analyzers and linters** reuse this same machinery (CFG, dataflow, exhaustiveness) without code generation.
-
----
-
-## Diagrams & Visual Aids
-
-### Synthesized up, inherited down
-
-```text
-                 let xs : List<int> = [ ]
-                          │ inherited       │ inherited expected = List<int>
-                          │ (annotation)    ▼
-                          │           (ArrayLit)
-                          │            elem expected = int  (pushed down)
-                          ▼            synthesized type = List<int>  (flows up)
-                  binding xs : List<int>
-       DOWN: expected type, return type, symbol table, in-loop
-       UP:   actual type, "completes normally", "exhaustive"
-```
-
-### The pass pipeline and its dependencies
-
-```text
-parse ─► collect decls ─► resolve type refs ─► resolve names ─► type-check
-                                                                     │
-                                          control-flow checks ◄──────┘
-                                          (definite assign,
-                                           reachability,
-                                           exhaustiveness)
-                                                  │
-                                                  ▼
-                                          lower / decorate ─► IR generation
-
-each arrow = "postcondition of left  IS  precondition of right"
-```
-
-### Definite assignment over a CFG (forward MUST, intersect at merge)
-
-```text
-        B0: int x;            assigned={}
-       /            \
-   B1: x = 1      B2: (skip)   assigned={x}      assigned={}
-       \            /
-        B3: use(x)             IN = OUT(B1) ∩ OUT(B2) = {x} ∩ {} = {}
-                               read of x not in {} -> ERROR
-```
-
-### Reachability / "completes normally"
-
-```text
-  fn f() -> int {
-      if c { return 1; }   then: does NOT complete normally
-      // no else            implicit else: COMPLETES normally
-  }                         body completes normally  ->  MISSING RETURN
-
-  fn g() -> int {
-      while true { ... }    no break  ->  does NOT complete normally
-  }                         body cannot fall off the end  ->  OK (no return needed)
-```
-
-### Exhaustiveness witness
-
-```text
-  enum Shape { Circle, Square, Triangle }
-  match s {
-      Circle => ..., Square => ...,
-  }
-  covered = {Circle, Square}
-  all     = {Circle, Square, Triangle}
-  missing = all - covered = {Triangle}   <- WITNESS in the diagnostic
-  -> error: non-exhaustive match; missing: `Triangle`
-```
-
-### Recovery: error count tracks independent mistakes
-
-```text
-   undefined `zog` in  a + (b * zog) + c
-        zog            -> ErrorType        [1 reported]
-        b * zog        -> ErrorType        [silent: dependent]
-        a + (...)      -> ErrorType        [silent: dependent]
-        (...) + c      -> ErrorType        [silent: dependent]
-   meanwhile an UNRELATED `int x = "hi"` two lines down -> [1 reported]
-   total = 2 = number of INDEPENDENT mistakes, not AST depth
-```
+- Which invariant must remain true when Semantic Analysis fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

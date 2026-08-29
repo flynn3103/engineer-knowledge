@@ -1,20 +1,11 @@
-# Compile-Time vs Runtime Trade-offs — Professional Level
+# Compile-Time vs Runtime Trade-offs — Professional
 
-> **Topic:** Compile-Time vs Runtime Trade-offs
-> **Focus:** Making the where-does-the-meta-level-run decision in production — cold start, native image, build economics, and migration.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Compile-Time vs Runtime Trade-offs** with measurable outcomes and limited coordination?
 
-## Introduction
-
-At the professional tier the compile-time/runtime choice is an architecture decision with
-budget consequences: it determines your p99 cold-start, whether you can ship a native
-image, how long your CI takes, and how a "method not found" turns up — in a code review or
-in a 2am page. The technique catalogue (reflection, macros, codegen, proxies) is settled;
-what's hard is reading a system's real constraints and putting the meta-level where the
-dominant cost lives, then migrating when those constraints change (as they did across the
-industry when serverless and AOT arrived).
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## The Decision in Production Terms
@@ -124,27 +115,24 @@ errors, and code the whole team can navigate.
 
 ---
 
-## War Stories
+## Apply it
 
-- **Spring → Quarkus/Micronaut for cold start:** teams moving latency-sensitive serverless
-  workloads off reflective Spring boot to build-time-wired Quarkus/Micronaut cut cold starts
-  from seconds to tens of milliseconds — the textbook runtime→compile-time migration.
-- **GraalVM forced the rewrite:** a reflection-heavy service couldn't be native-imaged without
-  unmanageable config; migrating serialization and DI to compile-time generation made the
-  native image viable and improved startup.
-- **serde vs Jackson under native image:** Rust's compile-time serde "just works" under AOT
-  with zero reflection config, illustrating why compile-time serialization became the default
-  for AOT-targeted systems.
+1. Define the user or business outcome that **Compile-Time vs Runtime Trade-offs** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
----
+## Verify your work
 
-## Summary
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
 
-Where the meta-level runs is a production architecture decision dominated by deployment target
-and SLOs: request-lifetime-vs-boot, native-image/AOT requirements, real dynamism, build-cost
-tolerance, and the on-call story. Cold start and closed-world AOT are the forcing functions
-that moved the industry default toward compile time (Quarkus/Micronaut, Dagger, Spring AOT,
-serde), but compile-time relocates cost into the build and sacrifices runtime flexibility.
-The professional decision reads the dominant constraint, places the meta-level accordingly,
-budgets the build cost, reserves runtime magic for genuine dynamism, and migrates camps with
-behavior-parity tests when the constraints change.
+## Review questions
+
+- Which measurable outcome justifies investing in Compile-Time vs Runtime Trade-offs?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

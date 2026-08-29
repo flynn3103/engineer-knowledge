@@ -1,64 +1,11 @@
-# ASLR & Mitigations — Junior Level
+# ASLR & Mitigations — Junior
 
-> **Topic:** ASLR & Mitigations
-> **Focus:** Why randomizing where your program's pieces live in memory makes an attacker's job harder — and the simple companion defenses that work alongside it.
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **ASLR & Mitigations** in one small example and prove the result?
 
-## Introduction
-
-> Focus: **What is ASLR, and why does randomizing memory addresses stop a whole class of attacks?**
-
-When a program runs, the operating system loads it into memory. The code, the stack, the heap, and every shared library each gets a **base address** — a starting location in the process's virtual address space. An attacker who wants to hijack the program usually needs to know those addresses. If they want to make the program "jump to the function that runs a shell," they need to know *where that function lives* in memory. If they want to write a return address onto the stack that points at a useful gadget, they need to know *where that gadget is*.
-
-**Address Space Layout Randomization (ASLR)** takes those base addresses and **randomizes them every time the program starts.** The stack starts at a different place. The heap starts at a different place. Each shared library is loaded at a different place. With **PIE** (Position-Independent Executable), even the program's own code moves. The attacker can no longer hardcode an address into their exploit, because the address that worked yesterday is wrong today, and the address that works on your machine is wrong on mine.
-
-That is the entire idea in one sentence: **if the attacker doesn't know where things are, they can't reliably point at them.** ASLR doesn't fix the underlying bug — a buffer overflow is still a buffer overflow — it makes *exploiting* the bug into a guessing game.
-
-> 🎓 **Why this matters for a junior:** You will eventually compile and ship software, and the flags you pass to the compiler and linker decide whether your binary gets these protections. A program built without PIE or without a non-executable stack is *easier to attack* even if your code is otherwise fine. Knowing what `-fPIE -pie` and `-z relro -z now` do — and being able to read a `checksec` report — is a baseline skill for anyone who ships native code.
-
-ASLR rarely works alone. It is paired with **DEP/NX** (memory marked as data cannot be executed as code), **stack canaries** (a guard value that detects stack overwrites), **RELRO** (making certain tables read-only), and **FORTIFY_SOURCE** (compiler-inserted bounds checks on common functions). Together these are called **defense in depth**: no single layer is perfect, but each one removes an easy path, and an attacker has to defeat all of them at once. This page introduces each layer and shows you how to check whether a binary has them.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** What a variable, a function, and a pointer are. You don't need to write C fluently, but you should know that a pointer holds an *address*.
-- **Required:** The rough idea that a running program lives in memory and has a **stack** (for function calls and local variables) and a **heap** (for dynamic allocations).
-- **Required:** How to run a command in a terminal.
-- **Helpful but not required:** A vague sense of what a "buffer overflow" is — writing past the end of an array.
-- **Helpful but not required:** That programs link against **shared libraries** (like the C standard library, `libc`).
-
-You do **not** need to know:
-
-- How to write an exploit (we never do that here — this is defensive material).
-- Assembly language, ROP chains, or gadget hunting in detail (that's `senior.md`).
-- The kernel internals of how randomization entropy is generated (that's `professional.md`).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Address space** | The full range of memory addresses a process can use. On 64-bit systems it is enormous (millions of terabytes of *virtual* space). |
-| **Base address** | The starting address where a region (code, stack, heap, a library) is placed in memory. |
-| **ASLR** | Address Space Layout Randomization — randomizing base addresses each run so attackers can't predict where things are. |
-| **Entropy** | The amount of randomness, measured in bits. More bits = more possible positions = harder to guess. |
-| **PIE** | Position-Independent Executable — a program compiled so its *own code* can be loaded at a random base, not just the libraries. |
-| **PIC** | Position-Independent Code — code that works regardless of where it's loaded, using relative addressing. PIE is built from PIC. |
-| **DEP / NX / W^X** | Data Execution Prevention / No-eXecute / Write-XOR-Execute — a memory page is either writable or executable, never both. Stops running injected data as code. |
-| **Stack canary** | A random guard value placed before the return address; if an overflow smashes it, the program aborts instead of returning to attacker-controlled code. |
-| **RELRO** | RELocation Read-Only — makes the linker's resolved-address tables read-only so attackers can't overwrite them. |
-| **GOT** | Global Offset Table — a table of resolved addresses for external functions/data a PIC program calls. |
-| **PLT** | Procedure Linkage Table — small stubs that route calls to external functions through the GOT. |
-| **FORTIFY_SOURCE** | A compiler feature that swaps risky functions (`strcpy`, `memcpy`, `sprintf`) for bounds-checked versions when the size is known. |
-| **Info leak** | A bug that discloses a real runtime address (or other secret) to the attacker, undoing randomization for that region. |
-| **Shared library** | Reusable code (like `libc`) loaded into many processes; under ASLR, loaded at a random base each time. |
-| **`checksec`** | A common tool that reports which mitigations a binary has (PIE, NX, RELRO, canary, FORTIFY). |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -143,39 +90,6 @@ Each layer doesn't *prevent* the next attack outright; it *raises the cost*. The
 This is the single most important caveat about ASLR, and it's worth memorizing now: **ASLR is defeated by an information leak.** If any bug lets the attacker read even *one* real pointer from a randomized region, they learn that region's base, and the *entire region is de-randomized*. Leak one libc pointer, and you know where *all* of libc is, because the internal layout of a library is fixed — only the base moves. ASLR randomizes *where the deck starts*, but the cards are still in the same order. See one card's position and you know them all.
 
 This is why modern exploits are usually **two bugs**: an info-leak bug to beat ASLR, and a memory-corruption bug to take control.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **ASLR** | A hotel that shuffles every guest into a different room number each night. A burglar who knew "room 412 has the safe" is now lost. |
-| **Base address** | The room number where a given guest is staying tonight. |
-| **Fixed (non-PIE) code** | One room — the manager's office — that never moves no matter how much the guests are shuffled. The burglar targets that one. |
-| **Entropy / bits** | How many rooms the hotel has. A 4-room motel (low entropy) is easy to search door-to-door; a 10,000-room resort (high entropy) is not. |
-| **Brute force** | Trying every door. Feasible in the motel, hopeless in the resort. |
-| **Info leak** | A clerk who accidentally tells the burglar one guest's room number — and the burglar happens to know the whole VIP floor is always laid out the same way relative to that guest. |
-| **NX / DEP** | A rule that you can store luggage in a room but cannot *live* there — data can be stored but not executed. |
-| **Stack canary** | A thin paper seal across the safe's door. If it's torn, you know someone tried to break in, and you sound the alarm before they get anything. |
-| **RELRO** | Bolting the hotel directory (which maps names to rooms) to the wall after check-in so nobody can rewrite it to misdirect deliveries. |
-| **Defense in depth** | Shuffled rooms *and* sealed safes *and* a bolted directory *and* a "no living in storage rooms" rule. Beating one isn't enough. |
-
----
-
-## Mental Models
-
-### The "shuffled deck" model
-
-A loaded library is a deck of cards in a fixed order. ASLR shuffles *where the deck sits on the table* (the base address) but never reorders the cards (the internal layout). So if you ever spot one card's exact position — an info leak — you instantly know where every other card is, by simple offset arithmetic. This is why a single leaked pointer collapses ASLR for an entire region. Carry this image: **ASLR moves the deck, not the cards.**
-
-### The "two locks, one key each" model
-
-Think of a modern exploit as needing to open two locks: one randomizes *where* the useful code is (ASLR), and one forbids *running your own injected* code (NX). A pre-2000s attacker carried one key (inject shellcode, jump to it). Modern mitigations split the door into two locks needing two different keys — typically an info leak (for ASLR) and a corruption primitive (for control). Each mitigation you enable adds a lock.
-
-### The "cost, not impossibility" model
-
-Don't think of mitigations as walls that make exploitation *impossible*. Think of them as **tolls**. Each one adds a cost — another bug the attacker must find, another constraint they must satisfy. Most attackers give up when the toll exceeds the payoff. A determined, well-resourced attacker with enough bugs can still pass, which is why you never rely on a single mitigation and never stop fixing the underlying memory-safety bugs.
 
 ---
 
@@ -267,33 +181,6 @@ $ file ./program
 
 ---
 
-## Pros & Cons
-
-| Aspect | Pros | Cons |
-|--------|------|------|
-| **Security value** | Cheaply breaks exploits that rely on hardcoded addresses; raises attacker cost dramatically. | Does **not** fix the underlying bug; a single info leak can fully bypass it for a region. |
-| **Performance** | On 64-bit, the runtime cost is negligible. NX and RELRO are essentially free. | PIE can add a small overhead (extra indirection through GOT/PLT, lost addressing optimizations) — usually low single-digit percent, occasionally more on register-starved 32-bit x86. |
-| **Compatibility** | On by default in modern OSes; most toolchains support it. | Some old or unusual code (JITs, certain self-modifying programs) needs care to coexist with NX and ASLR. |
-| **Entropy** | Strong on 64-bit (28–30+ bits). | Weak on 32-bit (brute-forceable); some regions have lower entropy than others. |
-| **Operational** | A `checksec`-clean binary is a clear, auditable signal of hardening. | Mixed binaries (one non-PIE module) silently weaken the whole process. Easy to misconfigure. |
-
----
-
-## Use Cases
-
-ASLR and its companions matter most when:
-
-- **You ship native binaries** (C, C++, Rust, Go cgo) that process untrusted input — parsers, servers, image/codec libraries, anything reachable from the network or from files.
-- **You run setuid or privileged processes** where a single bug can mean privilege escalation. Hardening flags are non-negotiable here.
-- **You're packaging software for a distribution** — distros run `checksec`-style audits and expect PIE + Full RELRO + NX + canaries.
-- **You're doing a security review** and need to quickly assess a binary's baseline defenses before digging deeper.
-
-They matter **less** (but are still good hygiene) when:
-
-- The code is pure managed/memory-safe language with no native parts and no FFI to untrusted native code. Memory-safety bugs that ASLR mitigates are rarer there — but the runtime itself is still native and benefits.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Make hardening flags a build default, not an afterthought
@@ -369,118 +256,24 @@ A log line, error message, or debug endpoint that prints a raw pointer is an **A
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. Compile the `addrs` example and run it five times. Do the three addresses change each run? Which one *doesn't* change if you build with `-no-pie`, and why?
-2. Read `/proc/sys/kernel/randomize_va_space` on your machine. What does each of `0`, `1`, `2` mean?
-3. Run `checksec` on a system binary like `/bin/ls` and on a hello-world you compiled with no special flags. Compare the reports. Which protections are missing on your hello-world?
-4. Explain in one sentence why leaking a single `libc` pointer de-randomizes all of `libc`.
-5. A forking web server crashes and respawns on each malformed request, always from the same parent process. Why does this *help* an attacker brute-force ASLR, even on 64-bit?
-6. Which mitigation stops an attacker from *injecting* shellcode into a buffer and running it: ASLR, NX, or RELRO? Which one stops them from *finding* existing code to reuse?
-7. Why does PIE sometimes cost a little performance, while NX and RELRO are essentially free?
+1. Choose one small, known input for **ASLR & Mitigations**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
----
+## Verify your work
 
-## Cheat Sheet
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
 
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│                    ASLR & COMPANION MITIGATIONS                  │
-├──────────────────────────────────────────────────────────────────┤
-│ ASLR   randomize base addresses each run                         │
-│        stack / heap / libs always; executable ONLY if PIE        │
-│        32-bit = weak (brute-forceable); 64-bit = strong          │
-├──────────────────────────────────────────────────────────────────┤
-│ PIE/PIC  make code relocatable (relative addressing + GOT/PLT)   │
-│ NX/DEP   data pages not executable — no injected shellcode       │
-│ Canary   guard value detects stack-return-address smash          │
-│ RELRO    GOT read-only (Full) so calls can't be hijacked         │
-│ FORTIFY  bounds-checked strcpy/memcpy/sprintf (needs -O1+)       │
-├──────────────────────────────────────────────────────────────────┤
-│ THE WEAKNESS:  one info-leak de-randomizes a whole region        │
-│                (move the deck, not the cards)                    │
-├──────────────────────────────────────────────────────────────────┤
-│ BUILD (gcc/clang, Linux):                                        │
-│   -O2 -D_FORTIFY_SOURCE=2 -fstack-protector-strong               │
-│   -fPIE -pie -Wl,-z,relro,-z,now -Wl,-z,noexecstack              │
-│ CHECK:  checksec --file=./bin   |   file ./bin  (look for "pie") │
-│ ASLR:   cat /proc/sys/kernel/randomize_va_space  (want 2)        │
-├──────────────────────────────────────────────────────────────────┤
-│ RULE:  mitigations RAISE COST; they don't replace fixing bugs.   │
-└──────────────────────────────────────────────────────────────────┘
-```
+## Review questions
 
----
-
-## Summary
-
-- **ASLR** randomizes the **base addresses** of the stack, heap, libraries, and (with **PIE**) the executable itself, every time the program runs. An attacker can no longer hardcode an address.
-- The strength is **entropy**: 32-bit ASLR is weak (brute-forceable); 64-bit ASLR is strong (hundreds of millions of positions).
-- **PIE/PIC** make code relocatable using relative addressing and the **GOT/PLT** indirection for external calls.
-- Companion mitigations: **NX/DEP** (no executing data), **stack canaries** (detect stack smashes), **RELRO** (read-only GOT), **FORTIFY_SOURCE** (bounds-checked library functions).
-- Together they form **defense in depth** — each layer raises the attacker's cost, forcing them to find multiple bugs instead of one.
-- **The key weakness:** ASLR is defeated by an **information leak**. One disclosed pointer de-randomizes its whole region, because the layout inside a region is fixed — only the base moves.
-- A **non-PIE** module, a **forking server** that doesn't re-randomize, and **low-entropy** regions all weaken ASLR in practice.
-- Build hardened (`-fPIE -pie -fstack-protector-strong -Wl,-z,relro,-z,now -D_FORTIFY_SOURCE=2`), verify with `checksec`, enforce in CI, and **still fix the underlying bug** — mitigations make exploitation harder, not impossible.
-
----
-
-## Further Reading
-
-- *PaX ASLR documentation* — the original design from the PaX/grsecurity project that pioneered ASLR on Linux. https://pax.grsecurity.net/docs/aslr.txt
-- *"On the Effectiveness of Address-Space Randomization"* — Shacham et al., 2004. The classic paper showing 32-bit ASLR can be brute-forced.
-- *Linux kernel documentation* — `Documentation/admin-guide/sysctl/kernel.rst` (the `randomize_va_space` knob).
-- *"A Eulogy for Format Strings"* and general write-ups on `checksec` usage — Phrack and the `checksec.sh` project page.
-- *Microsoft documentation* — "Exploit protection reference" and the `/DYNAMICBASE`, `/NXCOMPAT`, `/HIGHENTROPYVA` linker options.
-- *The GCC manual* — sections on `-fstack-protector`, `-fPIE`, and `_FORTIFY_SOURCE`.
-- *"Smashing The Stack For Fun And Profit"* — Aleph One, 1996. The historical context for *why* these mitigations exist (read for understanding, not instruction).
-
----
-
-## Diagrams & Visual Aids
-
-### Same program, two runs (ASLR on)
-
-```text
-RUN 1                              RUN 2
-┌───────────────┐  0x7ffe…         ┌───────────────┐  0x7ffd…   <- stack moved
-│  stack        │                  │  stack        │
-├───────────────┤                  ├───────────────┤
-│  libc @ 0x7f3c…│                 │  libc @ 0x7f81…│           <- libc moved
-├───────────────┤                  ├───────────────┤
-│  heap @ 0x55d9…│                 │  heap @ 0x561a…│           <- heap moved
-├───────────────┤                  ├───────────────┤
-│  code (PIE)   │  random base     │  code (PIE)   │  random base
-└───────────────┘                  └───────────────┘
-   A hardcoded address from RUN 1 is wrong in RUN 2.
-```
-
-### How an info leak collapses ASLR for a region
-
-```text
-   libc loaded at random base B (unknown to attacker)
-   ┌──────────────────────────── libc ───────────────────────────┐
-   │  B+0x000   B+0x100   ...   printf@B+0x64d40   system@B+0x50d70 │
-   └───────────────────────────────────────────────────────────────┘
-
-   Attacker leaks ONE real address:  printf is at 0x7f3c9a1b2d40
-   Since printf is always at B+0x64d40:
-        B = 0x7f3c9a1b2d40 - 0x64d40 = 0x7f3c9a14e000
-   Now EVERY libc address is known:  system = B + 0x50d70  ...
-
-   One leaked card → the whole deck's positions are known.
-```
-
-### Defense-in-depth: the attacker must defeat ALL layers
-
-```text
-   buffer overflow  ──►  wants to run attacker code
-        │
-        ├─ NX/DEP    : can't run injected data  ─► must reuse existing code
-        ├─ ASLR      : doesn't know where code is ─► needs an INFO LEAK
-        ├─ Canary    : smashing the stack is detected ─► must avoid/leak it
-        └─ Full RELRO: GOT is read-only ─► can't hijack the call table
-
-   Result: one bug is no longer enough. Attacker needs leak + corruption
-           + canary bypass, all at once. THAT is the raised cost.
-```
+- What problem does ASLR & Mitigations solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

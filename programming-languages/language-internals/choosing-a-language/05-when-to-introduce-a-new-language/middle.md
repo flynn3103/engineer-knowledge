@@ -1,8 +1,11 @@
 # When to Introduce a New Language — Middle
 
-> **What?** The two halves of the real calculation: the **N+1 language tax** (everything that gets duplicated when you add language number N+1) made concrete and itemized, and the legitimate **triggers** that genuinely justify paying it. The junior level gave you a bias against adding; this level gives you the cost sheet and the short list of reasons that override it.
-> **How?** Before you say yes to a new language, write down the full recurring cost of the *second of everything* it forces, then check the proposed benefit against a small list of real triggers — and, critically, against the question "is this a new-language problem or a new-library problem?"
+<!-- level-focus -->
+At middle level, focus on this question:
 
+> Where does **When to Introduce a New Language** belong in a maintainable component, and which trade-off selects the design?
+
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## 1. The N+1 language tax, itemized
@@ -77,7 +80,7 @@ Suppose the trigger is genuine and the library fix doesn't exist. You still don'
 
 **Pick a low-stakes, well-bounded service.** Not the payments path. Not the thing that pages at 3 a.m. A new, non-critical service whose failure is annoying, not catastrophic — so the pilot can fail safely.
 
-**Make it a clean boundary, not a sprinkle.** The new language should live behind a network or process boundary (its own service, its own binary) — not interleaved file-by-file inside an existing codebase. A clean boundary is removable; sprinkled code is permanent. (See [`04-interop-and-polyglot-architectures`](../04-interop-and-polyglot-architectures/) for how to draw that boundary.)
+**Make it a clean boundary, not a sprinkle.** The new language should live behind a network or process boundary (its own service, its own binary) — not interleaved file-by-file inside an existing codebase. A clean boundary is removable; sprinkled code is permanent. (See [`04-interop-and-polyglot-architectures`](../04-interop-and-polyglot-architectures/README.md) for how to draw that boundary.)
 
 **Set success and failure criteria *up front*, in writing.** "We adopt this widely if it cuts p99 latency below 5 ms *and* the team reports it's maintainable after 3 months. We rip it out if either fails." Deciding the exit criteria *before* you're emotionally invested is the only time you can decide them honestly. (The senior level goes deep on this; for now, just write them down.)
 
@@ -128,16 +131,24 @@ Run the analysis:
 
 ---
 
-## 9. What's next
+## Apply it
 
-| Topic | File |
-|---|---|
-| The full cost/benefit framework, slippery slopes, reversibility, and team-size limits | `senior.md` |
-| Governance: RFCs, supported-language tiers, paved roads, sunsetting | `professional.md` |
-| Practice — build an N+1 cost sheet, write exit criteria, critique a proposal | `tasks.md` |
-| Interview questions from "teammate wants Rust" to "design an adoption process" | `interview.md` |
-| How to actually move once a language is chosen (or unchosen) | [`06-migrating-between-languages`](../06-migrating-between-languages/) |
+1. Find a real component where **When to Introduce a New Language** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
----
+## Verify your work
 
-**Memorize this:** the cost of N+1 is a *second of everything* — toolchain, CI, libs, observability, on-call, hiring — paid every quarter, and it fragments super-linearly. Justify it only against a real trigger (platform, ecosystem, measured performance, fundamental safety), and only after ruling out the new-library fix. When a trigger is real, pilot small, behind a clean boundary, with written exit criteria and more than one owner.
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
+
+## Review questions
+
+- Which boundary is most affected by When to Introduce a New Language?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

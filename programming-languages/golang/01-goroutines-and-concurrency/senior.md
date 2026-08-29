@@ -1,20 +1,11 @@
 # Goroutines and Concurrency — Senior
 
-> **Topic:** [Goroutines and Concurrency](../README.md)
-> **Focus:** Goroutine-leak detection at scale, `GOMAXPROCS` and scheduler tuning, lock-free patterns with `atomic`, structuring cancellation across a fleet, and designing concurrency into a service rather than bolting it on.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Goroutines and Concurrency** under failure, load, and change?
 
-## Introduction
-
-Correct concurrent code that works in a unit test can still degrade a production service: a goroutine count that only ever grows, a mutex that becomes a bottleneck at 10x traffic, a deadlock that only manifests under a specific interleaving that CI never hits. At senior level the job shifts from "write correct concurrent code" to "design a system whose concurrency is observable, bounded, and recoverable."
-
----
-
-## Prerequisites
-
-- Comfortable with `errgroup`, pipelines, mutexes vs. channels, and the race detector (middle level).
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -104,16 +95,6 @@ A background sync job spawned one goroutine per item, each opening a gRPC stream
 
 ---
 
-## Pros & Cons
-
-| Approach | Pros | Cons |
-|---|---|---|
-| `sync/atomic` | Fastest option for single counters, no lock contention | Doesn't generalize to multi-field invariants |
-| Global dispatcher/semaphore | One place to reason about total concurrency | A single bottleneck if sized wrong; must be shared correctly across goroutines |
-| `goleak` in CI | Catches leaks before they reach production | Only catches leaks the test suite actually exercises |
-
----
-
 ## Best Practices
 
 1. Every goroutine gets a deadline or a cancellation path before it's allowed to touch a network call.
@@ -149,51 +130,24 @@ A background sync job spawned one goroutine per item, each opening a gRPC stream
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```go
-// Global bounded dispatcher
-d := NewDispatcher(50)
-err := d.Run(ctx, func(ctx context.Context) error { return doWork(ctx) })
+1. State the system invariant that **Goroutines and Concurrency** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
-// Leak detection in tests
-func TestMain(m *testing.M) { goleak.VerifyTestMain(m) }
+## Verify your work
 
-// CPU-aware GOMAXPROCS
-import _ "go.uber.org/automaxprocs"
-```
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
 
----
+## Review questions
 
-## Summary
-
-- Goroutine leaks are silent until they aren't — instrument `NumGoroutine`, use `pprof`'s goroutine profile, and add `goleak` to tests.
-- `GOMAXPROCS` should match the actual CPU quota, especially in containers.
-- `atomic` is for single values; anything with multi-field invariants needs a mutex.
-- Concurrency limits belong in shared, centralized infrastructure, not ad hoc per-call-site decisions.
-- Every network call inside a goroutine needs a deadline; "it'll probably come back" is how leaks are born.
-
----
-
-## Further Reading
-
-- `go.uber.org/goleak`: <https://pkg.go.dev/go.uber.org/goleak>
-- `go.uber.org/automaxprocs`: <https://pkg.go.dev/go.uber.org/automaxprocs>
-- The Go Blog — *Introducing the Go Race Detector*: <https://go.dev/blog/race-detector>
-
----
-
-## Related Topics
-
-- [Go Runtime](../02-go-runtime/senior.md) — the scheduler and GC behavior underneath these decisions.
-- [Production Debugging](../07-production-debugging/senior.md) — using `pprof`'s goroutine profile in anger.
-
----
-
-## Check your understanding
-
-1. Explain Goroutines and Concurrency — Senior Level in your own words and name the problem it solves.
-2. How would you apply the ideas around Introduction, Prerequisites, Core Concepts in a realistic engineering change?
-3. What failure mode or misuse should you look for, and what evidence would reveal it?
-4. How would you validate a system-level decision about Goroutines and Concurrency — Senior Level under uncertainty?
-5. What observable result would convince you that the approach improved the system?
+- Which invariant must remain true when Goroutines and Concurrency fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

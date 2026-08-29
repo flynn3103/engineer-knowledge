@@ -1,80 +1,11 @@
-# Sandboxing & Isolation — Middle Level
+# Sandboxing & Isolation — Middle
 
-> **Topic:** Sandboxing & Isolation
-> **Focus:** The actual machinery. How does an OS *enforce* a sandbox? Syscall filtering (seccomp-bpf), namespaces, cgroups, capabilities, and the language-level sandboxes (V8 isolates, Wasm) — and why each is strong or weak where it is.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **Sandboxing & Isolation** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-> Focus: **By what mechanism is a sandbox actually enforced?** A wall you can't point to isn't a wall. This level names the bricks.
-
-At the junior level a sandbox was a *concept*: a box with a few doors. Now we look at how operating systems and language runtimes build those walls in concrete terms. The recurring insight: **almost everything interesting a program does — read a file, send a packet, fork a process, change its own permissions — goes through a system call to the kernel.** The syscall interface is therefore the natural place to enforce a sandbox. If you control which syscalls the guest can make, and which resources those syscalls can even *name*, you control what the guest can do.
-
-On Linux, the modern sandbox is assembled from a small set of independent primitives, each restricting one axis:
-
-- **seccomp-bpf** filters *which syscalls* a process may make at all.
-- **namespaces** change *what the process can see* — its own view of processes, network, filesystem mounts, user IDs, hostnames, and IPC.
-- **cgroups** cap *how much* it can consume — CPU, memory, I/O.
-- **capabilities(7)** split the old all-or-nothing "root" into fine-grained powers.
-- **Landlock**, **AppArmor**, and **SELinux** add *mandatory access control* — policy enforced by the kernel that even root can't simply override.
-
-These compose. A real container is roughly "namespaces + cgroups + seccomp + capability dropping" combined. Other operating systems offer their own variants: OpenBSD's `pledge`/`unveil` and macOS's Seatbelt sandbox profiles.
-
-In parallel, **language-level sandboxes** enforce a boundary inside a single process: V8 isolates separate JavaScript heaps, and WebAssembly enforces memory and capability boundaries by the structure of the bytecode itself. These are cheaper and faster but, as we'll see, fundamentally more fragile, because the wall is made of *correct code* rather than *hardware-enforced separation*.
-
-> 🎓 **Why this matters at this level:** You're now the engineer who has to *configure* the sandbox, not just admire it. Picking the wrong primitive, leaving a namespace unshared, forgetting to drop a capability, or writing an over-broad seccomp filter is how real production sandboxes leak. Understanding what each brick does — and crucially, what it does *not* do — is the difference between a sandbox and a sandbox-shaped decoration.
-
-This page covers the Linux sandbox primitives in working detail, the OpenBSD and macOS equivalents, how language-level sandboxes (V8 isolates, Wasm/WASI) enforce their boundary, why memory safety is the soft underbelly of in-process sandboxes, and the composition patterns that turn individual bricks into a wall. `senior.md` goes deeper into escape classes and the strength-vs-cost trade-off; `professional.md` covers production architectures.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** The junior-level idea of a sandbox: least privilege, ambient authority, deny-by-default, the strength-vs-cost spectrum.
-- **Required:** What a **system call** is and that file/network/process operations go through the kernel.
-- **Required:** Basic Linux literacy — processes, file descriptors, users/UIDs, mount points, `fork`/`exec`.
-- **Helpful but not required:** Familiarity with `strace`, Docker, or having configured a container before.
-- **Helpful but not required:** A rough sense of what a JavaScript engine or a bytecode VM is.
-
-You do **not** need to know:
-
-- How to write BPF bytecode by hand (we read filters conceptually).
-- Hypervisor internals or microVM design (that's `senior.md`/`professional.md`).
-- Formal capability theory or exploitation techniques (later levels).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **System call (syscall)** | The kernel-entry mechanism a process uses for privileged actions (open, read, connect, fork, mmap…). The chokepoint sandboxes target. |
-| **seccomp** | "Secure computing mode": a Linux feature to restrict the syscalls a process may make. |
-| **seccomp-bpf** | The flexible form of seccomp: a BPF program inspects each syscall (number + arguments) and decides allow / deny / kill / trap. |
-| **BPF (Berkeley Packet Filter)** | A small in-kernel bytecode used here to express the syscall-filtering policy. |
-| **Namespace** | A Linux feature giving a process its own isolated *view* of a kernel resource. Types: pid, net, mnt, user, uts, ipc, cgroup, time. |
-| **PID namespace** | Gives the process its own process-ID space; it can't see or signal processes outside it. |
-| **Network namespace (net)** | Gives the process its own network stack — its own interfaces, routes, ports. An empty one = no network at all. |
-| **Mount namespace (mnt)** | Gives the process its own filesystem mount table — you can present it a tiny, curated root. |
-| **User namespace (user)** | Maps UIDs/GIDs so a process can be "root" *inside* while being unprivileged *outside*. Foundation of rootless containers. |
-| **UTS namespace** | Isolates hostname and domain name. |
-| **IPC namespace** | Isolates System V IPC and POSIX message queues. |
-| **cgroup (control group)** | A Linux mechanism to limit and account resource usage (CPU, memory, I/O, PIDs) for a group of processes. |
-| **capabilities(7)** | Linux's split of root's power into ~40 distinct privileges (e.g., `CAP_NET_ADMIN`, `CAP_SYS_ADMIN`), grantable individually. |
-| **MAC (Mandatory Access Control)** | Security policy enforced by the kernel and not overridable by the resource owner — SELinux, AppArmor, Landlock. |
-| **Landlock** | A modern, unprivileged Linux LSM letting a process restrict its *own* filesystem access. |
-| **AppArmor / SELinux** | Kernel MAC systems that confine programs by administrator-defined policy (path-based vs label-based, respectively). |
-| **pledge / unveil** | OpenBSD syscalls: `pledge` restricts which syscall *categories* a process may use; `unveil` restricts which filesystem paths it can see. |
-| **Seatbelt** | macOS's sandbox (`sandbox_init` + `.sb` profile language) used by app sandboxing. |
-| **V8 isolate** | An independent instance of the V8 JavaScript engine with its own heap; isolates don't share JS objects. |
-| **Realm / context** | A fresh JavaScript global environment with its own built-ins, used to separate untrusted scripts in-process. |
-| **Linear memory** | WebAssembly's single contiguous, bounds-checked memory region — a module cannot address outside it. |
-| **WASI** | The WebAssembly System Interface: a capability-based API for Wasm to touch files, clocks, etc., only via handles the host grants. |
-| **`no_new_privs`** | A process flag that prevents a process (and children) from ever gaining privileges via setuid/setgid — a seccomp prerequisite. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -152,58 +83,6 @@ An isolate's boundary is enforced by the **correctness of the engine's code**, n
 ### 10. WebAssembly: Boundaries Built Into the Bytecode
 
 WebAssembly takes a different approach: the isolation is structural. A Wasm module addresses only its own **linear memory**, and every memory access is **bounds-checked** against that region's size — it cannot form a pointer into host memory because Wasm has no such pointers. It has **no ambient authority**: it can't call the OS, can't open files, can't network. To do anything external, the host must explicitly import functions into the module. **WASI** standardizes those imports as **capability-based** handles: the module receives a pre-opened directory handle and can only operate within it; it can't name `/etc/passwd` because it was never handed a handle that reaches there. Wasm is still software-enforced (a bug in the runtime can break it), but its small, verified core and capability-by-construction design make it a far smaller and more auditable trusted base than a full JS engine.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Syscall as chokepoint** | A building where the only way to interact with the outside is through one reception desk — control the desk, control everything. |
-| **seccomp-bpf** | A bouncer with a guest list of *actions*: "You may use the printer and the kitchen. Everything else, denied." |
-| **Namespaces** | Tinting the windows so the guest sees only their own room — the rest of the building isn't even visible. |
-| **Network namespace (empty)** | A room with no phone, no internet jack, no signal — you literally cannot call out. |
-| **User namespace** | A play "manager" badge: you're the boss *of this room*, but security at the real front desk doesn't recognize it. |
-| **cgroups** | A meter on the room's power and water: use what you like up to the cap, then it's cut off. |
-| **capabilities** | Replacing one master key with a ring of single-purpose keys, and only clipping on the ones needed. |
-| **MAC (SELinux/AppArmor)** | House rules posted on the wall that even the owner must follow — not just "whoever owns the room decides." |
-| **pledge/unveil** | A guest signing a short contract at the door: "I will only use the kitchen and read these two books," enforced on pain of ejection. |
-| **V8 isolate** | Separate soundproof booths in one studio — cheap to add, but all sharing the same building (one structural fault affects all). |
-| **Wasm linear memory** | A sealed sandbox tray: the toys can only be moved *within the tray*, and bumping the edges is physically blocked. |
-| **WASI capability handle** | Being handed one specific labeled drawer's key, with no way to ask for the keys to other drawers. |
-
----
-
-## Mental Models
-
-### The "Three Axes" Model
-
-Don't think of a Linux sandbox as one thing; think of **three orthogonal axes**, each handled by a different primitive:
-
-```text
-WHAT can it DO?       -> seccomp (which syscalls)
-WHAT can it SEE?      -> namespaces (visible resources)
-HOW MUCH can it USE?  -> cgroups (resource limits)
-```
-
-A real sandbox sets all three. Leaving one out is a leak: full syscall filtering but no namespace means it can still see the host's processes; perfect namespaces but no cgroup means it can still freeze the machine.
-
-### The "Voluntary Self-Restriction" Model
-
-The cleanest sandboxes (pledge/unveil, Landlock, seccomp installed by the program itself) follow a pattern: **the program drops its own privileges early, right after setup and before touching untrusted input.** Open the files you'll need, bind the port, *then* pledge/seccomp/Landlock away the powers you no longer need. After that line, even if the rest of the program is exploited, the attacker inherits the *reduced* privilege set. Think: "initialize with power, then throw the power away before the dangerous part."
-
-### The "Software Wall vs Hardware Wall" Model
-
-Sort every sandbox into one of two buckets:
-
-- **Software-enforced** (V8 isolate, Wasm, in-process): the wall is correct code. Fast and dense, but a single memory bug in the enforcer can collapse it.
-- **Hardware/kernel-enforced** (separate process + namespaces, VMs): the wall is the CPU's address-space separation or the hypervisor. Costlier, but a memory bug in the guest stays in the guest.
-
-When you distrust the guest a lot, you want at least one hardware/kernel wall in the stack. The software walls are excellent *additional* layers, weak as the *only* layer.
-
-### The "Visibility Is Not Permission" Model
-
-Namespaces remove *visibility*; capabilities and MAC remove *permission*; seccomp removes *the action itself*. These are different. A process might be *permitted* to open sockets (has the capability) but can't reach anything because its network namespace is empty (no visibility), and also can't call `socket` because seccomp blocks it (no action). Strong sandboxes overlap these so that no single missing brick opens a path.
 
 ---
 
@@ -324,32 +203,6 @@ The module's *only* link to the outside world is the directory handle the host c
 
 ---
 
-## Pros & Cons
-
-| Primitive | Pros | Cons |
-|-----------|------|------|
-| **seccomp-bpf** | Shrinks attack surface drastically; cheap; composes with everything. | Can't inspect pointer args (no "which file"); over-broad allowlists leak; brittle if a needed syscall is missed (crashes). |
-| **Namespaces** | Strong visibility isolation; foundation of containers; mostly free. | User namespaces have a history of kernel CVEs; misconfiguration leaks host resources. |
-| **cgroups** | Real resource caps; prevents DoS; per-group accounting. | Don't isolate, only limit; v1/v2 differences trip people up. |
-| **capabilities** | Fine-grained de-privileging; least privilege for "root" tasks. | `CAP_SYS_ADMIN` is so broad it negates much isolation; easy to over-grant. |
-| **MAC (SELinux/AppArmor/Landlock)** | Policy even root can't bypass; object-level control. | SELinux is complex to author; AppArmor path-based gaps; Landlock is FS-only. |
-| **pledge/unveil** | Beautifully simple, auditable, deny-by-default. | OpenBSD only; coarse-grained categories. |
-| **V8 isolate / Realm** | Extreme density, sub-ms startup, cheap per tenant. | Software wall in shared address space; one engine memory bug = escape. |
-| **WebAssembly / WASI** | No ambient authority; capability-based; small TCB; portable. | Still software-enforced; ecosystem and host-interface still maturing. |
-
----
-
-## Use Cases
-
-- **Hardening a media/document parser:** seccomp-deny `socket`/`execve`/`clone`; the parser keeps reading and writing files but cannot exfiltrate or spawn shells even if the input exploits it.
-- **Multi-tenant edge/serverless:** V8 isolates or Wasm modules for thousands of cheap, fast tenants — wrapped in OS-level isolation as a second layer.
-- **Running a build/CI step from an untrusted dependency:** namespaces (empty net, minimal FS) + cgroups + seccomp, so a malicious `postinstall` script can't reach your secrets or the network.
-- **A self-confining daemon:** an OpenBSD service that `pledge`s down to `"stdio rpath"` after startup, or a Linux service that installs a seccomp filter and Landlock rules on itself.
-- **Plugin systems:** ship plugins as Wasm so each one runs with exactly the host functions you import and nothing else.
-- **Rootless containers:** user namespaces let unprivileged users run containers without real root, shrinking the damage of a container escape.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Set Up, Then Drop (privilege separation in time)
@@ -462,146 +315,24 @@ than no sandbox, because you think you're protected.
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. Name the three orthogonal axes a complete Linux sandbox should cover and which primitive handles each.
-2. Why can seccomp block `open` entirely but *not* "allow opening only `/tmp/x`"? Which primitive fills that gap?
-3. What does `no_new_privs` prevent, and why must it be set before installing a seccomp filter for an unprivileged process?
-4. Explain how an *empty* network namespace makes network exfiltration impossible regardless of the guest's intent.
-5. Why is granting `CAP_SYS_ADMIN` often described as undoing your sandbox? Give one reason.
-6. A V8 isolate keeps tenant heaps separate, yet a malicious tenant escapes to the host. What class of bug made that possible, and why doesn't the isolate boundary stop it?
-7. Describe, in WASI terms, how a module ends up able to write to `./sandbox_dir` but unable to even *name* `/etc/passwd`.
-8. What's the "set up, then drop" pattern, and why does the *order* matter for security?
-9. Your sandboxed process can't open sockets or see host files, but it allocates memory in an infinite loop and freezes the box. Which axis did you forget, and what fixes it?
-10. Why is "fail closed" the correct behavior when a sandbox layer can't be applied, and what's the danger of "fail open"?
+1. Find a real component where **Sandboxing & Isolation** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
----
+## Verify your work
 
-## Cheat Sheet
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
 
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│              OS & LANGUAGE SANDBOX PRIMITIVES (Linux-centric)     │
-├──────────────────────────────────────────────────────────────────┤
-│ THREE AXES (set all three):                                      │
-│   DO   -> seccomp-bpf   (which syscalls; deny-by-default)        │
-│   SEE  -> namespaces    (pid/net/mnt/user/uts/ipc views)        │
-│   USE  -> cgroups       (CPU / memory / I/O / PID caps)          │
-├──────────────────────────────────────────────────────────────────┤
-│ PERMISSION refinements:                                          │
-│   capabilities(7)  -> split root; drop all you don't need        │
-│   Landlock         -> unprivileged self FS restriction           │
-│   AppArmor (path) / SELinux (label) -> MAC, even root is bound   │
-├──────────────────────────────────────────────────────────────────┤
-│ OTHER OSes:                                                      │
-│   OpenBSD: pledge (syscall categories) + unveil (paths)          │
-│   macOS:   Seatbelt (.sb profiles)                               │
-├──────────────────────────────────────────────────────────────────┤
-│ LANGUAGE-LEVEL (in-process, software wall):                      │
-│   V8 isolate / Realm -> dense & fast; SHARED address space;      │
-│                         one engine memory bug = escape           │
-│   WebAssembly        -> linear memory bounds-checked;            │
-│                         no ambient authority                     │
-│   WASI               -> capability handles (preopened dirs)      │
-├──────────────────────────────────────────────────────────────────┤
-│ RULES:                                                           │
-│   * set no_new_privs before seccomp                              │
-│   * set up THEN drop (irreversibly), before untrusted input      │
-│   * fail CLOSED if a layer can't apply                           │
-│   * wrap in-process sandboxes in an OS/VM wall for hostile code  │
-│   * keep the exposed interface (syscalls/imports) tiny           │
-└──────────────────────────────────────────────────────────────────┘
-```
+## Review questions
 
----
-
-## Summary
-
-- Everything a program does externally goes through a **syscall**, making the syscall interface the natural enforcement point for a sandbox.
-- Linux assembles sandboxes from orthogonal primitives: **seccomp-bpf** (which syscalls), **namespaces** (what's visible — pid/net/mnt/user/uts/ipc), **cgroups** (resource caps), **capabilities** (split root), and **MAC** (Landlock/AppArmor/SELinux, policy even root can't bypass). A hardened container is roughly all of these combined.
-- A complete sandbox covers **three axes — DO, SEE, USE** — plus capability dropping/MAC; omitting any one is a leak.
-- Other OSes offer elegant variants: OpenBSD's **pledge/unveil** and macOS **Seatbelt**.
-- **Language-level sandboxes** (V8 isolates, Realms) enforce a boundary *inside one process* — extremely dense and fast, but **software-enforced in a shared address space**, so a single memory-safety bug in the engine breaks the wall.
-- **WebAssembly** builds isolation into the bytecode: bounds-checked linear memory and **no ambient authority**, with **WASI** granting access only through capability handles — a much smaller, more auditable trusted base than a full JS engine, though still software-enforced.
-- Best practice: **set up then drop** privileges before untrusted input, **deny by default**, **fail closed**, **stack the axes**, and **wrap in-process sandboxes in an OS/VM wall** when the guest is truly hostile.
-- The recurring theme: *visibility, permission, and action are separate controls* — strong sandboxes overlap them so no single missing brick opens a path.
-
----
-
-## Further Reading
-
-- *`man 2 seccomp`, `man 7 namespaces`, `man 7 capabilities`, `man 7 cgroups`* — the primary Linux references; read them directly.
-- *The Landlock documentation* — https://landlock.io/ — unprivileged self-sandboxing.
-- *OpenBSD `pledge(2)` and `unveil(2)` man pages* — the gold standard for simple, auditable self-restriction.
-- *"Sandboxing in Linux with zero lines of code"* and similar LWN.net articles on seccomp/namespaces — practical depth.
-- *The Chromium sandbox design docs* — how seccomp + namespaces + a broker are combined in a real product.
-- *WebAssembly System Interface (WASI) documentation* — https://wasi.dev/ — capability-based system access.
-- *Apple's "App Sandbox Design Guide"* — Seatbelt profiles in practice.
-- *"Understanding and Hardening Linux Containers"* — NCC Group whitepaper — namespaces/cgroups/seccomp as a security boundary.
-
----
-
-## Diagrams & Visual Aids
-
-### The Three Axes of a Linux Sandbox
-
-```text
-                       ┌──────── untrusted process ────────┐
-                       │                                   │
-   seccomp-bpf  ───────┤  WHAT can it DO?                  │
-   (syscall filter)    │   only: read, write, exit, mmap   │
-                       │   denied: socket, execve, clone…  │
-                       │                                   │
-   namespaces   ───────┤  WHAT can it SEE?                 │
-   (pid/net/mnt/...)   │   net: empty (no interfaces)      │
-                       │   mnt: only /sandbox              │
-                       │   pid: can't see host processes   │
-                       │                                   │
-   cgroups      ───────┤  HOW MUCH can it USE?             │
-   (resource caps)     │   mem: 128MB  cpu: 0.5  pids: 32  │
-                       │                                   │
-                       └───────────────────────────────────┘
-        Drop any one axis and a hole opens in that dimension.
-```
-
-### Software Wall vs Hardware/Kernel Wall
-
-```text
-SOFTWARE-ENFORCED (in-process)            KERNEL/HARDWARE-ENFORCED
-┌───────────── one process ─────────┐     ┌─ host ─┐  ┌─ guest process / VM ─┐
-│  host  │  guest (untrusted JS/Wasm)│     │ host   │  │  guest               │
-│  ▲ shared address space ▲          │     │ memory │  │  memory (separate)   │
-│  └── wall = correct engine code ───┘     └────────┘  └──────────────────────┘
-   FAST, DENSE                                ▲ wall = address-space / hypervisor
-   one memory bug in engine = ESCAPE          COSTLIER; guest memory bug stays in guest
-
-   -> For hostile guests: put a kernel/hardware wall AROUND the software one.
-```
-
-### WASI Capability Model: Authority = Handles You Were Given
-
-```text
-   host                                   wasm module (untrusted)
-   ┌───────────────────────────┐          ┌───────────────────────────┐
-   │ open("./sandbox_dir") ─────┼─ handle ─►  fd 3  (its only door)    │
-   │                           │          │                           │
-   │ /etc/passwd  (NOT passed) │          │  cannot NAME /etc/passwd   │
-   │ network      (NOT passed) │          │  no socket import = no net │
-   └───────────────────────────┘          └───────────────────────────┘
-        The module has exactly the capabilities handed to it. There is
-        no API to request more. Authority is not ambient; it is granted.
-```
-
-### "Set Up, Then Drop" Over Time
-
-```text
-TIME ─►
-
-  [ open files ][ bind port ][ load config ]     <- full privilege (setup)
-                                          │
-                                   ── DROP ──   pledge / seccomp_load / landlock
-                                          │
-  [ ........ process UNTRUSTED input ........ ]  <- minimal privilege
-
-   An exploit landing in the right half inherits only the reduced powers.
-```
+- Which boundary is most affected by Sandboxing & Isolation?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

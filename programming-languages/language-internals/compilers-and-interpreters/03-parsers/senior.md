@@ -1,58 +1,11 @@
-# Parsers — Senior Level
+# Parsers — Senior
 
-> **Topic:** Parsers
-> **Focus:** The production parsing landscape — parser generators vs hand-written recursive descent, PEG/packrat, GLR/GLL for ambiguous grammars, error recovery and diagnostics, lexer feedback hacks, and error-tolerant/incremental parsing for IDEs.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Parsers** under failure, load, and change?
 
-## Introduction
-
-> Focus: **You have to ship a parser for a real language and maintain it for a decade. Which technology, and why?** And: **when the input is wrong — which is most of the time in an editor — what does your parser do?**
-
-At the middle level you learned the two parsing families and their grammar surgeries. That knowledge answers "can this grammar be parsed?" The senior question is different and harder: "given that I *can* parse it several ways, which choice survives contact with reality — surprising syntax, evolving language, terrible error messages, an IDE that re-parses on every keystroke, and a grammar that turns out to be ambiguous in ways the spec never admitted?"
-
-This level is about the decisions that outlive the algorithm. Almost every production compiler you respect — **GCC, Clang, rustc, the Go compiler, V8's parser** — *hand-writes* a recursive-descent parser, even though parser generators existed for forty years and theory says LR is more powerful. That is not nostalgia; it is a hard-won engineering verdict about error messages, lexer feedback, and control. Meanwhile the tools that *do* win — yacc/bison for SQL engines and many DSLs, ANTLR for tooling, PEG for config and protocol grammars — win for reasons just as concrete.
-
-We will work through the whole production landscape: **generators vs hand-written** as a real trade study; **LALR(1) conflict resolution** the way you actually do it in a `.y` file; **PEG and packrat** with their ordered-choice semantics and the prefix-capture gotcha that bites everyone once; **GLR and GLL** for genuinely ambiguous grammars (natural language, C++); **error recovery** (panic-mode, error productions, and why diagnostics quality is a feature, not an afterthought); the **lexer-feedback hacks** that the C `typedef` problem and the C++ `>>` / template problem force on you; and **error-tolerant and incremental parsing** — Tree-sitter and Roslyn — which is how a modern editor keeps a live syntax tree as you type into a file that is *almost never* syntactically valid.
-
-This page covers the why-we-hand-write debate, generator internals at the conflict level, PEG/packrat, GLR/GLL, error recovery and diagnostics, lexer feedback, and incremental/error-tolerant parsing. The professional level zooms out to whole-compiler parser architecture, grammar evolution over a language's lifetime, and parser security.
-
----
-
-## Prerequisites
-
-- **Required:** The middle level — LL vs LR, FIRST/FOLLOW, left-recursion elimination, shift-reduce, conflicts, and Pratt parsing. This page assumes all of it as vocabulary.
-- **Required:** Having hand-written at least one recursive-descent + Pratt parser, and having run at least one grammar through a generator (bison or ANTLR) and seen a real conflict message.
-- **Required:** Comfort thinking about a grammar as a *language design artifact*, not just a string-recognizer — because every choice here is also a language-design choice.
-- **Helpful:** Familiarity with a real language's lexer (tokens, trivia, whitespace handling) and with the idea of an AST that carries source spans.
-- **Helpful:** Some exposure to an editor's language tooling (LSP, an IDE's "red squiggles") — it makes the incremental-parsing section land.
-
-You do **not** need: the table-construction algorithms for LALR by hand, the full formal semantics of PEGs, or the GLL paper's proofs. We explain what these buy you and where they bite, not how to re-derive them.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Recursive descent** | Hand-written top-down parser: one function per nonterminal, the call stack *is* the parse stack. The production-compiler default. |
-| **Parser generator** | A tool (yacc/bison, ANTLR) that takes a grammar file and emits parser code/tables. |
-| **LALR(1)** | The yacc/bison parser class — LR(1) states merged by core. Compact tables, occasional spurious reduce-reduce conflicts. |
-| **PEG** | Parsing Expression Grammar: like a CFG but with **ordered choice** (`/`) and no ambiguity by construction. Recognition-based, not generative. |
-| **Packrat** | A PEG parser that **memoizes** every (rule, position) result, guaranteeing linear time at the cost of memory. |
-| **Ordered choice** | PEG's `A / B`: try `A`; only if it fails, try `B`. First success wins — never both, never the "longer" one. |
-| **Prefix capture** | PEG gotcha: `"if" / "ifx"` can never match `ifx`, because `"if"` matches the prefix and commits. |
-| **GLR** | Generalized LR: forks the parse stack (a Graph-Structured Stack) on conflicts and explores all parses in parallel. Handles any CFG, including ambiguous ones. |
-| **GLL** | Generalized LL: the top-down counterpart of GLR; handles any CFG including left recursion, producing all parses. |
-| **SPPF** | Shared Packed Parse Forest: the compact representation GLR/GLL use to store exponentially many parse trees in polynomial space. |
-| **Panic-mode recovery** | On a syntax error, discard tokens until a known synchronizing token (`;`, `}`) is found, then resume. |
-| **Error production** | A grammar rule that explicitly matches a common mistake so the parser can report it precisely and continue. |
-| **Lexer feedback / lexer hack** | The parser/symbol-table feeding information back to the lexer (e.g. C `typedef` makes an identifier lex as a type-name). |
-| **Trivia** | Whitespace and comments — lexically insignificant but kept attached to tokens for faithful round-tripping (formatters, IDEs). |
-| **Incremental parsing** | Re-parsing only the changed region of a file and splicing the result into the old tree. The basis of fast editor tooling. |
-| **Error-tolerant parsing** | Parsing that always produces a tree, inserting error nodes rather than aborting — required for live editing. |
-| **CST vs AST** | Concrete Syntax Tree (every token, every paren, all trivia) vs Abstract Syntax Tree (semantics-only). IDEs need the CST. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -153,40 +106,6 @@ Two design implications fall out of this:
 2. **Immutability + structural sharing.** Roslyn's trees are immutable so they can be shared across threads and across edits, with each edit producing a new tree that reuses most of the old one — the same persistent-data-structure trick that makes incremental re-parse cheap.
 
 This is the frontier of practical parsing: the parser is no longer a one-shot phase but a *living service* that maintains a tree against a constantly-changing, frequently-broken document. It's why "which parsing technology" for new languages now weighs incrementality and error-tolerance as heavily as raw grammar power.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Hand-written recursive descent** | A skilled craftsperson building by hand — slower to produce, but every joint is exactly where they want it and they know precisely why each cut was made. |
-| **Parser generator** | A CNC machine fed a spec file — fast, repeatable, machine-checkable, but the part comes out generic and hard to customize at the seam. |
-| **PEG ordered choice** | A priority hotline menu: "press 1 for X" is tried first; if it matches your need it never offers you option 2. |
-| **Prefix capture** | A vending machine that dispenses on the first matching code prefix — type the code for the deluxe item and it gives you the cheap one because that code is a prefix. |
-| **GLR forking** | A detective pursuing several theories at once, sharing the evidence they have in common, and dropping each theory the moment it's contradicted. |
-| **SPPF (parse forest)** | A flowchart where many paths share the same boxes instead of redrawing them — compact storage of many possibilities. |
-| **Panic-mode recovery** | A speaker who loses their place mid-sentence, skips to the next paragraph's first word, and carries on. |
-| **Error production** | A spell-checker that recognizes a specific common typo and suggests the exact fix, instead of just underlining the word. |
-| **Lexer hack** | A receptionist who can only route your call correctly after checking the staff directory the manager keeps updating. |
-| **Incremental parsing** | Editing one paragraph of a document and the page reflowing only that paragraph, not re-typesetting the whole book. |
-| **Error-tolerant parsing** | A GPS that keeps showing your route even while you're off-road, marking the gap rather than blanking the screen. |
-
----
-
-## Mental Models
-
-### The "spec vs control" axis
-
-Every parsing-technology choice sits on one axis. At one end: **the grammar is the source of truth** — you want a machine-checkable spec, conflict reports as tests, one grammar generating parsers in many languages (generators, ANTLR, PEG). At the other end: **the parser is the source of truth** — you want total control of errors, recovery, lexer feedback, and context-sensitivity (hand-written recursive descent). You are not choosing "which is more powerful"; you are choosing *which artifact you want to be authoritative.* Compilers pick the parser; databases and DSLs often pick the grammar.
-
-### The "always produce a tree" model (for IDE parsing)
-
-Flip the batch-compiler mindset. A batch parser's job is "validate, then build a tree if valid." An IDE parser's job is "**always** build a tree; annotate the broken parts." Once you adopt "the tree must exist for any input, valid or not," error nodes, missing-node insertion, and recovery stop being edge cases and become the *core* of the design. Everything an editor does — completion, folding, highlighting, refactoring — runs on that always-present tree.
-
-### The "fork only when forced" model (for GLR)
-
-Don't picture GLR as "explore all parses always" — that would be exponential. Picture it as a deterministic LR parser that **runs as a single line until it hits a conflict, then briefly forks, sharing its common stack, and rejoins as soon as the alternatives reconverge or die.** On an almost-deterministic grammar (a real language with a few ambiguous spots) it's near-linear because forks are rare and short. The forest is large only where the grammar is genuinely ambiguous.
 
 ---
 
@@ -321,19 +240,6 @@ This grammar is *ambiguous* on its own (`expr '+' expr` doesn't say how to group
 
 ---
 
-## Use Cases
-
-- **A flagship compiler you'll maintain for years** → hand-written recursive descent + Pratt, with serious investment in recovery and diagnostics. This is what GCC, Clang, rustc, Go, and V8 do.
-- **A large, standardized, slow-moving grammar (SQL)** → an LALR generator, treating the `.y` file as the authoritative spec.
-- **A config/protocol DSL or composable grammar** → PEG/packrat, for unambiguous parsing and easy composition, accepting weaker error messages.
-- **C++ front ends or natural-language / multi-language tooling** → GLR/GLL, where the grammar is genuinely ambiguous and you must keep multiple parses or defer disambiguation.
-- **An editor / language server** → incremental, error-tolerant parsing (Tree-sitter, Roslyn), maintaining a live CST against a constantly-broken document.
-- **Polyglot tooling that must run in many host languages** → ANTLR, generating one grammar into Java/C#/Python/Go/JS.
-
-When the simpler tool wins: a tiny, well-behaved, rarely-changing config format does not need any of this — a 50-line hand-written reader beats every technology above. Don't bring GLR to a key-value file.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Recursive descent + Pratt + panic-mode (the production triad)
@@ -389,66 +295,24 @@ If the parser will feed an IDE/formatter, keep every token and all trivia and de
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. Give three concrete reasons GCC moved its C++ parser from bison to hand-written recursive descent. For each, name a user-visible symptom that improved.
-2. Write a PEG rule for matching the keywords `for`, `foreach`, and `format` that does *not* fall into the prefix-capture trap. Then show the buggy ordering and the exact input that exposes it.
-3. Explain why a PEG can never have a shift-reduce conflict, in terms of ordered choice.
-4. The C statement `T * x;` is ambiguous between a declaration and an expression. Describe exactly what information the parser must feed back to the lexer to resolve it, and why a pure CFG cannot.
-5. Sketch a `synchronize()` routine for recovering inside a function-call argument list (not a block). What is its sync set, and why is it different from a block's?
-6. When would you choose GLR over deterministic LR, and what extra phase does that choice force on you afterward?
-7. Roslyn's syntax trees are immutable and full-fidelity. Explain how those two properties together enable fast incremental re-parsing in an editor.
-8. You're handed a `.y` file that reports "2 shift/reduce conflicts." Walk through how you'd determine whether each is benign, and how you'd resolve or document it.
+1. State the system invariant that **Parsers** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
----
+## Verify your work
 
-## Cheat Sheet
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
 
-```text
-┌────────────────────────────────────────────────────────────────────────┐
-│              SENIOR PARSING TECHNOLOGY CHEAT SHEET                      │
-├────────────────────────────────────────────────────────────────────────┤
-│ Hand-written recursive descent + Pratt  → flagship compilers           │
-│   GCC, Clang, rustc, Go, V8, TypeScript, Roslyn                        │
-│   WHY: best errors, full recovery, lexer feedback, context-sensitivity │
-│ Parser generator (LALR, bison)          → big stable specs (SQL)        │
-│   WHY: grammar = machine-checked spec, conflict reports, compact tables │
-│ PEG / packrat                           → DSLs, config, protocols       │
-│   ordered choice = no ambiguity; packrat = linear time, more memory     │
-│ GLR / GLL                               → ambiguous grammars (C++, NL)   │
-│   forks the stack (GSS), all parses in an SPPF; disambiguate after      │
-├────────────────────────────────────────────────────────────────────────┤
-│ PEG GOTCHA: prefix capture                                             │
-│   "if" / "ifx" can NEVER match ifx  →  order longest-first             │
-├────────────────────────────────────────────────────────────────────────┤
-│ Error recovery:                                                        │
-│   panic-mode  : skip to sync token (; } keyword), then resume          │
-│   error productions : grammar rules for common mistakes → precise msgs  │
-│   ALWAYS-progress guard prevents infinite recovery loops               │
-├────────────────────────────────────────────────────────────────────────┤
-│ Lexer feedback (C-family):                                             │
-│   typedef hack : parser tells lexer "this id is a TYPE_NAME"           │
-│   C++ >>        : reinterpret right-shift as two > in template context  │
-│   most vexing parse : T x(T2()); is a function decl, not construction   │
-├────────────────────────────────────────────────────────────────────────┤
-│ IDE parsing:                                                           │
-│   error-tolerant : ALWAYS produce a tree; insert error/missing nodes    │
-│   incremental    : re-parse edited span, splice into immutable tree     │
-│   Tree-sitter (GLR, editors)  │  Roslyn (hand-written, .NET)           │
-│   parse to a full-fidelity CST (all tokens + trivia), derive AST        │
-└────────────────────────────────────────────────────────────────────────┘
-```
+## Review questions
 
----
-
-## Summary
-
-- **The central senior decision is generators vs hand-written, and it's really a "what should be authoritative" choice.** Generators make the grammar the machine-checked source of truth; hand-written makes the parser the source of control. Flagship compilers (GCC, Clang, rustc, Go, V8) hand-write recursive descent + Pratt — overwhelmingly for **error messages, recovery control, lexer feedback, and context-sensitivity**, accepting more code and no automatic grammar check.
-- **Generators still win for large, stable, standardized grammars** like SQL, where the `.y` file as spec and conflict-reports-as-tests are worth more than bespoke diagnostics. Resolve LALR conflicts with precedence declarations (`%left`/`%right`) rather than grammar layering.
-- **PEG/packrat** replaces ambiguity with **ordered choice** (first success commits) and guarantees linear time via memoization — at the cost of memory and the **prefix-capture trap**: always order alternatives longest-first.
-- **GLR/GLL** parse *any* CFG, including genuinely ambiguous ones (C++, natural language), by forking the parse and storing all results in a shared parse forest — useful only when you truly need multiple parses and will disambiguate afterward.
-- **Error recovery and diagnostics are first-class features**: panic-mode sync-to-boundary plus error productions for common mistakes, always with a forced-progress guard. This is a primary reason to hand-write.
-- **C-family languages force lexer feedback** (the typedef hack, the template-`>>` rule, the most-vexing-parse) that pure CFGs can't express — the strongest practical case against "just generate it."
-- **Modern IDE parsing is error-tolerant and incremental**: always produce a tree (error nodes, never abort), re-parse only the edited span, and splice into an immutable full-fidelity CST. Tree-sitter and Roslyn are the canonical examples, and incrementality is now a top-tier selection criterion for new languages.
-
----
+- Which invariant must remain true when Parsers fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

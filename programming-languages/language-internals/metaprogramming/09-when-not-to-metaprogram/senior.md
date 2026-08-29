@@ -1,49 +1,11 @@
-# When NOT to Metaprogram — Senior Level
+# When NOT to Metaprogram — Senior
 
-> **Topic:** When NOT to Metaprogram
-> **Focus:** Steering a team's magic budget. War stories, the design framework you apply in reviews, and the rare cases where the magic actually pays — written by someone who has been trapped by the clever version.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **When NOT to Metaprogram** under failure, load, and change?
 
-## Introduction
-
-> Focus: **Owning the codebase-level decision. When to veto magic in review, when to *remove* magic that's already there, and the narrow band where it genuinely earns its keep.**
-
-By the senior level the question is no longer "should *I* write this macro." It's "should this *team* take on this magic, given that I'll be the one defending the decision in two years when the author has moved on and a customer is down." You are the steward of the codebase's magic budget. You approve the abstractions that compound and veto the ones that merely impress. You also do the unglamorous, high-value work the junior never sees: *deleting* metaprogramming that's already there, replacing it with boring code, and watching the team get faster.
-
-This page leans on war stories because judgment is built from scars, not slogans. The team trapped by its own DSL. The week lost to Spring annotation magic that "should have just worked." The reflection-heavy service that passed every test and then refused to compile to a native image two days before a launch. The metaclass that, once rewritten as three boring files, dropped onboarding time from a week to an afternoon. Each one teaches the same lesson from a different angle: *magic's cost is real, deferred, and paid by people who didn't get a vote.* Your job is to make sure the vote happens at design time.
-
-> 🎓 **Why this matters for a senior:** Your leverage is no longer your own keystrokes — it's the decisions you ratify for everyone. A single approved-too-easily abstraction can tax a team for years; a single well-placed veto, or a well-judged "yes, this one earns it," can save quarters. This is the judgment seniors are actually paid for.
-
-This page covers: the magic-budget framework you apply in reviews, four war stories with the lesson extracted, the narrow profile of justified metaprogramming, and how to *remove* magic safely.
-
----
-
-## Prerequisites
-
-- **Required:** Middle level — the five cost axes and break-even reasoning.
-- **Required:** You have shipped and *operated* systems, including on-call. You've debugged production failures that ran through someone else's magic.
-- **Required:** You have reviewed others' PRs and made abstraction calls that affected a team.
-- **Helpful:** You've inherited a magic-heavy codebase and either tamed it or been taught humility by it.
-- **Helpful:** You've worked in a deliberately-minimal language (Go) and a magic-heavy one (Ruby on Rails, Spring) and felt the difference in your bones.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Magic budget** | The finite amount of non-obvious behavior a codebase can carry before reasoning about it collapses. A senior allocates it deliberately. |
-| **Stewardship** | The senior responsibility of guarding long-term comprehensibility against short-term cleverness. |
-| **Pays for itself** | The bar metaprogramming must clear: it removes pain many times larger than the comprehension/debug/maintenance cost it adds. |
-| **Framework-level vs app-level** | Magic written once by a team that owns and tests it (framework) vs. magic sprinkled into business logic (app). The former can earn it; the latter rarely does. |
-| **Trapped-by-the-DSL** | The failure mode where a team's own custom language becomes a cage: every new requirement needs grammar work the original author understood. |
-| **De-magicking** | The act of removing existing metaprogramming and replacing it with explicit code. Often a senior's highest-leverage refactor. |
-| **AOT / native image** | Ahead-of-time compilation (GraalVM, iOS). Runtime reflection/codegen is its enemy; closed-world assumptions break magic. |
-| **Action at a distance** | Behavior triggered far from where it's declared. The defining tax of app-level magic. |
-| **Reflective cold start** | Slow startup caused by scanning/reflecting at boot (classpath scanning, annotation processing). Brutal for serverless. |
-| **Bus factor of one** | Only one person understands the magic. The single most reliable predictor that it should not exist. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -86,25 +48,6 @@ A service relied on runtime reflection for serialization and DI. It passed every
 ### 6. War story — the rewrite everyone was happier about
 
 The metaclass that auto-wired everything (from middle level) was finally deleted. The senior who did it described the PR as "removing 200 lines of magic and adding 500 lines of boring." The team's reaction was relief: go-to-definition worked, breakpoints worked, new hires read the code instead of being tutored on it, and stack traces pointed at real files. The "more lines" were the cheap kind — obvious, greppable, steppable. **Lesson:** line count is a terrible proxy for complexity. 500 boring lines can be radically simpler than 200 magic ones. De-magicking is often a net win even when it adds code.
-
----
-
-## Real-World Analogies
-
-- **A bespoke transmission vs. a standard one.** The custom gearbox is more efficient on paper. But any mechanic can fix the standard one; the bespoke one needs the original engineer. Fleets standardize for a reason — and a codebase is a fleet maintained by rotating crews.
-- **A house with a secret room only the architect knew about.** Charming in a novel, a nightmare in a renovation. App-level magic is rooms with no doors on the blueprint.
-- **A legal contract in a private dialect.** Even if it's precise, every dispute requires the one author. Plain-language contracts are longer and win in court because anyone can read them.
-- **Air-traffic control with an undocumented automation.** It handles 99% of traffic beautifully and then does something inexplicable during a storm, with no one able to explain or override it. You do not want magic in the layer that handles your emergencies.
-
----
-
-## Mental Models
-
-- **Allocate the budget like money.** You have a fixed magic budget. The frameworks you adopt already spend most of it. Ask of every new abstraction: *is this the highest-return use of what's left?* Usually the answer for app-level cleverness is no.
-- **Optimize for the median reader on their worst day.** Not the author at their sharpest — the tired on-call engineer who's never seen this module. Design for that person. If they can't trace it, it's too clever regardless of how it reads to you.
-- **Line count is not complexity.** A rewrite that *adds* lines but removes magic usually reduces complexity. Stop letting "but it's fewer lines" win arguments.
-- **The author's cost is near zero; ignore it.** The person proposing the magic holds it in their head, so they feel no cost. Mentally zero out *their* comfort and evaluate from the perspective of everyone else. The decision should be made as if the author is already gone — because eventually they are.
-- **Reversibility.** Adding magic is easy; removing it after the team depends on it is a hard refactor. Favor decisions that are cheap to reverse. Boring code is reversible; pervasive magic is not.
 
 ---
 
@@ -176,45 +119,6 @@ The wrapper is explicit, decoupled from the library's internals, survives upgrad
 
 ---
 
-## Pros & Cons
-
-**Stewarding toward boring — pros:**
-
-- The team stays fast as it grows and rotates; onboarding is reading, not tutoring.
-- On-call can actually diagnose failures; mean-time-to-recovery stays low.
-- Build/deploy stays flexible (AOT, native, sandboxes remain options).
-- Decisions are reversible; the codebase doesn't calcify around one author's cleverness.
-
-**Stewarding toward boring — cons (the honest costs):**
-
-- You will sometimes write and maintain real, tedious boilerplate by hand.
-- You will occasionally say no to genuinely elegant ideas, which is unpopular with the author.
-- A handful of cross-cutting concerns are genuinely better with framework-level magic, and over-applying "boring" there is its own mistake — refusing all magic is a junior overcorrection in senior clothing.
-
-**Approving justified magic — when you should say yes:**
-
-- Framework boundary, owned/tested, large/painful/repeated boilerplate, debuggable, second maintainer, no cheap alternative. Say yes, and say yes confidently.
-
----
-
-## Use Cases
-
-**Veto / de-magick (lean boring):**
-
-- App-level reflection, decorators, or DSLs threaded through business logic.
-- Magic that defeats AOT/native builds you'll need.
-- Anything with bus factor one.
-- Custom DSLs for domains that aren't rich and stable.
-- Monkeypatches of third-party libraries.
-
-**Approve (magic earns it):**
-
-- Serialization/ORM/codegen across hundreds of types (prefer committed codegen).
-- Request tracing/auth/transactions at a framework boundary in a *large* app.
-- API client/stub generation from a schema (readable output).
-
----
-
 ## Coding Patterns
 
 - **The composition root.** Wire dependencies explicitly in one place (`main`/bootstrap). Reach for a DI container only when the graph is genuinely large *and* you've felt the manual pain — not preemptively.
@@ -249,6 +153,24 @@ The wrapper is explicit, decoupled from the library's internals, survives upgrad
 
 ---
 
-## Summary
+## Apply it
 
-Seniority on this topic is stewardship of a finite magic budget. Run every metaprogramming proposal through a fixed gauntlet — framework-level not app-level, pays for itself many times, debuggable in production, survives your build/deploy constraints, bus factor above one, no cheap boring alternative — and require *all* of it, not most. The justified band is narrow: large, painful, error-prone, repeated boilerplate at a framework boundary, owned and debuggable, with readable committed codegen preferred over runtime reflection. The war stories all rhyme: the DSL became a cage, the annotation magic ate a day that the call site couldn't explain, the reflection wouldn't AOT-compile at the worst moment, and the rewrite to boring code made everyone faster even though it added lines. Optimize for the tired on-call engineer on their worst day, zero out the author's comfort, treat line count as a lie about complexity, and remember that adding magic is easy while removing it is a hard, high-value refactor you should celebrate. Don't moralize — cost it — and when the rare case clears the bar, approve it with confidence.
+1. State the system invariant that **When NOT to Metaprogram** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
+
+## Verify your work
+
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
+
+## Review questions
+
+- Which invariant must remain true when When NOT to Metaprogram fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

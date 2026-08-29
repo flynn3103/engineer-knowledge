@@ -1,56 +1,11 @@
-# Reading Codegen (Disassembly & Compiler Output) — Senior Level
+# Reading Codegen (Disassembly & Compiler Output) — Senior
 
-> **Topic:** Reading Codegen (Disassembly & Compiler Output)
-> **Focus:** Settling optimization debates with evidence, the benchmark-optimized-away trap, why `-O3` sometimes loses, and reading LLVM IR as the layer between source and assembly.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Reading Codegen (Disassembly & Compiler Output)** under failure, load, and change?
 
-## Introduction
-
-> Focus: **Reading codegen as a *method* — using disassembly to prove or refute optimization claims, to debug performance, and to avoid measuring something the compiler already deleted.**
-
-By now you can read assembly fluently and recognize the optimizations that matter. The senior shift is from *reading* to *deciding things with the reading*. You're the person a team turns to when there's a disagreement: "is the compiler vectorizing this?", "did my refactor make it faster or just different?", "why is `-O3` slower than `-O2` here?". You answer those not with intuition but with **codegen as evidence**.
-
-This level is also where you learn the discipline's most expensive trap: **the compiler optimizes away your benchmark.** You measure a function that "does nothing observable," the optimizer deletes it entirely, and you proudly report a nanosecond timing for an empty loop. Senior engineers know how to defeat this (`DoNotOptimize`, `black_box`, `volatile` sinks) — and, crucially, how to *verify in the disassembly* that the work survived.
-
-> 🎓 **Why this matters for a senior:** Your performance conclusions become *organizational truth*. If you claim "we should rewrite this in SIMD" and the compiler was already vectorizing the scalar version, you've wasted a sprint. If you "prove" a 10× speedup that was actually the optimizer deleting a dead benchmark, you've shipped a lie. The defense against both is the same: read the codegen, confirm the work exists, attribute the time, and present the disassembly as evidence. Opinions don't survive a code review of the assembly.
-
-This page covers: using disassembly to settle "is this optimization happening?" debates with evidence; the benchmark-optimized-away trap and the sinks that defeat it (`benchmark::DoNotOptimize` / `ClobberMemory`, Rust `std::hint::black_box`, `volatile` sinks); why `-O3` can be *slower* than `-O2` (code bloat, i-cache, bad inlining/unroll heuristics); reading **LLVM IR** (`clang -emit-llvm -S`) as the explainable middle layer; and surprising-codegen stories (the compiler did something clever; the compiler *refused* to optimize because of UB/volatile/aliasing). `professional.md` extends this to JIT disassembly and aliasing-driven failures in production.
-
----
-
-## Prerequisites
-
-- **Required:** Fluent reading of optimized x86-64 (`middle.md`): SIMD recognition, BCE, inlining, `perf annotate`.
-- **Required:** Comfort controlling compiler flags (`-O2/-O3`, `-march`, `-ffast-math`, LTO).
-- **Required:** You've written at least one microbenchmark and care whether it's honest.
-- **Helpful:** Exposure to LLVM IR or any SSA-form intermediate representation.
-- **Helpful:** A working `perf` setup and a real workload to profile.
-
-You do **not** need: JIT internals (`professional.md`), or the ability to write a compiler pass. This is about *reading* and *deciding*.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Optimized away** | The compiler proved code has no observable effect and deleted it. The bane of naive microbenchmarks. |
-| **Sink / clobber** | A construct that forces the compiler to treat a value as "observed" so it can't be eliminated: `DoNotOptimize`, `black_box`, a `volatile` store. |
-| **`DoNotOptimize` / `ClobberMemory`** | Google Benchmark helpers: `DoNotOptimize(x)` forces `x` to be computed and kept; `ClobberMemory()` forces pending memory writes to be considered observed. |
-| **`black_box`** | Rust's `std::hint::black_box(x)` — an opaque identity function the optimizer can't see through; prevents folding/eliminating around it. |
-| **`volatile`** | A C/C++ qualifier forcing every read/write to actually happen (memory-mapped I/O semantics). Often misused as a benchmark sink. |
-| **LLVM IR** | LLVM's typed, SSA-form intermediate representation — the layer between source and machine code. Readable, target-independent, where most optimizations happen. |
-| **SSA (Static Single Assignment)** | An IR form where each value is assigned exactly once (`%1`, `%2`, …). Makes data flow explicit and optimizations easier to read. |
-| **`-emit-llvm`** | Clang flag to print LLVM IR (`-S` for text `.ll`, no flag for bitcode `.bc`). |
-| **Code bloat** | Larger machine code from aggressive inlining/unrolling, which can hurt instruction-cache behavior and overall speed. |
-| **i-cache pressure** | When hot code no longer fits in the L1 instruction cache, causing fetch stalls — a way `-O3` can be slower. |
-| **UB (Undefined Behavior)** | A program condition the language says must never occur; the compiler optimizes *assuming it can't*, sometimes with surprising results. |
-| **Aliasing** | Whether two pointers might refer to the same memory. If the compiler can't rule it out, many optimizations are blocked. |
-| **`restrict` / `noalias`** | A promise that a pointer doesn't alias others, unlocking optimizations. Visible as `noalias` in LLVM IR. |
-| **Reassociation** | Reordering arithmetic (e.g. float sums) for parallelism — only legal under relaxed FP (`-ffast-math` / `fast` flags in IR). |
-| **PGO** | Profile-guided optimization: feeding runtime profiles back to the compiler so it optimizes the actually-hot paths. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -124,34 +79,6 @@ Two categories of surprise are worth internalizing:
 
 - **The compiler was cleverer than you.** It replaced your loop with a closed-form formula, turned a `popcount` loop into a single `popcnt`, recognized a `memcpy` pattern and called `memcpy`, or vectorized something you assumed it couldn't. Reading codegen keeps you humble: *check before hand-optimizing*, because you may be "fixing" something already optimal.
 - **The compiler did nothing, for a reason you can name.** A division that "should" be a shift wasn't, because the value is signed and could be negative (signed division by a power of two needs a correction). A loop that "should" vectorize didn't, because of aliasing. Each non-optimization has a cause; finding it is the job.
-
----
-
-## Real-World Analogies
-
-**The lab notebook vs. the press release.** A microbenchmark number is a press release. The disassembly is the lab notebook showing the experiment actually ran. A senior engineer never publishes the press release without the notebook — because half the time the notebook reveals the "experiment" measured an empty tube (the optimized-away benchmark).
-
-**The over-eager renovation.** `-O3` is a contractor who, told "make it faster," knocks out *every* wall (inlining everything, unrolling everything). Sometimes the open plan is better; sometimes you've destroyed the structural walls and the house is slower to live in (i-cache thrash). You inspect the blueprint (codegen) before approving.
-
-**The interpreter between you and the witness.** LLVM IR is a professional interpreter who renders the witness's testimony (your source) in clear, precise language *before* it's transcribed into legal shorthand (assembly). When the shorthand is ambiguous, you go back to the interpreter's clean rendering.
-
-**The magician's reveal.** When the compiler does something clever, reading codegen is watching the slow-motion reveal of the trick. When it *refuses*, it's the magician explaining "I can't do that one — you're holding my hand" (aliasing, volatile, UB constraints).
-
----
-
-## Mental Models
-
-**Model 1: Structural claims → read codegen; quantitative claims → benchmark (then read codegen).** "Did it vectorize/inline/fold" is answered by the assembly, deterministically. "How much faster" needs measurement — but only *after* you've confirmed via codegen that the thing you're timing actually runs.
-
-**Model 2: A sink is a contract, not a guarantee — verify it.** `DoNotOptimize`/`black_box`/`volatile` *should* keep the work, but you confirm by reading the loop body in the disassembly. No body, no number.
-
-**Model 3: Optimization level is a hypothesis, not a setting.** `-O3` *might* be faster. Treat it as a claim to test on the whole program, with the codegen explaining any regression.
-
-**Model 4: IR is the "why," assembly is the "what."** When assembly tells you *what* happened but not *why*, drop to LLVM IR where attributes (`noalias`, `fast`) and inlined bodies make the decision legible.
-
-**Model 5: Every missing optimization has a nameable cause.** Aliasing, a hidden call, `volatile`, FP strictness, signedness, or a cost-heuristic. Don't accept "the compiler just didn't" — find which one.
-
-**Model 6: Trust, but read.** The compiler is usually right and often cleverer than you. Before hand-optimizing, read the codegen to check it isn't already optimal — and after hand-optimizing, read it to confirm you actually changed something.
 
 ---
 
@@ -286,38 +213,6 @@ Because `a` is `volatile`, every `a[i]` read *must* happen, in order — the com
 
 ---
 
-## Pros & Cons
-
-**Pros of the senior, evidence-driven approach:**
-
-- **Ends debates with deterministic proof** instead of noisy benchmarks for structural questions.
-- **Prevents the most expensive performance lie** (the optimized-away benchmark) by verifying the work survives.
-- **Explains regressions** (`-O3` slower, missed vectorization) by tracing them to a nameable cause in the codegen/IR.
-- **LLVM IR gives an explainable layer** when assembly is too noisy to reason about.
-- **Protects against wasted effort** — you check whether the compiler already did the optimization before doing it by hand.
-
-**Cons / costs:**
-
-- **Requires discipline:** sink + verify + measure is more steps than "just run the benchmark."
-- **IR and asm both take fluency** to read quickly; the ramp is real.
-- **Structural correctness ≠ speed.** Confirming vectorization doesn't tell you it's *fast enough*; you still profile.
-- **Conclusions are flag- and target-specific**, so they must be reproduced in the real build config.
-- **Over-reliance risk:** reading codegen can become a rabbit hole that displaces actually shipping the fix.
-
----
-
-## Use Cases
-
-- **Adjudicating "is the compiler vectorizing this?"** in a design review by pasting both versions into Godbolt and showing the packed-vs-scalar difference.
-- **Auditing a microbenchmark** before trusting its numbers: confirm in the disassembly that the timed body isn't empty.
-- **Diagnosing a `-O3` regression** by correlating whole-program timing, `.text` size, and visible bloat in the hot function.
-- **Explaining a missed optimization** (aliasing, hidden call, volatile, FP strictness) with the IR `noalias`/`fast` attributes as evidence.
-- **Deciding whether a hand-written SIMD rewrite is worth it** by first checking whether the compiler already vectorized the scalar version.
-- **Justifying `restrict`/`__restrict`/non-aliasing refactors** by showing the before/after codegen.
-- **Validating PGO** improved the hot path layout by comparing instrumented vs. optimized disassembly.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Sink-and-verify for every microbenchmark
@@ -383,3 +278,27 @@ Before writing intrinsics or hand-unrolling, read the compiler's current output.
 - **Inlining hiding samples.** When you profile after confirming inlining, the inlined work shows up in the *caller*. Don't conclude "the function is free."
 - **IR is not the final word.** The optimizer keeps working after the IR you printed (and the backend does its own thing). For the *final* truth, read the assembly; use IR to understand *intent*.
 - **Reduced example diverges from production.** A tiny snippet may vectorize while the real (bigger, aliased, call-laden) loop doesn't. Confirm conclusions on code shaped like the real thing.
+
+---
+
+## Apply it
+
+1. State the system invariant that **Reading Codegen (Disassembly & Compiler Output)** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
+
+## Verify your work
+
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
+
+## Review questions
+
+- Which invariant must remain true when Reading Codegen (Disassembly & Compiler Output) fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

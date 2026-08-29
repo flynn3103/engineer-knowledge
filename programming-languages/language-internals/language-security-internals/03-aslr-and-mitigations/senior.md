@@ -1,53 +1,11 @@
-# ASLR & Mitigations — Senior Level
+# ASLR & Mitigations — Senior
 
-> **Topic:** ASLR & Mitigations
-> **Focus:** The bypass *classes* — info-leak-then-reuse, brute force on forking servers, partial overwrites, JIT spray, side-channel de-randomization — and the modern hardening that answers them: re-randomization, shadow stacks, CET, and KASLR.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **ASLR & Mitigations** under failure, load, and change?
 
-## Introduction
-
-> Focus: **Why does ASLR fail in the field, and what replaces or augments it — so you can reason about the security of a system the way an attacker and a defender both do?**
-
-A senior engineer's job is not to recite "ASLR randomizes addresses." It is to predict *how a real attacker bypasses it* and to design systems whose defenses don't collapse to a single bug. The central truth: **modern ASLR bypasses are not about beating randomization head-on — they're about getting the addresses by other means.** An information leak hands them over. A forking server hands them over by repetition. A partial overwrite sidesteps them. A JIT hands the attacker a writable-executable region whose contents they influence. A microarchitectural side channel can recover them without ever reading them through the program's logic.
-
-Understanding these bypass *classes* is what lets you reason about residual risk. When you enable Full RELRO, NX, PIE, and canaries, you have forced the attacker into a specific shape: **they now need an info leak plus a control-flow corruption, and they must turn those into a reuse chain (ROP/JOP) against addresses the leak revealed.** That's a much higher bar than 1996's "inject shellcode and jump." But it's not infinite, which is why the frontier moved on: **re-randomization** (move the targets faster than they can be used), **shadow stacks and CET** (make return-address and indirect-call corruption fail even with addresses in hand), and **KASLR** for the kernel (with its own famous breaks, like Meltdown).
-
-This page is conceptual and defensive throughout. We describe attack *classes* at the level a defender needs to design countermeasures; we do not provide working exploits, gadgets, or chains.
-
----
-
-## Prerequisites
-
-- **Required:** The middle-level mechanics: who randomizes what at exec, entropy quantification, the GOT/PLT call path, Partial vs. Full RELRO, NX forcing code reuse, partial overwrites within a page.
-- **Required:** Comfort with the idea of **code reuse** attacks (return-to-libc, ROP/JOP) at a conceptual level — chaining existing executable fragments instead of injecting code.
-- **Required:** Virtual memory, page permissions, and the difference between user-space and kernel-space address randomization.
-- **Helpful:** Awareness of microarchitecture (caches, TLBs, speculative execution) for the side-channel discussion.
-- **Helpful:** Familiarity with how JITs allocate and emit executable memory.
-
-You do **not** need to write exploits; we reason about classes and defenses, not payloads.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Code reuse attack** | Hijacking control flow to chain together existing executable code instead of injecting new code. ROP and JOP are instances. |
-| **ROP (Return-Oriented Programming)** | Chaining short instruction sequences ("gadgets") ending in `ret`, driven by a crafted stack, to compute arbitrary behavior from existing code. |
-| **JOP (Jump-Oriented Programming)** | Like ROP but built around indirect jumps/calls rather than returns; relevant when return-protection is deployed. |
-| **Gadget** | A short sequence of existing instructions ending in a controllable transfer (`ret`, `jmp reg`, `call reg`). |
-| **Info leak** | A vulnerability disclosing a real runtime address, collapsing ASLR for the containing region. |
-| **BROP (Blind ROP)** | A technique to build a ROP attack against a *forking* server with no binary and no leak, by observing crash-vs-survive behavior across attempts that share the parent's layout. |
-| **JIT spray** | Coercing a JIT to emit predictable executable bytes whose embedded constants form usable instructions, sidestepping ASLR/DEP by attacking the predictable JIT region. |
-| **Side-channel de-randomization** | Recovering layout information through timing/microarchitectural effects (cache, TLB, branch predictor) rather than logical disclosure. |
-| **Re-randomization** | Periodically re-randomizing a running process's layout so leaked addresses go stale before they can be used. |
-| **Shadow stack** | A separate, protected stack holding a copy of return addresses; a mismatch on return aborts — defeats return-address overwrite. |
-| **CET (Control-flow Enforcement Technology)** | Intel hardware: a shadow stack (return protection) plus IBT (indirect-branch tracking via `endbr` landing pads). |
-| **IBT** | Indirect Branch Tracking: indirect calls/jumps must land on an `endbr` instruction, constraining JOP/COP. |
-| **KASLR** | Kernel ASLR: randomizing the kernel's base load address. |
-| **KPTI** | Kernel Page-Table Isolation: separates kernel/user page tables, a mitigation for Meltdown that also re-strengthens KASLR. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -124,36 +82,6 @@ The senior framing: **ASLR is the probabilistic layer; shadow stacks/CET/PAC/CFI
 
 ---
 
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Info-leak-then-reuse** | A spy who can't find the vault but bribes one clerk for *one* room number — and, knowing the floor's fixed blueprint, now maps the whole wing. |
-| **BROP / fork brute force** | A thief who gets unlimited do-overs because the building resets to the *same* layout after every failed break-in; each failure teaches them one more thing. |
-| **Partial overwrite** | Not picking the lock, just bending the doorknob a few degrees to point the latch at the next room over — the random part of the address was never touched. |
-| **JIT spray** | Bribing the building's own print shop to print your forged instructions on official paper — the paper is legitimately "executable," so guards wave it through. |
-| **Side-channel de-randomization** | Reading which room the VIP is in from the warmth of the hallway floor, never opening a single door. |
-| **Re-randomization** | Re-shuffling all the rooms every few minutes, so the clerk's leaked number is wrong before the spy can use it. |
-| **Shadow stack / CET** | Even with the right room number, the door now needs a second, sealed key copy that the spy can't forge — knowing the address no longer opens it. |
-
----
-
-## Mental Models
-
-### The "secrecy layer vs. enforcement layer" model
-
-Sort every mitigation into two buckets. **Secrecy** (ASLR, KASLR) hides where things are — defeated by leaks, brute force, side channels. **Enforcement** (shadow stacks, CET/IBT, PAC, CFI, RELRO) makes a corrupted control transfer *fail* regardless of what the attacker knows. Secrecy is probabilistic and brittle; enforcement is deterministic and durable. A serious system needs both, and you should be able to say, for any given attack, which layer is doing the work and which has been bypassed.
-
-### The "address vs. capability" model
-
-ASLR withholds an *address*. Modern attacks often withhold nothing about addresses (they leak them) and instead attack the *capability* to use them. So ask two separate questions of any defense: "Does it stop the attacker from *learning* the address?" and "Does it stop the attacker from *using* a known address to hijack control?" ASLR answers only the first; shadow stacks/CET answer the second.
-
-### The "shared layout is the vulnerability" model
-
-For the entire brute-force/BROP class, the bug isn't entropy — it's *reuse of one randomized layout across many attempts*. Whenever a design re-uses a single randomization (fork-without-exec, snapshotted images, restored checkpoints, container images sharing a base), you've converted a strong one-shot defense into a weak many-shot one. Hunt for shared layouts.
-
----
-
 ## Code Examples
 
 Defensive and observational; no exploits.
@@ -220,30 +148,6 @@ emit_machine_code(code, len);                                // fill it
 mprotect(code, len, PROT_READ | PROT_EXEC);                  // now exec, not write
 // Plus: constant-blind emitted immediates, randomize placement, add guard pages.
 ```
-
----
-
-## Pros & Cons
-
-| Mitigation | Strength | Limit / what bypasses it |
-|------------|----------|--------------------------|
-| **ASLR (secrecy)** | Cheap; forces a leak; layered with NX forces reuse. | Info leak, fork brute force, partial overwrite, side channels. |
-| **Re-randomization** | Makes leaked addresses go stale; structural answer to leaks. | Hard to do cheaply and pointer-consistently; limited deployment. |
-| **Shadow stack** | Deterministically blocks return-address overwrite even with addresses known. | Needs hardware/runtime support; doesn't stop forward-edge (call/jump) hijacks. |
-| **CET IBT / BTI** | Constrains indirect-branch targets; guts JOP/COP. | Coarse (any `endbr` is legal); doesn't pin the *exact* intended target. |
-| **PAC (ARM)** | Cryptographically signs pointers; corruption fails verification. | Key-recovery and signing-gadget reuse concerns; coverage gaps. |
-| **CFI (software)** | Restricts indirect transfers to a legal set. | Precision/perf trade-off; coarse CFI still allows some reuse. |
-| **KASLR** | Hides kernel base from kernel-exploit hardcoding. | Side channels, Meltdown; needs KPTI/FGKASLR to be meaningful. |
-
----
-
-## Use Cases
-
-- **Threat-modeling a network service.** Enumerate which bypass classes apply: Is it forking (BROP risk)? Does it expose read primitives (leak risk)? Does it JIT (spray risk)? Then map each to a defense.
-- **Choosing the deterministic layer.** On modern x86, enable CET (shadow stack + IBT); on ARM, PAC + BTI. These hold even when ASLR is leaked.
-- **Hardening a browser/runtime with a JIT.** W^X JIT memory, constant blinding, region randomization — the JIT is the soft spot ASLR/DEP don't cover.
-- **Kernel/hypervisor hardening.** KASLR + KPTI + FGKASLR; treat any kernel info-leak as critical, since it collapses KASLR.
-- **Designing crash-resilient servers without creating an oracle.** Re-exec workers, rate-limit crashes, alert on crash storms — deny the repeated-identical-layout the brute-force class needs.
 
 ---
 
@@ -320,142 +224,24 @@ The most durable answer to every bypass class is **memory safety**: a memory-saf
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. Explain why, after enabling NX + ASLR + Full RELRO + canaries, the canonical exploit becomes a *two-bug* attack. Name the two capabilities the attacker needs.
-2. Describe the BROP insight in terms of *layout reuse* and a *crash oracle*. Why does re-`exec`ing workers defeat it while increasing entropy does not?
-3. Why does a partial (low-byte) pointer overwrite succeed with certainty against high-entropy ASLR? Which mitigation class actually stops it?
-4. A browser JIT must allocate executable memory it fills with user-influenced content. Name two JIT-specific defenses and the attack (JIT spray) they target.
-5. How did Meltdown defeat KASLR, and how does KPTI restore it? What does FGKASLR add on top?
-6. Sort these into "secrecy" vs. "enforcement": ASLR, shadow stack, RELRO, IBT, PAC, KASLR, CFI. Why does a serious system need both buckets?
-7. Shadow stacks block one class of control-flow hijack but not another. Which is which, and what do you pair them with?
-8. Give two real-world ways a "shared randomization" sneaks into a deployment (besides fork-without-exec) and how to detect each.
+1. State the system invariant that **ASLR & Mitigations** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
----
+## Verify your work
 
-## Cheat Sheet
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
 
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│            ASLR BYPASS CLASSES & MODERN HARDENING (SENIOR)       │
-├──────────────────────────────────────────────────────────────────┤
-│ FORCED EXPLOIT SHAPE (NX+ASLR+RELRO+canary):                     │
-│   need (1) INFO LEAK  +  (2) corruption -> ROP/JOP reuse chain   │
-├──────────────────────────────────────────────────────────────────┤
-│ BYPASS CLASSES:                                                  │
-│   A info-leak-then-reuse  : 1 leaked ptr -> whole region base    │
-│   B fork brute force/BROP : shared layout + crash oracle         │
-│   C partial overwrite     : flip low bits, randomized bits intact│
-│   D JIT spray             : predictable exec region you fill     │
-│   E side channel/Meltdown : recover layout w/o logical disclosure│
-├──────────────────────────────────────────────────────────────────┤
-│ TWO DEFENSE LAYERS:                                              │
-│   SECRECY  : ASLR, KASLR        (leaks/brute/side-channel defeat)│
-│   ENFORCE  : shadow stack, CET/IBT, PAC, BTI, CFI, RELRO         │
-│              -> address KNOWN is still INSUFFICIENT to hijack    │
-├──────────────────────────────────────────────────────────────────┤
-│ ANSWERS:                                                        │
-│   leaks      -> re-randomization + enforcement layer             │
-│   BROP       -> re-exec workers, rate-limit/alert crashes        │
-│   partial OW -> memory safety / CFI / IBT                        │
-│   JIT spray  -> W^X, constant blinding, randomized placement     │
-│   KASLR break-> KPTI + FGKASLR + side-channel mitigations        │
-├──────────────────────────────────────────────────────────────────┤
-│ DURABLE FIX: memory safety removes the OOB read/write the whole  │
-│              bypass tree depends on.                             │
-└──────────────────────────────────────────────────────────────────┘
-```
+## Review questions
 
----
-
-## Summary
-
-- With NX + ASLR + Full RELRO + canaries, the attacker is forced into a **two-bug** shape: an **info leak** (beats ASLR) plus a **corruption primitive** (hijacks control), feeding a **code-reuse (ROP/JOP)** chain. ASLR's specific job is to convert "I know the addresses" into "I must leak the addresses."
-- **Bypass classes:** (A) info-leak-then-reuse — one pointer de-randomizes a whole region; (B) brute force on forking servers / **BROP** — shared layout plus a crash oracle, defeated by *non-reuse* not entropy; (C) **partial overwrites** — flip low bits, randomized bits untouched, certain success; (D) **JIT spray** — a predictable, attacker-filled executable region sidesteps DEP/ASLR; (E) **side channels/Meltdown** — recover layout without logical disclosure.
-- The strategic shift is from **secrecy** (hide addresses: ASLR/KASLR — brittle to leaks/brute/side-channels) to **enforcement** (make a known address insufficient: **shadow stacks, CET/IBT, PAC, BTI, CFI, RELRO**). Serious systems deploy both.
-- **Re-randomization** makes leaked addresses go stale (the structural answer to "they will leak"). **Shadow stacks** deterministically defeat return-address overwrite; **IBT/CFI/PAC** constrain forward-edge (call/jump) hijacks. Shadow stacks protect returns only — pair them with forward-edge enforcement.
-- **KASLR** has the same weaknesses amplified; **Meltdown** broke it by reading kernel memory from user space; **KPTI** restores it (and blocks the side channel) and **FGKASLR** shuffles function order so one kernel leak no longer reveals all.
-- Recurring structural flaw: **shared randomization** (fork-without-exec, snapshots, golden images). Hunt for it.
-- The durable fix beneath every mitigation is **memory safety**, which removes the out-of-bounds reads and writes that all bypass classes require. Mitigations buy time and raise cost for the native code you can't yet make safe.
-
----
-
-## Further Reading
-
-- *"Hacking Blind"* — Bittau, Belay, Mashtizadeh, Mazières, Boneh (IEEE S&P 2014). The BROP paper.
-- *"On the Effectiveness of Address-Space Randomization"* — Shacham et al. (CCS 2004). The brute-force-the-fork foundation.
-- *"Q: Exploit Hardening Made Easy"* and *"Return-Oriented Programming"* — Shacham et al. The conceptual basis for why NX forces reuse.
-- *"Writing JIT-Spray Shellcode for Fun and Profit"* / Dion Blazakis, *"Interpreter Exploitation"* — the JIT-spray class and constant blinding as the answer.
-- *Meltdown* and *Spectre* papers (Lipp et al.; Kocher et al., 2018) — speculative-execution attacks; Meltdown vs. KASLR.
-- *"KASLR is Dead: Long Live KASLR"* — Gruss et al. on KAISER/KPTI.
-- *FGKASLR* — Linux kernel function-granular KASLR design docs.
-- *Intel CET specification* and the GCC `-fcf-protection` / `-z shstk` documentation.
-- *ARMv8.3 Pointer Authentication* and *BTI* architecture reference material.
-- *"Control-Flow Integrity: Principles, Implementations, and Applications"* — Abadi, Budiu, Erlingsson, Ligatti.
-- *"Shuffler: Fast and Deployable Continuous Code Re-Randomization"* — Williams-King et al. (OSDI 2016).
-
----
-
-## Diagrams & Visual Aids
-
-### The forced two-bug exploit shape
-
-```text
-   mitigations deployed: NX + ASLR + Full RELRO + canary
-        │
-        ├─ can't inject code (NX)          ─► must REUSE existing code
-        ├─ can't hardcode addrs (ASLR)     ─► need an INFO LEAK
-        ├─ can't overwrite GOT (Full RELRO)─► target ret/fn-ptr/vtable
-        └─ can't blindly smash stack (canary)─► leak/avoid the cookie
-                         │
-                         ▼
-        EXPLOIT = info-leak bug  +  corruption bug  ->  ROP/JOP chain
-```
-
-### Brute force on a forking server (the oracle)
-
-```text
-   parent (randomized layout L)
-        │ fork (NO exec)  -> children inherit SAME layout L
-        ├── attempt: probe address A
-        │      crash?  -> A wrong   (oracle bit = 0)
-        │      alive?  -> A right   (oracle bit = 1)
-        │      layout still L  -> info accumulates across attempts
-        ▼
-   recover key addresses incrementally  ->  build chain (BROP)
-
-   FIX: re-exec each worker -> each gets a FRESH layout -> oracle dies.
-```
-
-### Secrecy layer vs. enforcement layer
-
-```text
-   ATTACKER GOAL: hijack control flow
-
-   SECRECY (hide the address)          ENFORCEMENT (block the use)
-   ┌───────────────────────┐          ┌───────────────────────────┐
-   │ ASLR / KASLR          │          │ shadow stack (returns)    │
-   │  defeated by:         │          │ CET IBT / BTI (fwd edge)  │
-   │   - info leak         │          │ PAC (signed pointers)     │
-   │   - fork brute force  │          │ CFI (legal-target set)    │
-   │   - partial overwrite │          │ RELRO (frozen GOT)        │
-   │   - side channel      │          │  -> address KNOWN is not  │
-   └───────────────────────┘          │     enough to hijack      │
-                                       └───────────────────────────┘
-   Robust system = BOTH layers.  Leak beats secrecy; enforcement holds.
-```
-
-### Meltdown vs. KASLR, and KPTI's answer
-
-```text
-   BEFORE KPTI                         WITH KPTI
-   user page tables map the kernel     kernel unmapped from user tables
-        │                                   │
-   Meltdown speculatively reads             Meltdown has nothing to read
-   kernel memory from user space            (and timing side channel loses
-        │                                    the mapped addrs to probe)
-        ▼                                   ▼
-   recover randomized kernel base       KASLR base stays hidden
-   => KASLR DEFEATED                    (+ FGKASLR shuffles fn order so
-                                          one leak != all kernel addrs)
-```
+- Which invariant must remain true when ASLR & Mitigations fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

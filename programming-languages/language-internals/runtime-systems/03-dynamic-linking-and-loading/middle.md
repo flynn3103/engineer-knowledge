@@ -1,59 +1,11 @@
-# Dynamic Linking & Loading — Middle Level
+# Dynamic Linking & Loading — Middle
 
-> **Topic:** Dynamic Linking & Loading
-> **Focus:** How a call to `printf` actually finds `printf` at run time — the GOT, the PLT, lazy vs eager binding, and the ELF dynamic section that drives it all.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **Dynamic Linking & Loading** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-> Focus: **When your code calls a function in another shared library, what machine-level mechanism turns that call into the right address — and why is the first call slow but every call after it fast?**
-
-At the junior level, "the loader resolves symbols" was a black box: the loader finds `printf` and "wires up the call." Now we open the box. The wiring is two small tables that the linker plants in every dynamically linked binary:
-
-- The **GOT (Global Offset Table)** — an array of *pointers*. After resolution, the slot for `printf` holds `printf`'s real run-time address.
-- The **PLT (Procedure Linkage Table)** — a tiny array of *stubs* (a few instructions each). Your code never calls `printf` directly; it calls the PLT stub for `printf`, which jumps through the GOT.
-
-The clever part is **lazy binding**: the first time you call `printf`, its GOT slot doesn't yet hold the answer. The PLT stub instead routes the call into the dynamic loader, which resolves `printf`, *patches the GOT slot with the answer*, and tail-jumps into `printf`. Every subsequent call sails straight through the now-correct GOT slot with no loader involvement. You pay the resolution cost once, only for symbols you actually use, and only when you first use them.
-
-> 🎓 **Why this matters at the middle level:** This is the layer where "thread-safety of the loader," "why is my cold start slow," "what does `-z now` do," and "how does `LD_PRELOAD` hijack `malloc`" all suddenly make sense. The GOT/PLT model is the single most leverage-dense idea in dynamic linking — once you can draw it, half of the senior-level material is obvious.
-
-This page covers: the GOT and PLT in detail; the exact first-call resolution dance and the GOT patch; lazy (`DT_BIND_NOW` off) vs eager/now (`-z now`) binding and their trade-offs; the ELF **dynamic section** (`DT_NEEDED`, `DT_RELA`, `DT_JMPREL`, …) that the loader reads; and a recap of position-independent code and why the GOT exists in the first place.
-
----
-
-## Prerequisites
-
-- **Required:** Junior level of this topic — static vs dynamic linking, what the loader does, `ldd`/`nm`.
-- **Required:** Comfort reading a little x86-64 assembly (a `call`, a `jmp`, an indirect jump `jmp *(%rax)`).
-- **Required:** Understanding that virtual memory gives each process its own address space, and that code/data live at virtual addresses.
-- **Helpful:** Having compiled a `.so` with `-fPIC` and run `objdump -d` on something.
-- **Helpful:** Awareness of relocations as "fix-ups the linker/loader applies to patch addresses."
-
-You do **not** yet need: symbol versioning, interposition rules, `dlopen` internals, JVM class loaders, or ABI policy — those are `senior.md` / `professional.md`.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **GOT (Global Offset Table)** | A writable table of pointers, one slot per imported symbol (and per global referenced position-independently). After resolution the slot holds the symbol's real address. |
-| **PLT (Procedure Linkage Table)** | A read-only table of small code stubs, one per imported function. Calls go *through* the PLT, which jumps via the GOT. |
-| **`.got` / `.got.plt`** | ELF sections holding GOT entries. `.got.plt` holds the entries the PLT uses (function pointers); `.got` often holds data-symbol pointers. |
-| **`.plt`** | The ELF section holding PLT stubs. |
-| **Lazy binding** | Resolving each function's address on its *first call*, not at load time. The default for functions on most Linux systems. |
-| **Eager / now binding** | Resolving *all* symbols at load time, before `main`. Enabled by `-z now` / `LD_BIND_NOW=1` / `DT_BIND_NOW`. |
-| **Relocation** | An instruction to the linker/loader: "patch the address at location X to point at symbol Y (plus an offset)." |
-| **`R_X86_64_JUMP_SLOT`** | The relocation type for a PLT/GOT function slot — the kind resolved lazily. |
-| **`R_X86_64_GLOB_DAT`** | The relocation type for a GOT *data* slot — resolved at load time. |
-| **Dynamic section** | The ELF `.dynamic` section: a list of tagged entries (`DT_*`) the loader reads to know what to do. |
-| **`DT_NEEDED`** | A dynamic-section entry naming a required library (the "shopping list"). |
-| **`DT_JMPREL` / `DT_PLTRELSZ`** | Where the PLT relocations live and how big they are. |
-| **`_dl_runtime_resolve`** | The glibc loader routine the PLT trampolines into on a first call. |
-| **PIC (Position-Independent Code)** | Code that works at any load address by addressing data/calls *relative to itself* (RIP-relative) and going through the GOT for absolute addresses. |
-| **`DT_BIND_NOW` / `DF_BIND_NOW`** | Dynamic flags requesting eager binding. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -150,26 +102,6 @@ How does the loader know which libraries to load, where the relocations are, whe
 
 ---
 
-## Real-World Analogies
-
-**The speed-dial that programs itself.** The PLT/GOT is a speed-dial button labelled "printf." The *first* time you press it, it doesn't have a number yet, so it routes you to the operator (the loader), who looks up the number, *writes it onto the speed-dial button*, and connects your call. Every press after that dials directly. You did the slow lookup once; the button remembers.
-
-**The mailroom forwarding table.** Your code addresses mail to "printf, c/o the GOT." The GOT is a forwarding table at the mailroom. At first the table forwards to the loader's desk, who finds the real office, *updates the forwarding table*, and delivers. Later mail goes straight to the office. The letters (your code) never change; only the forwarding table (writable GOT) does.
-
-**Will-call vs already-seated (lazy vs eager).** Lazy binding is will-call: you only collect a ticket for the show you actually attend, but there's a queue at the window the first time. Eager binding seats everyone before the doors even matter — no queue mid-show, but you waited up front, even for shows nobody watches.
-
----
-
-## Mental Models
-
-**Model 1: GOT = data indirection, PLT = code indirection.** Both exist so that constant, shareable code can reach per-process, load-time addresses. Data goes through the GOT; functions go through the PLT (which itself uses the GOT). One writable table, one read-only table of stubs.
-
-**Model 2: The first call writes the answer down.** Lazy binding is memoization at the machine level. The PLT stub's GOT slot is a cache, initially "miss" (points at the resolver), permanently "hit" after the first call (points at the function).
-
-**Model 3: `readelf -d` is the loader's to-do list.** Everything the loader does — which libraries, which relocations, which init functions, eager-or-lazy — is declared in the dynamic section. If behavior surprises you, read the list.
-
----
-
 ## Code Examples
 
 ### See the PLT and GOT in a real binary
@@ -258,30 +190,6 @@ The loader executed `setup` from the init array before transferring control to `
 
 ---
 
-## Pros & Cons
-
-| Aspect | Lazy binding | Eager (now) binding |
-|--------|--------------|---------------------|
-| **Startup latency** | Lower — only used symbols cost anything. | Higher — resolves everything up front. |
-| **First-call latency** | Spike on first use of each symbol. | None — already resolved. |
-| **Latency determinism** | Worse — hidden per-symbol spikes. | Better — all cost is at startup. |
-| **Security (GOT)** | GOT stays writable for the program's life (attackable). | Pairs with full RELRO to make GOT read-only. |
-| **Throughput at steady state** | Same — after warm-up both are one indirect jump. | Same. |
-| **Best for** | Short-lived processes, many imports/few used. | Latency-sensitive servers, security-hardened builds. |
-
-The GOT/PLT indirection itself costs one extra indirect jump per cross-library call versus a direct call — usually negligible, but it's the reason static or LTO'd builds can be marginally faster on hot call paths.
-
----
-
-## Use Cases
-
-- **Understanding cold-start cost:** a process importing thousands of symbols across dozens of `.so`s pays measurable loader time. Knowing lazy vs eager lets you tune it (and explains why static/AOT helps cold start).
-- **Hardening:** choosing `-z now -z relro` to close the GOT-overwrite class of exploits, accepting slightly slower startup.
-- **Profiling weirdness:** a function that's mysteriously slow *the first time* and fast afterward is often just lazy PLT resolution — not your code.
-- **Interposition (preview of senior):** because cross-library calls go through the GOT/PLT, you can *insert* a different definition of a symbol (e.g. a wrapper `malloc`) and every call routes to yours. The GOT/PLT model is precisely what makes `LD_PRELOAD` possible.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Use `LD_DEBUG` to teach yourself what the loader did
@@ -324,49 +232,24 @@ Surprising pre-`main` behavior, a missing dependency, or an unexpected search pa
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```text
-THE TWO TABLES
-  GOT (.got / .got.plt)  writable, per-process  -> holds resolved POINTERS
-  PLT (.plt)             read-only, shared       -> holds tiny call STUBS
-  why: shareable constant code reaches per-process addresses via indirection
+1. Find a real component where **Dynamic Linking & Loading** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
-FIRST CALL (lazy):
-  call func@plt -> jmp *GOT[func] (still = resolver) -> push idx -> PLT0
-    -> _dl_runtime_resolve -> find func -> WRITE addr into GOT[func] -> jump func
-SECOND CALL:
-  call func@plt -> jmp *GOT[func] (now = real func) -> done.   (one indirect jmp)
+## Verify your work
 
-BINDING MODES
-  lazy (default funcs)   resolve on first call    -> fast start, first-call spike
-  now  (-z now / LD_BIND_NOW=1)  resolve all at load -> det. latency, slower start
-  full hardening: -Wl,-z,relro,-z,now  -> GOT read-only after load (no overwrite)
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
 
-RELOCATION TYPES (x86-64)
-  R_X86_64_JUMP_SLOT  PLT function slot  (lazy)
-  R_X86_64_GLOB_DAT   GOT data slot      (load time)
+## Review questions
 
-DYNAMIC SECTION (readelf -d)
-  DT_NEEDED   required library      DT_INIT_ARRAY  ctors run before main
-  DT_JMPREL   PLT relocations       DT_FINI_ARRAY  dtors at unload/exit
-  DT_RELA     data relocations      DT_RPATH/RUNPATH baked search paths
-  DT_SONAME   this lib's name       DT_GNU_HASH    fast symbol lookup
-
-OBSERVE EVERYTHING
-  readelf -d / -r / -l    LD_DEBUG=bindings|libs|reloc|statistics ./app
-  objdump -d -j .plt app
-```
-
----
-
-## Summary
-
-- A cross-library function call goes through two tables: the **PLT** (read-only stubs, one per function) and the **GOT** (writable pointers, patched with real addresses). Shareable constant code reaches per-process addresses via this indirection — the same trick that makes PIC and ASLR work.
-- **Lazy binding** resolves each function on its *first* call: the PLT stub detours into `_dl_runtime_resolve`, which finds the symbol, **patches the GOT slot**, and jumps to the function. Every later call is one indirect jump straight through the patched GOT.
-- **Eager (`now`) binding** resolves everything at load time: no first-call spikes, deterministic latency, and — paired with **full RELRO** — a read-only GOT that defeats GOT-overwrite exploits, at the cost of slower startup.
-- The loader is driven by the ELF **dynamic section** (`readelf -d`): `DT_NEEDED` (dependencies), `DT_JMPREL`/`DT_RELA` (relocations), `DT_INIT_ARRAY` (pre-`main` constructors), and more. It's the loader's literal to-do list.
-- Constructors run **before `main`** via `DT_INIT_ARRAY`; destructors run at unload/exit via `DT_FINI_ARRAY`.
-- Everything here is observable: `LD_DEBUG`, `readelf`, and `objdump` let you watch the loader resolve, patch, and jump. When in doubt, observe.
-
-Next: `senior.md` builds on the GOT/PLT to cover **symbol resolution rules** (search order, interposition, `LD_PRELOAD`, versioning, the diamond problem) and **`dlopen`/`dlsym`** for runtime plugins.
+- Which boundary is most affected by Dynamic Linking & Loading?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

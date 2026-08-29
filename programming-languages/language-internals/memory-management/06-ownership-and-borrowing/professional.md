@@ -1,31 +1,12 @@
-# Ownership & Borrowing — Professional Level
+# Ownership & Borrowing — Professional
 
-> **Topic:** Ownership & Borrowing
-> **Focus:** Production patterns at the boundary of the safe model — `unsafe` and its invariants, raw pointers, `Pin` and self-referential/`async` types, FFI ownership transfer, and the engineering discipline of building sound abstractions.
+<!-- level-focus -->
+At professional level, focus on this question:
 
+> How should teams adopt and operate **Ownership & Borrowing** with measurable outcomes and limited coordination?
+
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
-
-## Introduction
-
-Professional Rust lives in two worlds. Most code stays in the safe, borrow-checked world where the previous pages apply. But real systems have a boundary layer: places where you talk to C, implement a data structure the borrow checker can't model, build a self-referential type, or hand a Rust-allocated buffer to a kernel. At that boundary you write `unsafe`, take on the obligations the compiler was discharging for you, and re-expose a *safe* API on top. This page is about doing that correctly and the specific tools involved — raw pointers, `unsafe`, `Pin`, and FFI ownership transfer.
-
-The professional skill here is not writing `unsafe` — it's writing the *smallest possible* `unsafe` core, stating its invariants precisely, and proving (to a reviewer, in comments and tests) that the safe wrapper can never violate them. The standard library is the model: `Vec`, `String`, `Rc`, `Mutex`, and `HashMap` are all safe APIs over `unsafe` cores. Your job is to do the same in your own crate.
-
-## Prerequisites
-
-- Senior-level understanding of ownership as a design choice and its trade-offs vs GC.
-- Comfort with `Box`, `Rc`/`Arc`, `RefCell`/`Mutex`, lifetimes, and `Send`/`Sync`.
-- Reading-level familiarity with C calling conventions and `malloc`/`free`.
-
-## Glossary
-
-- **`unsafe`** — a keyword that unlocks five extra abilities (deref raw pointers, call `unsafe` fns, access `static mut`/unions, implement `unsafe` traits). It does **not** turn off the borrow checker.
-- **Raw pointer (`*const T` / `*mut T`)** — a pointer with no lifetime, no aliasing guarantees, and no automatic cleanup; dereferencing one requires `unsafe`.
-- **Soundness** — the property that no safe code using your API can trigger undefined behavior, no matter how it's called.
-- **Undefined behavior (UB)** — operations the compiler assumes never happen (data races, use-after-free, invalid values); their presence makes the whole program meaningless.
-- **`Pin<P>`** — a wrapper guaranteeing the pointee won't be moved, enabling self-referential types.
-- **`Unpin`** — an auto-trait marking types that are safe to move even when pinned (most types).
-- **FFI (Foreign Function Interface)** — calling between Rust and another language (usually C) across the ABI boundary.
 
 ## Core Concepts
 
@@ -174,6 +155,26 @@ impl Future for Delay {
 - **Moving a `!Unpin` value.** Constructing a self-referential type and then moving it (e.g., returning it by value before pinning) reintroduces the dangling-self-pointer bug `Pin` was meant to prevent. Pin *before* the references are established and never expose a path to move it.
 - **`mem::forget` and leaks vs UB.** Leaking memory is *safe* in Rust (it's not UB), so `Drop` is not guaranteed to run (`mem::forget`, `Rc` cycles, panics during drop). Don't write `unsafe` code whose soundness *depends* on a destructor running.
 
-## Summary
+---
 
-Professional Rust is defined by how it handles the boundary where the safe model ends. `unsafe` doesn't disable the borrow checker; it grants raw-pointer and `unsafe`-call powers in exchange for you upholding the soundness contract — no use-after-free, no data races, valid values, correct aliasing — documented per block and verified with Miri. `Pin` resolves the self-referential limitation that makes linked lists and `async` futures hard, which is why `Future::poll` takes `Pin<&mut Self>`. FFI strips away ownership entirely, so you transfer it explicitly with `into_raw`/`from_raw`, always freeing through the allocator that allocated, and wrap C resources in RAII newtypes. The throughline is engineering discipline: a small, audited, well-documented `unsafe` core under a large safe surface — exactly how the standard library is built, and exactly what production crates must do.
+## Apply it
+
+1. Define the user or business outcome that **Ownership & Borrowing** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
+
+## Verify your work
+
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
+
+## Review questions
+
+- Which measurable outcome justifies investing in Ownership & Borrowing?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

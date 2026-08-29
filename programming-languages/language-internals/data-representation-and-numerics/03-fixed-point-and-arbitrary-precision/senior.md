@@ -1,62 +1,11 @@
-# Fixed-Point & Arbitrary Precision — Senior Level
+# Fixed-Point & Arbitrary Precision — Senior
 
-> **Topic:** Fixed-Point & Arbitrary Precision
-> **Focus:** How bignums are actually built (limbs), the multiplication ladder from schoolbook through Karatsuba, Toom-Cook, and FFT, the real cost model, arbitrary-precision rationals and decimal floating point, and the places where bignums silently destroy your performance.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Fixed-Point & Arbitrary Precision** under failure, load, and change?
 
-## Introduction
-
-> Focus: **What is inside a `BigInteger`, why does multiplying two huge numbers cost *less* than O(n²), and where do bignums quietly turn an O(n) loop into O(n²) or worse?**
-
-By now you can use fixed-point and decimals correctly. The senior question is *mechanical*: when you call `a.multiply(b)` on two thousand-digit integers, what runs, and what does it cost? The answer determines whether your cryptography, your combinatorics, your big-rational geometry, or your "I just used Python ints in a loop" code is fast or pathologically slow.
-
-A bignum is an array of machine words — **limbs** — representing a number in base `2^64` (or `2^32`). All the interesting engineering is in the algorithms over those limbs, and they form a ladder where each rung wins for larger inputs:
-
-- **Schoolbook** multiply: O(n²). Best for small numbers; the constant factor is tiny.
-- **Karatsuba:** O(n^1.585). Three half-size multiplies instead of four.
-- **Toom-Cook** (Toom-3, Toom-4…): O(n^1.465) and lower. More splits, more additions.
-- **FFT-based** (Schönhage–Strassen, and the 2019 Harvey–van der Hoeven O(n log n)): for *enormous* numbers.
-
-Production libraries (GMP, Java's `BigInteger`, Go's `math/big`) implement several of these and switch between them by operand size. Knowing the *thresholds* and the *cost model* is the senior skill — and so is knowing the failure mode: bignums are allocated, immutable in many languages, and have non-constant-time operations, so naïve use turns linear algorithms quadratic.
-
-> 🎓 **Why this matters for a senior:** The performance cliffs here are invisible in small tests and brutal in production. "Why is this number-crunching endpoint 100× slower than estimated?" is very often "an inner-loop bignum op that isn't O(1)." And in cryptography, "why does this branch on the secret?" is a timing side channel. Senior engineers are expected to reason about both.
-
-This page covers: limb representation; the multiplication ladder and the cost model; division and modular reduction; arbitrary-precision rationals and where they explode; decimal floating point internals; and the performance traps. `professional.md` puts this to work in real money and crypto systems.
-
----
-
-## Prerequisites
-
-- **Required:** Middle page — Q-notation, scale/precision, rounding, allocation.
-- **Required:** Big-O analysis and the difference between asymptotic and constant-factor wins.
-- **Required:** What a machine word is; modular arithmetic basics (`mod`, GCD).
-- **Helpful:** Awareness of the FFT / convolution at a high level.
-- **Helpful:** Some exposure to RSA / modular exponentiation.
-
-You do **not** need a full proof of Karatsuba's complexity or the FFT — the recurrences and the *when-to-use* are what matter.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Limb** | One machine word of a bignum (commonly 64-bit). A bignum is an array of limbs in base `2^64`. |
-| **Normalization** | Trimming leading zero limbs and fixing the sign so each number has one canonical representation. |
-| **Schoolbook multiply** | Grade-school long multiplication: multiply every limb by every limb. O(n²). |
-| **Karatsuba** | Split each operand in half; compute the product with **three** half-multiplies instead of four. O(n^log₂3) ≈ O(n^1.585). |
-| **Toom-Cook** | Generalization of Karatsuba splitting into k parts; Toom-3 ≈ O(n^1.465). |
-| **Schönhage–Strassen** | FFT-based multiplication over a ring, O(n log n log log n). For very large n. |
-| **Harvey–van der Hoeven** | 2019 algorithm achieving the long-conjectured O(n log n) bound (galactic — practical only at astronomical sizes). |
-| **Crossover / threshold** | The operand size at which a library switches from one algorithm to a faster-asymptotic one. |
-| **Modular exponentiation** | Computing `a^b mod m` efficiently (square-and-multiply), the heart of RSA/DH. |
-| **Montgomery / Barrett reduction** | Techniques to do repeated `mod m` without expensive division. |
-| **Arbitrary-precision rational** | An exact fraction `p/q` of two bignums, kept in lowest terms via GCD. |
-| **Decimal floating point** | A float whose base is 10 (IEEE 754-2008 `decimal64`/`decimal128`); exact for decimal fractions. |
-| **Constant-time** | An operation whose running time does not depend on secret data — required to avoid timing side channels. |
-| **Limb-walking** | Iterating limb by limb with carry/borrow propagation — the inner loop of add/sub/mul. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -130,30 +79,6 @@ The recurring senior incident: an algorithm that's O(n) *assuming O(1) arithmeti
 - **Immutability churn:** Java `BigInteger` and Go `big.Int` (when used immutably) allocate a fresh object per operation — a tight loop becomes an allocator and GC stress test. (Go lets you mutate a receiver to avoid this.)
 
 The fix is to *expect* non-constant arithmetic, reuse buffers, and check whether a closed-form or modular-reduced approach keeps the operands small.
-
----
-
-## Real-World Analogies
-
-**The multiplication ladder is choosing a vehicle by distance.** Walking (schoolbook) is fastest for the corner shop. A car (Karatsuba) wins across town. A plane (FFT) only pays off for another continent — and is absurd for the corner shop because boarding (setup) dominates. Libraries "check the distance" (operand size) and pick the vehicle.
-
-**Rationals are exact bookkeeping that hoards receipts.** Keeping every fraction exact is like never rounding a receipt — perfectly accurate, but the stack of paper (the denominator) grows until it's unmanageable.
-
-**Constant-time crypto is a poker face.** If your "thinking time" reveals whether you have a good hand, opponents read you. A modular exponentiation whose timing depends on the secret key bits leaks the key the same way.
-
-**Bignum-in-a-loop is compound interest on cost.** Each iteration's number is a little bigger, so each operation is a little slower; the slowdown compounds into a quadratic wall you didn't budget for.
-
----
-
-## Mental Models
-
-**Model 1 — "Arithmetic is O(1) only while the number fits a register."** The instant a value spans multiple limbs, every op is O(limbs). Re-derive your algorithm's complexity with that in mind.
-
-**Model 2 — "Asymptotics win late; constants win early."** Karatsuba/Toom/FFT each have a crossover. Below it they *lose*. That's why every serious library is a *cascade* of algorithms keyed on size.
-
-**Model 3 — "Exact has a storage cost."** Rationals never round but their denominators grow; the price of exactness is paid in limbs. Budget it or bound it.
-
-**Model 4 — "Secret-dependent timing is a leak."** In crypto, the *time* an operation takes is data you're broadcasting. Constant-time discipline is a correctness requirement, not an optimization.
 
 ---
 
@@ -244,36 +169,6 @@ print(total.denominator.bit_length(), "bits in the denominator")
 
 ---
 
-## Pros & Cons
-
-### Bignums
-
-**Pros:** exact unbounded integers; enable crypto, combinatorics, exact arithmetic. **Cons:** non-O(1) operations; allocation/immutability overhead; cache-unfriendly; no SIMD on a single value; timing can leak secrets.
-
-### The algorithm cascade (schoolbook→Karatsuba→Toom→FFT)
-
-**Pros:** near-optimal performance across the whole size range; libraries hide it. **Cons:** thresholds are platform-tuned and can be wrong for your distribution; FFT's memory/setup is heavy.
-
-### Rationals
-
-**Pros:** exact fractions, no rounding ever. **Cons:** denominator blow-up; every op carries a GCD; rarely the right default.
-
-### Decimal floating point (IEEE 754-2008)
-
-**Pros:** exact decimals at fixed width and high speed (hardware on some platforms). **Cons:** bounded precision (can still round/overflow); limited language/hardware support.
-
----
-
-## Use Cases
-
-- **Cryptography:** RSA/DH/ECC need fast, constant-time bignum modular arithmetic over hundreds–thousands of bits.
-- **Computer algebra / symbolic math:** exact integers and rationals (SageMath, Mathematica, GMP underneath).
-- **Arbitrary-precision constants:** computing π, e to billions of digits (FFT multiplication).
-- **High-precision finance/scientific:** `decimal128` or `BigDecimal` where 16–34 exact decimal digits are required.
-- **Exact computational geometry:** rationals/bignums to avoid floating-point predicate failures (orientation, in-circle tests).
-
----
-
 ## Coding Patterns
 
 **Pattern 1 — "Trust the library's cascade; don't hand-roll multiply."** GMP/`BigInteger`/`math/big` already pick schoolbook/Karatsuba/Toom/FFT optimally. Reimplement only to *learn*.
@@ -313,21 +208,24 @@ print(total.denominator.bit_length(), "bits in the denominator")
 
 ---
 
-## Summary
+## Apply it
 
-- A bignum is an array of **limbs** in base `2^64`; add/sub are O(n), and the action is in multiply/divide.
-- Multiplication is a **cascade**: schoolbook (O(n²), small n) → Karatsuba (O(n^1.585)) → Toom-Cook (≈O(n^1.465)) → FFT (O(n log n)-ish, astronomical n). Libraries switch at tuned thresholds.
-- The cost model that matters: **bignum arithmetic is not O(1)** — re-derive your algorithm's complexity accordingly, or it silently goes quadratic.
-- **Rationals** are exact but their denominators blow up; **decimal floating point** is exact-for-decimals at bounded width; **`big.Float` is binary**, not decimal-exact.
-- In crypto, **constant-time** behavior is mandatory — secret-dependent timing is a leak, not a micro-optimization.
+1. State the system invariant that **Fixed-Point & Arbitrary Precision** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
----
+## Verify your work
 
-## Further Reading
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
 
-- *The Art of Computer Programming, Vol. 2: Seminumerical Algorithms* (Knuth) — classical multiplication, division, and base conversion.
-- Brent & Zimmermann, *Modern Computer Arithmetic* — the definitive modern treatment (limbs, Karatsuba, Toom, FFT, division).
-- The GMP manual — real-world algorithm thresholds and implementation notes.
-- Harvey & van der Hoeven (2019), *Integer multiplication in time O(n log n)*.
-- Montgomery (1985) and Barrett (1986) on modular reduction; any RSA/ECC implementation guide for constant-time concerns.
-- Next: `professional.md` for production money and crypto systems built on these foundations.
+## Review questions
+
+- Which invariant must remain true when Fixed-Point & Arbitrary Precision fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

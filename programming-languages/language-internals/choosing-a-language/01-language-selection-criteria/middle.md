@@ -1,8 +1,11 @@
 # Language Selection Criteria — Middle
 
-> **What?** A repeatable, defensible *method* for selecting a language — one you can show your lead, argue about, and revisit later. The junior level taught you *which factors matter*; this level teaches you how to **structure the decision** so it's transparent instead of a gut call dressed up as analysis.
-> **How?** Turn the criteria into an explicit, weighted comparison: define what you're optimizing for, score each candidate, and make the tradeoffs visible. The output isn't just a winner — it's a written record of *why*, which is the part that survives the next argument.
+<!-- level-focus -->
+At middle level, focus on this question:
 
+> Where does **Language Selection Criteria** belong in a maintainable component, and which trade-off selects the design?
+
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## 1. Why structure beats instinct
@@ -68,21 +71,21 @@ Each high-level criterion hides sub-questions. When scoring, run these:
 - How many people on the team are *fluent* (not just "have touched it")?
 - Who reviews the code? Who carries the pager? Do *they* know it?
 
-**Ecosystem** *(deep-dived in [`03-ecosystem-and-tooling-maturity`](../03-ecosystem-and-tooling-maturity/))*
+**Ecosystem** *(deep-dived in [`03-ecosystem-and-tooling-maturity`](../03-ecosystem-and-tooling-maturity/README.md))*
 - Do mature libraries exist for your hard requirements (auth, payments, the specific DB, the specific cloud)?
 - Are they actively maintained, or one-maintainer projects last touched in 2021?
 
-**Performance** *(deep-dived in [`02-performance-vs-productivity-tradeoffs`](../02-performance-vs-productivity-tradeoffs/))*
+**Performance** *(deep-dived in [`02-performance-vs-productivity-tradeoffs`](../02-performance-vs-productivity-tradeoffs/README.md))*
 - What's the *actual* latency/throughput requirement, in numbers?
 - Where will time actually be spent — CPU, I/O, network? (Often the language barely matters because you're I/O-bound.)
 
-**Hiring & maintenance** *(deep-dived in [`07-total-cost-of-ownership-and-team-skills`](../07-total-cost-of-ownership-and-team-skills/))*
+**Hiring & maintenance** *(deep-dived in [`07-total-cost-of-ownership-and-team-skills`](../07-total-cost-of-ownership-and-team-skills/README.md))*
 - Can you hire for it in your location / budget within a reasonable window?
 - What does the maintenance picture look like in 3 years?
 
 **Risk / reversibility**
-- If this choice is wrong, how hard is it to migrate out? (See [`06-migrating-between-languages`](../06-migrating-between-languages/).)
-- Is the language's future secure, or are you betting on a fad? (See [`08-language-longevity-and-lock-in-risk`](../08-language-longevity-and-lock-in-risk/).)
+- If this choice is wrong, how hard is it to migrate out? (See [`06-migrating-between-languages`](../06-migrating-between-languages/README.md).)
+- Is the language's future secure, or are you betting on a fad? (See [`08-language-longevity-and-lock-in-risk`](../08-language-longevity-and-lock-in-risk/README.md).)
 
 ---
 
@@ -173,15 +176,24 @@ This single file is worth more than the matrix itself. A year later, when someon
 
 ---
 
-## 10. What's next
+## Apply it
 
-| Topic | File |
-|---|---|
-| When criteria conflict irreconcilably and there's no clean winner | `senior.md` |
-| Selection as an org-wide political and economic decision | `professional.md` |
-| Build and defend your own decision matrices | `tasks.md` |
-| Interview framing of structured selection | `interview.md` |
+1. Find a real component where **Language Selection Criteria** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
----
+## Verify your work
 
-**Memorize this:** the weighted matrix doesn't make the decision — it makes the decision *honest*. Filter on hard constraints first, score what genuinely differs, and write the ADR with a revisit trigger. The number starts the conversation; your judgment finishes it.
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
+
+## Review questions
+
+- Which boundary is most affected by Language Selection Criteria?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

@@ -1,8 +1,11 @@
 # Performance vs Productivity Tradeoffs — Professional
 
-> **What?** The performance/productivity tradeoff as an *organizational and economic* decision: treating engineering velocity as a strategic asset on the balance sheet, knowing when leadership should fund a performance rewrite, managing the talent/velocity tension at scale, and running a deliberate language *portfolio* instead of one global choice.
-> **How?** You're the engineering leader (staff/principal/EM/CTO). You decide where the org spends its scarcest resource — engineering time — and when to convert money (cloud spend, SLA penalties, competitive latency) into a funded rewrite. You set the "boring high-productivity default + targeted high-performance components" policy and defend it to the business.
+<!-- level-focus -->
+At professional level, focus on this question:
 
+> How should teams adopt and operate **Performance vs Productivity Tradeoffs** with measurable outcomes and limited coordination?
+
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## 1. Engineering velocity is a strategic asset, not a soft preference
@@ -34,7 +37,7 @@ A rewrite is one of the most expensive things an org can choose to do — it con
 And the *anti*-triggers — reasons that look compelling but aren't, and you should reject:
 
 - **"The new language is better/faster."** True and irrelevant without a business consequence attached. Aesthetics don't fund quarters of senior time.
-- **"A senior wants to use Rust."** Résumé-driven development. Learning is good; the production hot service is not the training ground (see [`01-language-selection-criteria`](../01-language-selection-criteria/)).
+- **"A senior wants to use Rust."** Résumé-driven development. Learning is good; the production hot service is not the training ground (see [`01-language-selection-criteria`](../01-language-selection-criteria/README.md)).
 - **"Other companies rewrote in Go."** Their bill, their volume, their constraints — not yours. Cargo-culting a rewrite is how you spend a year for a 4% win.
 
 The discipline: **a funded rewrite is a financial decision with an ROI, a payback period, and a revisit date — written down like any other capital allocation.** If you can't write the payback calculation, you're not ready to fund it.
@@ -58,7 +61,7 @@ That one-page memo is the artifact. It turns "Rust is faster" into a decision th
 
 The faster languages carry a hidden organizational tax that doesn't appear in any benchmark: **talent supply and team velocity.**
 
-- **Hiring pool.** Python, JavaScript, and Java have enormous talent pools; Rust and C++ pools are far smaller and more expensive. Standardizing the org on a niche performance language means slower hiring, higher salaries, and a bus-factor risk on every team (see [`07-total-cost-of-ownership-and-team-skills`](../07-total-cost-of-ownership-and-team-skills/)).
+- **Hiring pool.** Python, JavaScript, and Java have enormous talent pools; Rust and C++ pools are far smaller and more expensive. Standardizing the org on a niche performance language means slower hiring, higher salaries, and a bus-factor risk on every team (see [`07-total-cost-of-ownership-and-team-skills`](../07-total-cost-of-ownership-and-team-skills/README.md)).
 - **Onboarding ramp.** A new hire is productive in Go or Python in days; in idiomatic Rust or modern C++, weeks to months. Across hundreds of engineers, that ramp difference is a permanent drag on org-wide velocity.
 - **Internal mobility.** A common, boring language lets engineers move between teams freely. A zoo of specialized languages locks people into silos and makes reorgs expensive.
 
@@ -93,7 +96,7 @@ This resolves the false dichotomy. You don't choose between velocity and perform
 
 The governance that keeps the portfolio from sprawling into chaos:
 
-- **The default is the default.** New services use it unless they clear an explicit bar. The burden of proof is on the *exception*, not on the default. (This connects directly to [`05-when-to-introduce-a-new-language`](../05-when-to-introduce-a-new-language/) — the N+1 language tax is real.)
+- **The default is the default.** New services use it unless they clear an explicit bar. The burden of proof is on the *exception*, not on the default. (This connects directly to [`05-when-to-introduce-a-new-language`](../05-when-to-introduce-a-new-language/README.md) — the N+1 language tax is real.)
 - **The performance tier has an entry bar.** A profile showing CPU-boundness, an SLO or cost number the default provably can't hit, and a payback calculation. No bar cleared, no exception granted.
 - **The performance tier is *small and bounded*.** The whole value of the portfolio is that the niche-language footprint is contained to where it pays. If "the performance tier" grows to half the org, you've lost the productivity default and gained the talent tax everywhere.
 
@@ -137,7 +140,7 @@ The skill is converting the engineering tradeoff into the currency each audience
 
 **Rewrite by acclaim.** Funding a rewrite because senior engineers lobbied for the exciting language, with no payback number. The most expensive form of résumé-driven development, paid by the company.
 
-**Portfolio sprawl.** Letting every team add its favorite language under the banner of "right tool for the job," until you have nine languages, nine hiring pools, nine on-call knowledge silos, and no default. The N+1 tax, paid N times (see [`05-when-to-introduce-a-new-language`](../05-when-to-introduce-a-new-language/)).
+**Portfolio sprawl.** Letting every team add its favorite language under the banner of "right tool for the job," until you have nine languages, nine hiring pools, nine on-call knowledge silos, and no default. The N+1 tax, paid N times (see [`05-when-to-introduce-a-new-language`](../05-when-to-introduce-a-new-language/README.md)).
 
 **Ignoring the lifecycle.** Keeping the pre-PMF prototype's language as the permanent foundation at hyperscale, or — worse — over-engineering a pre-PMF product in a performance language for a load that may never arrive.
 
@@ -155,18 +158,24 @@ The skill is converting the engineering tradeoff into the currency each audience
 
 ---
 
-## 9. What's next
+## Apply it
 
-| Topic | File |
-|---|---|
-| Foundations: two "fasts," fast-enough, I/O- vs CPU-bound | `junior.md` |
-| The method: SLOs, Amdahl, profiling, the escape hatch | `middle.md` |
-| The axes, the lifecycle, the cliff, cost-of-compute | `senior.md` |
-| Interview Q&A from "why Python?" to "greenlight a Rust rewrite?" | `interview.md` |
-| Decision exercises and scoring rubrics | `tasks.md` |
-| The N+1 language tax and governance | [`05-when-to-introduce-a-new-language`](../05-when-to-introduce-a-new-language/) |
-| Total cost of ownership and team skills | [`07-total-cost-of-ownership-and-team-skills`](../07-total-cost-of-ownership-and-team-skills/) |
+1. Define the user or business outcome that **Performance vs Productivity Tradeoffs** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
----
+## Verify your work
 
-**Memorize this:** at the org level the tradeoff is economic, not technical. Velocity is a strategic asset measured in time-to-market and opportunity cost; a performance rewrite is a capital decision that needs a written payback, not an engineer's preference. The mature answer is a *portfolio* — a boring high-productivity default for the 90%, and a small, data-gated performance tier for the measured few where the cloud bill or the latency edge makes a targeted rewrite pay for itself.
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
+
+## Review questions
+
+- Which measurable outcome justifies investing in Performance vs Productivity Tradeoffs?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

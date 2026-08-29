@@ -1,14 +1,11 @@
 # Production Debugging — Professional
 
-> **Topic:** [Production Debugging](../README.md)
-> **Focus:** Building an organization-wide observability standard, leading incident response end to end, running effective postmortems, and turning recurring debugging patterns into shared tooling.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Production Debugging** with measurable outcomes and limited coordination?
 
-## Introduction
-
-At professional level, the goal is that any engineer, on any service in the fleet, can reach for the same diagnostic playbook during an incident — instead of each team's on-call improvising with whatever tools that team happened to build. This means standards, shared tooling, and incident leadership practice.
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -59,17 +56,6 @@ Alert fires (heap growth rate > threshold for 30 min)
 
 ---
 
-## Pros & Cons
-
-| Approach | Pros | Cons |
-|---|---|---|
-| Fleet-wide observability standard | Any engineer can triage any service quickly | Requires upfront investment and ongoing enforcement across teams |
-| Structured incident-response phases (detect-triage-mitigate-resolve-postmortem) | Prevents costly order-skipping under pressure | Requires training and drilling; instinct often skips ahead |
-| Automated tooling for recurring debugging patterns | Reduces mean-time-to-diagnosis fleet-wide | Requires recognizing a pattern is recurring before investing in automation |
-| Blameless postmortems | Honest timelines, durable structural fixes | Requires sustained cultural investment; easy to slip into blame under repeated incidents |
-
----
-
 ## Best Practices
 
 1. Standardize diagnostic ports, log schema, tracing backend, and core dashboards fleet-wide.
@@ -98,46 +84,24 @@ Alert fires (heap growth rate > threshold for 30 min)
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```
-Fleet standard: same debug port, log schema, tracing backend, dashboard template — everywhere
-Incident order: Detect -> Triage -> Mitigate -> Resolve -> Postmortem (don't skip ahead)
-Postmortem:     blameless, systems-focused, produces structural fixes
-Recurring debugging step x3+ -> automate it
-```
+1. Define the user or business outcome that **Production Debugging** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
----
+## Verify your work
 
-## Summary
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
 
-- A fleet-wide observability standard (ports, log schema, tracing, dashboards) means any engineer can triage any service quickly.
-- Incident response has a phase order — detect, triage, mitigate, resolve, postmortem — and skipping ahead under pressure costs time and expands blast radius.
-- Blameless postmortems produce honest timelines and durable structural fixes; blame-oriented ones don't.
-- Automate recurring manual debugging patterns into shared tooling once they've proven to repeat across incidents.
-- Deliberate practice (game days) builds debugging skill faster and more evenly than incident exposure alone.
+## Review questions
 
----
-
-## Further Reading
-
-- Google SRE Book — *Managing Incidents* and *Postmortem Culture*: <https://sre.google/sre-book/managing-incidents/>, <https://sre.google/sre-book/postmortem-culture/>
-- PagerDuty — *Incident Response documentation*: <https://response.pagerduty.com/>
-
----
-
-## Related Topics
-
-- [Goroutines and Concurrency — Professional](../01-goroutines-and-concurrency/professional.md)
-- [HTTP and APIs — Professional](../05-http-and-apis/professional.md)
-- [Database and Distributed Systems — Professional](../06-database-and-distributed-systems/professional.md)
-
----
-
-## Check your understanding
-
-1. Explain Production Debugging — Professional Level in your own words and name the problem it solves.
-2. How would you apply the ideas around Introduction, Core Concepts, Code Examples in a realistic engineering change?
-3. What failure mode or misuse should you look for, and what evidence would reveal it?
-4. How would you introduce and govern Production Debugging — Professional Level across teams through reversible, measurable increments?
-5. What observable result would convince you that the approach improved the system?
+- Which measurable outcome justifies investing in Production Debugging?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

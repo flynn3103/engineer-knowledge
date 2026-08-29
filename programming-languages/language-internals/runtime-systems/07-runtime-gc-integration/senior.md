@@ -1,57 +1,11 @@
-# Runtime ↔ GC Integration — Senior Level
+# Runtime ↔ GC Integration — Senior
 
-> **Topic:** Runtime ↔ GC Integration
-> **Focus:** The hard cases of the interface across real engines: precise stack maps for aggressively optimized code, deopt × GC interaction, Go's hybrid write barrier, ZGC/Shenandoah load (colored-pointer) barriers, read-barrier vs write-barrier tradeoffs, and engineering long-TTSP and barrier-cost incidents. Still the *interface*, not the collection algorithm.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Runtime ↔ GC Integration** under failure, load, and change?
 
-## Introduction
-
-> Focus: **Where the interface gets genuinely hard** — and how four production engines (HotSpot, Go, V8, .NET) actually solve it.
-
-By now the contract is clear: precise stack maps for roots, safepoints for timing, barriers for change tracking, handles/pinning for moving GC. The senior level is about the places where these are *hard to get right and expensive to get wrong*:
-
-- **Precise maps for optimized code.** A naive interpreter has easy stack maps. An aggressive JIT does register allocation, inlining, scalar replacement, loop transformations, and creates *derived* and *temporarily-untyped* values. Producing a correct, precise map at every safepoint of *that* code is a deep co-design problem. Get it wrong and a moving GC corrupts memory.
-- **Deoptimization × GC.** Deopt rewrites a thread's optimized frame back into interpreter frames. Deopt points and safepoints overlap; the GC and the deoptimizer share the same metadata machinery (maps describing the frame). Their interaction is a classic source of subtle bugs.
-- **Read barriers and colored pointers.** Concurrent *compaction* (ZGC, Shenandoah) needs the mutator to be corrected *when it loads a possibly-moved pointer* — a **load/read barrier**, often implemented with metadata bits stored *in the pointer itself* (colored pointers / Brooks forwarding). This shifts cost from stores to loads, a fundamentally different integration point.
-- **Go's hybrid write barrier.** A specific, elegant solution that lets Go avoid a stop-the-world stack re-scan, by combining deletion and insertion barriers.
-
-The senior brief: you must be able to reason about *why* an engine put its barrier on the load instead of the store, *what* metadata the JIT must preserve so a moving GC stays correct, and *how* to debug a 500 ms tail-latency incident down to "a counted loop with no poll" or "a write-barrier storm in a graph mutation." We keep the focus on the *interface*; the collection algorithms themselves remain in the memory-management topic and are referenced only to motivate integration decisions.
-
-> 🎓 **Why this matters at the senior level:** This is the level where you own the latency SLO of a managed service, or you contribute to a runtime. Both require treating GC pauses as *integration artifacts you can attribute and fix*, and treating barrier cost as a *codegen decision you can reason about*, not as fate.
-
----
-
-## Prerequisites
-
-- **Required:** Middle level — stack maps keyed by PC, derived pointers, flag/page-trap polls, card/SATB/incremental-update barriers, handles, pinning.
-- **Required:** Solid grasp of JIT compilation: inlining, register allocation, escape analysis/scalar replacement, on-stack-replacement (OSR), deoptimization.
-- **Required:** Virtual-memory fluency: multi-mapping, `mprotect`, and the idea of using high pointer bits as metadata.
-- **Helpful:** Familiarity with at least two of HotSpot (G1/ZGC/Shenandoah), Go's runtime, V8, and the .NET CLR.
-- **Helpful:** Experience reading flame graphs and GC/safepoint logs from a production latency incident.
-
-You do **not** need to be able to implement a collector. You **do** need to reason about the contract a collector imposes on codegen.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **OSR (on-stack replacement)** | Swapping a running interpreted/lower-tier frame for a compiled one mid-execution (e.g., a hot loop). The new code needs maps consistent with the in-flight state. |
-| **Deoptimization** | Reverting an optimized frame to interpreter frames (e.g., when a speculative assumption fails). Uses frame-description metadata akin to stack maps. |
-| **Scalar replacement** | Optimization that explodes a non-escaping object into registers/stack slots, removing the allocation. Those slots must still be mappable if they hold references. |
-| **Load barrier / read barrier** | Compiler-emitted code on a *pointer load* that fixes up the loaded reference (e.g., self-heals a stale pointer to a moved object). |
-| **Colored pointer** | A pointer with metadata encoded in unused bits (e.g., ZGC uses bits to mark/remap state). The load barrier tests these bits. |
-| **Brooks pointer / forwarding pointer** | An extra word per object pointing to the object's current location; reads indirect through it during relocation (classic Shenandoah). |
-| **Self-healing barrier** | A load barrier that, on encountering a stale pointer, rewrites the source slot with the corrected pointer so future loads are cheap. |
-| **Hybrid write barrier (Go)** | Go's barrier = deletion (Yuasa-style, shade the old) + insertion (Dijkstra-style, shade the new), enabling no STW stack re-scan. |
-| **Stack scanning (Go)** | Go scans goroutine stacks at safepoints; the hybrid barrier lets stacks be scanned once and marked black without re-scan. |
-| **GC-safe region / preemptible point** | Go's asynchronous preemption inserts safepoints so even tight loops can be stopped (signal-based since Go 1.14). |
-| **Frame descriptor** | Metadata describing a stack frame's layout, shared by exception handling, deopt, and GC root scanning. |
-| **Remembered set** | Per-region record of incoming cross-region pointers (G1), maintained by the post-write barrier. (Algorithm-adjacent; here as barrier consumer.) |
-| **Multi-mapping** | Mapping the same physical memory at several virtual addresses so colored-pointer variants alias to one object (ZGC technique). |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -149,36 +103,6 @@ Two canonical senior incidents:
 **Long TTSP.** Symptom: pause logs show large "time to safepoint," small collection time. Causes: a counted loop with no poll (pre-mitigation JVM, or machine-generated code), a thread stuck in a long JNI/native call (which may pin and block a moving GC), or a runaway loop the optimizer stripped of polls. Fixes: enable counted-loop safepoints / strip mining; bound native sections; in Go, ensure async preemption is active; sometimes restructure the hot loop. The diagnostic discipline: *attribute the pause to integration before touching GC tuning flags*.
 
 **Write-barrier storm.** Symptom: a graph/tree mutation workload spends a surprising fraction of CPU in barrier code; throughput drops under a concurrent collector. Cause: many pointer stores per unit work, each paying the barrier; possibly card-table false sharing across cores. Fixes: batch mutations, prefer value/index representations in hot structures, enable conditional card marking, pad hot card-table regions, or choose a collector whose barrier is cheaper for the workload. The senior move: *read the disassembly, confirm the barrier shape, and measure barrier CPU directly* (perf annotate / flame graph) rather than guessing.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Precise map under optimization** | A choreographer's notes for a chaotic dance: even as dancers swap places (registers) and merge routines (inlining), the notes must always say exactly who is where at each beat (safepoint). |
-| **Deopt × GC co-tenancy** | Two crews sharing one blueprint — one renovating a frame (deopt), one inventorying it (GC). They must never read the blueprint mid-edit. |
-| **Colored pointer** | A passport whose stamps (color bits) encode your visa status; the border agent (load barrier) glances at the stamps and waves you through or sends you to processing. |
-| **Self-healing load barrier** | A GPS that, when it notices a road moved, both reroutes you *and* updates your saved address so next time is instant. |
-| **Brooks forwarding pointer** | A "we've moved" sticker on the old shop door pointing to the new address; customers always get redirected. |
-| **Go hybrid barrier** | Photographing a room once and trusting that anyone who later removes or adds furniture signs a logbook, so you never re-photograph. |
-| **Return-address hijacking (.NET)** | Swapping the exit sign so that when a worker leaves the room, they're routed through the inspector's office. |
-
----
-
-## Mental Models
-
-### The "Where Do You Pay?" Model
-
-Every GC integration is a decision about *where the mutator pays the coordination tax*. Write-barrier collectors charge at the store (rare-ish, cheap, but can't move concurrently). Load-barrier collectors charge at the load (frequent, but unlock concurrent compaction and tiny pauses). Conservative scanning charges *nothing at runtime* but pays in floating garbage and no compaction. When you compare collectors, translate their marketing into "what does my code pay, per load and per store, and what pause property do I buy with it?"
-
-### The "Maps Are A Shared Contract, Not Just A GC Thing" Model
-
-Stack maps / GC info are consumed by *three* subsystems: the GC (find/update roots), the deoptimizer (rebuild frames), and exception handling/stack unwinding (find handlers and live state). Think of the map as a *single source of truth about frame layout at safepoints*, with several readers. Bugs often appear at the seams between readers (a GC during a deopt of a scalar-replaced object). Holding all three readers in mind explains otherwise-baffling crashes.
-
-### The "Pause Time Is Decoupled From Heap Size — At A Price" Model
-
-ZGC/Shenandoah's pitch is "pause time independent of heap size." The mechanism is *concurrent everything*, enabled by load barriers and colored pointers. The price is throughput: every load may test a color bit. Internalize the duality — you don't get small pauses on big heaps for free; you trade per-load CPU for it. Decide based on whether your SLO is throughput or tail latency.
 
 ---
 
@@ -281,31 +205,6 @@ If the map omits the slot holding `x`, a moving GC frees or fails to update it. 
 
 ---
 
-## Pros & Cons
-
-| Mechanism / choice | Pros | Cons |
-|--------------------|------|------|
-| **Precise maps under JIT** | Exact roots even in optimized code; enables moving GC. | Hard to produce correctly; large test surface; derived-pointer and inlining complexity. |
-| **Shared safepoint metadata (GC+deopt+unwind)** | One source of truth; less duplication. | Tight coupling; intersection bugs (GC during deopt). |
-| **Load/colored-pointer barriers (ZGC)** | Concurrent compaction; pauses independent of heap size; self-healing amortizes cost. | Per-load throughput tax; multi-mapping complexity; 64-bit address-bit pressure. |
-| **Brooks forwarding (early Shenandoah)** | Simple read indirection; concurrent moving. | Extra header word per object; an indirection on reads. |
-| **Go hybrid write barrier** | No STW stack re-scan; sub-ms pauses; non-moving simplicity. | Barrier on every pointer store during marking; still write-only (no compaction). |
-| **Async (signal) preemption (Go)** | Bounds TTSP even in tight loops. | Needs per-PC stack maps; signal-handling complexity; some platforms harder. |
-| **Return-address hijacking (.NET)** | Stops threads at returns without a poll there. | Subtle; interacts with exception handling and tail calls. |
-| **Partially-interruptible code (.NET)** | Smaller GC info; safepoints only at calls. | Coarser stop granularity; longer TTSP in call-free stretches. |
-
----
-
-## Use Cases
-
-- **Owning a managed-service latency SLO.** Attribute pauses to TTSP vs collection vs barriers; pick ZGC/Shenandoah vs G1 by translating the barrier economics to your load.
-- **Contributing to or embedding a runtime.** Producing/validating precise maps, wiring safepoints into your codegen, choosing a barrier discipline.
-- **Native interop at scale.** Designing handle lifetimes, pinning windows, and critical sections so a moving GC stays unblocked and correct.
-- **Performance forensics.** Reading disassembly to confirm a load barrier, a write barrier, or a missing poll is the cause of a regression.
-- **Choosing data representations.** Deciding pointer-heavy vs value/index layouts in hot structures based on barrier cost under the chosen collector.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Attribute before you tune
@@ -379,126 +278,24 @@ double dist(double x1, double y1, double x2, double y2) {
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```text
-┌───────────────────────────────────────────────────────────────────────────┐
-│        RUNTIME ↔ GC INTEGRATION — SENIOR (engine-specific)                 │
-├───────────────────────────────────────────────────────────────────────────┤
-│ WHERE YOU PAY:                                                            │
-│   write barrier  -> per STORE  (generational/concurrent-mark; no compaction)│
-│   load barrier   -> per LOAD   (concurrent COMPACTION; tiny pauses)        │
-│   conservative   -> nothing at runtime (no compaction; floating garbage)  │
-├───────────────────────────────────────────────────────────────────────────┤
-│ HotSpot : oop maps; flag+page-trap polls; G1=SATB+card; ZGC=colored ptr    │
-│           load barrier+multimap; Shenandoah=Brooks fwd / load-ref barrier  │
-│ Go      : hybrid write barrier (deletion+insertion) -> no STW stack rescan; │
-│           async (signal) preemption bounds TTSP; non-moving               │
-│ V8      : precise(JS)+conservative(native frames); handle scopes; Oilpan;  │
-│           write barriers for incremental/concurrent marking; scavenger moves│
-│ .NET    : per-method GC info; fully vs partially interruptible;           │
-│           interior(byref) pointers; GCHandle/pinning; return-addr hijack    │
-├───────────────────────────────────────────────────────────────────────────┤
-│ SHARED METADATA readers: GC roots  |  deoptimizer  |  stack unwinder        │
-│   intersection bug zone: GC during deopt of scalar-replaced objects        │
-├───────────────────────────────────────────────────────────────────────────┤
-│ INCIDENT PLAYBOOK:                                                        │
-│   pause big? -> split TTSP vs collection FIRST                             │
-│   TTSP big   -> non-yielding loop / long native call -> fix preemption     │
-│   barrier CPU-> flame graph; restructure mutations / change collector      │
-└───────────────────────────────────────────────────────────────────────────┘
-```
+1. State the system invariant that **Runtime ↔ GC Integration** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
----
+## Verify your work
 
-## Summary
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
 
-- **Precise stack maps under aggressive optimization** are the hard core of the interface: register allocation, inlining, scalar replacement, and derived pointers all must remain mappable at every safepoint, or a moving GC corrupts memory.
-- **Deopt, GC root scanning, and stack unwinding share safepoint metadata.** Their intersection (e.g., GC during rematerialization of scalar-replaced objects on deopt) is a fertile bug zone.
-- **Load/read barriers** shift the integration point from the store to the **load**, enabling concurrent compaction. **ZGC** uses **colored pointers** (state in high address bits) plus **multi-mapping** and **self-healing**; **Shenandoah** used **Brooks forwarding pointers**, later a load-reference barrier. You buy heap-size-independent pause times with a per-load throughput tax.
-- **Write-barrier vs read-barrier** is fundamentally a "where do you pay?" decision: stores (cheap on average, no concurrent compaction) vs loads (frequent, but tiny pauses).
-- **Go's hybrid write barrier** (deletion + insertion) lets stacks be scanned once and never re-scanned, eliminating the STW stack re-scan; **async signal preemption** bounds Go's TTSP even in poll-free loops.
-- **V8** runs mixed precise/conservative root finding (managed vs native frames) with handle scopes and Oilpan; **.NET** uses per-method GC info with fully/partially-interruptible regimes, interior pointers, GCHandle/pinning, and return-address hijacking.
-- **Engineering discipline:** for any pause, **split TTSP from collection** before tuning; for any throughput regression, **confirm the barrier/poll in disassembly and measure its CPU** before guessing. The interface, not the algorithm, is usually where the incident lives.
+## Review questions
 
----
-
-## Further Reading
-
-- *The Garbage Collection Handbook* (2nd ed.) — Jones, Hosking, Moss. Barriers, concurrent collection coordination, safepoint design.
-- *ZGC: A Scalable Low-Latency Garbage Collector* and the OpenJDK ZGC wiki — colored pointers, load barriers, multi-mapping. https://wiki.openjdk.org/display/zgc/Main
-- *Shenandoah GC* documentation and Brooks-pointer / load-reference-barrier papers (Flood, Kennke et al.). https://wiki.openjdk.org/display/shenandoah/Main
-- *Go 1.8 hybrid write barrier* proposal (Austin Clements). https://go.googlesource.com/proposal/+/master/design/17503-eliminate-rescan.md
-- *Go scheduler async preemption* (Go 1.14) design and runtime source. https://github.com/golang/go/issues/24543
-- *HotSpot deoptimization and OopMaps* — OpenJDK source (`deoptimization.cpp`, `oopMap.cpp`, `safepoint.cpp`).
-- *V8 Oilpan / cppgc* and *Orinoco* blog posts — precise vs conservative root finding, handle scopes. https://v8.dev/blog
-- *.NET GC design* — `coreclr` docs and the BOTR (Book of the Runtime) chapters on the GC info, GC-safe points, and stackwalking. https://github.com/dotnet/runtime/tree/main/docs/design/coreclr
-- *A Unified Theory of Garbage Collection* — Bacon, Cheng, Rajan. For the tracing/refcounting duality that shapes barrier choices.
-
----
-
-## Diagrams & Visual Aids
-
-### Write Barrier vs Load Barrier — Where You Pay
-
-```text
-WRITE-BARRIER COLLECTOR (G1, ParallelGC)          LOAD-BARRIER COLLECTOR (ZGC, Shenandoah)
-   store ptr ──► [barrier: record change]            load ptr ──► [barrier: test color/fwd]
-   loads are FREE                                     stores are (mostly) free
-   ✗ cannot relocate concurrently                     ✓ relocates concurrently, tiny pauses
-   cheap on average (loads >> stores)                 taxes the frequent op (loads)
-```
-
-### ZGC Colored Pointer + Self-Healing Load Barrier
-
-```text
- 63                          0
- [ color bits | object address ]   <- the pointer carries state
-
- load_barrier(slot):
-   ref = *slot
-   if (ref & BAD_MASK) == 0: return ref            ; fast: 1 test, not-taken
-   obj  = remap/relocate(ref)
-   good = recolor(obj)
-   CAS(slot, ref, good)                            ; SELF-HEAL the source slot
-   return good
-```
-
-### Go Hybrid Write Barrier
-
-```text
-writePointer(slot, new):
-    shade(*slot)                 ; DELETION: preserve old target (Yuasa)
-    if writing-thread stack is grey:
-        shade(new)               ; INSERTION: preserve new target (Dijkstra)
-    *slot = new
-  ===> stacks scanned ONCE, marked black, never re-scanned ===> sub-ms pauses
-```
-
-### Shared Safepoint Metadata, Three Readers
-
-```text
-                ┌──────────────── safepoint metadata at PC ───────────────┐
-                │  oop map (which slots are refs) + frame/scope descriptors│
-                └───────┬───────────────┬────────────────────┬────────────┘
-                        ▼               ▼                     ▼
-                  GC root scan      deoptimizer        stack unwinder
-                 (find/update)   (rebuild frames)   (exceptions/walk)
-                        └────────── intersection = subtle bugs ──────────┘
-```
-
-### Incident Decision Tree
-
-```text
-GC pause too long?
-   │
-   ├─ split: TTSP ("reaching safepoint") vs collection ("at safepoint")
-   │
-   ├─ TTSP big? ──► non-yielding loop / long native call
-   │                fix: counted-loop safepoints, strip mining, async preempt,
-   │                short native critical sections
-   │
-   └─ collection big? ──► algorithm/heap: collector choice, heap size, gen sizing
-                          (barrier CPU big in flame graph? -> restructure mutations
-                           or pick a cheaper-barrier collector)
-```
+- Which invariant must remain true when Runtime ↔ GC Integration fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

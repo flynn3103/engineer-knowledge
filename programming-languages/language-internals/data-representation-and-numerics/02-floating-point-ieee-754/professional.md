@@ -1,42 +1,12 @@
-# Floating-Point (IEEE 754) — Professional Level
+# Floating-Point (IEEE 754) — Professional
 
-> **Topic:** Floating-Point (IEEE 754)
-> **Focus:** What floating point costs in production — the real incidents (Patriot, Ariane 5, Vancouver), money systems done right, debugging numerical drift in live services, performance (subnormals, vectorization, FTZ), and reproducibility across a fleet.
+<!-- level-focus -->
+At professional level, focus on this question:
 
+> How should teams adopt and operate **Floating-Point (IEEE 754)** with measurable outcomes and limited coordination?
+
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
-
-## Introduction
-
-> 🎓 At senior level you learned the machine reality beneath the standard. At professional level the question becomes operational: **what does a floating-point mistake cost in dollars, lives, or downtime — and how do you find it in a system that's already in production?** Floating point has killed people (28, in the Patriot incident), destroyed a $370M rocket 37 seconds after launch (Ariane 5), and silently bled a stock index from 1000 to 520 over 22 months (Vancouver). None of these were exotic bugs. Each was a *boring* float mistake — accumulated drift, an unchecked conversion, the wrong rounding mode — that a senior engineer reviewing the code could have caught in five minutes.
-
-This level is about the discipline that prevents those incidents and the tooling that diagnoses them after the fact. The themes: **money must never touch binary floating point** (and what to use instead, in real billing systems); **accumulated error in long-running processes** (24/7 services, simulations, telemetry counters) and how to bound it; **reproducibility across a heterogeneous fleet** (different CPUs, compilers, and `libm`s producing different bits, breaking caching, consensus, and replay); and the **production debugging playbook** for "the numbers don't match" tickets — comparing against a reference, bisecting the drift, catching NaN at the source instead of three layers downstream where it surfaces.
-
-You are now the person who writes the code-review comment "this sums `float` deltas in a long-lived accumulator — it will drift; use a periodic re-baseline or Kahan," and the person who, when finance reports a one-cent discrepancy across a million invoices, knows it's a rounding-mode mismatch and finds it before lunch.
-
----
-
-## Prerequisites
-
-- The [junior](junior.md), [middle](middle.md), and [senior](senior.md) levels — the entire conceptual stack: bit layout, ULP, cancellation, FMA, x87, fast-math, decimal FP, round-trip printing.
-- Production experience: you've shipped a service, read a profiler flame graph, and debugged something that only failed at scale.
-- Familiarity with a money/decimal type in your stack (`BigDecimal`, `decimal.Decimal`, `decimal` in SQL).
-
-## Glossary
-
-| Term | Meaning |
-|------|---------|
-| **Drift** | Slow accumulation of rounding error in a long-running computation or accumulator. |
-| **Re-baselining** | Periodically recomputing an accumulated value from scratch to discard drift. |
-| **Reference / oracle** | A trusted high-precision computation (bignum, double-double, decimal) to compare production output against. |
-| **Reproducibility / bit-exactness** | Identical FP results across machines, compilers, and runs — required for consensus, caching, replay, lockstep. |
-| **FTZ / DAZ** | Flush-To-Zero / Denormals-Are-Zero: MXCSR bits that snap subnormals to 0 for speed, sacrificing gradual underflow. |
-| **Subnormal stall** | The 10-100× slowdown when the FPU hits a denormal operand on some hardware. |
-| **Scaled integer (minor units)** | Storing money as an integer count of the smallest unit (cents, satoshis) for exact arithmetic. |
-| **Banker's rounding** | Round-half-to-even; the IEEE default and common accounting choice (bias-free). |
-| **Round-half-up** | The "school" / regulatory rounding used in many tax jurisdictions. |
-| **Condition number** | How much a function amplifies input error; a high condition number means small input error → large output error. |
-| **Catastrophic cancellation** | Loss of significance subtracting near-equal numbers (see middle level) — the root cause of Patriot and Vancouver. |
-| **NaN poisoning** | A single NaN spreading through a computation, surfacing far from its origin. |
 
 ## Core Concepts
 
@@ -86,51 +56,6 @@ Floating-point *performance* problems in production are usually one of:
 Two production bug families that aren't about precision at all:
 - **Float→int conversion.** `(int)x` truncates toward zero in C/Java; out-of-range conversions are **undefined behavior in C** (and were the Ariane 5 failure: a `double` velocity that fit in 64 bits was converted to a 16-bit integer, overflowed, and triggered an unhandled exception). `(int) 1e10` is UB in C; in Rust it saturates; in JS `| 0` wraps. Always range-check before narrowing.
 - **Rounding-mode mismatch.** Two services computing the same total with different rounding modes (one HALF_EVEN, one HALF_UP) disagree by a cent on ~half the ties. This is the classic "finance and engineering don't reconcile" ticket. The fix is a single, documented, enforced rounding policy.
-
-## War Stories
-
-### Patriot missile, Dhahran, 1991 — accumulated drift killed 28
-
-The MIM-104 Patriot's range gate computed where to look for the incoming Scud using time since boot. Time was tracked in tenths of a second in a **24-bit fixed-point register**. The constant `0.1` was stored as a 24-bit truncation of `0.0001100110011001100110011…`, off by about `9.5e-8` per tenth-second. The system had been running for **~100 hours** continuously; the accumulated error was about `0.34 seconds`. A Scud travels ~1,600 m/s, so a 0.34 s error placed the predicted intercept point ~570 meters off — outside the range gate. The Patriot didn't fire. The Scud hit a barracks; **28 soldiers died**. The Army knew about the bug and had a patch in transit; a reboot every few hours also masked it. The lesson: **drift in a long-running accumulation of an inexact constant is lethal; re-baseline or use exact representation.**
-
-### Ariane 5 Flight 501, 1996 — a float→int overflow destroyed a $370M rocket
-
-37 seconds after launch, the Ariane 5's inertial reference system (SRI) tried to convert a 64-bit floating-point **horizontal velocity** into a 16-bit signed integer. Ariane 5 flew a steeper, faster trajectory than Ariane 4, whose code this was reused from. The velocity value exceeded 32,767; the conversion **overflowed**, raised an unhandled Ada exception, and the SRI shut down. The backup SRI, running identical code, had failed the same way 72 milliseconds earlier. With no attitude reference, the rocket veered, aerodynamic forces tore it apart, and the self-destruct fired. The payload (four Cluster satellites) and the rocket — about **$370 million** — were lost. The conversion was *unprotected* because analysis had "proved" the Ariane 4 value couldn't overflow — and that analysis didn't carry to Ariane 5. The lesson: **range-check every narrowing conversion; reused proofs don't transfer to new envelopes.**
-
-### Vancouver Stock Exchange index, 1982-1983 — truncation bled an index in half
-
-The VSE launched a new index at 1000.000. It was recalculated thousands of times a day, and on each recalculation the result was **truncated** (rounded toward zero) to three decimals instead of rounded to nearest. Each truncation lost a tiny fraction — but applied ~3000 times a day for 22 months, the systematic downward bias compounded. The index, which should have been around 1098, read **520**. When corrected to proper rounding, it jumped overnight from 524.811 to 1098.892. The lesson: **a biased rounding mode applied many times produces a systematic, compounding error — this is exactly why IEEE 754's default is bias-free round-half-to-even.**
-
-### Honorable mentions
-
-- **Intel Pentium FDIV bug (1994):** a hardware division lookup table had missing entries; certain `double` divisions returned wrong results in the 5th significant digit. Cost Intel **$475M** in recalls. Lesson: even the *correctly-rounded* operations are only correct if the silicon is.
-- **Knight Capital (2012):** not strictly FP, but a numerical/logic deployment error lost **$440M in 45 minutes**. Reminds you that numeric code paths need the same deployment rigor as anything else.
-
-## Real-World Analogies
-
-| Concept | Analogy |
-|---------|---------|
-| Accumulated drift (Patriot) | A clock that loses a third of a second after running 100 hours — fine for a minute, fatal for a missile. |
-| Float→int overflow (Ariane) | Pouring a gallon into a pint glass and being surprised it spills and shorts out the wiring. |
-| Biased rounding (Vancouver) | A cashier who always rounds *down* to the house — invisible per transaction, a fortune over a year. |
-| Re-baselining | Resetting a stopwatch against the wall clock every hour so it can't drift far. |
-| FTZ for subnormal stalls | Rounding pocket change to zero so the cashier stops fumbling with pennies and the line moves. |
-| Reproducibility across a fleet | Two accountants on different calculators must reach the same total to the cent, or the books don't close. |
-| Money as integers | Counting in pennies, not dollars-and-fractions, so no fraction can ever go missing. |
-
-## Mental Models
-
-### "Inexact × many = systematic"
-
-A single rounding is noise. The *same* inexact operation applied N times with a consistent bias becomes a *signal* — a drift you can plot. Patriot (truncated 0.1 × 360,000 ticks) and Vancouver (truncate × 3000/day × 660 days) are the same phenomenon. Whenever you see a loop or a long-lived accumulator doing an inexact step, ask: *is the error biased, and how many times does it repeat?* Bias × count is your error.
-
-### "The boundary is where floats die"
-
-Floating point is mostly safe in the *middle* of a computation. The disasters happen at the **boundaries**: float→int (Ariane), float→money (every billing bug), float→cache-key (reproducibility), float→`==` (junior bugs), float→serialized-string (round-trip). Audit boundaries, not interiors. At every type or system boundary a float crosses, there is a conversion, and the conversion is where the bug lives.
-
-### "Catch NaN at the source, not the symptom"
-
-In production, NaN surfaces three layers downstream from where it was born — a chart shows a gap, an alert fires on `NaN > threshold` being false, a sum becomes NaN. By then the origin is gone. The discipline: **assert finiteness at the boundaries** (after parsing, before storing, at module edges) so a NaN trips an alarm at its birthplace with a stack trace, not as a mysterious gap in a dashboard.
 
 ## Code Examples
 
@@ -278,15 +203,6 @@ def fp_fingerprint(values) -> str:
 | Bit-reproducible FP | Vendored libm, no FMA/fast-math, big engineering cost, slower |
 | Boundary NaN assertions | Slight overhead; must be placed at every edge |
 
-## Use Cases
-
-- **Billing / ledgers / accounting** → scaled integers (cents) as the canonical store; decimal for tax/FX/percentage math; explicit rounding policy enforced everywhere.
-- **24/7 metrics & telemetry** → integer counters for exact counts; `double` accumulators with periodic re-baselining for rates/averages; Welford for variance.
-- **Multiplayer lockstep / blockchain consensus** → fixed-point or integers in the agreement path; no transcendentals; never raw `double`.
-- **Audio / DSP / real-time** → FTZ/DAZ to dodge subnormal stalls; `float` for bandwidth; watch decaying tails.
-- **ML inference / HPC** → mixed precision (compute `float`/`bf16`, accumulate `double`), vectorized reductions, accepting non-determinism.
-- **Geospatial / simulation** → `double` minimum; watch cancellation in coordinate subtraction (use local origins / offset coordinates).
-
 ## Coding Patterns
 
 ### 1. The "money type" wrapper
@@ -374,142 +290,26 @@ When a ticket says "the numbers are wrong / don't match / show NaN":
 7. **For float→int crashes/garbage:** check the range before the cast; enable UBSan (`-fsanitize=float-cast-overflow`).
 8. **Confirm the fix with a regression test** that pins the exact bits or asserts the ULP/relative bound — so the drift can't silently return.
 
-## Test Yourself
+---
 
-1. A service keeps a running `double` sum of per-event latencies, billions of events. What goes wrong, and what are three fixes?
-2. Reproduce the Vancouver bug: compute an index updated 3000×/day for 600 days with truncation vs round-to-nearest. How far do they diverge?
-3. Write a `Money` type that makes it a *compile/type error* to add a `double` to it.
-4. Split `$100.00` among 7 people so the shares sum to exactly `$100.00`. Show the allocation.
-5. Cause a float→int overflow that's UB in C and observe it under `-fsanitize=float-cast-overflow`.
-6. Two nodes compute `sum(sin(x_i))` over the same data on Intel vs ARM. Why might the hashes differ, and how do you make them match?
-7. Generate subnormals in a decaying loop, measure the slowdown, then enable FTZ and measure again.
-8. Build a finiteness-assert boundary guard and show it catches a NaN at its source instead of three functions later.
+## Apply it
 
-## Cheat Sheet
+1. Define the user or business outcome that **Floating-Point (IEEE 754)** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
-```text
-┌─────────────────────────────────────────────────────────────────────┐
-│           FLOATING-POINT — PROFESSIONAL CHEAT SHEET                 │
-├─────────────────────────────────────────────────────────────────────┤
-│ MONEY: scaled integers (cents) or decimal. NEVER binary float.     │
-│   one enforced rounding policy | store currency | split reconciles  │
-├─────────────────────────────────────────────────────────────────────┤
-│ THE BOUNDARY IS WHERE FLOATS DIE — audit every:                    │
-│   float→int (range-check! Ariane)   float→money (cent leak)        │
-│   float→== (junior)                 float→cache-key (drift)        │
-│   float→string (round-trip)         float→time-accum (Patriot)     │
-├─────────────────────────────────────────────────────────────────────┤
-│ DRIFT in long-running accumulators:                                │
-│   linear error growth → BIASED step (truncation) → Vancouver       │
-│   √n growth          → unbiased accumulation                      │
-│   sudden freeze      → ABSORPTION past 2^53                        │
-│   fixes: re-baseline | Kahan/fsum | integers for exact counts      │
-├─────────────────────────────────────────────────────────────────────┤
-│ REPRODUCIBILITY across fleet: keep floats OUT of consensus path.   │
-│   else pin flags (no FMA/fast-math, SSE2) + vendor libm            │
-├─────────────────────────────────────────────────────────────────────┤
-│ PERF: subnormal stalls → FTZ/DAZ | vectorize reductions (non-det)  │
-│       float for bandwidth, accumulate in double                    │
-├─────────────────────────────────────────────────────────────────────┤
-│ DEBUG: print %.17g/hex | trap FE_INVALID | diff vs oracle |        │
-│        assert isfinite at boundaries | hash bits across nodes      │
-├─────────────────────────────────────────────────────────────────────┤
-│ INCIDENTS: Patriot (drift, 28 dead) | Ariane 5 (f→int, $370M) |    │
-│            Vancouver (truncation bias) | Pentium FDIV ($475M)       │
-└─────────────────────────────────────────────────────────────────────┘
-```
+## Verify your work
 
-## Summary
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
 
-- **Money never touches binary float.** Use scaled integers (minor units) as the canonical store and arbitrary-precision decimal for division/tax/FX, with one enforced, documented rounding policy and reconciling share allocation.
-- **The boundary is where floats die:** float→int (range-check it — the Ariane 5 lesson), float→money, float→cache-key, float→`==`, float→string. Audit conversions, not interiors.
-- **Long-running accumulators drift** — linearly if the step is biased (Vancouver truncation), like `√n` if unbiased, and they *freeze* once the total dwarfs the increments (absorption past `2^53`). Re-baseline, compensate, or use integers.
-- **Accumulated inexact constants are lethal:** the Patriot's truncated `0.1 × 360,000 ticks` drifted 0.34 s over 100 hours and killed 28 people. Re-baseline or represent time exactly.
-- **Reproducibility across a heterogeneous fleet** is hard because FMA, `libm`, and fast-math make the same input yield different bits — keep floats out of the consensus path, or pin flags and vendor your math.
-- **Performance** problems are usually subnormal stalls (fix with FTZ/DAZ), failure to vectorize reductions (fix with controlled reassociation, losing determinism), or `double` bandwidth (use `float`, accumulate in `double`).
-- **Debug numerics with exact bits** (`%.17g`/hex), an FP-exception trap or finiteness asserts to localize NaN at its source, and a high-precision oracle to bisect drift.
-- The historical disasters — Patriot, Ariane 5, Vancouver, Pentium FDIV — were all *boring* float mistakes that review and the disciplines above would have caught.
+## Review questions
 
-## Further Reading
-
-- *GAO Report IMTEC-92-26: Patriot Missile Defense — Software Problem Led to System Failure at Dhahran* — the official Patriot analysis.
-- J.L. Lions et al., *Ariane 5 Flight 501 Failure: Report by the Inquiry Board*, 1996 — the canonical post-mortem.
-- *The Vancouver Stock Exchange* — Toronto Star / IEEE write-ups on the index-truncation error.
-- Michael Eisenstein / Intel, *Statistical Analysis of the Pentium FDIV bug* and Cleve Moler's account.
-- David Goldberg, *What Every Computer Scientist Should Know About Floating-Point Arithmetic* — still the foundation.
-- Martin Fowler, *Patterns of Enterprise Application Architecture* — the *Money* pattern.
-- Douglas Crockford and others on JavaScript's `Number`/`2^53` integer limit and `BigInt`.
-- Stripe / Square engineering blogs on integer-minor-unit money handling.
-- Python `math.fsum` docs and Raymond Hettinger's accurate-summation recipes.
-
-## Related Topics
-
-- This folder: [`junior.md`](junior.md), [`middle.md`](middle.md), [`senior.md`](senior.md), [`interview.md`](interview.md), [`tasks.md`](tasks.md).
-- Sibling numerics topics: integer overflow and two's complement, fixed-point arithmetic, decimal/arbitrary-precision types, and number parsing/formatting in the parent section.
-
-## Diagrams & Visual Aids
-
-### Drift signatures over time
-
-```text
-   error
-     │                                   ╱ linear  → BIASED step (truncation)
-     │                                 ╱             Vancouver, Patriot
-     │                              ╱
-     │                        ___╱── √n  → unbiased accumulation
-     │                  __───
-     │            __───
-     │      __───                ────────  flat then FREEZE → absorption past 2^53
-     │__───            ─────────
-     └──────────────────────────────────────────────► iterations / time
-```
-
-### The Ariane 5 conversion
-
-```text
-   64-bit double horizontal velocity  =  (Ariane 5: larger than Ariane 4)
-                    │
-                    │  unprotected conversion
-                    ▼
-   16-bit signed integer  ── value > 32767 ──► OVERFLOW
-                    │
-                    ▼
-   unhandled Ada exception ─► SRI shuts down ─► (backup already dead) ─► loss
-
-   The missing box:  if (v < -32768 || v > 32767) handle_gracefully();
-```
-
-### Money: where the cent leaks
-
-```text
-   $10.00 split 3 ways
-
-   WRONG (independent rounding):        RIGHT (largest-remainder):
-   10.00/3 = 3.333... → round 3.33      base = 333, remainder = 1
-   ×3 = 9.99  ← lost a cent!            shares = [334, 333, 333]
-                                        sum = 1000  ✓ exact
-```
-
-### Catch NaN at the source, not the symptom
-
-```text
-   parse() → transform() → aggregate() → store() → dashboard
-      │                                                 │
-      │ NaN born here                         shows up here (3 layers later)
-      ▼                                                 ▼
-   assert isfinite()  ← guard at EACH boundary    "why is the chart blank?"
-   trips with a stack trace at the birthplace      (origin already gone)
-```
-
-### Subnormal performance cliff
-
-```text
-   throughput
-     │ ████████████████████  normal range: ~2 GFLOPS
-     │                     │
-     │                     ▼ values decay below 2^-1022
-     │                     ░░░  subnormal range: ~0.02 GFLOPS (100× slower)
-     │
-     │  with FTZ/DAZ: ████████████████████████  flushed to 0, stays fast
-     └──────────────────────────────────────────► value magnitude →
-```
+- Which measurable outcome justifies investing in Floating-Point (IEEE 754)?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

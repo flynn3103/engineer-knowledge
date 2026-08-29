@@ -1,61 +1,11 @@
-# Deoptimization & Speculation — Senior Level
+# Deoptimization & Speculation — Senior
 
-> **Topic:** Deoptimization & Speculation
-> **Focus:** The hard cases — materializing scalar-replaced objects that escape analysis deleted, on-stack invalidation across threads, safepoints and deopt, and the full taxonomy of speculative optimizations that depend on a flawless rewind.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Deoptimization & Speculation** under failure, load, and change?
 
-## Introduction
-
-> Focus: **When the optimizer has *deleted* an object, pruned a branch, or assumed no overflow, what does it take to rewind to a correct interpreter state — and how is that done safely while many threads run?**
-
-By the middle level you can describe the reconstruction map and the eager/lazy split. The senior level is about the cases where reconstruction is genuinely *creative*, not just a copy. The headline is **scalar replacement after escape analysis**. When the compiler proves an object never escapes a method, it can **delete the allocation entirely** and keep the object's fields in registers — no heap object exists at all. This is one of the most valuable optimizations on the JVM and in V8. But now consider a deopt point *after* that object was eliminated, where the interpreter state demands that the object **exist** (the bytecode references it, or it must be passed somewhere). The deoptimizer must **materialize** — *reify* — that object on the spot: allocate it, copy the scalar field values back in, and hand the interpreter a real reference, all mid-flight. The object that "never existed" suddenly does.
-
-The second senior theme is **safety in a concurrent runtime**. Deopt doesn't happen in a vacuum: the GC may want to move objects, other threads run their own optimized code, and lazy invalidation must rewrite frames that may be deep in the stack. This is mediated by **safepoints** — points where threads can be brought to a known, describable state. Deopt points are (or coincide with) places where the runtime can describe every live value and reference, which is exactly what both the GC and the deoptimizer need.
-
-The third theme is the **full taxonomy of speculations** and what each costs to rewind: monomorphic/polymorphic inline caches, type/range/null speculation, assuming *no integer overflow*, assuming an array stays *packed* (SMI/elements-kind in V8), loop-invariant hoisting guarded by deopt, and uncommon-trap-driven branch elimination. Every one is a bet whose unwind cost and metadata burden you should be able to reason about.
-
-> 🎓 **Why this matters for a senior:** You're the person who explains why a "free" optimization (escape analysis removing an allocation) interacts with a deopt to suddenly allocate; why a tight loop with rare polymorphism tanks; why a `made not entrant` cascade follows a class load; and how to structure code so the most valuable speculations (inlining, scalar replacement, packed arrays) *stick*. This is the level where you reason about the optimizer as an adversary you can cooperate with.
-
-This page covers: scalar replacement and reification, safepoints and deopt safety, on-stack invalidation across threads, the overflow/range/packed-array speculations, polymorphic inline caches and the mono→poly→mega transition, and how to keep the expensive-to-rewind bets stable.
-
----
-
-## Prerequisites
-
-- **Required:** `middle.md` — deopt points, scope descriptors/translations, frame reconstruction, eager vs lazy, CHA invalidation.
-- **Required:** Solid grasp of **escape analysis** and **inlining** as compiler optimizations.
-- **Required:** Working knowledge of **GC safepoints** and why a runtime needs all threads at known states to move objects.
-- **Helpful but not required:** SSA / sea-of-nodes IR vocabulary; inline cache (mono/poly/mega) mechanics.
-- **Helpful but not required:** V8 *elements kinds* and HotSpot *uncommon trap* internals.
-
-You do **not** need:
-
-- Production-scale fleet diagnosis and cross-engine tuning playbooks (that's `professional.md`).
-- Register allocator implementation detail.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Escape analysis** | Compiler analysis proving an object's lifetime is confined to a method (or thread), so it need not be heap-allocated. |
-| **Scalar replacement** | Replacing an eliminated object with its individual fields held in registers/stack slots — no object exists. |
-| **Materialization / reification** | Re-creating a scalar-replaced object at deopt time: allocate it and copy the scalar fields back in. |
-| **Safepoint** | A point where a thread can be paused in a state the runtime fully understands (all live refs known) — used by GC and deopt. |
-| **Inline cache (IC)** | A call-site cache recording the receiver type(s) seen and the resolved target(s). Monomorphic / polymorphic / megamorphic. |
-| **Megamorphic** | A call site that has seen so many types the engine stops specializing and uses a generic dispatch. |
-| **Elements kind** | (V8) The internal representation of an array's contents (PACKED_SMI, PACKED_DOUBLE, PACKED_ELEMENTS, HOLEY_*). Transitions can deopt. |
-| **Packed / holey** | An array with all slots present (packed) vs containing holes (holey) — packed enables much faster, deopt-protected code. |
-| **Overflow speculation** | Compiling integer arithmetic assuming it won't overflow (e.g. stays in int32/SMI), guarded so overflow triggers deopt to a wider representation. |
-| **Range / bounds speculation** | Assuming an index is in bounds or a value is in a range, eliminating a check and guarding it instead. |
-| **Null/undefined speculation** | Assuming a reference is non-null based on profiling; a null triggers deopt rather than a per-access null check. |
-| **Loop-invariant code motion (LICM)** | Hoisting a computation out of a loop; when guarded by speculation, a failed guard deopts to the un-hoisted form. |
-| **Uncommon trap** | (HotSpot) The compiled instruction that, when reached, triggers deopt — used for pruned branches, failed type checks, etc. |
-| **OSR (On-Stack Replacement)** | Replacing a running interpreter loop frame with optimized code mid-loop; the constructive inverse of deopt. |
-| **Reoptimization** | Recompiling after a deopt, folding the newly observed behavior (new type/branch) into the next compilation. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -128,38 +78,6 @@ A site that slides to megamorphic loses inlining and most speculation — a freq
 ### 6. Loop-invariant hoisting and other "moved" computations
 
 LICM hoists a computation out of a loop. If the hoist is only valid under a speculation (e.g. the hoisted load assumes the underlying object/field doesn't change shape), the loop carries a guard; a violation deopts back to the un-hoisted loop. The same pattern covers strength reduction, common-subexpression elimination across speculated invariants, and constant-folding of speculated constants. The mental rule: **any optimization that *moved* or *removed* a computation must leave behind a deopt route that restores the original computation if its enabling bet breaks.**
-
----
-
-## Real-World Analogies
-
-**Flat-pack furniture that was never assembled (reification).** Escape analysis is realizing you never actually need the assembled bookshelf — you only need to know its height and width to fit a gap, so you keep just those two numbers and throw away the box. But if someone suddenly says "hand me the bookshelf" (a deopt that needs the object), you must **assemble it on the spot** from the parts you kept. Materialization is that emergency assembly: the object that was never built gets built exactly when, and only when, reality demands it.
-
-**An evacuation that only happens at marked exits (safepoints).** You can't pull people out of a building mid-stride on a staircase — you guide them to **marked muster points** where a headcount is possible. The runtime can only deopt/GC threads at safepoints, the muster points where everyone's position is known.
-
-**A recall that waits for each car to come in for service (on-stack invalidation).** A defective part is flagged (assumption broken). You don't chase cars on the highway; each gets fixed **the next time it's at the shop** (next safepoint/return). Meanwhile they keep driving — correctly, just on the old part.
-
-**The express lane sign downgrading itself (mono→mega).** The "10 items or fewer" express lane works because almost everyone qualifies. If every kind of customer keeps using it with wildly different cart sizes, the lane loses its speed advantage and effectively becomes a normal lane — the specialization was abandoned because the assumption stopped being useful.
-
----
-
-## Mental Models
-
-### Model 1: "Removed" is only safe if it can be "restored"
-
-Every aggressive optimization — deleting an allocation, eliding a check, hoisting a load, pruning a branch — is a *removal*. The deopt machinery is the universal **restore** operation. The compiler may remove anything it can describe how to restore. Reification is the most dramatic restore: restoring an entire object from nothing.
-
-### Model 2: Speculation cost = (bet value) × (hit rate) − (deopt cost) × (miss rate)
-
-Senior reasoning about whether a speculation is *worth it* mirrors branch-prediction economics. A high-value bet (inline + scalar-replace a hot allocation) that almost always holds is enormously profitable. The same bet that misses 10% of the time, with an expensive reify-and-reconstruct unwind each miss, can be net-negative. The engine estimates this from profiling; you can shift the equation by raising the hit rate (consistency) or lowering the bet's fragility (stable shapes/types).
-
-### Model 3: Two clocks — value domain and program structure
-
-Eager deopts are driven by the **value-domain clock**: types, ranges, overflow, null, array kind — properties of *data flowing through*. Lazy deopts are driven by the **program-structure clock**: classes loading, dependencies breaking, debuggers attaching — the *shape of the program* changing. Diagnose by asking which clock ticked.
-
-### Model 4: The optimizer keeps a "co-routine to the past"
-
-At every safepoint, optimized code carries enough information to *re-derive the past*: the interpreter state that leads to here. It's as if every fast frame holds a latent, lazily-evaluated interpreter frame, instantiated only on deopt. Reification, frame reconstruction, and bytecode-index resume are that latent past made real.
 
 ---
 
@@ -268,33 +186,6 @@ Toggling an optimization is a legitimate *diagnostic* (not a fix): if behavior c
 
 ---
 
-## Pros & Cons
-
-### Pros
-
-- **Allocation elimination is huge.** Scalar replacement removes GC pressure and turns object-heavy code into pure register arithmetic — often the single biggest win in hot numeric/data code.
-- **Aggressive numeric specialization.** SMI/int32 math, packed arrays, and bounds-check elimination give dynamic languages near-native loops.
-- **Inlining + scalar replacement compound.** Inlining exposes objects to escape analysis that wouldn't have been local otherwise; the two reinforce each other.
-- **Correctness is total.** Even reification of a deleted object preserves exact semantics — the program can't tell the object was ever gone.
-
-### Cons
-
-- **Reification is the most expensive unwind.** A deopt that must materialize several scalar-replaced objects allocates and reconstructs at the worst possible moment.
-- **The most valuable bets are the most fragile.** Escape analysis, packed arrays, and monomorphic inlining all break easily (one escaping store, one float, one extra shape) and breaking them is costly.
-- **Concurrency adds latency.** On-stack invalidation across threads can't be instantaneous; it waits for safepoints.
-- **Bounded optimization.** The safepoint/describability requirement caps how far some transforms can go; the compiler always pays a "keep state recoverable" tax.
-
----
-
-## Use Cases
-
-- **Eliminating GC pressure** in hot paths by writing escape-friendly code (objects that don't leak), then verifying with `PrintEliminateAllocations` / heap profiling.
-- **Keeping numeric kernels fast** by staying within SMI/int32 ranges and homogeneous packed arrays.
-- **Protecting inlining** at hot polymorphic sites by reducing shape/type diversity.
-- **Explaining latency spikes** that coincide with class loading (CHA invalidation), debugger attach (deopt-all), or a tier transition.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Keep allocations non-escaping so EA can delete them
@@ -398,43 +289,24 @@ Proxies, decorators, ORMs, bytecode generators, and dynamic mixins inject extra 
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```text
-SCALAR REPLACEMENT  EA proves object never escapes -> delete allocation, keep
-                    fields in registers. DEOPT must MATERIALIZE (reify) it:
-                    allocate + copy fields back -> hand interpreter a real ref.
+1. State the system invariant that **Deoptimization & Speculation** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
-SAFEPOINTS          Only at safepoints can the runtime deopt/GC: full live-value
-                    + ref description exists. Deopt points are safepoints.
+## Verify your work
 
-ON-STACK INVALIDATE Mark "not entrant" -> active frames deopt at next safepoint/
-                    return -> new calls recompile. Latency, not instant.
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
 
-VALUE-DOMAIN BETS   SMI/int32 no-overflow | packed elements-kind | bounds/range |
-                    non-null. One float / overflow / hole / null -> deopt + widen.
+## Review questions
 
-INLINE CACHE SLIDE  mono (1 shape, inlinable) -> poly (few) -> mega (gives up,
-                    no inline, no speculation). Keep hot sites mono/low-poly.
-
-"REMOVED" RULE      Any removed/moved/deleted computation must leave a deopt
-                    route that RESTORES the original. That's why it's safe.
-
-TWO CLOCKS          eager = value domain (types/range/overflow/null/kind)
-                    lazy  = program structure (class load, CHA break, debugger)
-
-DIAGNOSE            JVM: -XX:+PrintEliminateAllocations -XX:+PrintCompilation
-                         -XX:+TraceDeoptimization  (-XX:-DoEscapeAnalysis to A/B)
-                    V8 : --trace-deopt --trace-opt --trace-ic (debug build)
-
-INVARIANT           Even reifying a never-existed object preserves semantics.
-                    Deopt = slower, never wrong.
-```
-
----
-
-## Summary
-
-The senior story is the deopt cases that are *constructive*, not merely a copy. **Scalar replacement** lets the compiler delete an object whose escape analysis proves it never leaves the method, holding its fields in registers — a top-tier optimization. But a deopt after that deletion may demand the object **exist**, so the deoptimizer **materializes (reifies)** it on the spot: allocate, copy the scalar fields, hand back a real reference. An object that never ran into existence is conjured precisely when reality requires it — and the program can't tell the difference, because semantics are preserved as always.
-
-All of this is made *safe* by **safepoints**: the only places the runtime can deopt or GC, because only there does a complete description of live values and references exist. That same infrastructure powers **on-stack invalidation**, where invalidated code (a broken CHA dependency, a debugger attach) is marked *not entrant* and its already-running frames deopt at their next safepoint — correct, but not instantaneous. Layered on top is the full taxonomy of fragile, high-value bets: **no-overflow SMI/int32 math**, **packed elements-kinds**, **bounds/range elimination**, **non-null speculation**, and the **monomorphic → polymorphic → megamorphic** inline-cache slide that governs whether a site stays inlinable. The senior skill is recognizing that the *most valuable* speculations are the *most fragile*, reasoning about each bet's unwind cost, and structuring code so the bets persist. The `professional.md` level takes this into production: diagnosing deopt storms at scale, reading engine-specific telemetry, and the engineering playbook for keeping a large system on its fast paths.
+- Which invariant must remain true when Deoptimization & Speculation fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

@@ -1,66 +1,11 @@
-# Fixed-Point & Arbitrary Precision — Junior Level
+# Fixed-Point & Arbitrary Precision — Junior
 
-> **Topic:** Fixed-Point & Arbitrary Precision
-> **Focus:** Why `0.1 + 0.2 != 0.3`, why you must never store money in a `float`, and the two escape hatches every language gives you: integers scaled by a factor, and numbers that grow as big as they need to.
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **Fixed-Point & Arbitrary Precision** in one small example and prove the result?
 
-## Introduction
-
-> Focus: **Where does the number `0.30000000000000004` come from, and what do professionals use instead?**
-
-Open a Python shell and type `0.1 + 0.2`. You get `0.30000000000000004`. This is not a bug in Python — you will see the same thing in Java, JavaScript, Go, C, and almost every language on the planet. It happens because the `float` and `double` types your CPU uses **cannot represent the number 0.1 exactly**. They store numbers in binary (base 2), and 0.1 in binary is a repeating fraction, just like 1/3 is `0.333...` in decimal. The computer rounds it, and the rounding error leaks out when you add.
-
-For a game where a coin floats up and down on the screen, nobody cares about an error in the 17th decimal place. For **money**, it is a disaster. If you store a customer's balance as a `double` and add up a million small transactions, the rounding errors accumulate, your ledger stops balancing, an auditor finds a few cents missing, and now you have a very uncomfortable meeting. The rule every backend engineer learns early is blunt: **never store money in a binary floating-point type.**
-
-This page is about the two families of tools that fix this, and a third that solves a different problem:
-
-1. **Fixed-point** — store the number as a plain **integer scaled by a known factor**. Store $19.99 as the integer `1999` and remember "this is in cents." No floats, no rounding surprises, exact arithmetic.
-2. **Decimal / arbitrary-precision decimal** — a number type (`BigDecimal` in Java, `Decimal` in Python, `decimal` in C#) that does arithmetic the way *you* learned in school, in base 10, with exactly the digits you ask for.
-3. **Arbitrary-precision integers (bignums)** — integers that have **no upper limit**. When a normal `int` would overflow at ~9 quintillion, a bignum just grows and keeps the exact answer. Python uses these by default; Java has `BigInteger`; JavaScript has `BigInt`.
-
-> 🎓 **Why this matters for a junior:** The single most common production bug a junior ships is "I used a float for a price." It passes every test (the numbers are small and round), then fails in production after thousands of transactions. Learning this *once* prevents a whole category of expensive, embarrassing bugs. It is one of the highest-leverage things you can learn in your first month writing backend code.
-
-This page covers: what fixed-point really means, how to store money correctly, why floats are wrong for currency, what a "bignum" is, and the same money example done right across several languages. The `middle.md` page goes into rounding rules (banker's rounding), scale and precision, and Q-notation. `senior.md` covers how bignum multiplication actually works (Karatsuba, FFT) and where bignums quietly destroy performance.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** What an integer (`int`) and a floating-point number (`float`/`double`) are, and how to declare and add them in at least one language.
-- **Required:** What "overflow" means in one sentence — when a number gets too big for its type and wraps around.
-- **Required:** Basic decimal arithmetic (you know that 1/3 is a repeating decimal).
-- **Helpful but not required:** A vague memory of binary — that computers store numbers in base 2.
-- **Helpful but not required:** Having once been bitten by a money rounding bug. (You will be, if you haven't.)
-
-You do **not** need to know:
-
-- IEEE 754 bit layout (mantissa, exponent — that's the floating-point topic next door).
-- How bignum multiplication algorithms work (Karatsuba, Toom-Cook, FFT — that's `senior.md`).
-- The exact rounding modes and `MathContext` semantics (that's `middle.md`).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Floating-point** | The `float`/`double` types your CPU has. Fast, but **binary** — cannot represent most decimal fractions (like 0.1) exactly. |
-| **Fixed-point** | Storing a fractional number as a plain **integer scaled by a fixed factor**. Store $1.23 as the integer `123` (cents). |
-| **Scale factor** | The fixed number you multiply by to get the integer. For cents, the scale is 100. For 4 decimal places, it's 10,000. |
-| **Minor unit** | The smallest unit of a currency. For USD it's the cent (1/100 of a dollar). For JPY it's the yen itself (no subdivisions). |
-| **Decimal type** | A number type that does arithmetic in base 10, exactly: `BigDecimal` (Java), `Decimal` (Python), `decimal` (C#). |
-| **Arbitrary precision** | "As many digits as needed." A type that grows to hold the exact answer instead of overflowing or rounding. |
-| **Bignum / big integer** | An integer with no fixed size limit. `BigInteger` (Java), `int` (Python), `BigInt` (JS), `big.Int` (Go). |
-| **Overflow** | When a value exceeds what its fixed-size type can hold and wraps around (e.g. a 64-bit int past ~9.2 quintillion). |
-| **Rounding** | Choosing a representable value when the exact one has too many digits. There are several *rules* for which way to round. |
-| **Banker's rounding** | Round-half-to-even: 2.5 → 2, 3.5 → 4. The default for money in many systems because it doesn't bias sums upward. |
-| **Precision** | The total number of significant digits a number carries. |
-| **Scale** | The number of digits to the *right* of the decimal point. `1.230` has scale 3. |
-| **Q-notation** | A way to write a fixed-point format: `Q16.16` means 16 integer bits and 16 fraction bits. (You'll meet this in `middle.md`.) |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -123,30 +68,6 @@ It's easy to confuse these. Keep them straight:
 | Exact money with a fixed number of decimals (cents) | **Fixed-point integers** (store cents) |
 | Exact decimal math with flexible precision (tax, interest) | **Decimal type** (`BigDecimal`, `Decimal`) |
 | Huge whole numbers that never overflow (factorials, crypto, IDs) | **Bignum** (`BigInteger`, Python `int`, `BigInt`) |
-
----
-
-## Real-World Analogies
-
-**The recipe in grams, not "cups-ish."** Imagine a baker who measures everything in whole grams (an integer) instead of "about a cup." Two bakers using grams will always get the same dough. Two bakers using "a cup-ish" will drift apart. Fixed-point (store cents) is the gram approach: an exact, agreed-upon smallest unit.
-
-**The ruler with no markings between millimeters.** A binary float is like a ruler whose tick marks are at weird, uneven positions — and 0.1 cm falls *between* two ticks, so you can only ever say "close to 0.1." Fixed-point is a ruler whose smallest tick is exactly one cent: every value you care about lands exactly on a tick.
-
-**The odometer that never rolls over.** A normal `int` is a car odometer with six digits — past 999,999 it rolls back to 000000 and lies to you (that's overflow). A bignum is a magic odometer that grows a new digit whenever it needs one, so it never rolls over and never lies.
-
-**Counting in pennies on a table.** Fixed-point money is literally counting physical pennies. You never have "half a penny" floating around — you have a whole number of pennies. Addition is just sliding piles together. There is no ambiguity about what you have.
-
----
-
-## Mental Models
-
-**Model 1 — "The decimal point is in your head, not in the computer."** With fixed-point, the computer only ever sees an integer like `1999`. The "decimal point goes two places from the right" lives in *your* code and your conventions, not in the data. Keep that convention airtight (always cents, never sometimes-dollars) and the math is exact.
-
-**Model 2 — "Binary floats lie about base-10 fractions; integers never lie."** Any time you store a fraction of money in a `double`, assume it's *approximately* that value, not exactly. Integers (and decimal types) store the value you actually meant.
-
-**Model 3 — "Bignums trade speed for never being wrong about size."** A fixed `int64` is fast but has a hard ceiling. A bignum has no ceiling but is slower (it's an array of machine words plus bookkeeping). You pick based on whether *overflow* or *speed* is the bigger risk.
-
-**Model 4 — "Round at the edges, compute in the middle."** Keep money in exact integers/decimals through all the computation, and only round to a displayable value at the very end (when you show it or settle a payment). Rounding early and often is how cents leak.
 
 ---
 
@@ -278,56 +199,6 @@ func main() {
 
 ---
 
-## Pros & Cons
-
-### Fixed-point integers (store cents)
-
-**Pros**
-- Exact for addition and subtraction — no rounding at all.
-- As fast as integer math (it *is* integer math).
-- Trivially serializable, comparable, sortable.
-- Works in every language with no library.
-
-**Cons**
-- You must remember and enforce the scale ("this is cents") everywhere.
-- Multiplication and division need care (covered in `middle.md`) — multiplying two "cents" values double-scales the result.
-- A fixed `int64` can still overflow for very large totals (rare for money, real for some domains).
-
-### Decimal types (`BigDecimal`, `Decimal`)
-
-**Pros**
-- Exact base-10 arithmetic with flexible precision.
-- Built-in, controllable rounding rules.
-- Reads naturally (`Decimal("19.99")` *is* 19.99).
-
-**Cons**
-- Slower than hardware floats (software, not a CPU instruction).
-- Easy to misuse (constructing from a `double` re-introduces the binary error).
-- More memory per value.
-
-### Bignums
-
-**Pros**
-- Never overflow — exact answers for arbitrarily large numbers.
-- Essential for cryptography, combinatorics, exact math.
-
-**Cons**
-- Slower and heavier than fixed-size ints — can quietly tank performance in a hot loop.
-- In Python, *every* int is a bignum, so you pay this everywhere by default.
-
----
-
-## Use Cases
-
-- **Money and accounting:** fixed-point cents for ledgers; `Decimal`/`BigDecimal` for tax, interest, currency conversion. Never floats.
-- **Embedded / DSP / audio:** fixed-point (Q-notation) when the chip has no fast floating-point unit. (More in `middle.md`.)
-- **Game physics on a grid:** integer or fixed-point coordinates so two machines simulate *identically* (lockstep multiplayer needs bit-exact math, which floats can't guarantee across hardware).
-- **Cryptography:** bignums — RSA keys are 2048+ bit integers; you *must* have arbitrary precision.
-- **Combinatorics / math:** factorials, big powers, exact fractions — bignums and rationals.
-- **Database IDs and counters:** sometimes exceed 64 bits; bignums or 128-bit types.
-
----
-
 ## Coding Patterns
 
 **Pattern 1 — "Money is an integer count of minor units."** Pick the smallest unit (cents) and store everything as a whole number of them. Convert to a display string only when showing the user.
@@ -377,20 +248,24 @@ def to_cents(s: str) -> int:
 
 ---
 
-## Summary
+## Apply it
 
-- Binary `float`/`double` **cannot represent most decimal fractions exactly** (0.1, 0.2, 0.3...), so they are wrong for money.
-- **Fixed-point** = store the value as an integer scaled by a fixed factor (store cents). Exact, fast, simple. The decimal point lives in your conventions, not the data.
-- **Decimal types** (`BigDecimal`, `Decimal`) do exact base-10 arithmetic with flexible precision — use them for tax, interest, conversions. Always build them from strings.
-- **Bignums** are integers with no size limit — never overflow. Python uses them by default; other languages require explicit types (`BigInteger`, `BigInt`, `big.Int`).
-- The rule that prevents an entire class of production bugs: **never store money in a float.**
+1. Choose one small, known input for **Fixed-Point & Arbitrary Precision**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
----
+## Verify your work
 
-## Further Reading
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
 
-- David Goldberg, *What Every Computer Scientist Should Know About Floating-Point Arithmetic* (the canonical paper on why floats round).
-- The Python `decimal` module documentation and its "floating-point notes."
-- Martin Fowler, *Patterns of Enterprise Application Architecture* — the **Money** pattern.
-- Your language's docs for `BigInteger` / `BigDecimal` / `big.Int` / `BigInt`.
-- Next in this topic: `middle.md` for rounding rules, scale/precision, and Q-notation; `senior.md` for how bignum multiplication actually works.
+## Review questions
+
+- What problem does Fixed-Point & Arbitrary Precision solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

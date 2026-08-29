@@ -18,12 +18,12 @@ The most expensive vulnerability classes in the industry's history are exactly t
 
 | # | Topic | The question it answers |
 |---|---|---|
-| 01 | [Memory-Safety Mechanisms](01-memory-safety-mechanisms/) | How do languages prevent (or fail to prevent) out-of-bounds and use-after-free? |
-| 02 | [Control-Flow Integrity](02-control-flow-integrity/) | How do we stop a corrupted pointer from redirecting execution? |
-| 03 | [ASLR & Mitigations](03-aslr-and-mitigations/) | How does randomizing the address space blunt exploitation, and how is it bypassed? |
-| 04 | [Sandboxing & Isolation](04-sandboxing-and-isolation/) | How do we run untrusted code while bounding its blast radius? |
-| 05 | [Side Channels & Spectre](05-side-channels-and-spectre/) | How do timing, cache, and speculation leak secrets with no memory bug at all? |
-| 06 | [Capability-Based Security](06-capability-based-security/) | What if authority were *unforgeable references* instead of ambient permissions? |
+| 01 | [Memory-Safety Mechanisms](01-memory-safety-mechanisms/README.md) | How do languages prevent (or fail to prevent) out-of-bounds and use-after-free? |
+| 02 | [Control-Flow Integrity](02-control-flow-integrity/README.md) | How do we stop a corrupted pointer from redirecting execution? |
+| 03 | [ASLR & Mitigations](03-aslr-and-mitigations/README.md) | How does randomizing the address space blunt exploitation, and how is it bypassed? |
+| 04 | [Sandboxing & Isolation](04-sandboxing-and-isolation/README.md) | How do we run untrusted code while bounding its blast radius? |
+| 05 | [Side Channels & Spectre](05-side-channels-and-spectre/README.md) | How do timing, cache, and speculation leak secrets with no memory bug at all? |
+| 06 | [Capability-Based Security](06-capability-based-security/README.md) | What if authority were *unforgeable references* instead of ambient permissions? |
 
 ---
 
@@ -37,7 +37,7 @@ Each topic ships the standard `junior` → `middle` → `senior` → `profession
 
 ## Related sections
 
-- **[Memory Management](../memory-management/)** — use-after-free, double-free, and allocator hardening are the bug substrate topic 01 defends.
-- **[Runtime Systems](../runtime-systems/)** — JITs both create attack surface (W^X violations, JIT spraying) and enforce isolation (V8 isolates).
-- **[Data Representation & Numerics](../data-representation-and-numerics/)** — integer overflow is the classic *trigger* that turns into a memory-safety violation.
-- **[Foreign Function Interface & Interop](../foreign-function-interface-and-interop/)** — the FFI boundary is where a safe language inherits an unsafe one's vulnerabilities.
+- **[Memory Management](../memory-management/README.md)** — use-after-free, double-free, and allocator hardening are the bug substrate topic 01 defends.
+- **[Runtime Systems](../runtime-systems/README.md)** — JITs both create attack surface (W^X violations, JIT spraying) and enforce isolation (V8 isolates).
+- **[Data Representation & Numerics](../data-representation-and-numerics/README.md)** — integer overflow is the classic *trigger* that turns into a memory-safety violation.
+- **[Foreign Function Interface & Interop](../foreign-function-interface-and-interop/README.md)** — the FFI boundary is where a safe language inherits an unsafe one's vulnerabilities.

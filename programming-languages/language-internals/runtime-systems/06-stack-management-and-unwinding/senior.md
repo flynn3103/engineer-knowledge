@@ -1,61 +1,11 @@
-# Stack Management & Unwinding — Senior Level
+# Stack Management & Unwinding — Senior
 
-> **Topic:** Stack Management & Unwinding
-> **Focus:** Reconstructing caller frames without a frame pointer — DWARF CFI / `.eh_frame`, Windows `.pdata`/`.xdata`, and the two-phase, zero-cost exception unwind with personality routines and landing pads.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Stack Management & Unwinding** under failure, load, and change?
 
-## Introduction
-
-> Focus: **If there's no frame pointer to chase, how does a debugger, profiler, or exception runtime find the caller — and how does throwing an exception run every destructor on the way out?**
-
-The middle level ended on a cliffhanger: frame-pointer omission removes the linked chain that naive stack walking relies on, so finding a caller becomes a *lookup*. This level is that lookup. The compiler emits, alongside the code, a compact program describing — for every instruction in every function — *where the return address is, how to compute the previous stack pointer (the CFA), and how to restore each callee-saved register*. On Unix-family systems this is **DWARF Call Frame Information (CFI)**, stored in the `.eh_frame` section (for runtime unwinding) and/or `.debug_frame` (for debuggers). On Windows x64 it's **function tables** in `.pdata`/`.xdata`. An unwinder *interprets* this table to step from one frame to the next, with no frame pointer in sight.
-
-The same machinery powers two things that look unrelated but aren't: (1) **stack walking** for backtraces, profilers, and GC root scanning; and (2) **exception unwinding** — the act of "throwing" an exception, which must walk *up* the stack, find a handler, and run every destructor / cleanup along the way. Modern C++ and similar languages use **table-based, "zero-cost" exceptions**: the normal (non-throwing) path costs *nothing* — no flag-setting, no `setjmp` — because all the unwinding knowledge lives in side tables consulted *only when an exception is actually thrown*. This replaced the old `setjmp`/`longjmp` scheme, where every protected scope paid a runtime cost on the happy path.
-
-In one sentence: **unwind tables are a compiler-emitted program that an unwinder runs to reconstruct any frame's caller and restore registers — and exceptions are just that unwinder, driven by a two-phase search-then-cleanup protocol with a per-language personality routine deciding what to do at each frame.**
-
-> 🎓 **Why this matters for a senior:** This is the layer where "my profiler shows `[unknown]`," "my C++ exception leaks because a destructor didn't run," "my crash dump can't unwind past the JIT'd frame," and "my signal-safe stack walker deadlocks" all live. You can't reason about these without understanding CFI and the two-phase unwind. It's also the conceptual bridge to GC (stack maps for root scanning) and to async runtimes (which *lose* the natural stack and must rebuild a logical one).
-
-This page covers: DWARF CFI semantics (CFA, register rules, CFI directives), `.eh_frame` vs `.debug_frame`, Windows `.pdata`/`.xdata`, the `_Unwind_*` API and the two-phase unwind, personality routines and landing pads, the LSDA, `setjmp`/`longjmp` vs zero-cost exceptions, async-signal-safe stack walking, and tail-call effects on unwinding. `professional.md` then covers growable stacks, guard pages, GC stack maps, and profiling at fleet scale.
-
----
-
-## Prerequisites
-
-- **Required:** The middle file — calling conventions, frame layout, caller/callee-saved registers, and especially *why frame-pointer omission breaks naive walking*.
-- **Required:** Comfort with the idea of a return address and the CFA (canonical frame address).
-- **Required:** Familiarity with C++ (or another language with destructors/RAII) and exceptions.
-- **Helpful:** Having looked at ELF sections (`readelf -S`) and DWARF (`readelf --debug-dump=frames`, `objdump --dwarf=frames`).
-- **Helpful:** Awareness of signals and async-signal-safety.
-
-You do **not** yet need:
-
-- Go's copying/growable stacks and stack maps in detail (that's `professional.md`).
-- Guard pages and stack-overflow-via-`SIGSEGV` mechanics (touched here, detailed in `professional.md`).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **DWARF CFI** | Call Frame Information: a bytecode-like table describing, per instruction address, how to find the CFA and restore registers (incl. the return address). |
-| **`.eh_frame`** | The ELF section holding CFI used by the *runtime* unwinder (kept even in stripped binaries because exceptions need it). |
-| **`.debug_frame`** | CFI for *debuggers*; can be stripped without breaking exceptions. Same format family as `.eh_frame`. |
-| **CIE / FDE** | Common Information Entry (shared settings) and Frame Description Entry (per-function unwind program) — the two record types in `.eh_frame`. |
-| **CFA** | Canonical Frame Address: a stable per-frame reference, conceptually `rsp` at the call site into this function. Everything is expressed relative to it. |
-| **CFI directives** | Assembler/compiler annotations (`.cfi_def_cfa`, `.cfi_offset`, …) that generate the CFI program. |
-| **`.pdata` / `.xdata`** | Windows x64 unwind data: `RUNTIME_FUNCTION` entries (`.pdata`) pointing to `UNWIND_INFO` (`.xdata`) describing prologue effects. |
-| **`_Unwind_*` API** | The Itanium C++ ABI's language-agnostic unwinding interface (`_Unwind_RaiseException`, `_Unwind_Resume`, etc.). |
-| **Two-phase unwind** | Phase 1: *search* up the stack for a handler without touching it. Phase 2: *cleanup* — actually unwind, running destructors/landing pads. |
-| **Personality routine** | A per-language function the unwinder calls at each frame to ask "do you handle this exception? what cleanup runs here?" |
-| **Landing pad** | Compiler-generated code that runs during unwinding to destroy locals and/or enter a `catch` block. |
-| **LSDA** | Language-Specific Data Area: per-function table the personality routine reads to map PC ranges to landing pads and catch types. |
-| **Zero-cost exceptions** | Table-based scheme where the non-throwing path has no runtime overhead; all cost is paid only when thrown. |
-| **`setjmp`/`longjmp` unwinding** | The older scheme: each protected scope registers itself at runtime; throwing does a `longjmp`. Costs on the happy path. |
-| **Async-signal-safe** | Code that is safe to run inside a signal handler (no locks, no `malloc`, no non-reentrant state). |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -118,34 +68,6 @@ Backtraces, sampling profilers, and garbage-collector root scanning all need to 
 ### 8. Async-Signal-Safe Walking Is Hard
 
 A profiler typically samples by delivering a signal and unwinding inside the handler. But full DWARF interpretation can `malloc`, take locks, or touch non-reentrant state — none of which is async-signal-safe. So in-handler unwinders must use restricted, allocation-free fast paths (frame-pointer walking, or precomputed/`mmap`'d unwind info, or hardware mechanisms). This is a core reason `-fno-omit-frame-pointer` is back in favor: frame-pointer walking is trivially signal-safe and fast, whereas DWARF unwinding in a signal handler is fragile.
-
----
-
-## Real-World Analogies
-
-- **CFI is a reverse-assembly instruction manual.** For every step of building the furniture (the prologue), there's a numbered step for taking it apart. The unwinder reads the manual backward to disassemble any frame, even one with no handle (frame pointer) to grab.
-
-- **Two-phase unwind is "evacuate, but check the exits first."** Phase 1 is the fire warden walking the building to confirm there *is* an unlocked exit before anyone moves. Phase 2 is the actual evacuation, switching off equipment (destructors) room by room on the way out. You don't start destroying things until you know there's somewhere to escape to.
-
-- **The personality routine is a per-tenant building manager.** The generic fire system (unwinder) doesn't know each tenant's rules, so at every floor it asks that floor's manager (the language's personality routine), "Do you handle this? What do I shut down here?"
-
-- **Zero-cost exceptions are insurance, not a toll booth.** The old `setjmp` model charged a toll at *every* door you walked through. The table-based model is insurance: you pay nothing per door; you only "claim" (pay the unwinding cost) when disaster actually strikes.
-
----
-
-## Mental Models
-
-- **"CFI turns 'find the caller' from a pointer-chase into running a tiny program."** The table *is* a program; the unwinder is its interpreter.
-
-- **"Everything is relative to the CFA."** Return address, saved registers, the previous `rsp` — all expressed as offsets from one canonical anchor per frame.
-
-- **"Phase 1 asks, phase 2 acts."** Search establishes that a handler exists *with the stack untouched*; only then does cleanup destroy frames.
-
-- **"Zero-cost means zero on the *normal* path — throwing is expensive."** The cost didn't vanish; it moved off the hot path and onto the (rare) throw path, plus binary size.
-
-- **"`.eh_frame` survives stripping; `.debug_frame` doesn't."** Exceptions are a *runtime* feature, so their tables ship in release builds.
-
-- **"Signal-context unwinding wants frame pointers."** Full DWARF in a handler is not reliably async-signal-safe; FP walking is.
 
 ---
 
@@ -245,37 +167,6 @@ This is the canonical "make flame graphs work" decision tree: frame pointers (ch
 
 ---
 
-## Pros & Cons
-
-**Table-based zero-cost exceptions:**
-
-| Pro | Con |
-|-----|-----|
-| No runtime cost on the non-throwing path. | Throwing is *slow* (table interpretation, two passes). |
-| Enables RAII cleanup correctly and language-agnostically. | Larger binaries (`.eh_frame` + LSDA can be a meaningful fraction of code size). |
-| Works for cross-language unwinding via the common ABI. | Unwinding in restricted contexts (signals) is not async-signal-safe. |
-
-**DWARF CFI stack walking vs frame-pointer walking vs LBR:**
-
-| Method | Pro | Con |
-|--------|-----|-----|
-| **Frame pointers** | Trivial, fast, signal-safe. | Costs a register + a couple instructions per call. |
-| **DWARF CFI** | Works on FPO builds; precise. | Per-sample interpretation is expensive; needs the stack copied; fragile in signal handlers. |
-| **Hardware LBR** | Near-zero overhead; works regardless of FP/FPO. | Limited branch-record depth; CPU-specific; truncates deep stacks. |
-
----
-
-## Use Cases
-
-- **C++/Rust/Swift exceptions and panics** — the runtime unwinds via CFI, running cleanup. (Rust panics with `panic=unwind` use the same Itanium machinery; `panic=abort` skips it.)
-- **Debuggers** — `gdb`/`lldb` reconstruct backtraces on FPO/optimized code by interpreting `.eh_frame`/`.debug_frame`.
-- **Sampling profilers** — `perf`, async-profiler, etc., walk stacks via FP, DWARF, or LBR to build flame graphs.
-- **Crash reporters / core-dump analysis** — post-mortem unwinding of a stripped release binary relies on `.eh_frame`.
-- **Garbage collectors** — precise root scanning of live frames via stack maps (a CFI cousin).
-- **Cross-language unwinding** — a single exception propagating through C++ → C → C++ frames, coordinated by the common `_Unwind_*` ABI.
-
----
-
 ## Coding Patterns
 
 **Pattern: Make stacks walkable for production profiling.** For server fleets, compile with `-fno-omit-frame-pointer` (or ensure good DWARF + a DWARF-capable profiler, or rely on LBR). Decide deliberately; don't discover at incident time that your flame graphs are `[unknown]`.
@@ -332,62 +223,24 @@ Without these directives, your assembly is a black hole for unwinding: backtrace
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```text
-UNWIND TABLES
-  Unix:    DWARF CFI in .eh_frame (runtime, kept when stripped)
-                     and .debug_frame (debuggers, strippable)
-           records: CIE (shared) + FDE (per function), DW_CFA_* opcodes
-  Windows: .pdata (RUNTIME_FUNCTION) -> .xdata (UNWIND_INFO, unwind codes)
-           RtlVirtualUnwind replays the prologue in reverse
+1. State the system invariant that **Stack Management & Unwinding** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
-STEP ONE FRAME (via CFI)
-  CFA          = e.g. rsp + N   (canonical anchor)
-  return addr  = *(CFA - 8)     (SysV)
-  restore callee-saved regs from their CFA offsets
-  rsp = CFA ; PC = return addr ; repeat
+## Verify your work
 
-TWO-PHASE EXCEPTION UNWIND (Itanium ABI, _Unwind_*)
-  Phase 1 SEARCH : walk up, ask each personality routine "handler?"
-                   stack UNTOUCHED; none found -> terminate
-  Phase 2 CLEANUP: walk up again, run landing pads (destructors),
-                   enter catch at the handler frame
-  personality routine + LSDA decide per frame what runs / catches
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
 
-ZERO-COST vs SETJMP/LONGJMP
-  zero-cost: nothing on the normal path; all cost in tables, paid on throw
-  setjmp/longjmp (old): runtime cost on EVERY protected scope
+## Review questions
 
-STACK WALKING FOR PROFILERS
-  frame pointers  -> cheap, signal-safe   (-fno-omit-frame-pointer)
-  DWARF call-graph-> works on FPO, expensive, fragile in signals
-  LBR             -> hardware, low overhead, shallow depth
-
-GOTCHAS
-  - never strip .eh_frame from throwing/crash-reported binaries
-  - CFI-annotate hand-written asm (.cfi_*) or unwinding breaks there
-  - throwing destructor during unwind -> terminate
-  - noexcept violation -> terminate (no unwind above)
-  - JIT code must register unwind info
-  - profilable builds need -fasynchronous-unwind-tables
-```
-
----
-
-## Summary
-
-When there's no frame pointer to chase, the unwinder runs a compiler-emitted program to reconstruct each caller. On Unix that program is **DWARF CFI** in `.eh_frame` (CIE + FDE records, `DW_CFA_*` opcodes) describing, per instruction, the **CFA** and how to restore the return address and callee-saved registers; on Windows it's `.pdata`/`.xdata` unwind codes that replay the prologue in reverse. Stepping a frame is "compute CFA → read return address → restore registers → set `rsp` and PC." The same tables serve debuggers, profilers, and crash reporters.
-
-**Exception unwinding** is this walker driven by a protocol: a **two-phase** scheme that first *searches* up the stack (asking each frame's **personality routine**, via the **LSDA**, whether it handles the exception) without touching anything, then *cleans up* — running **landing pads** that fire destructors and enter the matching `catch`. This **table-based "zero-cost"** design puts no overhead on the non-throwing path (replacing the old `setjmp`/`longjmp` model that charged every protected scope), at the price of large unwind cost on a throw and bigger binaries. The practical edges — `[unknown]` flame graphs from FPO builds, throwing destructors hitting `terminate`, JIT frames breaking unwinding, signal-safe walking favoring frame pointers — all follow directly from this machinery. `professional.md` extends it to *growable* stacks (Go), guard-page overflow detection, GC stack maps, and async logical stacks.
-
----
-
-## Further Reading
-
-- *DWARF Debugging Information Format* specification, the Call Frame Information chapter (CFA, CIE/FDE, `DW_CFA_*`).
-- *Itanium C++ ABI: Exception Handling* — the canonical description of the two-phase unwind, `_Unwind_*`, personality routines, and the LSDA.
-- Microsoft docs: *x64 exception handling*, `RUNTIME_FUNCTION`, `UNWIND_INFO`, `RtlVirtualUnwind`.
-- Ian Lance Taylor's blog series on `.eh_frame` and stack unwinding.
-- Linux `perf` documentation on `--call-graph fp|dwarf|lbr`; the kernel/distro discussions on re-enabling frame pointers fleet-wide.
-- The next file: `professional.md` (growable/copying stacks, guard pages, GC stack maps, async logical stacks, fleet-scale profiling).
+- Which invariant must remain true when Stack Management & Unwinding fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

@@ -1,77 +1,11 @@
-# Semantic Analysis — Junior Level
+# Semantic Analysis — Junior
 
-> **Topic:** Semantic Analysis
-> **Focus:** The parser proved your program is *spelled* right. Now something has to prove it *means* something. That something is semantic analysis — name resolution, symbol tables, and type checking.
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **Semantic Analysis** in one small example and prove the result?
 
-## Introduction
-
-> Focus: **What is "semantically valid" and why is a syntactically correct program not enough?**
-
-A compiler runs in phases. The **lexer** turns characters into tokens. The **parser** turns tokens into a tree (the **AST**) and proves the program is grammatically well-formed. But "grammatically well-formed" is a very low bar. This sentence is grammatically well-formed:
-
-```text
-x = y + zog;
-```
-
-The parser is perfectly happy: it's `identifier = identifier + identifier`. But if `zog` was never declared, the program is *nonsense*. If `y` is a string and `zog` is a number, the `+` might be nonsense too. If `x` was declared as a constant, assigning to it is nonsense. None of these are spelling mistakes — they are **meaning** mistakes.
-
-**Semantic analysis** is the compiler phase that runs *after* parsing and checks that the program *means* something valid. It is the bridge from "syntactically correct" to "semantically valid." It answers questions the grammar cannot:
-
-- Does every name you *use* refer to something you *declared*? (**name resolution**)
-- Are the types consistent — can you actually add this to that, call this function with those arguments, assign this value to that variable? (**type checking**)
-- Are there rules of the language being violated — using a variable before it's set, code that can never run, a `break` outside any loop, an unhandled `match` case?
-
-> 🎓 **Why this matters for a junior:** Almost every compile error you have *ever* seen is a semantic error, not a syntax error. "undefined variable `zog`," "cannot assign string to int," "x is not in scope" — these are all produced by semantic analysis. When you understand this phase, the compiler stops being a mysterious oracle and becomes a checklist you can predict.
-
-In one sentence: **the parser builds the tree; semantic analysis walks the tree and decides whether the tree makes sense.** The two big jobs are *connecting names to their declarations* and *checking that the types fit*. This page introduces both, plus the data structure that makes name resolution possible — the **symbol table** — and the idea of **scope**.
-
-This page covers what scope is, what a symbol table is, how name resolution walks a tree, and what a type error looks like. The next level (`middle.md`) builds a real scoped symbol table and a recursive type checker; `senior.md` covers attribute grammars, multiple passes, and serious error recovery; `professional.md` covers borrow checking, overload resolution, and decorating the AST for the next phase.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** What an **AST** (abstract syntax tree) is — that a program like `x = y + 1` becomes a tree with an assignment node at the top.
-- **Required:** Basic understanding that compilers/interpreters have *phases* (lex → parse → ... → run/codegen).
-- **Required:** What a variable declaration and a variable *use* are, in any language.
-- **Helpful but not required:** Recursion. Semantic analysis walks trees, and tree walks are recursive.
-- **Helpful but not required:** What a hash map / dictionary is. The symbol table is usually built on one.
-
-You do **not** need to know:
-
-- How a parser is built (LL, LR, recursive descent) — that's the previous phase.
-- Type inference algorithms like Hindley-Milner — that's an advanced topic touched on later.
-- How IR or machine code is generated — that's the phase *after* semantic analysis.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Semantic analysis** | The compiler phase, after parsing, that checks the program *means* something valid (names resolve, types fit, language rules hold). |
-| **AST (Abstract Syntax Tree)** | The tree the parser produces. Semantic analysis walks and annotates it. |
-| **Identifier / name** | A symbol you wrote: a variable, function, type, or field name. |
-| **Declaration** | The place a name is *introduced* (`let x = 5`, `func foo()`, `class Dog`). |
-| **Use (reference)** | A place a name is *referred to* after declaration (`print(x)`, `foo()`). |
-| **Name resolution / binding** | Connecting each *use* of a name to its *declaration*. |
-| **Scope** | The region of the program where a particular declaration is visible. |
-| **Lexical (static) scope** | Scope determined by where code is *written* in the source. The default in almost every modern language. |
-| **Shadowing** | An inner declaration hiding an outer declaration of the same name. |
-| **Symbol table** | The data structure mapping names → information (declaration, type, scope) about them. |
-| **Symbol** | An entry in the symbol table: one name and everything known about it. |
-| **Type checking** | Verifying that the types in the program obey the language's rules. |
-| **Type error** | A semantic error where types don't fit (e.g., `int + string`). |
-| **Undefined variable** | A semantic error where a name is used but never declared in any visible scope. |
-| **In scope / out of scope** | Whether a declaration is currently visible at a given point in the program. |
-| **Forward reference** | Using a name *before* its declaration appears in the source (e.g., calling a function defined later in the file). |
-| **Pass** | One complete walk over the AST. Semantic analysis often needs more than one. |
-| **Decorated / annotated AST** | The AST after semantic analysis has attached types and resolved bindings to its nodes. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -155,32 +89,6 @@ Type checking also covers function calls (right number of arguments? right types
 ### 7. The Output: A Decorated AST
 
 Semantic analysis doesn't usually *transform* the tree into something new; it **decorates** it. Each name-use node gets a pointer to its declaration; each expression node gets its computed type. The next phase (IR generation / code generation) consumes this decorated tree — it relies on semantic analysis having already proven everything is valid, so it can generate code without worrying about errors.
-
----
-
-## Real-World Analogies
-
-- **Proofreading vs. fact-checking.** The parser is a proofreader: it checks grammar and punctuation. Semantic analysis is a fact-checker: the sentence "The Eiffel Tower is in Berlin" is grammatically perfect but *factually wrong*. Type errors and undefined-variable errors are the compiler's fact-check failures.
-
-- **A guest list at a party (name resolution).** Every name a guest mentions ("I'm here to see Sara") must match someone actually invited (declared). If "Sara" isn't on any list — the main list or any side-room list — the bouncer (compiler) turns the request away: *undefined name*.
-
-- **Nested rooms (scope).** A house has a living room, and inside it a closet. From the closet you can see things in the living room (outer scope visible from inner). From the living room you cannot see what's inside a closed closet (inner scope hidden from outer).
-
-- **A dictionary you can stack (symbol table).** Imagine a stack of transparent sheets, each with name→meaning entries. When you enter a room you add a sheet on top; when you leave you remove it. To find a meaning you look down through the stack until you hit the first sheet that has the word.
-
-- **Lego instructions check (type checking).** The instructions say "attach the 2x4 brick to the 2x4 plate." Type checking is the step where you confirm the piece in your hand is actually a 2x4 brick and not a wheel. Wrong piece = type error.
-
----
-
-## Mental Models
-
-**Model 1 — "Two questions per name."** For every name in the program, semantic analysis asks: (1) *What does this refer to?* (name resolution) and (2) *What type is it?* (type checking). Almost everything a junior needs to understand about this phase reduces to these two questions.
-
-**Model 2 — "A stack of dictionaries."** Scope is a stack. Entering a block pushes a fresh dictionary; leaving pops it. Declaring a name inserts into the top dictionary. Using a name searches top-to-bottom. This one picture explains scope, shadowing, and "out of scope" errors all at once.
-
-**Model 3 — "Decorate, don't rebuild."** Semantic analysis doesn't make a new tree. It hangs labels on the existing AST — a type on every expression, a binding on every name. By the end, the tree is *richer*, not different.
-
-**Model 4 — "Most compile errors live here."** When you mentally categorize a compile error, ask: is it about *how it's spelled* (syntax) or *what it means* (semantics)? Undefined names, type mismatches, scope errors, calling a function with the wrong arguments — all semantic. This single reframe demystifies the compiler.
 
 ---
 
@@ -345,33 +253,6 @@ This is a junior's first taste of why semantic analysis needs **multiple passes*
 
 ---
 
-## Pros & Cons
-
-**Pros of having a dedicated semantic-analysis phase:**
-
-- **Catches meaning bugs early** — at compile time, before the program ever runs. Undefined names and type mismatches never reach a user.
-- **Produces excellent diagnostics** — because it understands names and types, it can say *exactly* what's wrong and where.
-- **Decouples concerns** — the parser only worries about grammar; later phases (codegen) trust that everything is valid. Each phase is simpler.
-- **Powers tooling** — the same symbol table and type info drive autocomplete, "go to definition," and refactoring in your editor.
-
-**Cons / costs:**
-
-- **It's where the hard rules live**, so it's the most complex part of many compilers — scopes, types, special cases.
-- **Multiple passes** can be needed (forward references, mutual recursion), which complicates the design.
-- **Error recovery is genuinely hard** — after one error, the compiler must keep going to find more, without drowning you in cascading nonsense.
-- **Type rules can be subtle** — subtyping, generics, and inference push this phase into deep theory (covered in later levels and the type-systems material).
-
----
-
-## Use Cases
-
-- **Every compiler and interpreter** runs semantic analysis (or a subset). Even a tiny interpreter for a calculator language resolves variable names against an environment — that's name resolution.
-- **Linters and static analyzers** are essentially semantic analysis without code generation: they build symbol tables and check rules (unused variable, shadowed name, possible null).
-- **IDE features** — "undefined symbol" squiggles, autocomplete, rename refactoring, "find all references" — are all driven by the symbol table and binding information.
-- **Type checkers as standalone tools** — TypeScript's `tsc`, Python's `mypy`, Ruby's Sorbet — are semantic analysis bolted onto a dynamically typed language.
-
----
-
 ## Coding Patterns
 
 - **The visitor pattern.** Semantic analysis walks the AST. The cleanest way to do that is a *visitor* — one method per node kind (`visit_Let`, `visit_Add`, `visit_Name`). Each method does its check and recurses into children.
@@ -454,204 +335,24 @@ This is a junior's first taste of why semantic analysis needs **multiple passes*
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. What does semantic analysis check that parsing does not?
-2. What is the difference between a *declaration* and a *use* of a name?
-3. Why does a symbol table need to be *scoped* instead of one flat dictionary?
-4. In `let x = 1; { let x = 2; print(x); } print(x);`, what two values are printed and why?
-5. Why does name lookup search innermost scope first?
-6. Why does a compiler sometimes need *more than one pass* over the AST?
-7. What does it mean to say the output of semantic analysis is a "decorated AST"?
+1. Choose one small, known input for **Semantic Analysis**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
-<details>
-<summary>Answers</summary>
+## Verify your work
 
-1. That the program *means* something valid — names resolve to declarations, types are compatible, and language rules (scope, definite assignment, etc.) hold. Parsing only checks grammar.
-2. A *declaration* introduces a name (`let x = 5`); a *use* refers to an existing name (`print(x)`). Name resolution connects uses to declarations.
-3. Because the same name can refer to different things in different scopes. A flat dictionary can't distinguish an inner `x` from an outer `x`.
-4. `2` then `1`. The inner `x` shadows the outer one inside the block; outside the block the outer `x` (still `1`) is visible.
-5. So that shadowing works: the *nearest* enclosing declaration should win.
-6. For forward references — using a name before its declaration appears (e.g., calling a function defined later). Pass one collects declarations; pass two checks bodies.
-7. The AST after semantic analysis, with types attached to expression nodes and bindings attached to name uses. The next phase consumes this enriched tree.
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
 
-</details>
+## Review questions
 
----
-
-## Tricky Questions
-
-1. **In `let x = x + 1;`, what does the right-hand `x` refer to?** In most languages, the *outer* `x` (or it's an error if none exists), because the new `x` isn't in scope until after its initializer is checked. The right-hand side is resolved *before* the left-hand name is declared.
-
-2. **Can two variables in the same program have the same name?** Yes — in different scopes. `count` in one function and `count` in another are completely separate symbols. Scope is what keeps them apart.
-
-3. **Why can you call a function before it's defined in Java but not always reference a local variable before it's declared?** Because the compiler does a *separate pass* to collect all method/field declarations at class scope before checking bodies, but local variables inside a method follow strict top-to-bottom declaration order.
-
-4. **Is "undefined variable" a syntax error or a semantic error?** Semantic. The grammar is fine — `print(zog)` parses perfectly. It's only when name resolution fails to find `zog` that the error appears.
-
-5. **If a language has no static types, does it still do semantic analysis?** Yes — it still resolves names and checks rules like "break outside a loop." It just defers *type* checking to runtime.
-
----
-
-## Cheat Sheet
-
-```text
-SEMANTIC ANALYSIS — the phase AFTER parsing
-
-  Goal:  syntactically correct  →  semantically VALID
-         (the parser's tree)        (a tree that MEANS something)
-
-  TWO BIG JOBS
-  ┌──────────────────────────┬──────────────────────────────┐
-  │ Name resolution          │ Type checking                │
-  │ "what does this refer to?"│ "do the types fit?"          │
-  │ uses → declarations       │ int+int=int, int+string=ERR  │
-  │ needs a SYMBOL TABLE      │ walk tree BOTTOM-UP           │
-  └──────────────────────────┴──────────────────────────────┘
-
-  SCOPE = where a declaration is visible
-    lexical/static: decided by where code is WRITTEN
-    inner can see outer; outer cannot see inner
-    shadowing: nearest declaration wins
-
-  SYMBOL TABLE = stack of dictionaries
-    enter_scope() push   |  declare() insert into top
-    exit_scope()  pop     |  lookup()  search top → bottom
-
-  MULTIPLE PASSES when needed (forward references):
-    pass 1: collect declarations
-    pass 2: check bodies
-
-  OUTPUT: a DECORATED / TYPED AST
-    every name-use → binding;  every expression → type
-
-  MOST COMPILE ERRORS LIVE HERE:
-    "undefined variable"  |  "type mismatch"  |  "not in scope"
-    "wrong number of arguments"  |  "x is not initialized"
-```
-
----
-
-## Summary
-
-- **Semantic analysis** is the compiler phase after parsing. It checks that a syntactically correct program is also **semantically valid** — that it *means* something.
-- The two central jobs are **name resolution** (connecting each *use* of a name to its *declaration*) and **type checking** (verifying types fit).
-- **Scope** is the region where a declaration is visible. Lexical (static) scope — the default — is decided by where code is written. Inner scopes see outer ones; not vice versa. The nearest declaration wins, giving us **shadowing**.
-- The **symbol table** makes name resolution possible. Mentally it's a **stack of dictionaries**: push on entering a scope, pop on leaving, declare into the top, look up from top to bottom.
-- **Type checking** walks the tree **bottom-up**: literals know their type, and each operator derives its result type from its operands. Incompatible types produce a **type error**.
-- Semantic analysis sometimes needs **multiple passes** — most commonly to handle **forward references** (using a name before its declaration appears).
-- The output is a **decorated AST** — the same tree, now annotated with types and resolved bindings — which the next phase (IR/code generation) consumes.
-- **Most compile errors you've ever seen are semantic errors**, not syntax errors: undefined variable, type mismatch, out of scope, wrong arguments. This phase is where they come from.
-
----
-
-## What You Can Build
-
-- **A name resolver for a tiny language.** Given an AST with `let`, blocks, and uses, walk it with a scope stack and report every undefined variable. Test it on programs with nested blocks and shadowing.
-- **A calculator with variables.** Support `let x = ...` and expressions. Resolve names against a symbol table; report "undefined variable" for typos. This is name resolution in its smallest honest form.
-- **A type checker for arithmetic + strings.** Add types (`int`, `string`, `bool`) and reject `int + string`, `if` with a non-bool condition, etc. Produce a clear error with a line number.
-- **A "scope visualizer."** Walk a program and print the scope tree — which names are declared in which scope, and which uses resolve to which declarations. Great for *seeing* shadowing.
-- **A redeclaration checker.** Flag `let x; let x;` in the same scope as an error, but allow shadowing in a nested block. Getting this exactly right teaches you "current scope vs. enclosing scope."
-
----
-
-## Further Reading
-
-- *Crafting Interpreters* — Robert Nystrom. The chapters "Resolving and Binding" and "Types" are the clearest junior-level treatment of name resolution and a tree-walking checker anywhere. https://craftinginterpreters.com/
-- *Compilers: Principles, Techniques, and Tools* ("The Dragon Book") — Aho, Lam, Sethi, Ullman. Chapter 2 (a simple syntax-directed translator) and the semantic-analysis chapter.
-- *Engineering a Compiler* — Cooper & Torczon. Strong, practical chapters on scopes and symbol tables.
-- *Writing An Interpreter In Go* — Thorsten Ball. Builds an evaluator with an environment (runtime name resolution) you can read in an afternoon.
-- *Modern Compiler Implementation in ML/Java/C* — Andrew Appel. The "Semantic Analysis" chapter and its symbol-table treatment.
-- Your favorite compiler's error messages — read them as *documentation of semantic rules*. Try to predict what triggers each one.
-
----
-
-## Related Topics
-
-- The previous phase is **parsing**, which produces the AST that semantic analysis walks. Without a tree, there is nothing to analyze.
-- The deeper theory of types — type inference, subtyping, generics, soundness — lives in the **type-systems** material; type *checking* here is its practical front line.
-- The next phase is **intermediate-representation (IR) generation**, which consumes the decorated AST that semantic analysis produces.
-- **Runtime systems** handle the runtime side of names (environments, dynamic scope, late binding) — the dynamic cousin of the static name resolution done here.
-- Tooling such as **linters and static analyzers** are essentially semantic analysis without code generation.
-
----
-
-## Diagrams & Visual Aids
-
-### The Place of Semantic Analysis in the Pipeline
-
-```text
-  source text
-      │
-      ▼
-   ┌───────┐   characters → tokens
-   │ Lexer │
-   └───────┘
-      │
-      ▼
-   ┌────────┐  tokens → AST  (proves: SYNTAX ok)
-   │ Parser │
-   └────────┘
-      │
-      ▼
-   ┌────────────────────┐  AST → DECORATED AST
-   │ Semantic Analysis  │  (proves: MEANING ok)
-   │  • name resolution │
-   │  • type checking   │
-   │  • other rules     │
-   └────────────────────┘
-      │
-      ▼
-   ┌──────────┐  decorated AST → IR → machine code
-   │ Codegen  │
-   └──────────┘
-```
-
-### A Scope Stack While Walking a Program
-
-```text
-Program:
-  let a = 1
-  {                       <- enter scope
-    let b = 2
-    use(a)   ── resolves ──┐
-    use(b)   ── resolves ──┤
-  }                       <- exit scope (b gone)
-  use(b)   <- ERROR: undefined
-
-Symbol-table state:
-
-  before block:   [ {a:int} ]
-  inside block:   [ {a:int}, {b:int} ]      <- two dictionaries
-  lookup(a) ──────────────┘     ▲
-  lookup(b) ────────────────────┘ found in top
-  after block:    [ {a:int} ]               <- popped; b is gone
-  lookup(b) → searches all → not found → ERROR
-```
-
-### Bottom-Up Type Checking of `a + b`
-
-```text
-                (Add)  → type = int        rule: int + int = int
-               /     \
-          (Name a)   (Name b)
-          type=int   type=int              looked up from symbol table
-
-If b were a string:
-
-                (Add)  → TYPE ERROR: cannot add int and string
-               /     \
-          (Name a)   (Name b)
-          type=int   type=string
-```
-
-### Use → Declaration Arrows (Name Resolution)
-
-```text
-  let count = 0;          ●  declaration
-       ▲   ▲
-       │   │
-  count = count + 1;      uses, each resolved back to the declaration
-   │
-   └─ print(count);       another use → same declaration
-```
+- What problem does Semantic Analysis solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

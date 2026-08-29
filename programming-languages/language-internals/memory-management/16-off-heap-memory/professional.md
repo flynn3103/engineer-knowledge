@@ -1,14 +1,11 @@
-# Off-heap / Native Memory — Professional Level
+# Off-heap / Native Memory — Professional
 
-> **Topic:** Off-heap / Native Memory
-> **Focus:** Production reality — sizing the whole process, diagnosing native leaks that no heap dump shows, the tooling that actually finds them, and war stories from the field.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Off-heap / Native Memory** with measurable outcomes and limited coordination?
 
-## Introduction
-
-In production, off-heap memory's defining property is that it is *invisible to the tools you reach for first*. A heap dump won't show it. `-Xmx` doesn't bound it. The GC log never mentions it. So the failure mode is brutal in its asymmetry: a slow native leak grows process RSS for hours while every JVM-level dashboard stays green, until the kernel's OOM killer or the container runtime sends a `SIGKILL` and your service vanishes with no Java stack trace, no `OutOfMemoryError`, no heap dump — just exit code 137. This page is about not being surprised by that, and about finding the leak fast when you are.
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -72,18 +69,6 @@ NMT itself adds 5–10% overhead and per-allocation bytes, so it's a "turn on to
 
 ---
 
-## War Stories
-
-**The Cleaner that never ran.** A streaming service held `DirectByteBuffer`s in a long-lived `ConcurrentHashMap` cache. The heap was tiny and healthy, so the GC almost never ran, so the buffers' Cleaners almost never fired, so direct memory grew without bound. RSS climbed for days; the heap dump (taken in desperation) showed nothing relevant. The fix was twofold: set `-XX:MaxDirectMemorySize` to force GC-on-pressure, and migrate the cache to explicitly-freed `Arena` segments so lifetime stopped depending on GC at all.
-
-**The container that died with no stack trace.** A service ran fine in QA, then in production got OOM-killed (exit 137) every few hours. Heap was capped at 4 GiB; container limit was 4 GiB. The culprit: thread-per-request scaling pushed thread count to 2,000, and each thread's 1 MiB stack plus per-thread direct buffers pushed RSS past the limit — the heap never touched its ceiling, so no `OutOfMemoryError`, just a kernel kill. The fix was budgeting the *process*, not the heap, and bounding the thread pool.
-
-**The JNI library that leaked below the JVM.** Image-processing throughput was fine but RSS crept up. NMT showed nothing alarming in Java buckets. `jemalloc` profiling revealed a native decoder library `malloc`ing per-call and freeing only on a code path that an exception skipped. No amount of Java-level analysis would have found it — the leak was in C, beneath everything the JVM could report.
-
-**glibc malloc retention masquerading as a leak.** A service's RSS plateaued well above its actual live native memory and never came back down. Not a leak — glibc's `malloc` keeps per-thread arenas and rarely returns freed memory to the OS, so RSS reflects high-water-mark, not current use. Setting `MALLOC_ARENA_MAX=2` (or switching to jemalloc) cut the retention. The lesson: high RSS isn't always a leak; sometimes it's allocator retention policy.
-
----
-
 ## Code Examples
 
 **Enable and read NMT (the first move in any native-memory incident):**
@@ -126,19 +111,6 @@ jeprof --show_bytes --pdf $(which java) jeprof.*.heap > leak.pdf
 
 ---
 
-## Pros & Cons
-
-**Pros (operational)**
-- Off-heap removes the big-dataset GC pause that would otherwise dominate tail latency in production.
-- mmap'd page cache is shared across restarts and processes — warm caches survive a process bounce.
-
-**Cons (operational)**
-- Leaks are invisible to first-line tools and kill the process without a Java-level signal — the hardest class of memory bug to diagnose.
-- Capacity planning is manual and unforgiving; a wrong budget means periodic OOM kills.
-- Requires a second toolchain (NMT, pmap, jemalloc) that on-call engineers must know exists before they need it at 3 a.m.
-
----
-
 ## Best Practices
 
 1. **Always run with `-XX:MaxDirectMemorySize` set explicitly** and alert on `BufferPoolMXBean` direct usage approaching it.
@@ -161,6 +133,24 @@ jeprof --show_bytes --pdf $(which java) jeprof.*.heap > leak.pdf
 
 ---
 
-## Summary
+## Apply it
 
-In production, off-heap memory is defined by its invisibility: the heap dump, `-Xmx`, and the GC log all lie about it, and its failure mode is a kernel OOM kill with no Java-level diagnostics. The professional defends against this by *budgeting the whole process against RSS* (heap + direct + metaspace + code cache + stacks + explicit off-heap + headroom), capping direct memory explicitly, and alerting on the RSS-minus-heap gap. When a native leak strikes, the playbook is top-down: confirm it's native, categorize with NMT, check buffer-pool MXBeans, locate the mapping with `pmap`/`smaps`, and drop to jemalloc profiling for leaks below the JVM. The recurring war-story lessons — Cleaners that never run under low GC pressure, kills with no stack trace, JNI leaks NMT can't see, and glibc retention that looks like a leak but isn't — all reduce to one rule: when RSS grows and the heap doesn't, you are in native territory, and you need native tools.
+1. Define the user or business outcome that **Off-heap / Native Memory** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
+
+## Verify your work
+
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
+
+## Review questions
+
+- Which measurable outcome justifies investing in Off-heap / Native Memory?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

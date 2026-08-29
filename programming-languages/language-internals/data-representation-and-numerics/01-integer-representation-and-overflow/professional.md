@@ -1,53 +1,11 @@
-# Integer Representation & Overflow — Professional Level
+# Integer Representation & Overflow — Professional
 
-> **Topic:** Integer Representation & Overflow
-> **Focus:** Production war stories, security exploitation, performance, and debugging — the real incidents (Boeing 787, Ariane 5, YouTube's counter, the integer-overflow-to-heap-overflow CVE pattern), the tooling that finds these bugs at scale, and how to harden a codebase against them.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Integer Representation & Overflow** with measurable outcomes and limited coordination?
 
-## Introduction
-
-> Focus: **Integer overflow is not an academic curiosity — it has grounded aircraft, destroyed a rocket, broken planet-scale services, and is the root cause behind an entire taxonomy of memory-corruption vulnerabilities (CWE-190).** At the professional level, you must recognize the *shapes* of these failures in code review, exploit-mitigate them in security-sensitive code, and have a debugging playbook for when one slips into production.
-
-A 32-bit counter that overflows is, in the abstract, a five-line example. In production it is: a Boeing 787 whose generator control units must be power-cycled before a counter overflows at 248 days, lest all four units fail simultaneously mid-flight. It is the Ariane 5 maiden flight, lost 37 seconds after launch because a 64-bit float was converted to a 16-bit signed integer that overflowed. It is PSY's "Gangnam Style" forcing YouTube to migrate its view counter from 32-bit to 64-bit when it passed 2,147,483,647 views. It is `malloc(count * size)` where `count * size` wraps to a small allocation, followed by a write of `count` elements — a heap buffer overflow that an attacker turns into remote code execution.
-
-The professional's job has three parts:
-
-1. **Pattern recognition.** Size calculations, length fields from untrusted sources, counters with no upper bound, conversions across widths at trust boundaries, time/tick counters. These are where overflow becomes an incident. You learn to flag them on sight.
-
-2. **Mitigation in depth.** Checked arithmetic on size math, width choices that make overflow impossible within the system's lifetime, validation at every boundary, compiler hardening (`-ftrapv`/UBSan in CI, `-fsanitize=integer` fuzzing), and language choices that remove the footgun.
-
-3. **Forensics.** When the wrong number appears in production — a negative balance, a tiny allocation, a hung device — you need a process: capture the value, find the operation, identify the width, reproduce at the boundary, and fix the *root* (the unchecked operation), not the symptom.
-
-This page is the field manual.
-
----
-
-## Prerequisites
-
-- **Required:** Junior/middle/senior pages — representation, conversions, detection, UB semantics, the `INT_MIN` family.
-- **Required:** Experience reading core dumps / crash reports and a debugger (gdb/lldb) or a managed-runtime equivalent.
-- **Helpful:** Exposure to a security or SRE incident involving a numeric bug.
-- **Helpful:** Familiarity with fuzzing and sanitizers in a CI pipeline.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **CWE-190** | The MITRE weakness class "Integer Overflow or Wraparound." The umbrella for these vulnerabilities. |
-| **CWE-191** | "Integer Underflow" — the unsigned `0 − 1` → huge family. |
-| **CWE-680** | "Integer Overflow to Buffer Overflow" — the size-math-wraps-then-write pattern. |
-| **Allocation-size overflow** | `count * size` (or `n + header`) overflowing to a small value, leading to undersized buffers. |
-| **Heap grooming** | Shaping the heap so an overflow corrupts an attacker-chosen adjacent object. |
-| **UBSan** | UndefinedBehaviorSanitizer; `-fsanitize=integer` catches signed/unsigned overflow at runtime. |
-| **Fuzzing** | Feeding randomized/structured inputs to find crashes; pairs with sanitizers to surface overflow. |
-| **`calloc` overflow check** | `calloc(n, size)` is required to detect `n*size` overflow and fail — unlike `malloc(n*size)`. |
-| **Time-of-check counter** | A monotonically increasing tick/sequence/epoch counter; overflow is a latent time bomb. |
-| **Saturating cast** | A narrowing conversion that clamps out-of-range values instead of truncating. |
-| **Defense in depth** | Layering width choice + validation + checked ops + sanitizers so no single miss is fatal. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -178,22 +136,6 @@ bounds check: if (offset < buffer_size) { ... }   // offset signed, size unsigne
 - **Use overflow-checked allocation** (`calloc`, `reallocarray`, `ckd_mul`).
 - **Compile with `-fsanitize=integer` in fuzzing**, and harden production with `-ftrapv` or `-fsanitize=signed-integer-overflow -fsanitize-trap` where the abort is acceptable.
 - **Prefer memory-safe languages** (Rust, Go) for new parsers; they at minimum turn the overflow into a panic/defined-wrap rather than silent corruption, and bounds checks remain.
-
----
-
-## Mental Models
-
-### The "Untrusted Until Proven" Model
-
-Every integer that crosses into your code from outside is a **negative number, a huge number, and zero, all at once** until you've validated it. Design the boundary so the first thing that happens to a length/count/offset is a range check, not arithmetic. If arithmetic happens first, you've already lost.
-
-### The "Width Is a Lifetime Budget" Model
-
-A counter's width is a *time/volume budget*. 32 bits at 100 Hz = 248 days (the 787). 32 bits of views = ~2.1 billion (Gangnam Style). 64 bits ≈ effectively infinite for counts and ticks. When you pick a width, *compute the rollover horizon* and write it down. If the horizon is shorter than the system's lifetime, you've planted a bomb.
-
-### The "Overflow Enables, It Doesn't Crash" Model
-
-In security, the dangerous overflow doesn't crash — it *succeeds quietly* and hands the attacker a primitive. A small allocation that "works," a bounds check that "passes," a memcpy length that's "valid." Train yourself to see overflow not as a crash but as a *silent state corruption that the next operation weaponizes.*
 
 ---
 
@@ -341,30 +283,6 @@ Professional posture: **`-Wsign-compare -Wconversion` on every build**, **UBSan 
 
 ---
 
-## Pros & Cons
-
-| Decision | Pros | Cons |
-|----------|------|------|
-| **Widen counters to 64-bit** | Removes the time-bomb class; cheap on 64-bit CPUs. | Doesn't fix multiplication or logic errors; cache cost in big arrays; can't change fixed wire widths. |
-| **Checked size math everywhere** | Eliminates the CWE-680 chain; near-zero runtime cost. | Verbose; relies on developers remembering (use lints to enforce). |
-| **`calloc`/`reallocarray` for arrays** | Standard, overflow-safe allocation. | Must consistently replace `malloc(a*b)`; legacy code is everywhere. |
-| **UBSan/fuzzing in CI** | Finds latent overflow before ship. | Runtime cost (CI only); unsigned overflow is noisy (legal wrap). |
-| **`-ftrapv` in production** | Turns silent corruption into a clean crash. | Performance cost; a crash is a DoS — weigh availability vs integrity. |
-| **Rust/Go for parsers** | Panic/defined-wrap + bounds checks instead of RCE. | Rewrite cost; FFI boundaries reintroduce risk. |
-
----
-
-## Use Cases
-
-- **Media/format parsers (image, font, video, archive):** the #1 home of overflow CVEs. Checked size math, validated dimensions, fuzzing — non-negotiable.
-- **Network protocol handlers:** untrusted length/offset fields; validate at the boundary, guard the derived arithmetic.
-- **Allocators and serialization libraries:** `count * size` everywhere; overflow-safe by construction.
-- **Embedded / avionics / industrial control:** tick counters with multi-year uptime; width chosen for the mission lifetime, rollover documented, watchdog as backstop.
-- **Financial ledgers:** integer cents with checked arithmetic; an overflow is a reconciliation incident, never a silent wrap.
-- **Databases:** 64-bit (or bigint) row IDs and sequences; the 32-bit `int` PK that "won't run out" is a recurring outage.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Overflow-safe array allocation (every language)
@@ -470,192 +388,24 @@ Signature values worth memorizing:
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. Given `malloc(count * size)` with attacker-controlled `count`, write the exact input that produces a 16-byte allocation followed by a 4 GB write, and rewrite the allocation three safe ways.
-2. The Boeing 787 counter overflowed at 248.55 days at 100 Hz. Show the arithmetic (`2³¹ / 100 / 86400`). What width makes the horizon > 100 years?
-3. A service returns a negative balance after a large deposit. Walk the debugging playbook: what value, what op, what width, what input reproduces it?
-4. Explain how Heartbleed's missing length validation maps onto the CWE-191 underflow / trusted-length family.
-5. Why does `calloc(n, size)` protect against the overflow that `malloc(n * size)` doesn't? What does the standard require of `calloc`?
-6. You see `4294967290` in a log. What operation most likely produced it, and on what type? What input would you craft to reproduce?
-7. Trade-off: a payments service can ship with `-ftrapv` (crash on overflow) or defined wrap. Argue both sides in terms of integrity vs availability.
-8. Audit this line for the five incident shapes: `int total = header_size + width * height * bpp;` from an image decoder. List every overflow it can suffer.
+1. Define the user or business outcome that **Integer Representation & Overflow** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
----
+## Verify your work
 
-## Tricky Questions
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
 
-**Q1: Is widening every counter to 64-bit a complete fix for integer overflow?**
+## Review questions
 
-No. It eliminates the *unbounded-counter* and most *time-bomb* shapes (counts/ticks won't overflow in any realistic lifetime), but multiplication still overflows 64-bit easily (size math), fixed wire/format widths can't be widened, and logic errors (signed/unsigned confusion, untrusted lengths) are untouched. Widen counters by default *and* check multiplicative/boundary arithmetic.
-
-**Q2: Why is `calloc` safer than `malloc(a*b)`?**
-
-The C standard requires `calloc(nmemb, size)` to detect overflow of `nmemb * size` and return `NULL` rather than allocating an undersized buffer. `malloc` takes a single already-computed size, so the overflow happened in the caller before `malloc` ever saw it. `reallocarray` (BSD/glibc) and C23 `ckd_mul` give the same protection for the non-zeroing case.
-
-**Q3: We use Go/Java, where overflow is defined to wrap. Are we safe from these CVEs?**
-
-Safer from *memory corruption* — Go and Java have bounds-checked arrays, so an overflow leads to a panic/exception, not silent OOB write and RCE. But you are *not* safe from *logic* exploits: a wrapped size or count can still bypass an application-level check, cause a wrong allocation size, or corrupt business state (a negative balance). Defined wrap removes the worst (memory-unsafe) outcome, not the bug.
-
-**Q4: Should a payments service compile with `-ftrapv`?**
-
-It's a threat-model decision. `-ftrapv` converts a silent integer-overflow (potential wrong-money integrity violation) into a clean crash (availability hit). For money, integrity usually beats availability — a crash with an alert is preferable to silently crediting a wrapped balance. But measure the perf cost and ensure the crash path is graceful (transaction rolled back, alert fired). Many teams prefer targeted `Math.*Exact`/`ckd_*` over a blanket flag, getting the integrity guarantee without the global cost.
-
-**Q5: How did the Ariane 5 overflow actually cause loss of the vehicle?**
-
-A 64-bit float horizontal-velocity value (larger on Ariane 5 than the Ariane-4-validated range) was converted to a 16-bit signed integer; the conversion overflowed, raising an unhandled operand-error exception that shut down the active inertial reference system *and* its identically-programmed backup. With no valid guidance, the rocket veered, aerodynamic loads triggered breakup, and the self-destruct fired. The integer overflow was the trigger; the lack of input-range validation and the identical-backup design were the systemic failures.
-
-**Q6: Where in a parser do you put the overflow check?**
-
-At the trust boundary, *before* any arithmetic on the untrusted value: validate the declared length/count/dimensions against a sane maximum and against the data actually available, then guard each derived computation (`a*b`, `len-header`, `offset+size`) with checked arithmetic. Checking after computing is too late — the overflow already happened, and in C it's already UB.
-
-**Q7: A flame graph shows `__builtin_mul_overflow` checks aren't even visible. Why are people afraid of checked arithmetic's cost?**
-
-Folklore and a misread of the worst case. The check is `mul; jo` — one instruction plus a branch the predictor pins as not-taken, so it's effectively free on the hot path. The fear comes from conflating it with `-ftrapv`/UBSan *global* instrumentation (which checks *every* op and does cost), or with bignum fallbacks. Targeted checked ops on size/money math are not a measurable cost in almost any real workload.
-
----
-
-## Cheat Sheet
-
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│            OVERFLOW IN PRODUCTION — FIELD MANUAL                 │
-├──────────────────────────────────────────────────────────────────┤
-│ FIVE INCIDENT SHAPES (hunt these in review):                    │
-│  1. unbounded counter   → widen to 64-bit, document horizon     │
-│  2. size math a*b       → calloc / ckd_mul / checked_mul        │
-│  3. untrusted length    → validate at boundary BEFORE math      │
-│  4. cross-width convert → fits-check then narrow (Ariane 5)     │
-│  5. signed/unsigned cmp → -Wsign-compare, guard the sign        │
-├──────────────────────────────────────────────────────────────────┤
-│ EXPLOIT CHAINS:                                                 │
-│  overflow → tiny alloc → big write → heap overflow → RCE (190/680)│
-│  underflow → huge memcpy len → OOB read/write (191, Heartbleed)  │
-│  signed/unsigned → bounds-check bypass                          │
-├──────────────────────────────────────────────────────────────────┤
-│ INCIDENTS:                                                      │
-│  Ariane 5   : f64 → i16 narrowing overflow → $370M             │
-│  Boeing 787 : 32-bit centisecond ctr → 248-day GCU failure     │
-│  YouTube    : 32-bit view count capped at 2.1B                 │
-│  Y2038      : signed 32-bit time_t wraps 2038-01-19            │
-│  binary srch: (lo+hi)/2 overflows → lo+(hi-lo)/2              │
-├──────────────────────────────────────────────────────────────────┤
-│ TOOLING:  -Wsign-compare -Wconversion (always)                  │
-│           UBSan + fuzzing (CI)  ·  CodeQL/Semgrep (static)      │
-│           calloc/reallocarray/ckd_*  ·  Rust/Go for parsers     │
-├──────────────────────────────────────────────────────────────────┤
-│ SIGNATURE VALUES IN LOGS:                                       │
-│  -2147483648 → i32 overflow from top                           │
-│  ~4294967295 → u32 underflow (0 - small)                       │
-│  tiny alloc + big write → size-math overflow                   │
-├──────────────────────────────────────────────────────────────────┤
-│ Checked arithmetic ≈ FREE (add; jo). Fear is folklore.         │
-└──────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## Summary
-
-- Integer overflow in production takes **five recognizable shapes**: unbounded counters, size math, untrusted lengths, cross-width conversions, and signed/unsigned comparisons. Code review is pattern-hunting for these.
-- The incidents are **real and severe**: Ariane 5 (narrowing overflow, $370M), Boeing 787 (248-day tick counter), YouTube (32-bit views), Y2038 (signed `time_t`), and the binary-search midpoint bug — even library-grade code fails at the extremes.
-- In **security**, overflow is an *enabler*: it produces a tiny allocation, a passed bounds check, or a huge memcpy length that the next operation weaponizes into heap overflow (CWE-190→680→RCE) or OOB read (CWE-191, Heartbleed-shaped).
-- **Defense in depth:** validate ranges at trust boundaries *before* arithmetic, use overflow-safe allocation (`calloc`/`reallocarray`/`ckd_mul`), default counters to 64-bit with a documented rollover horizon, and check size/money math.
-- **Tooling at scale:** `-Wsign-compare -Wconversion` always; UBSan + fuzzing in CI; static analysis (CodeQL/Semgrep) for the size-math and untrusted-length patterns; memory-safe languages for new parsers.
-- **Performance fear is mostly folklore:** targeted checked arithmetic compiles to `add; jo` and is effectively free; the costly tools (`-ftrapv`, UBSan) belong in CI/fuzzing, not necessarily production.
-- **Debugging is a playbook:** capture the value (its bits reveal the width/sign), find the operation, check width/signedness, reproduce at the boundary, confirm with a sanitizer, fix the root, and sweep for siblings.
-- The professional reflex: **defined-wrap is not safe, widening is not a complete fix, and every untrusted integer is hostile until range-checked.**
-
----
-
-## Further Reading
-
-- MITRE CWE-190 (Integer Overflow), CWE-191 (Underflow), CWE-680 (Integer Overflow to Buffer Overflow) — the canonical taxonomy with real CVE examples.
-- *Secure Coding in C and C++* — Robert Seacord. The professional reference for these vulnerability classes.
-- "ARIANE 5 Flight 501 Failure" — Report by the Inquiry Board (Lions report), 1996. Required reading.
-- FAA Airworthiness Directive 2015-09-07 (Boeing 787 GCU 248-day counter).
-- "Extra, Extra - Read All About It: Nearly All Binary Searches and Mergesorts are Broken" — Joshua Bloch, 2006.
-- The Heartbleed bug (CVE-2014-0160) writeups — the length-validation failure family.
-- *The CERT C Coding Standard* — INT30-C through INT35-C.
-- OpenBSD `reallocarray(3)` and glibc `calloc` overflow-check documentation.
-- "Understanding Integer Overflow in C/C++" — Wang, Chen, Wei, Zhang (a study of overflow in real software).
-
----
-
-## Related Topics
-
-- This folder: [`junior.md`](junior.md), [`middle.md`](middle.md), [`senior.md`](senior.md), [`interview.md`](interview.md), [`tasks.md`](tasks.md).
-- Security: `../../../quality-engineering/static-analysis/sast/professional.md` — finding overflow flows at scale; `../../../quality-engineering/dynamic-analysis-and-sanitizers/professional.md` — UBSan and fuzzing in CI.
-- Sibling numerics: [Floating-Point Representation](../02-floating-point-ieee-754/professional.md) (the Ariane-5 *source* type).
-- Reliability: `../../../quality-engineering/engineering-metrics-and-dora/professional.md` — incident postmortems and error budgets.
-
----
-
-## Diagrams & Visual Aids
-
-### The Integer-Overflow-to-RCE Chain (CWE-190 → 680)
-
-```text
-   attacker input: count = 0x1_0000_0001, size = 0x10
-        │
-        ▼
-   count * size  ──(wraps size_t)──►  0x10   (16 bytes)
-        │
-        ▼
-   malloc(16)  ──►  tiny heap buffer
-        │
-        ▼
-   loop writes `count` (4 billion+) elements
-        │
-        ▼
-   HEAP OVERFLOW → corrupt adjacent chunk metadata / vtable
-        │
-        ▼
-   heap grooming → control flow hijack → REMOTE CODE EXECUTION
-```
-
-### The Counter Time-Bomb (Boeing 787)
-
-```text
-   32-bit counter, +1 every 10 ms (100 Hz)
-   horizon = 2^31 ticks / 100 Hz / 86400 s ≈ 248.55 days
-        │
-        ▼
-   day 248: counter hits 2^31 → wraps
-        │
-        ▼
-   all four GCUs enter fail-safe SIMULTANEOUSLY
-        │
-        ▼
-   total loss of AC electrical power
-
-   fix: 64-bit horizon = 2^63 / 100 / 86400 / 365 ≈ 2.9 BILLION years
-```
-
-### Validate-Then-Compute at the Trust Boundary
-
-```text
-  untrusted len/count/offset
-        │
-        ▼
-   [1] enough bytes?  (len >= header)      ── guard subtraction
-        │ yes
-        ▼
-   [2] len <= MAX?    (sane cap)           ── bound the value
-        │ yes
-        ▼
-   [3] len <= remaining? (fits real data)  ── consistency
-        │ yes
-        ▼
-   [4] checked arithmetic / allocate / copy   ← ONLY arithmetic happens here
-```
-
-### Signature Values: Reading Overflow From a Log
-
-```text
-   -2147483648  (0x80000000)  → i32 overflowed from the top (INT_MAX + 1)
-   4294967295   (0xFFFFFFFF)  → u32 underflow: 0 - 1
-   4294967290   (0xFFFFFFFA)  → u32 underflow: 0 - 6
-   tiny alloc + huge write    → size-math (a*b) overflow
-   18446744073709551610       → u64 underflow: 0 - 6
-```
+- Which measurable outcome justifies investing in Integer Representation & Overflow?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

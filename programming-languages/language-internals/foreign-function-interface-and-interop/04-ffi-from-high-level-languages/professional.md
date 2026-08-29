@@ -1,59 +1,11 @@
-# FFI from High-Level Languages — Professional Level
+# FFI from High-Level Languages — Professional
 
-> **Topic:** FFI from High-Level Languages
-> **Focus:** Production FFI: callbacks/upcalls under threading, attaching native threads to a runtime, and shipping native artifacts (wheels, JNI loading, signing) without breaking customers.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **FFI from High-Level Languages** with measurable outcomes and limited coordination?
 
-## Introduction
-
-> Focus: **Everything that makes FFI hard once it's *shipped* — concurrency at the boundary, threads the runtime didn't create, and binary distribution across platforms.**
-
-A binding that calls `cos` is a toy. A *product* binding has to survive: native libraries calling *back* into managed code (upcalls) from arbitrary threads; native threads the runtime never created suddenly trying to touch managed objects; and a build/release pipeline that produces correct binaries for Linux, macOS, and Windows, on x86-64 and ARM64, against the right libc, signed and loadable on locked-down systems. Each of these is a category of production incident that a senior-level understanding of the boundary doesn't, by itself, prevent.
-
-The three professional concerns:
-
-1. **Callbacks/upcalls and threading.** Native code calling managed code is the most dangerous FFI direction. The callback may fire on a thread the runtime doesn't know about, during a GC, or while a lock is held. You must control *which thread* runs managed code and ensure that thread is *attached* to the runtime.
-2. **Thread attachment and affinity.** The JVM needs `AttachCurrentThread` before a native thread can call JNI; CPython needs the GIL acquired (`PyGILState_Ensure`) before a foreign thread touches Python; some libraries demand callbacks on a specific thread. Get this wrong and you crash or deadlock.
-3. **Build and packaging.** `manylinux` wheels, `delocate`/`auditwheel` to bundle dependent `.so`s, JNI library loading and `java.library.path`, code signing/notarization on macOS, and supply-chain integrity. This is where most *customer-visible* FFI failures actually occur — "import error on their machine, works on mine."
-
-In one sentence: **at the professional level, FFI failures are concurrency incidents and distribution incidents, not coding mistakes — and both are won or lost before the code ever runs in anger.** This page is about those two fronts.
-
-> 🎓 **Why this matters at the professional level:** You own the on-call pager for the binding. The failures you'll see — a callback segfaulting only under load, a customer who can't `pip install`, a crash that appears only on Alpine Linux or only after macOS Gatekeeper quarantines the dylib — are all professional-tier FFI problems. They're invisible in a unit test and obvious in production.
-
-This page covers: upcall safety and thread attachment in each runtime, callback hazards (re-entrancy, exceptions across the boundary, GC during a callback), and the full distribution story for native code — wheels, manylinux/auditwheel, JNI loading, signing, and what breaks across platforms.
-
----
-
-## Prerequisites
-
-- **Required:** The senior FFI material — moving vs. non-moving GC, JNI/Panama, cgo cost, Rust safe wrappers.
-- **Required:** Solid concurrency: threads, locks, deadlock, the difference between runtime-managed and OS threads.
-- **Required:** Familiarity with at least one runtime's threading model (GIL, JVM threads, or goroutines).
-- **Helpful:** Having built and shipped a native package (a wheel, a JAR with a `.so`, an npm package with a prebuilt addon).
-- **Helpful:** Exposure to platform packaging quirks (glibc vs. musl, macOS notarization, Windows DLL search order).
-
-You do **not** need anything beyond this; this is the deepest tier.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Upcall** | Native code calling *back* into managed code (a callback). The most hazardous FFI direction. |
-| **Thread attachment** | Registering a native (foreign) thread with the runtime so it may call managed code: `AttachCurrentThread` (JVM), `PyGILState_Ensure` (CPython). |
-| **`PyGILState_Ensure` / `Release`** | CPython API a foreign thread calls to safely acquire/release the GIL before touching Python objects. |
-| **`AttachCurrentThread`** | JNI call that attaches a native thread to the JVM and yields a `JNIEnv*` for it. |
-| **Re-entrancy** | A callback re-entering the same library/lock that invoked it, risking deadlock or state corruption. |
-| **manylinux** | A set of standardized Linux baselines (glibc versions) so a wheel built once runs on many distros. |
-| **auditwheel / delocate** | Tools that bundle a wheel's dependent shared libraries into the wheel (Linux / macOS) so users don't need them installed. |
-| **`java.library.path`** | The JVM's search path for native libraries loaded by `System.loadLibrary`. |
-| **musl vs. glibc** | Two C libraries; a wheel built against glibc won't run on musl-based Alpine without a musllinux build. |
-| **Notarization / Gatekeeper** | macOS mechanisms that block unsigned/unnotarized native binaries from loading. |
-| **N-API ABI stability** | Node's promise that an N-API addon compiled once keeps working across Node major versions. |
-| **Prebuilt binaries** | Shipping compiled artifacts (per platform) so users don't compile at install time. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -98,30 +50,6 @@ Most *customer-reported* FFI failures are not crashes in your code — they're "
 ### 5. Versioning and ABI compatibility over time
 
 A shipped binding is a long-lived ABI contract. If the native library bumps its ABI (changes a struct layout, a function signature), your binding silently corrupts unless rebuilt against the new headers. Professionals **pin the native dependency version**, rebuild bindings when it changes, and prefer libraries with explicit ABI-stability promises. N-API is the gold standard here for Node; for C libraries, SONAME versioning (`libfoo.so.2`) is the signal — link against the major you tested.
-
----
-
-## Real-World Analogies
-
-**A subcontractor phoning your office whenever they like (upcalls).** A downcall is you calling the subcontractor during business hours. An upcall is the subcontractor phoning *your* office at 3 a.m., on a line you didn't know existed, while you're mid-meeting (holding a lock). You must have a night-desk protocol: answer briefly, take a message, never start a long task, and never call them back on the same line (re-entrancy deadlock).
-
-**Visitor badges (thread attachment).** A contractor's worker can't roam your secure building until reception issues a badge (`AttachCurrentThread`/`PyGILState_Ensure`). And they must hand the badge back when leaving (`Detach`/`Release`), or security records break and the next audit fails (JVM crash on thread exit).
-
-**Shipping appliances with the right plug (distribution).** Your device works perfectly — but if you ship a US plug to Europe (glibc wheel to Alpine), it won't power on. manylinux is the universal adapter; auditwheel is bundling the power brick so the customer doesn't need their own; notarization is the safety certification without which the store won't stock it.
-
-**A signed, sealed certificate (signing/notarization).** A perfectly good binary that isn't notarized is like an unsigned legal document: technically complete, but the system refuses to honor it. Gatekeeper is the notary public who won't let the deal proceed without the seal.
-
----
-
-## Mental Models
-
-**Model 1: Downcalls are guests you invited; upcalls are strangers at the door.** You control everything about a downcall. An upcall arrives on someone else's terms — unknown thread, unknown locks, unknown timing. Defensive minimalism is the only safe posture.
-
-**Model 2: A foreign thread is radioactive until attached.** It cannot safely touch a single managed object until it announces itself to the runtime, and it must decontaminate (detach/release) before it dies.
-
-**Model 3: Shipping native code is shipping the dependency graph, not just your file.** Your `.so` is correct; what fails is everything it links to and every policy that gates loading it. The release artifact is the closure of dependencies plus the right platform tag plus a signature.
-
-**Model 4: The ABI is a contract with a version, and silence is the failure mode.** When the native side's ABI changes and you don't rebuild, nothing errors — it corrupts. Pin, rebuild, and trust SONAMEs/N-API, not luck.
 
 ---
 
@@ -206,33 +134,6 @@ NAPI_MODULE(NODE_GYP_MODULE_NAME, Init)
 
 ---
 
-## Pros & Cons
-
-**Pros**
-
-- **Correct attachment + minimal callbacks** make even hostile native libraries safe to integrate.
-- **N-API's ABI stability** removes the per-Node-version recompile treadmill.
-- **manylinux/auditwheel/delocate** let one build serve a huge install base — the reason `pip install` "just works" for native packages.
-- **Panama upcall stubs + arenas** give deterministic callback lifetimes without hand-written C.
-
-**Cons**
-
-- **Upcalls are inherently fragile** — threading, re-entrancy, and exceptions all conspire.
-- **Distribution is a combinatorial matrix** (OS × arch × libc × Node/Python version) that multiplies build and test cost.
-- **Signing/notarization adds a release gate** that fails late and visibly (at the customer's machine).
-- **ABI drift is silent** — a native upgrade without a rebuild corrupts rather than errors.
-
----
-
-## Use Cases
-
-- **Integrating an event-driven C library** (audio, networking, GUI) that calls your code back from its own threads — requires correct attachment and minimal, lock-free callbacks.
-- **Shipping a Python package with a native core** to a broad audience: manylinux + musllinux + macОS (x86-64 + ARM64) + Windows wheels, with dependencies bundled.
-- **Distributing a JNI library inside a JAR** that unpacks the right `.so`/`.dll`/`.dylib` to a temp dir at startup and loads it by absolute path.
-- **Publishing a Rust-based Node addon** via N-API/neon with prebuilt binaries so npm users never compile.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Attach-do-minimum-detach for every foreign thread
@@ -287,25 +188,24 @@ Treat code signing (and macOS notarization) as a non-optional pipeline stage, wi
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-| Concern | Mechanism / fix |
-|---------|-----------------|
-| Foreign thread → Python | `PyGILState_Ensure` / `PyGILState_Release`. |
-| Foreign thread → JVM | `AttachCurrentThread` / `DetachCurrentThread`; per-thread `JNIEnv*`. |
-| Callback exception | Catch at boundary, convert to status; `ExceptionCheck` after JNI upcalls. |
-| Callback locks | Assume a lock is held; do minimum; never re-enter the library. |
-| Panama upcall lifetime | Bound to an `Arena`; don't call after it closes. |
-| Linux wheel portability | manylinux baseline + `auditwheel repair`; separate musllinux for Alpine. |
-| macOS wheel portability | `delocate-wheel`; sign + notarize. |
-| JNI lib loading | `java.library.path`, or unpack-from-JAR to temp + load by path. |
-| Node addon stability | N-API ABI stability + prebuilt per-platform binaries. |
-| ABI drift | Pin SONAME/major, rebuild on bump, assert version at load. |
+1. Define the user or business outcome that **FFI from High-Level Languages** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
----
+## Verify your work
 
-## Summary
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
 
-Professional FFI is dominated by two fronts the lower tiers don't reach: **concurrency at the boundary** and **binary distribution**. Callbacks (**upcalls**) are the hazardous direction — they fire on threads the runtime never created, possibly during GC and while the native library holds a lock. The defenses are universal: **attach** the thread (`PyGILState_Ensure`, `AttachCurrentThread`) before touching any managed object and **detach/release** before it dies; **catch every exception** at the callback boundary instead of letting it propagate into native unwinding; and keep callbacks minimal and non-re-entrant.
+## Review questions
 
-The other front is shipping native code that *loads on the customer's machine*. That means building the full matrix (OS × architecture × libc × runtime version), bundling dependent shared libraries into the artifact (**auditwheel**/**delocate**, unpack-from-JAR, **prebuildify**), respecting baselines like **manylinux**/**musllinux**, signing and notarizing for macOS Gatekeeper, and pinning the native **ABI** so a silent layout change doesn't corrupt data. **N-API**'s ABI stability and **Panama**'s arena-scoped upcalls are the modern tools that make this less painful. The throughline of the entire topic: native code gives you speed and reach, but every guarantee your runtime normally provides — safety, threading discipline, deterministic loading — becomes *your* explicit responsibility the moment you cross the boundary.
+- Which measurable outcome justifies investing in FFI from High-Level Languages?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

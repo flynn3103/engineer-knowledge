@@ -1,16 +1,11 @@
-# Escape Analysis — Senior Level
+# Escape Analysis — Senior
 
-> **Topic:** Escape Analysis
-> **Focus:** Cross-language design, the theory behind the analysis, where it fundamentally fails, partial escape analysis, and how to architect systems that stay allocation-light without relying on the optimizer.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Escape Analysis** under failure, load, and change?
 
-## Introduction
-
-Senior-level mastery of escape analysis is less about reading a flag and more about understanding it as **a conservative static approximation of dynamic lifetime and reachability** — and therefore knowing exactly where it breaks, why two languages with "the same" optimization behave so differently, and how to design code and APIs that are allocation-friendly *by construction* rather than by hoping the optimizer cooperates.
-
-The governing principle: **escape analysis is a performance optimization, not a semantic guarantee, and it is defeated by abstraction at exactly the boundaries where good architecture introduces abstraction.** Reconciling that tension is the senior skill.
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## The Analysis as a Static Lifetime Approximation
@@ -163,33 +158,6 @@ for i := 0; i < n; i++ { typedSink(i) }     // typedSink(int) -> does not escape
 
 ---
 
-## Mental Models
-
-- **"Escape state is a lattice, and soundness pushes everything up."** Anything ambiguous is lifted toward `GlobalEscape`. You're fighting that upward pressure with visibility (inlining, concrete types).
-
-- **"The optimizer can only optimize what it can see; abstraction is opacity."** Each interface/virtual/reflective boundary is a wall the analysis can't see past.
-
-- **"Two axes: lifetime and sharing."** Frame-lifetime drives placement; thread-sharing drives lock/barrier elision. Reason about them separately.
-
-- **"PEA moves the escape boundary per-path."** Don't think of escape as a property of an allocation; think of it as a property of an allocation *on a path*.
-
----
-
-## Pros & Cons
-
-**Pros**
-- Eliminates allocation *and* synchronization in idiomatic, well-inlined code with zero source changes.
-- PEA recovers the common case even when rare paths escape.
-- AOT versions (Go) are reproducible and CI-checkable.
-
-**Cons**
-- **Defeated at abstraction boundaries** — the same place good design adds them.
-- **JIT versions are non-deterministic and transient** (warmup, deopt, profile shifts).
-- **No guarantee, ever** — you cannot depend on it for either correctness or a latency SLA without verifying per build/run.
-- **Fragile to unrelated edits** via the inlining budget.
-
----
-
 ## Best Practices
 
 - **Architect for low allocation; let EA be a bonus, not a dependency.** Caller-owned buffers, value returns, pools on the proven hot path.
@@ -210,10 +178,24 @@ for i := 0; i < n; i++ { typedSink(i) }     // typedSink(int) -> does not escape
 
 ---
 
-## Summary
+## Apply it
 
-- Escape analysis is a **sound, conservative static over-approximation** of the undecidable "does this outlive its frame / leak to another thread?" question, computed over a **connection graph** with an escape-state **lattice**.
-- It has **two axes** — lifetime escape (placement / scalar replacement) and thread escape (lock and barrier elision) — and downstream optimizations key off each.
-- **Go (AOT)** is reproducible and report-driven; **Java/HotSpot (JIT)** is more aggressive but non-deterministic, warmup-dependent, and undoable by deopt. **GraalVM's Partial Escape Analysis** moves the escape boundary *per path*, recovering the common case when only rare branches escape.
-- Its **fundamental limits** — inlining dependence, megamorphism, reflection, no whole-program guarantee, deopt — all cluster at **abstraction boundaries**, exactly where architecture introduces them.
-- The senior discipline: **design hot paths to be allocation-light by construction** (caller-owned buffers, value returns, monomorphic inner loops), treat escape analysis as a verifiable bonus, and **never rely on it** for correctness or latency guarantees.
+1. State the system invariant that **Escape Analysis** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
+
+## Verify your work
+
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
+
+## Review questions
+
+- Which invariant must remain true when Escape Analysis fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

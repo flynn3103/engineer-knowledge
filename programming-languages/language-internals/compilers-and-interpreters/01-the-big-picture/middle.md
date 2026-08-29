@@ -1,60 +1,11 @@
-# The Big Picture (Compiler Architecture) — Middle Level
+# The Big Picture (Compiler Architecture) — Middle
 
-> **Topic:** The Big Picture (Compiler Architecture)
-> **Focus:** The phases as real engineering boundaries — why the IR is the load-bearing wall, why front/middle/back is a contract, and how real compilers (GCC, LLVM, JVM) actually lay this out.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **The Big Picture (Compiler Architecture)** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-> Focus: At junior level the pipeline was a list of boxes. Here the boxes become **engineering boundaries with real contracts** — and you learn why those boundaries are where they are, not somewhere else.
-
-The junior page gave you the stages and their order. Now the harder questions: *Why is the IR the dividing line between "middle" and "back" rather than the AST? Why does semantic analysis come after parsing and not during it? Why does GCC have three IRs (GENERIC, GIMPLE, RTL) while LLVM brags about having essentially one? What does it actually mean for a representation to be "language-independent"?*
-
-A compiler is a sequence of transformations between **data structures**, and the architecture is fundamentally about *where you draw the lines* between those structures and *what invariant each line guarantees*. The front/middle/back-end split is not decoration — it is a **contract**. The front end promises the middle end: "I will hand you well-formed IR with all names resolved and all types checked." The middle end promises the back end: "I will hand you optimized IR that means exactly what the program means." Because these contracts are clean, you can replace any one stage without touching the others — and that replaceability is the whole economic argument for the design.
-
-This level builds the working mental model a mid-level engineer needs: what each phase's data structure is, what invariant it establishes, where the IR sits and why, and how the three biggest real systems (LLVM, GCC, the JVM) instantiate the same abstract pipeline differently.
-
----
-
-## Prerequisites
-
-- The [junior](junior.md) page: the names and order of the pipeline stages, and the front/middle/back split.
-- Comfort reading a tree data structure and a simple grammar (you have seen `expr := expr '+' term` style rules).
-- Having run `gcc -S` or `clang -emit-llvm` at least once and looked at the output.
-- Basic understanding of types and scopes in a programming language (what "x is out of scope here" means).
-- A rough idea of what assembly is — you don't need to write it, but you should recognize `mov`/`add`/`ret`.
-
-You do **not** yet need:
-
-- SSA form, dataflow analysis, or specific optimization algorithms (senior material).
-- Register allocation or instruction scheduling internals (senior/professional).
-- The formal theory of parsing (LL/LR) — that's the parser topic.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Phase** | A logical stage of compilation (lexing, parsing, semantic analysis, optimization, codegen). Phases are conceptual; passes are concrete traversals. |
-| **Pass** | One concrete traversal of the program's data structure. A phase may take several passes. |
-| **Parse tree (CST)** | A "concrete syntax tree" mirroring the grammar exactly, including every punctuation token. Usually transformed into an AST. |
-| **AST** | "Abstract" syntax tree: the parse tree with noise (parentheses, semicolons) removed, keeping only structure. |
-| **Name resolution** | Binding each use of a name to its declaration. Resolves scopes and shadowing. Part of semantic analysis. |
-| **Type checking** | Verifying that operations are applied to compatible types; inferring types where the language allows. |
-| **Symbol table** | The data structure mapping names to declarations, types, and scope information. Built and consulted during semantic analysis. |
-| **IR (Intermediate Representation)** | The compiler's internal program form between front and back end. May be tree-like, graph-like (CFG), or linear (three-address). |
-| **Lowering** | Translating a higher-level representation into a lower-level one (AST → IR, IR → machine code). |
-| **CFG (Control-Flow Graph)** | A graph whose nodes are straight-line "basic blocks" and whose edges are jumps/branches. The standard IR shape for optimization. |
-| **GENERIC / GIMPLE / RTL** | GCC's three internal IRs: a language-neutral tree (GENERIC), a simplified three-address form (GIMPLE), and a low-level register-transfer form (RTL). |
-| **LLVM IR** | LLVM's single, typed, SSA-based intermediate representation, usable as in-memory data, readable text (`.ll`), or binary bitcode (`.bc`). |
-| **Bytecode** | A compact, portable IR designed to be executed by a virtual machine (JVM bytecode, CPython bytecode, V8's Ignition bytecode). |
-| **Translation unit** | The unit of separate compilation: roughly one source file plus its includes, compiled independently. |
-| **Driver** | The orchestrating program (`gcc`, `clang`, `rustc`) that runs the sub-tools in order. |
-| **AOT / JIT** | Ahead-of-Time (compile before run) vs Just-In-Time (compile during run) — two architectural placements of the back end. |
-| **Front/middle/back end** | The language-specific / neutral / target-specific three-way partition of the pipeline. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -182,38 +133,6 @@ Notice that *every* phase can produce errors, and good diagnostics are not an af
 
 ---
 
-## Real-World Analogies
-
-| Concept | Real-world analogy |
-|---------|--------------------|
-| **Phases establishing invariants** | An assembly line where each station can only do its job if the previous one finished correctly — you can't paint a car before the body is welded. |
-| **IR as the narrow waist** | The standard shipping container: any cargo (language) packs into it, any ship/truck/train (target) carries it. The container interface is narrow and universal. |
-| **GCC's three IRs** | Translating a contract through three drafts: plain-language summary → structured outline → legal boilerplate, each closer to the final form. |
-| **LLVM's single IR** | One universal interchange format that every tool reads and writes — like everyone agreeing on PDF. |
-| **JVM bytecode** | A recipe written in metric units (portable); each kitchen (JVM) converts to its own equipment at cook time. |
-| **AOT vs JIT** | AOT: prefab house built in a factory, shipped complete. JIT: house assembled on-site, adapting to the actual lot. |
-| **Tiered JIT** | A new hire who starts on simple tasks (interpreter), and as they prove themselves on a task they get specialized tooling for it (optimizing JIT). |
-| **Driver orchestrating tools** | A film director coordinating the camera, sound, and lighting crews — the director doesn't operate the camera, just sequences everyone. |
-| **Error recovery** | A proofreader who, after finding one typo, keeps reading the whole page instead of stopping, so you get all the corrections at once. |
-
----
-
-## Mental Models
-
-### "Each phase narrows the space of legal programs"
-
-Think of the set of all possible inputs. The lexer rejects character-level garbage. The parser rejects everything not matching the grammar. Semantic analysis rejects everything grammatical-but-meaningless. By the time you reach IR generation, the program is *guaranteed valid* — IR generation never has to ask "is this legal?", only "how do I lower this?". Each phase is a filter that shrinks the input space, so later phases get simpler.
-
-### "The IR is the API between two teams who never talk"
-
-Imagine the front-end team and the back-end team in different buildings, never meeting. The only thing connecting them is the IR specification. As long as the front end emits valid IR and the back end consumes valid IR, both can evolve independently. This is *literally* how LLVM is developed: the Rust team and the Clang team don't coordinate releases — they coordinate on the IR contract. The IR is an API, and a stable API is the most valuable thing in the system.
-
-### "Lowering is a staircase, not a cliff"
-
-The program doesn't jump from source to machine code. It descends a staircase of representations, each a small step lower: source → AST → high IR → low IR → machine code. GCC makes this literal (GENERIC → GIMPLE → RTL). Each step does *one kind* of simplification, which is easier to get right than one giant leap. When you design a compiler, you decide how many steps the staircase has.
-
----
-
 ## Code Examples
 
 These show the *same program* through different real compilers' representations, so you can see the abstract pipeline in concrete output.
@@ -320,36 +239,6 @@ The front end and middle end produced identical IR; only the **back end** (selec
 
 ---
 
-## Pros & Cons
-
-Comparing the **multi-IR, cleanly-phased architecture** against simpler alternatives (single-pass, or AST-as-boundary).
-
-| Aspect | Pros | Cons |
-|--------|------|------|
-| **Reuse (M + N)** | One IR lets many front ends share many back ends. Adding a language is a front end; adding a CPU is a back end. | Designing an IR that genuinely serves all languages and targets is a multi-year effort. |
-| **Optimization power** | A neutral IR with a CFG is the ideal substrate for dataflow optimization; passes are reusable. | Multiple lowering steps add compile time; each conversion costs memory and code. |
-| **Modularity / testing** | Each phase has a typed input/output and can be unit-tested and fuzzed independently. | Many interfaces to keep stable; a change to the IR ripples to every front and back end. |
-| **Portability** | Cross-compilation is "swap the back end." Bytecode IR (JVM) is portable by construction. | Target assumptions (pointer width, endianness) can leak into a supposedly neutral IR. |
-| **Diagnostics** | Each phase knows its error category, enabling precise messages and recovery. | Errors found in the back end are far from source; carrying spans through every phase is real overhead. |
-| **Compile speed** | — | The cleanly-phased multi-pass design is slower than a fused single-pass one (why Go keeps it lean). |
-| **Runtime adaptivity** | JIT placement lets the back end specialize to real runtime behavior. | JIT adds warm-up latency and runtime memory/CPU cost; harder to reason about and profile. |
-
----
-
-## Use Cases
-
-A mid-level engineer leans on this architecture when:
-
-- **Diagnosing build pipelines.** Knowing exactly which tool (preprocessor / compiler / assembler / linker) failed, and at which phase, turns a cryptic build log into a targeted fix.
-- **Reading IR/assembly to verify optimizations.** Dumping `-emit-llvm` or GIMPLE at `-O0` vs `-O2` shows you concretely what the middle end did — essential for performance work and for trusting (or distrusting) the compiler.
-- **Choosing AOT vs JIT for a service.** Startup-sensitive serverless functions favor AOT; long-running servers can amortize JIT warm-up and benefit from runtime specialization.
-- **Setting up cross-compilation.** Building on a beefy x86 CI machine for ARM devices, WASM, or embedded targets — understanding that only the back end changes makes the toolchain flags make sense.
-- **Evaluating a new language's tooling.** "It targets LLVM" instantly tells you it inherits a mature optimizer and many back ends; "it has its own back end" tells you the opposite.
-- **Building developer tools.** Linters, formatters, IDE language servers, and codemod tools all reuse front-end machinery (lex → parse → semantic), and understanding the phase boundaries tells you where to hook in.
-- **Reasoning about portability.** Why a `.class` file runs on any OS but an ELF binary doesn't — because one is IR for a VM and the other is back-end output for a specific target.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Stage isolation — never let a phase peek ahead
@@ -442,171 +331,24 @@ If you're building a simple language, a *tree-walking interpreter* (no IR, just 
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. Explain the difference between a *phase* and a *pass*. Give an example of a phase that takes multiple passes.
-2. Why is the front/back-end boundary drawn at the IR rather than the AST? Give all three reasons.
-3. List GCC's three IRs in order and say what each is for. Do the same for rustc's lowering chain to LLVM.
-4. The JVM "splits the pipeline across two programs and two times." Explain what `javac` does, what HotSpot does, and which phases happen when.
-5. Name the four invariants established by lexing, parsing, name resolution, and type checking — i.e., what each guarantees its successor.
-6. Run `clang -O0 -emit-llvm` and `clang -O2 -emit-llvm` on a small function. Describe what the optimizer changed and why it's still target-neutral.
-7. What is the "narrow waist," and what four properties make an IR a good one?
-8. Cross-compile one source file for two targets with `--target`. Which stages produced identical output? Which differed?
-9. Why does a forward reference (A calls B, B defined later) break a single-pass compiler, and how do multi-pass compilers handle it?
-10. Classify the architecture of each: gcc, the JVM, V8, rustc, classic CPython. For each, say where the back end runs (compile time vs runtime) and how many IRs it uses.
+1. Find a real component where **The Big Picture (Compiler Architecture)** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
----
+## Verify your work
 
-## Cheat Sheet
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
 
-```text
-┌──────────────────────────────────────────────────────────────────────┐
-│              COMPILER ARCHITECTURE — MIDDLE LEVEL                    │
-├──────────────────────────────────────────────────────────────────────┤
-│ PHASE vs PASS:  phase = responsibility;  pass = one traversal.       │
-│   semantic analysis is often MANY passes (collect decls, then check) │
-├──────────────────────────────────────────────────────────────────────┤
-│ EACH PHASE ESTABLISHES AN INVARIANT for the next:                    │
-│   lex→clean tokens · parse→valid tree · resolve→names bound          │
-│   typecheck→types ok · IR-gen→uniform form · opt→equivalent+better   │
-├──────────────────────────────────────────────────────────────────────┤
-│ WHY THE IR (not the AST) IS THE BOUNDARY:                            │
-│   AST too language-specific · AST too high-level for opt             │
-│   IR = the narrow waist where M+N reuse pays off                     │
-│ GOOD IR: low enough · high enough (target-neutral) · uniform · typed │
-├──────────────────────────────────────────────────────────────────────┤
-│ REAL ARCHITECTURES:                                                  │
-│   LLVM  : src → LLVM IR (one IR) → backend           [AOT]           │
-│   GCC   : src → GENERIC → GIMPLE → RTL → asm         [AOT]           │
-│   JVM   : javac → bytecode  |  HotSpot interpret→JIT [AOT+JIT]       │
-│   V8    : parse → Ignition bytecode → TurboFan JIT   [JIT, tiered]   │
-│   rustc : AST → HIR → MIR (borrow-ck) → LLVM IR      [AOT, on LLVM]  │
-├──────────────────────────────────────────────────────────────────────┤
-│ AOT vs JIT = WHERE the back end runs (not WHICH phases run)          │
-│   AOT: fast start, no runtime cost, fixed target                     │
-│   JIT: warm-up, runtime overhead, specialize to real behavior        │
-├──────────────────────────────────────────────────────────────────────┤
-│ TOOLCHAIN:  driver → cpp → cc1 → as → ld                            │
-│   "compiler" = cc1 only.  linker error ≠ compiler error.            │
-├──────────────────────────────────────────────────────────────────────┤
-│ CROSS-CUTTING: error recovery + source spans thread ALL phases       │
-│   (good diagnostics = a feature, e.g. Rust/Clang)                    │
-└──────────────────────────────────────────────────────────────────────┘
-```
+## Review questions
 
----
-
-## Summary
-
-- The pipeline's stages are **phases** (responsibilities); concrete traversals are **passes**. One phase may take several passes (declaration collection, then name resolution, then type checking).
-- **Each phase establishes an invariant** the next relies on. That is why the order is fixed and not arbitrary — you cannot type-check unresolved names or parse unlexed text.
-- The **front/back boundary is the IR, not the AST**, because the AST is too language-specific and too high-level, and because the IR is where M + N reuse pays off. The IR is the **narrow waist**.
-- A **good IR** is low enough for efficient codegen, high enough to stay target-neutral, uniform and small for simple passes, and typed/verifiable to catch front-end bugs.
-- The same abstract pipeline is embodied differently: **LLVM** (one IR), **GCC** (GENERIC → GIMPLE → RTL), the **JVM** (javac → bytecode, then runtime JIT), **V8** (Ignition → TurboFan), **rustc** (HIR → MIR → LLVM IR).
-- **AOT vs JIT** is an architectural choice about *when and where* the back end runs, not about which phases exist. Tiered JITs run several back ends dynamically.
-- The **driver** orchestrates the toolchain (`cpp → cc1 → as → ld`); the "compiler" is just `cc1`, and a linker error is not a compiler error.
-- **Error recovery and source-location tracking** cut across every phase. Good diagnostics (Rust, Clang) are deliberate engineering, requiring spans threaded through the whole pipeline.
-
----
-
-## What You Can Build
-
-- **A multi-IR mini-compiler.** Build a tiny language that lowers source → AST → a simple three-address IR → a stack-bytecode IR, with a `verify()` at each boundary. Feel why the boundaries help.
-- **A side-by-side IR comparer.** Dump LLVM IR (`clang`/`rustc --emit=llvm-ir`), GIMPLE (`gcc -fdump-tree-gimple`), and JVM bytecode (`javap -c`) for the same algorithm. Annotate how each embodies the same abstract IR idea.
-- **A cross-compilation demo.** Compile one source for x86, ARM, and WASM with `--target`, and show that only the back-end output differs while the IR is identical.
-- **An AOT-vs-JIT warm-up study.** Benchmark the same loop in Go (AOT) and Java (JIT), plotting per-iteration time over the first thousand runs to make JIT warm-up visible.
-- **A source-span tracer.** Add spans to a toy AST and IR, deliberately introduce a "would overflow" check in the back end, and have it point at the exact original source line — proving why spans must thread through every phase.
-- **A toolchain visualizer.** Wrap `clang -###` output into a diagram of the actual tools invoked, their flags, and their inputs/outputs.
-
----
-
-## Further Reading
-
-- *Engineering a Compiler* — Cooper & Torczon. The clearest treatment of phases, IRs, and the front/middle/back split.
-- *Crafting Interpreters* — Robert Nystrom. Builds both a tree-walking interpreter and a bytecode VM; the best hands-on view of lowering depth. https://craftinginterpreters.com/
-- Chris Lattner, "LLVM" in *The Architecture of Open Source Applications* — the front/middle/back-end thesis and the case for one IR. https://aosabook.org/en/llvm.html
-- *GCC Internals* manual — GENERIC, GIMPLE, RTL. https://gcc.gnu.org/onlinedocs/gccint/
-- *The Java Virtual Machine Specification* — what bytecode is and why it's the shipped IR.
-- V8 blog, "Ignition" and "TurboFan" posts. https://v8.dev/blog
-- The Rust compiler dev guide — HIR, MIR, and the lowering to LLVM. https://rustc-dev-guide.rust-lang.org/
-- *Compilers: Principles, Techniques, and Tools* (Dragon Book), Chapters 1–2, for the canonical phase decomposition.
-
----
-
-## Related Topics
-
-- This folder, other levels: [`junior.md`](junior.md), [`senior.md`](senior.md), [`professional.md`](professional.md), [`interview.md`](interview.md), [`tasks.md`](tasks.md).
-- The rest of this section is each phase in depth: the lexer (text → tokens), the parser (tokens → AST), semantic analysis (name resolution, type checking, symbol tables), IR design and generation, the optimization passes of the middle end, code generation in the back end, and the interpreter and runtime topics that cover executing the result. This page is the architectural map those topics fit into; read it first, then descend into any box.
-
----
-
-## Diagrams & Visual Aids
-
-### Phases, their data structures, and their invariants
-
-```text
-  SOURCE TEXT
-     │  LEXER ───────────────► invariant: clean token stream, no garbage chars
-     ▼
-  TOKENS
-     │  PARSER ──────────────► invariant: grammatically valid → well-formed tree
-     ▼
-  AST
-     │  NAME RESOLUTION ─────► invariant: every name bound to a declaration
-     │  TYPE CHECKING ───────► invariant: every operation type-correct
-     ▼
-  CHECKED AST + SYMBOL TABLE
-     │  IR GENERATION ───────► invariant: uniform, desugared, target-neutral form
-     ▼
-  IR  ◄──────────────────────  THE NARROW WAIST
-     │  OPTIMIZATION (many passes) ► invariant: equivalent meaning, improved
-     ▼
-  OPTIMIZED IR
-     │  CODE GENERATION ─────► invariant: valid machine code for THIS target
-     ▼
-  MACHINE CODE
-```
-
-### Three real systems on one diagram
-
-```text
-  LLVM      src ─► [front end] ─► LLVM IR ─► [opt] ─► LLVM IR ─► [backend] ─► asm
-                                  └── one IR, the documented product ──┘
-
-  GCC       src ─► [front end] ─► GENERIC ─► GIMPLE ─► [tree opt] ─► RTL ─► asm
-                                  └──── staircase of three IRs ────┘
-
-  JVM       .java ─► [javac AOT] ─► bytecode ──ship──► [HotSpot] interp ─► JIT ─► native
-                     compile time                      run time  └─ backend deferred ─┘
-
-  rustc     Rust ─► AST ─► HIR ─► MIR ─[borrow-ck]─► LLVM IR ─► [LLVM backend] ─► asm
-                          └─ rust-specific ─┘        └──── reuses LLVM ────┘
-```
-
-### AOT vs JIT placement of the back end
-
-```text
-  AOT:   ┌── compile time ───────────────┐   ┌─ run time ─┐
-         │ front → middle → BACK END → exe│   │  run exe   │
-         └────────────────────────────────┘   └────────────┘
-
-  JIT:   ┌─ compile time ─┐   ┌──────────── run time ─────────────┐
-         │ front → bytecode│   │ interpret → spot hot → BACK END   │
-         └─────────────────┘   │            → run native          │
-                               └────────────────────────────────────┘
-                                back end runs WHILE the program runs
-```
-
-### The driver and the toolchain
-
-```text
-   clang foo.c -o foo
-        │  (driver: orchestrates, translates nothing itself)
-        ├──► preprocess  (cpp / built-in)     foo.c  → foo.i
-        ├──► compile     (front+middle+back)  foo.i  → foo.s
-        ├──► assemble    (as)                 foo.s  → foo.o
-        └──► link        (ld via collect2)    foo.o + libs → foo
-
-   "compiler error"  ← compile step
-   "linker error"    ← link step      ← DIFFERENT TOOL, DIFFERENT FIX
-```
+- Which boundary is most affected by The Big Picture (Compiler Architecture)?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

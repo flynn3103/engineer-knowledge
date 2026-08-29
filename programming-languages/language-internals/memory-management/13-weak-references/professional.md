@@ -1,16 +1,11 @@
-# Weak References — Professional Level
+# Weak References — Professional
 
-> **Topic:** Weak References
-> **Focus:** Shipping weak references in production — preventing lapsed-listener and self-pinning leaks, designing caches/registries that actually evict, and diagnosing reference-related leaks from a heap dump.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Weak References** with measurable outcomes and limited coordination?
 
-## Introduction
-
-In production, weak references are not a curiosity — they are the load-bearing mechanism behind self-cleaning caches, leak-free observer registries, off-object metadata tables, and cycle-free graphs. They are also a reliable source of two opposite failure modes: a weak reference that is *too weak* (your data vanishes between two lookups, your cache hit rate collapses to zero) and a weak reference that is *not actually weak* (a back-door strong reference pins the referent, and you have shipped a slow memory leak that only manifests after days of uptime).
-
-This page is about getting weakness *right under load*: choosing the tier whose clearing contract matches the requirement, auditing for the strong link that defeats the weakness, and — when something leaks anyway — reading a heap dump well enough to find the one reference that should have been weak and wasn't.
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## The Production Contract of Each Tier
@@ -321,18 +316,24 @@ In other ecosystems the same logic applies with different tools: Python's `objgr
 
 ---
 
-## War Stories
+## Apply it
 
-- **The session map that grew with traffic.** A `WeakHashMap<Session, SessionContext>` was chosen specifically so contexts would die with sessions. The heap grew linearly with login count and OOM'd after ~4 days. Heap dump with weak-references-excluded showed every `Session` still strongly reachable — through its own `SessionContext`, which held `context.session` for "convenience logging." The back-edge pinned every key. Fix: store `sessionId` (a `String`) in the context, not the `Session`. One field, days of uptime recovered.
+1. Define the user or business outcome that **Weak References** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
-- **The cache that became a latency spike generator.** A team replaced an unbounded `HashMap` cache with `Map<K, SoftReference<V>>` to "fix" the leak. Under steady load it worked; under a traffic spike the JVM cleared *all* soft references in one GC to satisfy a large allocation, the cache hit rate dropped from 95% to 0%, and the resulting flood of cache-miss backend calls spiked p99 latency 20×. Replaced with a Caffeine cache (`maximumSize`, `recordStats`); hit rate became flat and observable.
+## Verify your work
 
-- **The Swift screen that leaked a view controller per navigation.** A view controller stored a closure that captured `self` strongly to update its UI on network completion. The closure outlived the navigation; each push/pop leaked one controller and its whole view hierarchy. Instruments' Allocations + Leaks showed the retain cycle. Fix: `{ [weak self] in self?.update() }`. The team then audited every stored closure for strong `self` capture.
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
 
-- **The JS dashboard that "sometimes" stopped cleaning up.** A long-lived page used a `FinalizationRegistry` to release WebGL contexts when chart objects were collected. It worked in dev, leaked in production on a wall-mounted dashboard left open for weeks — the engine simply never ran the finalization callbacks under that allocation pattern. The fix was an explicit `chart.dispose()` on removal; the registry was demoted to a best-effort backstop, matching the spec's own warning.
+## Review questions
 
----
-
-## Summary
-
-In production, weak references earn their keep by letting *someone other than the holder* decide lifetime — but only when the weakness is real and the tier matches the contract. The recurring failures are symmetric: a soft cache that bloats the heap and clears all at once (use a bounded cache instead); a weak-keyed map whose value pins its key (break the back-edge); a weak registry that is the sole owner of a listener (give it an explicit strong owner); a cycle whose weak edge points the wrong way; a deref checked then reused across a clearing race (capture once). When memory grows anyway, the diagnostic move is a heap dump with **weak/soft references excluded from the root path** — what survives that exclusion is the strong reference that should have been weak. Master that, and weak references become a precise tool rather than a slow leak waiting for a long-running process to expose it.
+- Which measurable outcome justifies investing in Weak References?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

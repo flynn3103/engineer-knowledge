@@ -28,23 +28,23 @@ Each language tells you *how* it manages memory but rarely *why* its choices dif
 
 | # | Topic | Focus |
 |---|---|---|
-| [01](01-memory-hierarchy/) | The Memory Hierarchy | Registers, L1/L2/L3, RAM, swap, NUMA, why locality dominates |
-| [02](02-stack-vs-heap/) | Stack vs Heap | What each is for, the cost models, escape analysis |
-| [03](03-manual-memory-management/) | Manual Memory Management | `malloc` / `free`, RAII (C++/Rust), the failure modes (UAF, double-free, leaks) |
-| [04](04-reference-counting/) | Reference Counting | Cycles, increment/decrement cost, atomic vs non-atomic, Python / Swift / `Rc<T>` / `Arc<T>` |
-| [05](05-tracing-garbage-collection/) | Tracing Garbage Collection | Mark-sweep, mark-compact, generational, tri-color, concurrent vs stop-the-world |
-| [06](06-ownership-and-borrowing/) | Ownership & Borrowing | Rust's model, compile-time GC, lifetimes, `Box` / `Rc` / `Arc` trade-offs |
-| [07](07-allocators/) | Allocators | `jemalloc`, `mimalloc`, slab/buddy/bump, custom arenas |
-| [08](08-escape-analysis/) | Escape Analysis | What stays on the stack, what escapes, when it matters (Go, Java, GraalVM) |
-| [09](09-memory-layout/) | Memory Layout | Struct packing, cache lines, false sharing, alignment, SoA vs AoS |
-| [10](10-gc-tuning-in-production/) | GC Tuning in Production | Throughput vs latency, GC pauses, sizing the heap, ZGC / Shenandoah / G1 |
-| [11](11-memory-safety/) | Memory Safety | Bounds checks, ASan/MSan, MIRI, what "safe" actually means |
-| [12](12-memory-bugs/) | Memory Bugs | Leaks, fragmentation, churn, "the program runs fine for 6 hours and then OOMs" |
-| [13](13-weak-references/) | Weak / Soft / Phantom References | Why strong refs aren't always what you want; caches, observers, listener leaks; Java's four ref tiers, Swift `weak`/`unowned`, Python `weakref`, Rust `Weak<T>` |
-| [14](14-finalizers-and-destructors/) | Finalizers & Destructors | RAII destructors vs GC finalizers; resurrection, ordering, "do not rely on `finalize`," Go `runtime.SetFinalizer`, Python `__del__`, why most stdlibs deprecated them |
-| [15](15-object-pinning/) | Object Pinning & Movable Heaps | Compacting GCs move objects; how FFI / JNI / cgo pin memory; GC handles, fixed buffers, the cost of pinning |
-| [16](16-off-heap-memory/) | Off-heap / Native Memory | JVM direct buffers, Go `mmap`, Rust `mmap`, native pools; why you'd leave the managed heap; metrics that don't show up in normal heap dumps |
-| [17](17-memory-pressure-and-oom/) | Memory Pressure & OOM | OOM killer, cgroup limits, container memory limits, GC behavior under pressure, swap thrashing, soft vs hard limits |
+| [01](01-memory-hierarchy/README.md) | The Memory Hierarchy | Registers, L1/L2/L3, RAM, swap, NUMA, why locality dominates |
+| [02](02-stack-vs-heap/README.md) | Stack vs Heap | What each is for, the cost models, escape analysis |
+| [03](03-manual-memory-management/README.md) | Manual Memory Management | `malloc` / `free`, RAII (C++/Rust), the failure modes (UAF, double-free, leaks) |
+| [04](04-reference-counting/README.md) | Reference Counting | Cycles, increment/decrement cost, atomic vs non-atomic, Python / Swift / `Rc<T>` / `Arc<T>` |
+| [05](05-tracing-garbage-collection/README.md) | Tracing Garbage Collection | Mark-sweep, mark-compact, generational, tri-color, concurrent vs stop-the-world |
+| [06](06-ownership-and-borrowing/README.md) | Ownership & Borrowing | Rust's model, compile-time GC, lifetimes, `Box` / `Rc` / `Arc` trade-offs |
+| [07](07-allocators/README.md) | Allocators | `jemalloc`, `mimalloc`, slab/buddy/bump, custom arenas |
+| [08](08-escape-analysis/README.md) | Escape Analysis | What stays on the stack, what escapes, when it matters (Go, Java, GraalVM) |
+| [09](09-memory-layout/README.md) | Memory Layout | Struct packing, cache lines, false sharing, alignment, SoA vs AoS |
+| [10](10-gc-tuning-in-production/README.md) | GC Tuning in Production | Throughput vs latency, GC pauses, sizing the heap, ZGC / Shenandoah / G1 |
+| [11](11-memory-safety/README.md) | Memory Safety | Bounds checks, ASan/MSan, MIRI, what "safe" actually means |
+| [12](12-memory-bugs/README.md) | Memory Bugs | Leaks, fragmentation, churn, "the program runs fine for 6 hours and then OOMs" |
+| [13](13-weak-references/README.md) | Weak / Soft / Phantom References | Why strong refs aren't always what you want; caches, observers, listener leaks; Java's four ref tiers, Swift `weak`/`unowned`, Python `weakref`, Rust `Weak<T>` |
+| [14](14-finalizers-and-destructors/README.md) | Finalizers & Destructors | RAII destructors vs GC finalizers; resurrection, ordering, "do not rely on `finalize`," Go `runtime.SetFinalizer`, Python `__del__`, why most stdlibs deprecated them |
+| [15](15-object-pinning/README.md) | Object Pinning & Movable Heaps | Compacting GCs move objects; how FFI / JNI / cgo pin memory; GC handles, fixed buffers, the cost of pinning |
+| [16](16-off-heap-memory/README.md) | Off-heap / Native Memory | JVM direct buffers, Go `mmap`, Rust `mmap`, native pools; why you'd leave the managed heap; metrics that don't show up in normal heap dumps |
+| [17](17-memory-pressure-and-oom/README.md) | Memory Pressure & OOM | OOM killer, cgroup limits, container memory limits, GC behavior under pressure, swap thrashing, soft vs hard limits |
 
 ---
 

@@ -1,49 +1,11 @@
-# FFI Safety & Pitfalls — Professional Level
+# FFI Safety & Pitfalls — Professional
 
-> **Topic:** FFI Safety & Pitfalls
-> **Focus:** The production hazard playbook — owning the FFI boundary as a system: memory ownership and lifetime, ABI/type discipline, error handling across the language line, threading and reentrancy, resource leaks, and the defensive posture that keeps a safe language safe when it links unsafe code.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **FFI Safety & Pitfalls** with measurable outcomes and limited coordination?
 
-## Introduction
-
-At the professional tier you are not the engineer who *uses* an FFI binding; you are the engineer who *owns* it. You decide whether a team may link a native library at all, you design the boundary so that the next ten people who touch it cannot introduce undefined behavior, you write the CI gates that catch the bugs review misses, and you are the one paged when a binding corrupts memory in production at three in the morning and the stack trace points into a `.so` you do not have symbols for.
-
-This document is organized as a **hazard playbook**: six classes of failure, each with the mechanism, the symptom, the defense, and the test. The order matters. Memory ownership and ABI mismatch are the corruptors — they damage state silently and surface far from the cause. Error handling, threading, and resource leaks are the destabilizers — they crash, hang, or leak. Security is the meta-hazard: every binding inherits the memory-safety bugs of the unsafe side at exactly the point where attacker-controlled data crosses over.
-
-The thread running through all of it is a single discipline, drawn from the Rust ecosystem but universal: **a thin, audited unsafe boundary wrapping a safe API.** The dangerous operations — raw pointers, manual frees, type punning, exception bridging — are confined to a small layer that validates everything and is small enough to prove correct in one sitting. Everything above it is ordinary safe code that *cannot* misuse the boundary because the boundary does not hand it the tools. This document is the professional's case for that discipline and the playbook for executing it.
-
-> 🎓 **Why this matters at the professional level:** Your leverage is not writing the cleverest binding. It is making it impossible for the organization to ship an unsafe one. The defenses below are the ones you bake into the boundary design, the CI pipeline, and the review checklist so that correctness survives the original author leaving.
-
----
-
-## Prerequisites
-
-- The junior/middle/senior tiers of this topic: the loss of safety at the boundary and the six hazard classes in outline.
-- Working knowledge of at least two FFI surfaces in depth (e.g. Rust `extern`, JNI, cgo, Python `ctypes`/CFFI, .NET P/Invoke).
-- Comfort reading C headers and reasoning about calling conventions, struct layout, and the C type system.
-- Operational experience: triaging a production crash from a core dump, reading a sanitizer report, running a binding under a debugger.
-- Familiarity with how at least one managed runtime allocates, collects, and moves memory.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Allocator mismatch** | Freeing a pointer with a different allocator than the one that allocated it (e.g. `free()` on memory from a custom arena, or the runtime's free on a C `malloc`). Undefined behavior; often heap corruption. |
-| **Double-free** | Freeing the same allocation twice. Corrupts the allocator's metadata; a classic exploit primitive and a classic crash. |
-| **Dangling pointer** | A pointer to memory that has been freed or whose backing object has moved. Use yields use-after-free. |
-| **Pinning** | Telling a managed runtime not to move (or collect) an object for a window, so native code may hold a raw pointer to it safely. |
-| **`GC.KeepAlive`** | A .NET call that extends an object's reachability to a program point, preventing the GC from collecting it while native code still uses a pointer derived from it. |
-| **ABI** | Application Binary Interface — the binary contract: type sizes, struct layout/padding, calling convention, name mangling. Distinct from the source-level API. |
-| **Unwinding across `extern "C"`** | Letting a Rust panic or C++ exception propagate out of a function declared with the C ABI. Undefined behavior. |
-| **`catch_unwind`** | The Rust function that stops a panic at an FFI export so it does not unwind into C. |
-| **errno discipline** | The convention of clearing `errno`, calling, and reading it immediately — because almost any intervening call may overwrite it. |
-| **Local/global reference (JNI)** | A JNI handle to a Java object; local refs are per-call-per-thread and limited in number, global refs survive across calls and leak unless deleted. |
-| **`-Xcheck:jni`** | A JVM flag enabling extensive runtime JNI validation (bad refs, pending exceptions, wrong-thread use). |
-| **Audited boundary** | A small, deliberately-unsafe layer where all FFI lives, exhaustively validated, wrapping a safe API used everywhere else. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## The Hazard Playbook
@@ -322,24 +284,6 @@ Omitting `restype` here would truncate the returned pointer to 32 bits and corru
 
 ---
 
-## War Stories
-
-These are the *shapes* of real production failures — studied defensively as failure modes to engineer against, never as exploit recipes.
-
-**The pointer truncated by a missing `restype`.** A Python service used `ctypes` to call a C function returning a `char*`. No `restype` was set, so `ctypes` defaulted the return to `int` and truncated the 64-bit pointer to 32 bits. On the developer's machine, addresses happened to fit; in production, the high bits were non-zero and the dereference read garbage or crashed intermittently on certain allocations. The lesson burned into the team: **always set `restype` and `argtypes`, and test on the target's pointer width.** The fix was one line per function plus a test that exercised large return values.
-
-**The panic that corrupted the C caller.** A Rust library exposed `extern "C"` functions to a C host. An input edge case triggered a `panic!` deep inside one export. Because the panic unwound across the C ABI, the behavior varied: a debug build aborted cleanly; an optimized release build corrupted the stack and crashed later in unrelated C code, producing a stack trace that pointed nowhere near the real bug. Days were lost chasing the phantom before someone recognized the pattern. The fix was a `catch_unwind` wrapper on every export and a lint that flagged any export without one. **Never let a panic leave an `extern "C"` function.**
-
-**The buffer the GC collected mid-call.** A .NET integration marshalled a managed array to a long-running native call. Under low load it never failed; under production load the GC ran during the call, the source object had already become unreachable (the JIT had shortened its lifetime), the backing store was collected, and the native code wrote into freed memory — corrupting whatever was reallocated there. The crash was non-deterministic and load-correlated, the hardest kind to reproduce. The fix was pinning for the call window plus `GC.KeepAlive(buffer)` after the call. **A raw pointer into managed memory needs the GC pinned away for the entire native window.**
-
-**The allocator that didn't match.** A binding received a buffer from a C library that used a custom arena allocator and freed it with the runtime's `free`. It "worked" for months because the corruption was benign until the heap layout shifted after an unrelated dependency bump, at which point it became random crashes in allocations that had nothing to do with the binding. The fix was to call the library's `lib_free`, encoded in a wrapper type so it could not be gotten wrong again. **Every allocation pairs with the deallocator from the same allocator.**
-
-**The JNI reference leak that ate the heap.** A long-running JVM service created a JNI global reference per event in a native callback and never deleted them. Memory grew slowly over days until the service OOM-killed; because the growth was in native JNI tables, ordinary JVM heap dumps showed nothing and the leak was mis-attributed for a week. `-Xcheck:jni` in the test suite — added only after the incident — would have flagged the unbounded ref growth immediately. **Delete every JNI global ref you create; run `-Xcheck:jni` in CI.**
-
-The common thread: every one of these was silent or intermittent, surfaced far from its cause, and was prevented by a single boundary discipline plus the right CI gate.
-
----
-
 ## Review Checklist
 
 When you review an FFI binding, walk this list:
@@ -356,8 +300,24 @@ When you review an FFI binding, walk this list:
 
 ---
 
-## Summary
+## Apply it
 
-The professional owns the FFI boundary as a system. The hazard playbook has six classes. **Memory ownership and lifetime** is the silent corruptor: pair every allocation with its matching deallocator, encode single ownership in a wrapper that frees once on all paths, and pin (plus `GC.KeepAlive` on .NET) any object whose raw pointer crosses into native code. **Type and ABI mismatch** compiles then corrupts: generate or check the ABI rather than transcribing it, declare every type explicitly where you must (`ctypes` `restype`/`argtypes`), and test across value ranges. **Error handling** has one inviolable rule — never unwind a panic or exception across `extern "C"`; catch and translate at the boundary, check JNI exceptions, and read `errno` immediately. **Threading and reentrancy** produce the intermittent bugs: release the GIL around blocking calls, attach/detach native threads to the JVM without sharing a `JNIEnv`, know which thread each callback runs on and hand off, and serialize non-thread-safe libraries. **Resource leaks** drain long-running services: release every handle and JNI reference on every path because RAII does not cross the boundary. And **security** is the meta-hazard: a safe language inherits the unsafe one's bugs at the boundary, so validate all crossing data as hostile and isolate untrusted or unstable native code out-of-process.
+1. Define the user or business outcome that **FFI Safety & Pitfalls** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
-Tying it together is the discipline: a thin, audited unsafe boundary that validates everything and exposes a safe API, with ownership encoded in types, the surface minimized, and the whole thing gated in CI under ASan, Valgrind, TSan, and the runtime's own checker. The war stories — the truncated pointer, the panic that corrupted the caller, the collected buffer, the mismatched allocator, the JNI ref leak — are exactly the failures this discipline and these gates prevent. Your leverage is not the cleverest binding; it is making the unsafe one impossible to ship.
+## Verify your work
+
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
+
+## Review questions
+
+- Which measurable outcome justifies investing in FFI Safety & Pitfalls?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

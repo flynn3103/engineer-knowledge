@@ -1,58 +1,11 @@
-# Control-Flow Integrity — Professional Level
+# Control-Flow Integrity — Professional
 
-> **Topic:** Control-Flow Integrity
-> **Focus:** The cat-and-mouse frontier — CFI bypass classes (COOP, data-only attacks), the precision ceiling of CFI, performance and adoption economics, and how to architect a defense-in-depth program that doesn't overclaim.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Control-Flow Integrity** with measurable outcomes and limited coordination?
 
-## Introduction
-
-> Focus: **CFI is deployed everywhere now. So why are memory-corruption exploits still shipping? What does CFI fundamentally *not* solve, and how do you reason about the residual risk like an owner?**
-
-The previous levels built CFI up: forward-edge type sets, backward-edge shadow stacks and PAC, hardware landing pads. This level tears at the seams — not to teach offense, but because **a professional must know exactly where the guarantee stops.** CFI does not make memory-unsafe code safe. It raises the *cost* of turning a memory bug into code execution, and it shifts the attacker toward bug classes CFI cannot see: **data-only attacks** (corrupt non-control data) and **COOP** (Counterfeit Object-Oriented Programming — reuse whole *legitimate* virtual calls so even fine-grained vtable CFI is satisfied). It also collides with reality: precision is bounded by what the type system and analysis can prove, every check costs cycles and complicates JITs/unwinding, and adoption is gated by CPU support, ABIs, and the slowest third-party `.so` in your dependency graph.
-
-The professional framing is economic and architectural. CFI is one mitigation in a portfolio whose *purpose* is to make exploitation expensive and unreliable enough that attackers go elsewhere — chained with ASLR, memory tagging (MTE), sandboxing, privilege separation, and, ultimately, *memory-safe languages* that delete the bug class. You are the person who decides where on that curve to invest, and who must resist the seductive but false claim "we enabled CFI, so we're protected against memory corruption."
-
-> 🎓 **Why this matters for a professional:** You set security strategy, threat models, and the bar for "good enough." You'll be asked "are we protected against ROP?" and the correct answer is a precise, bounded statement, not "yes." You decide whether the right move is more CFI, MTE, a sandbox, or rewriting a parser in Rust. And you must read exploit post-mortems and recognize *which* layer failed and why CFI didn't catch it.
-
-This page covers: the **precision ceiling** of CFI, **data-only attacks** and why CFI is blind to them, **COOP** and counterfeit-object reuse, **performance and adoption economics**, where CFI sits relative to **MTE/ASLR/sandboxing/memory safety**, and how to architect and communicate a defense-in-depth program honestly.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** Everything in `junior.md`, `middle.md`, `senior.md` — the full stack from stack smashing through ROP/JOP/COP, LLVM CFI/CFG/XFG, shadow stacks, CET/IBT, PAC/BTI, KCFI/FineIBT.
-- **Required:** Comfort reasoning about *threat models* and attacker capabilities (read primitive, write primitive, info leak).
-- **Helpful but not required:** Exposure to ARM **MTE** (Memory Tagging Extension) and ASLR internals.
-- **Helpful but not required:** Experience owning a hardening rollout across a large binary/dependency graph.
-
-You do **not** need to know:
-
-- How to construct any of these bypasses — we describe *classes* and *why CFI misses them*, defensively.
-
-> ⚠️ **Defensive scope.** This level discusses *why* defenses fail at a conceptual, architectural level. It deliberately contains no working bypass construction, payloads, or exploit primitives.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Data-only attack** | Corrupting *non-control* data (flags, lengths, indices, pointers-to-data) to change behavior without ever redirecting a branch. Invisible to CFI. |
-| **COOP** | Counterfeit Object-Oriented Programming — crafting fake-but-type-valid objects and invoking *legitimate* virtual functions in a malicious sequence. |
-| **Counterfeit object** | An attacker-built object whose vtable pointer points at a *real, valid* vtable, so vtable CFI is satisfied. |
-| **Precision ceiling** | The limit on how small a CFI target set can be made given the analysis/type information available. |
-| **Equivalence class** | The set of targets CFI treats as interchangeable (e.g., all functions of one type). Attacks live *inside* a class. |
-| **MTE (Memory Tagging Extension)** | ARM feature tagging memory regions and pointers; mismatched access faults. Catches spatial/temporal bugs CFI can't. |
-| **ASLR** | Address Space Layout Randomization — randomizes module/stack/heap base addresses; defeated by info leaks. |
-| **Info leak** | A bug that discloses memory contents/addresses; the key that unlocks many "blocked" exploits. |
-| **Sandboxing** | Confining a process so that even full code execution yields limited capability. |
-| **Defense in depth** | Layering independent mitigations so an attacker must defeat several at once. |
-| **Memory safety** | Language/runtime guarantees (Rust, Go, managed runtimes) that delete the bug class CFI mitigates. |
-| **Residual risk** | The exploitation paths that remain *after* a mitigation is deployed. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -117,30 +70,6 @@ A recurring professional failure is the security claim that outruns the mechanis
 - ✅ "Residual exposure: data-only attacks, COOP-style composition within type classes, and any path our exemptions (JIT, FFI) open. We mitigate those with MTE/ASLR/sandboxing and are migrating the highest-risk parsers to a memory-safe language."
 
 That paragraph is the deliverable. It states what's covered, what's not, and the plan for the gap.
-
----
-
-## Real-World Analogies
-
-**Precision ceiling as a multiple-choice exam.** Fine-grained CFI narrows the answer from "any of 10,000 options" to "one of these 12 type-matching options." It rarely gets to "exactly this one," because the information needed to pick *the* correct answer at runtime isn't on the answer sheet. Attackers live among the remaining 12.
-
-**Data-only attack as forging the contents, not the envelope.** CFI guards the *envelope's address* — where the letter goes. A data-only attack leaves the address perfect (the letter goes exactly where it should) but rewrites the *check amount inside*. The mail system (control flow) behaves flawlessly; the payload is poisoned.
-
-**COOP as a hostile script performed by legitimate actors.** Every actor (virtual function) is real, union-card-carrying, and reads only lines from the real script (valid vtables). But the *director* (attacker) arranges genuine lines into a play nobody sanctioned. Checking each actor's credentials (vtable CFI) never reveals the plot.
-
-**MTE vs CFI as smoke detectors vs fire doors.** MTE is a smoke detector that alarms the instant something starts to burn (the bad memory access). CFI is a fire door that stops the blaze from spreading to the exits (control flow). You want both: detect early, contain late.
-
----
-
-## Mental Models
-
-**Model 1: CFI bounds the attacker to a *legal-looking* subset; the residual is whatever stays legal-looking.** Data-only and COOP are exactly the attacks that never leave the legal set. Internalize this and you stop expecting CFI to be a wall.
-
-**Model 2: Forward edge has a precision ceiling; backward edge doesn't.** One correct return target ⇒ precise (shadow stack/PAC). Many type-valid call targets ⇒ bounded class, not a point. Invest accordingly.
-
-**Model 3: Layers attack different exploit *steps*.** Bug exists → (memory safety deletes it) → corruption happens → (MTE catches it) → pointer hijacked → (CFI blocks it) → code runs → (sandbox contains it). Map each mitigation to the step it owns; gaps appear where no layer covers a step.
-
-**Model 4: Security claims are bounded statements with a stated residual.** "Protected" is never a complete sentence. "Protected against X, residual Y, mitigated by Z, with plan W" is.
 
 ---
 
@@ -231,16 +160,6 @@ Mitigated by: ARM MTE where available, renderer/parser sandboxing,
 
 ---
 
-## Use Cases
-
-- **Browsers** combine fine-grained CFI, CET/PAC, ASLR, and aggressive sandboxing precisely *because* CFI alone leaves COOP/data-only residual.
-- **OS kernels** layer KCFI/FineIBT with stack-protection and (increasingly) Rust components for new drivers.
-- **Mobile platforms (iOS/Android)** pair PAC/BTI/MTE — the MTE complement directly attacks the bugs CFI only mitigates downstream.
-- **Hypervisors/enclaves** treat CFI as one layer in a minimal-TCB strategy, not the boundary.
-- **New greenfield services** skip most of this by being written in memory-safe languages, isolating unavoidable C/C++ behind a sandbox/FFI boundary.
-
----
-
 ## Coding Patterns
 
 **Pattern: Protect security-critical *data* independently of CFI.** Separate role/permission/size fields from attacker-reachable buffers (separate allocations, guard pages, redundant checks, canary-style validation of the field). CFI won't notice their corruption.
@@ -300,49 +219,24 @@ Mitigated by: ARM MTE where available, renderer/parser sandboxing,
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. Explain the **precision ceiling** and why the forward edge has one but the backward edge (mostly) doesn't.
-2. What is a **data-only attack**, and why is CFI structurally unable to detect it? Give a concrete shape.
-3. What is **COOP**, and why does it satisfy fine-grained vtable CFI? What does this prove about "type-valid" enforcement?
-4. Where does CFI sit relative to **MTE**, **ASLR**, **sandboxing**, and **memory-safe languages** in the exploit chain? Which step does each own?
-5. Why is "we enabled CFI, so we're protected against memory corruption" wrong, and what's the correct bounded statement?
-6. Why does linking one un-instrumented library undermine a CFI deployment?
-7. Why might the best next investment for a CFI-hardened product be MTE or a Rust rewrite rather than tighter CFI?
-8. How do **info leaks** interact with CFI and ASLR, and why are read primitives first-class threats?
+1. Define the user or business outcome that **Control-Flow Integrity** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
-> If you can answer 2, 3, 4, and 5 precisely, you can own the security narrative for a memory-unsafe codebase.
+## Verify your work
 
----
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
 
-## Cheat Sheet
+## Review questions
 
-| Concept | One-liner |
-|---------|-----------|
-| **Precision ceiling** | CFI allows an equivalence class, rarely a single point. |
-| **Forward vs backward precision** | Forward = bounded class; backward = exact (precise). |
-| **Data-only attack** | Corrupt non-control data; control flow stays legal; CFI is blind. |
-| **DOP** | Chain data-only corruptions into rich computation. |
-| **COOP** | Compose *legitimate* type-valid vcalls; vtable CFI is satisfied. |
-| **MTE** | Catch the bug at the bad access — upstream of CFI. |
-| **ASLR + info leak** | Randomization undone by one disclosure; CFI doesn't stop leaks. |
-| **Sandbox** | Contain even full code execution. |
-| **Memory safety** | Delete the bug class; the strategic endgame. |
-| **The deliverable** | "Blocks X; residual Y; mitigated by Z; plan W." |
-
----
-
-## Summary
-
-CFI is deployed broadly, yet memory-corruption exploits persist because CFI raises the *cost* of control-flow hijacking without deleting the underlying bug class — and capable attackers simply move to what CFI cannot see. The **precision ceiling** means forward-edge CFI permits an **equivalence class** of type-valid targets rather than the single correct one (the backward edge, with one correct return, can be precise — which is why shadow stacks/PAC are stronger than forward-edge CFI). Two residual classes dominate: **data-only attacks** (corrupt non-control data — flags, sizes, data pointers — leaving control flow perfectly legitimate and CFI blind, extensible to Turing-complete **DOP**) and **COOP** (compose *legitimate, type-valid* virtual calls so even fine-grained vtable CFI is satisfied — proving that enforcing each call's validity doesn't prevent a hostile composition). Deployment is gated by **performance, ABI/toolchain friction, hardware support, and the weakest linked object**, and every JIT/FFI exemption is a deliberate hole. Architecturally, CFI is one layer: **MTE** catches the bug upstream, **ASLR** hides addresses (until an info leak), **sandboxing** contains success, and **memory-safe languages** delete the bug class outright. The professional deliverable is never "we're protected" — it's a bounded statement: what's blocked, what's residual, what mitigates the residual, and the plan to close it.
-
----
-
-## Further Reading
-
-- Schuster et al., "Counterfeit Object-Oriented Programming" (COOP) — the canonical vtable-CFI-bypass paper.
-- Hu et al., "Data-Oriented Programming" (DOP) — Turing-complete data-only attacks.
-- Carlini et al., "Control-Flow Bending" — limits of CFI under realistic attacker models.
-- Burow et al., "Control-Flow Integrity: Precision, Security, and Performance" — a comparative survey of CFI schemes.
-- ARM MTE documentation and "Memory Tagging" whitepapers — the complementary upstream defense.
-- Microsoft, Google Project Zero, and Apple security write-ups on real CFI-era exploits — read for *which layer failed and why*.
+- Which measurable outcome justifies investing in Control-Flow Integrity?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

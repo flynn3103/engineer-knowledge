@@ -1,72 +1,11 @@
-# Runtime ↔ GC Integration — Junior Level
+# Runtime ↔ GC Integration — Junior
 
-> **Topic:** Runtime ↔ GC Integration
-> **Focus:** The garbage collector cannot work alone. It needs the runtime and the compiler to tell it where the pointers are and when it is safe to look. This page is about that hand-shake — not about how GC algorithms collect garbage.
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **Runtime ↔ GC Integration** in one small example and prove the result?
 
-## Introduction
-
-> Focus: **What does the garbage collector need from the rest of the system in order to do its job at all?**
-
-When you write `new Object()` in Java, `make([]int, n)` in Go, or `{}` in JavaScript, the memory you get back is *managed*: at some later moment, a **garbage collector (GC)** will scan the heap, decide your object is no longer reachable, and reclaim its memory. People usually study GC by learning *how* it decides what is garbage — mark-and-sweep, generational collection, reference counting. That is a different topic (it lives in the memory-management section, and we only mention it in passing here).
-
-This page is about the part nobody draws on the whiteboard: **the GC is not a standalone library that can magically inspect your program.** It is one half of a tightly coupled partnership with the **language runtime** and the **compiler**. The collector can only do its job because the compiler and runtime hand it three things:
-
-1. **A map of where the pointers are.** When the GC pauses your program, your live objects are referenced by pointers sitting in CPU registers and on thread stacks. The GC has no idea which of those bit patterns are pointers and which are just integers — unless the compiler tells it. The compiler emits **stack maps** (also called **oop maps** in the JVM world) that say, for each point in the code, "stack slot 3 and register `rbx` hold object pointers right now."
-
-2. **A safe moment to look.** The GC cannot scan a thread's stack while that thread is in the middle of updating it. The runtime must bring every thread to a **safepoint** — a known, well-defined spot in the code — before the GC may peek. Getting all threads there is its own engineering problem.
-
-3. **Notifications when pointers change.** Many modern collectors run *concurrently* with your program. To keep up with a moving target, the compiler injects tiny snippets of code — **write barriers** and sometimes **read barriers** — around pointer operations, so the collector learns about pointer updates as they happen.
-
-In one sentence: **the GC is a guest in your program's house, and the compiler and runtime are the hosts who must label every door, ring a bell when everyone is seated, and report whenever furniture is moved.** This page teaches that hosting contract.
-
-> 🎓 **Why this matters for a junior:** You will eventually hit a production incident where "the GC paused for 300 ms" or "latency spikes every few minutes." The *cause* is almost never the GC algorithm itself — it is the integration: a thread that took too long to reach a safepoint, a barrier that cost too much in a hot loop, a giant loop with no place to pause. Understanding the *interface* is what lets you read a GC log and know which knob to turn.
-
-This page covers: what a **root** is and why finding roots is hard; **precise vs conservative** scanning; what a **safepoint** is and the **time-to-safepoint** problem; what a **write barrier** does, at a beginner's level; and why a **moving** collector forces the compiler to be careful about raw pointers. The deeper mechanics (oop map formats, SATB vs incremental-update barriers, colored pointers) are in `middle.md`, `senior.md`, and `professional.md`.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** What a pointer/reference is — a value that holds the address of an object.
-- **Required:** That programs run on threads, each with its own **call stack** and **CPU registers**.
-- **Required:** A rough idea of what garbage collection is *for* (reclaiming unreachable memory). You do **not** need to know how any specific GC algorithm works.
-- **Helpful:** A sense that source code is *compiled* (or JIT-compiled) into machine instructions, and that the compiler is free to keep values in registers.
-- **Helpful:** The idea that the heap is shared between threads while the stack is per-thread.
-
-You do **not** need to know:
-
-- The internals of mark-sweep, generational, or concurrent GC algorithms — that is the memory-management topic.
-- Cache coherence, memory ordering, or assembly. We stay conceptual here.
-- Anything specific to one engine's source code.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Mutator** | The application code — *your* program. Called "mutator" because, from the GC's point of view, it mutates the heap (creates and rewires objects). |
-| **Collector** | The garbage collector: the code that finds and reclaims dead objects. |
-| **Runtime** | The support machinery shipped with the language (memory allocator, scheduler, GC, exception handling). The host the mutator and collector both live in. |
-| **Root** | A pointer that lives *outside* the heap and refers *into* the heap: a local variable on a thread stack, a value in a CPU register, a global/static variable. Reachability starts from the roots. |
-| **Root set** | The complete collection of roots at a given instant. The GC must find all of them to avoid freeing live objects. |
-| **Reachable / live** | An object you can get to by following pointers starting from the roots. Everything else is garbage. |
-| **Stack map / oop map** | Compiler-generated metadata that says, for a specific code location, which stack slots and registers currently hold object pointers. |
-| **Precise (exact) scanning** | Using stack maps to know *exactly* which slots are pointers. |
-| **Conservative scanning** | Treating *anything that looks like a pointer* as if it might be one, because no map is available. |
-| **Safepoint** | A point in the program where a thread's state is fully described by the maps, so the GC may safely inspect or move things. |
-| **Stop-the-world (STW)** | A GC phase during which all mutator threads are paused at safepoints. |
-| **Time-to-safepoint (TTSP)** | How long it takes from "GC requests a pause" until *every* thread has actually reached a safepoint. A hidden source of latency. |
-| **Write barrier** | A small piece of compiler-injected code that runs on every pointer store, so the collector learns the heap changed. |
-| **Read barrier** | The same idea, but on pointer *loads* — used by some advanced collectors. |
-| **Moving / compacting GC** | A collector that relocates live objects to new addresses (to defragment). Forces every pointer to the moved object to be updated. |
-| **Allocation fast path** | The cheap, inlined code that hands you a fresh object when memory is plentiful — usually just bumping a pointer. |
-| **TLAB** | Thread-Local Allocation Buffer: a private chunk of the heap a thread allocates from without locking. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -139,39 +78,6 @@ If the collector **moves** an object to a new address (to defragment the heap), 
 ### 8. Allocation Is Part Of The Contract Too
 
 The collector reclaims memory; allocation hands it out. To make `new` fast, runtimes give each thread a private slab of heap called a **TLAB** (thread-local allocation buffer). Allocating is then just: bump a pointer forward by the object's size; if it fits, you're done — no locks, just a couple of instructions inlined right into your compiled code (the **allocation fast path**). Only when the TLAB is full does the thread take the **slow path** and ask the runtime for a fresh TLAB (which may trigger a GC). So the runtime and compiler co-design allocation and collection together.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Roots** | The front-door keys hanging on hooks by the entrance. Everything you can reach in the house starts from a key. |
-| **Stack map / oop map** | A floor plan that marks which hooks hold real keys and which hold decorative fakes. |
-| **Conservative scanning** | A cautious cleaner who refuses to throw away *anything* that might be valuable, just in case — so junk piles up. |
-| **Precise scanning** | A cleaner with an exact inventory list — they know precisely what to keep and what to bin. |
-| **Safepoint** | A designated "freeze!" line painted on the floor. People can only be inspected while standing on it. |
-| **Safepoint poll** | A bell that rings periodically; whenever you hear it, you check whether you should freeze. |
-| **Time-to-safepoint** | How long until the *slowest* person in the building finally hears the bell and freezes. One person with headphones holds up everyone. |
-| **Write barrier** | A logbook by the door: every time you move a piece of furniture, you must jot it down so the inventory team stays accurate. |
-| **Moving GC** | Re-arranging the furniture to free up floor space — but then you must update everyone's map so they still find their desk. |
-| **TLAB** | Each worker gets a personal supply shelf, so they don't queue at the central storeroom for every paperclip. |
-
----
-
-## Mental Models
-
-### The "Label Every Door" Model
-
-The GC is a fire marshal who must, during a drill, account for every person in the building. They cannot do it alone — they rely on the *building designer* (the compiler) to have labeled which doors lead to occupied rooms (which slots hold pointers) and to have painted *freeze lines* (safepoints) where people gather. When the alarm rings (GC requested), everyone walks to the nearest freeze line and stands still until counted. The marshal's job is easy *only because the building was designed to make it easy*. A badly designed building — one long corridor with no freeze line — leaves the marshal waiting forever. That corridor is your giant uninterruptible loop.
-
-### The "Snapshot Must Be Coherent" Model
-
-The GC needs a *coherent snapshot* of the pointer graph. You can't photograph a moving object cleanly. Safepoints are the camera's flash going off only when everyone holds still; write barriers are the way the photographer keeps notes on what moved while the shutter was open (for concurrent collectors). The whole integration exists to turn a constantly-changing program into something the collector can reason about as if it were frozen.
-
-### The "Hidden Tax On Every Pointer Write" Model
-
-Managed memory feels free, but it isn't. Every `x.field = y` may carry a small tax (the write barrier), and every loop iteration may carry a tiny tax (the safepoint poll). You never wrote those instructions — the compiler did, as part of the GC contract. When you profile a hot loop and see mysterious extra instructions, this is often what they are. Understanding the tax helps you write code that minimizes it.
 
 ---
 
@@ -260,36 +166,6 @@ The precise version is only possible because the compiler emitted `stackMapFor(.
 
 ---
 
-## Pros & Cons
-
-This section weighs the *integration choices*, not GC in general.
-
-| Choice | Pros | Cons |
-|--------|------|------|
-| **Precise scanning (stack maps)** | No floating garbage; enables moving/compacting GC; tighter heaps. | Compiler must emit and maintain map metadata; metadata takes space; more compiler complexity. |
-| **Conservative scanning** | Zero compiler support needed; works for C/C++ via libraries (Boehm); simple to bolt on. | Floating garbage; cannot move objects (no compaction); occasional memory bloat. |
-| **Cooperative safepoints (polling)** | Cheap in the common case; threads stop at clean, well-described points. | Bad TTSP if a thread runs long without polling; needs polls inserted everywhere. |
-| **Write barriers** | Enable generational and concurrent collection (shorter pauses). | A per-pointer-store cost; complicates the compiler; hurts store-heavy code. |
-| **STW collection** | Simple correctness; no barriers needed for the STW phase itself. | Visible pause latency proportional to work. |
-| **Concurrent collection** | Tiny pauses, better tail latency. | Requires barriers, more complex runtime/compiler cooperation, some throughput cost. |
-| **TLAB fast-path allocation** | Lock-free, near-free allocation; great throughput. | Some wasted space at TLAB ends; tuning needed; slow path still exists. |
-
----
-
-## Use Cases
-
-You will *use* this knowledge, even as a junior, when:
-
-- **Reading a GC log and seeing a long pause that isn't collection.** A big "time to safepoint" or "stopping threads" number tells you the problem is integration (a thread that wouldn't stop), not the collector.
-- **Profiling a hot loop with surprising extra instructions.** Those can be safepoint polls or write barriers the compiler added.
-- **Calling native code (JNI, cgo, P/Invoke).** Native sections interact specially with safepoints — a long native call can block the collector or, conversely, must be handled so it doesn't.
-- **Choosing or tuning a collector.** Knowing that ZGC and Shenandoah use *barriers* to move objects concurrently (and thus cost a little throughput) versus a simpler STW collector helps you pick for latency vs throughput.
-- **Understanding why "just allocate less" helps.** Fewer allocations means fewer GCs *and* fewer pointer writes means fewer barrier executions.
-
-It is **not** something you implement yourself unless you are writing a language runtime — which is exactly when every detail above becomes your daily work.
-
----
-
 ## Coding Patterns
 
 These are application-level habits informed by how the integration works.
@@ -372,116 +248,24 @@ Short-lived local allocations are friendly to the integration: fast to allocate,
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```text
-┌────────────────────────────────────────────────────────────────────┐
-│            RUNTIME ↔ GC INTEGRATION (the hand-shake)               │
-├────────────────────────────────────────────────────────────────────┤
-│ The GC needs THREE things from the compiler/runtime:               │
-│   1. WHERE the pointers are   -> stack maps / oop maps             │
-│   2. A SAFE moment to look    -> safepoints                       │
-│   3. NOTICE of pointer writes -> write (and sometimes read) barriers│
-├────────────────────────────────────────────────────────────────────┤
-│ Roots = pointers OUTSIDE the heap pointing IN                      │
-│   live on: thread stacks, CPU registers, globals/statics           │
-├────────────────────────────────────────────────────────────────────┤
-│ Scanning roots:                                                    │
-│   CONSERVATIVE  "looks like a pointer? keep it"  (no compiler help)│
-│                 -> floating garbage, CANNOT move objects           │
-│   PRECISE       "the map says it's a pointer"     (needs maps)     │
-│                 -> exact, CAN move/compact objects                 │
-├────────────────────────────────────────────────────────────────────┤
-│ Safepoints:                                                        │
-│   polls at loop back-edges + method entry/return                   │
-│   GC raises a flag; threads stop at the next poll                  │
-│   TIME-TO-SAFEPOINT (TTSP) = wait for the SLOWEST thread           │
-│   long tight loop / long native call = long TTSP = latency spike   │
-├────────────────────────────────────────────────────────────────────┤
-│ Allocation fast path:                                              │
-│   per-thread TLAB; allocate = bump a pointer; no lock              │
-│   TLAB full -> slow path -> maybe a GC                            │
-├────────────────────────────────────────────────────────────────────┤
-│ Debug flags: -Xlog:gc*,safepoint (JVM) | GODEBUG=gctrace=1 (Go)    │
-└────────────────────────────────────────────────────────────────────┘
-```
+1. Choose one small, known input for **Runtime ↔ GC Integration**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
----
+## Verify your work
 
-## Summary
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
 
-- The **garbage collector cannot operate alone.** It depends on the **compiler** and **runtime** to make the heap legible. This page is about that interface, not about GC algorithms (which live in the memory-management section).
-- The GC must find all **roots** — pointers on stacks, in registers, and in globals — but raw bits don't reveal which words are pointers.
-- **Conservative scanning** guesses (anything pointer-shaped is kept), needs no compiler help, but produces floating garbage and forbids moving objects. **Precise scanning** uses compiler-emitted **stack maps / oop maps** to know exactly, enabling compaction.
-- Maps are only valid at **safepoints**. The runtime brings every thread to a safepoint via **polls** at loop back-edges and method boundaries before scanning.
-- **Time-to-safepoint (TTSP)** is the wait for the slowest thread to stop. A long tight loop or a long native call makes TTSP — and thus the visible pause — large, *independent of how fast collection itself is*.
-- Concurrent collectors need the mutator to report pointer changes, so the compiler injects **write barriers** (and sometimes read barriers) around pointer operations — a small but real per-store cost.
-- A **moving** collector forces the compiler to declare every live pointer at every safepoint so the GC can rewrite them after relocation; raw pointers can't survive a move unless the GC knows about them (hence **handles** in native code).
-- Allocation is co-designed: the **TLAB** fast path makes `new` a near-free pointer bump, with a slow path that may trigger collection.
-- Junior superpower: when GC "looks slow," check whether the cost is *collection* or *integration* (TTSP, barriers). The fix is usually in the integration.
+## Review questions
 
----
-
-## Further Reading
-
-- *The Garbage Collection Handbook* — Jones, Hosking, Moss. The standard reference; the chapters on stack maps, safepoints, and barriers are exactly this topic.
-- *Crafting Interpreters* — Robert Nystrom. The GC chapter builds a precise collector and shows root-finding from first principles. https://craftinginterpreters.com/
-- *The Go Memory Management and GC design docs* — Go team. Describes the hybrid write barrier and safepoints. https://go.dev/doc/gc-guide
-- *HotSpot Glossary of Terms* — OpenJDK. Defines oop, oop map, safepoint, TLAB. https://openjdk.org/groups/hotspot/docs/HotSpotGlossary.html
-- *A Guide to the Go Garbage Collector* — Go team. Accessible explanation of barriers and pacing. https://go.dev/doc/gc-guide
-- *Boehm-Demers-Weiser conservative GC* — documentation on why conservative scanning works and its limits. https://www.hboehm.info/gc/
-- *The Z Garbage Collector* — Oracle/OpenJDK wiki. Introduces colored pointers and load barriers. https://wiki.openjdk.org/display/zgc/Main
-
----
-
-## Diagrams & Visual Aids
-
-### The Three-Part Contract
-
-```text
-        ┌──────────────┐        stack maps / oop maps        ┌──────────────┐
-        │              │  ───────── "pointers are HERE" ───► │              │
-        │   COMPILER   │                                     │              │
-        │  + RUNTIME   │  ───────── safepoints  ───────────► │      GC      │
-        │  (the HOST)  │            "stop HERE"              │ (the GUEST)  │
-        │              │  ───────── write barriers ────────► │              │
-        └──────────────┘            "this changed"           └──────────────┘
-              ▲                                                      │
-              │                  resume after collection            │
-              └──────────────────────────────────────────────────────┘
-```
-
-### Finding Roots: Conservative vs Precise
-
-```text
-STACK at the moment of a GC:
-   slot0: 0x7f..1020   slot1: 0x000005   slot2: 0x7f..10a0   slot3: 0xdeadbeef
-
-CONSERVATIVE: check each — "does it land in the heap?"
-   slot0 -> maybe a ptr -> KEEP   slot1 -> too small -> skip
-   slot2 -> maybe a ptr -> KEEP   slot3 -> maybe a ptr -> KEEP (false positive!)
-
-PRECISE (map says: slot0=ptr, slot2=ptr, others=not):
-   slot0 -> KEEP    slot2 -> KEEP    (slot3 correctly ignored)
-```
-
-### Safepoints and Time-To-Safepoint
-
-```text
-GC requests pause ──► flag raised
-                       │
-Thread A: ...poll✓ STOP                         (stopped quickly)
-Thread B: ...poll✓ STOP                         (stopped quickly)
-Thread C: [huge tight loop, no poll]......STOP  (stopped LATE)
-                       │◄──────── TTSP ────────►│
-                       (everyone waits for C; THIS is the pause you feel)
-```
-
-### Allocation Fast Path (TLAB Bump)
-
-```text
-Thread's TLAB:   [ used | used | FREE ........................ ]
-                                 ^top
-new(obj):  if top + size <= end:  addr = top; top += size; return addr   (fast)
-           else:                  ask runtime for a new TLAB (maybe GC)   (slow)
-```
+- What problem does Runtime ↔ GC Integration solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

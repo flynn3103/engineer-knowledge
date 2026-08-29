@@ -1,14 +1,11 @@
 # HTTP and APIs — Professional
 
-> **Topic:** [HTTP and APIs](../README.md)
-> **Focus:** API governance across teams, deprecation policy enforcement, resilience-pattern standardization (timeouts, retries, circuit breakers) fleet-wide, and leading the response to an availability incident.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **HTTP and APIs** with measurable outcomes and limited coordination?
 
-## Introduction
-
-At professional level, the concern shifts from "does this API handle load correctly" to "do all our APIs handle load correctly, consistently, and can we prove it before an incident forces the question." This means governance, shared libraries, and incident leadership.
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -62,16 +59,6 @@ func DefaultRetryPolicy() RetryPolicy {
 
 ---
 
-## Pros & Cons
-
-| Approach | Pros | Cons |
-|---|---|---|
-| Shared resilience library | Consistency, single point of improvement | Requires adoption discipline; a bug affects everyone |
-| Enforced deprecation headers + monitoring | Predictable, low-surprise API evolution | Requires tooling to track caller adoption |
-| Incident-response order (stabilize, then diagnose) | Minimizes damage during active incidents | Requires training/drills; instinct under pressure often skips to root-cause first |
-
----
-
 ## Best Practices
 
 1. Publish and mandate a shared resilience library for timeouts, retries, circuit breakers, and load shedding.
@@ -98,45 +85,24 @@ func DefaultRetryPolicy() RetryPolicy {
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```
-Fleet resilience checklist:
-  [ ] Shared library for timeouts/retries/circuit breakers, adopted org-wide
-  [ ] Deprecation + Sunset headers on retiring API versions, with adoption monitoring
-  [ ] Incident response order: stabilize (shed/breaker/rollback) -> then root-cause
-  [ ] Postmortems explicitly audit resilience-pattern coverage
-```
+1. Define the user or business outcome that **HTTP and APIs** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
----
+## Verify your work
 
-## Summary
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
 
-- Resilience patterns (timeouts, retries, circuit breakers, load shedding) belong in a shared, mandated internal library — not reinvented per team.
-- API deprecation needs enforced headers and adoption monitoring, not just a changelog entry.
-- During an availability incident, stabilize first (shed load, trip breakers, roll back), then diagnose root cause.
-- Postmortems should explicitly audit resilience-pattern coverage across the failure chain, producing concrete adoption action items.
+## Review questions
 
----
-
-## Further Reading
-
-- RFC 8594 — *The Sunset HTTP Header Field*: <https://www.rfc-editor.org/rfc/rfc8594>
-- Google SRE Book — *Managing Incidents*: <https://sre.google/sre-book/managing-incidents/>
-
----
-
-## Related Topics
-
-- [Error Handling — Professional](../04-error-handling/professional.md)
-- [Production Debugging — Professional](../07-production-debugging/professional.md)
-
----
-
-## Check your understanding
-
-1. Explain HTTP and APIs — Professional Level in your own words and name the problem it solves.
-2. How would you apply the ideas around Introduction, Core Concepts, Code Examples in a realistic engineering change?
-3. What failure mode or misuse should you look for, and what evidence would reveal it?
-4. How would you introduce and govern HTTP and APIs — Professional Level across teams through reversible, measurable increments?
-5. What observable result would convince you that the approach improved the system?
+- Which measurable outcome justifies investing in HTTP and APIs?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

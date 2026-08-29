@@ -1,56 +1,11 @@
-# Nominal vs Structural Typing — Middle Level
+# Nominal vs Structural Typing — Middle
 
-> **Topic:** Nominal vs Structural Typing
-> **Focus:** How type *identity* and *compatibility* are actually computed — width/depth subtyping, method-set matching, the newtype pattern as a tool, and TypeScript's excess-property check — so you can predict what your compiler will accept.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **Nominal vs Structural Typing** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-> Focus: **Given a value and an expected type, what exactly does the type checker compute to say yes or no?** And what tools (newtypes, branded types) let you opt into the *other* model when your language defaults one way?
-
-At the junior level the distinction was a slogan: nominal checks the name, structural checks the shape. At this level we make it precise. "Compatibility" is really a **subtyping** question: is the actual type `S` a subtype of the expected type `T` (written `S <: T`), meaning a value of `S` is safe to use wherever `T` is required? Nominal and structural systems compute `S <: T` by entirely different procedures:
-
-- **Nominal subtyping** walks a *declared* graph. `S <: T` holds iff there is a chain of declared `extends`/`implements`/`impl ... for` edges from `S` up to `T`. The check is essentially a graph reachability query over relationships the programmer wrote down.
-- **Structural subtyping** compares *members*. `S <: T` holds iff `S` has *at least* everything `T` requires, with compatible types (this is **width** and **depth** subtyping, defined below). The check is a member-by-member comparison, recursing into field/parameter/return types.
-
-Real languages are rarely 100% one or the other. Java is nominal for classes/interfaces but its generics use structural-ish wildcard bounds. Go is structural for interface satisfaction but nominal for *named types* (a `type Celsius float64` is a distinct type). TypeScript is overwhelmingly structural but bolts on private-field and brand tricks to recover nominal behavior. Understanding the *mechanism* lets you predict the corner cases instead of memorizing them.
-
-> 🎓 **Why this matters at the middle level:** You're now writing interfaces, generics, and domain types that other people depend on. The difference between "this refactor is safe" and "this refactor silently broke a downstream consumer" comes down to understanding how your language computes compatibility. Structural systems make some refactors silently change conformance; nominal systems surface them as compile errors. You need to know which.
-
-This page covers: subtyping as the unifying frame, width/depth subtyping, Go's method-set rules (pointer vs value receivers), the newtype pattern as a deliberate tool, TypeScript's excess-property check and its branded-type escape hatch, and how the same domain bug looks in each system.
-
----
-
-## Prerequisites
-
-- **Required:** Solid grasp of the junior page — name vs shape, Go's implicit satisfaction, the ID-mixup bug.
-- **Required:** Comfort with interfaces/traits and generics in at least one language.
-- **Required:** The notion of *subtype* — "usable in place of."
-- **Helpful:** Having hit a confusing TypeScript assignability error or a Go "does not implement" error.
-- **Helpful:** Awareness that method receivers in Go can be by value or by pointer.
-
-You do **not** yet need: variance theory in full, row polymorphism formalism, or compiler internals — those are `senior.md`/`professional.md`.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Subtyping (`S <: T`)** | `S` is a subtype of `T` if a value of `S` is safe wherever `T` is expected. The formal version of "compatibility." |
-| **Nominal subtyping** | `S <: T` holds only via *declared* `extends`/`implements`/`impl` edges. |
-| **Structural subtyping** | `S <: T` holds when `S`'s members satisfy `T`'s requirements, by shape. |
-| **Width subtyping** | A record with *more* fields is a subtype of one with *fewer*: `{x, y, z} <: {x, y}`. Extra members are fine. |
-| **Depth subtyping** | A record whose fields are *subtypes* of another's fields is a subtype: `{p: Dog} <: {p: Animal}` (under covariance). |
-| **Method set** | In Go, the set of methods callable on a type; determines which interfaces it satisfies. Differs for value vs pointer. |
-| **Newtype** | A distinct nominal type wrapping an existing representation, created precisely to *not* be interchangeable with it. |
-| **Branded / opaque type** | A structurally-typed value carrying a phantom marker so the compiler treats it nominally. |
-| **Excess property check** | TypeScript's stricter rule for *object literals* assigned directly: extra unlisted properties are rejected. |
-| **Phantom type** | A type parameter that appears in the type but not in the runtime value, used to tag/distinguish otherwise-identical types. |
-| **Type alias** | A *name* for an existing type that does **not** create a new distinct type (`type Meters = number` — still `number`). |
-| **Assignability** | TypeScript's term for its (mostly structural) compatibility relation. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -167,30 +122,6 @@ The `__brand` property never exists at runtime — it's a compile-time-only mark
 
 ---
 
-## Real-World Analogies
-
-**Org charts vs. skill audits.** Nominal subtyping is asking HR for the *reporting chain* — "is this role under that department?" — answered by following declared lines. Structural subtyping is a skills audit — "does this person cover every responsibility on the list?" — answered by checking each requirement.
-
-**Width subtyping = a fuller toolbox.** If a job needs a hammer and a screwdriver, a toolbox that *also* has a wrench still qualifies (more is fine). That's width subtyping: extra members never disqualify you.
-
-**Branded money.** A `$10` bill and a casino chip might be "worth 10," but the casino chip is *branded* so you can't spend it at the grocery store. Branded types stamp a marker so same-valued things aren't interchangeable.
-
-**Currency codes.** `USD` and `EUR` are both "a number with two decimals," but you must never add them directly. Newtypes are the currency code stamped on the amount.
-
----
-
-## Mental Models
-
-**Model 1 — "Two algorithms, one question."** Both systems compute `S <: T`. Nominal runs graph reachability over declared edges; structural runs recursive member matching. Predict behavior by mentally running the right algorithm.
-
-**Model 2 — "More is a subtype."** In structural systems, having *more* members or *more specific* members makes you a subtype (width + depth). Train this intuition; it explains most "why did this assign?" surprises.
-
-**Model 3 — "Brand = synthetic name."** A brand/phantom marker is a fake name glued onto a shape, turning a structural type into a nominal one on demand.
-
-**Model 4 — "Aliases don't create types; newtypes do."** `type Meters = number` is a nickname (same type). `struct Meters(f64)` / `Brand<number,"Meters">` is a *new* type. Know which your syntax produces.
-
----
-
 ## Code Examples
 
 ### Nominal subtyping is declaration-driven (Java)
@@ -290,38 +221,6 @@ In Java, `LegacyHandle` could not satisfy a `Closer` interface defined later wit
 
 ---
 
-## Pros & Cons
-
-### Nominal subtyping
-
-| Pros | Cons |
-|------|------|
-| Conformance is intentional and auditable (grep for `implements`). | Cannot retroactively make a foreign type fit; needs adapter/wrapper. |
-| Newtypes are first-class — distinct types for distinct meanings come naturally. | More declarations; small interfaces feel heavy. |
-| Error messages name the missing contract. | Generics often need explicit bounds to regain flexibility. |
-| Refactors that break conformance surface as compile errors. | Mocking requires a declared test double. |
-
-### Structural subtyping
-
-| Pros | Cons |
-|------|------|
-| Width/depth subtyping → flexible composition, less boilerplate. | Accidental conformance: a type can fit an interface unintentionally. |
-| Retroactive conformance for foreign types, for free. | Aliases don't separate meaning; same-shape bugs slip through. |
-| Trivial mocking — any matching shape works. | Renaming/removing a member silently changes who conforms. |
-| Excellent for data-shaped code (JSON, config). | Excess-property and literal-vs-variable rules surprise people. |
-
----
-
-## Use Cases
-
-- **Newtypes for units and IDs.** `Meters`/`Feet`, `UserId`/`OrderId`, `Cents` — anywhere a swap would be a silent bug.
-- **Go interfaces for plumbing.** `io.Reader`/`io.Writer` glue unrelated types together precisely because conformance is structural and retroactive.
-- **Branded types in TS APIs.** Public functions that must not accept arbitrary strings (validated emails, sanitized HTML) brand their inputs.
-- **Structural mocks in tests.** Replace a dependency with a minimal object that has just the methods under test.
-- **Nominal interfaces for stable contracts.** A plugin API where implementers must explicitly opt in so you can evolve the contract deliberately.
-
----
-
 ## Coding Patterns
 
 **Pattern: "smart constructor."** Only mint a branded/newtype value through a function that validates, so a `UserId` always came from a real validation.
@@ -374,14 +273,24 @@ var _ io.Writer = (*MyBuffer)(nil)  // fails to compile if MyBuffer isn't a Writ
 
 ---
 
-## Summary
+## Apply it
 
-- Compatibility is **subtyping** (`S <: T`). Nominal computes it by graph reachability over *declared* edges; structural by recursive *member* comparison.
-- **Width** subtyping (more fields) and **depth** subtyping (more specific fields) define structural record subtyping; nominal has neither by default.
-- **Go is hybrid:** interfaces are structural (via method sets, with value/pointer receiver rules) while named types are nominal.
-- The **newtype pattern** deliberately creates distinct types over a shared representation to stop same-shape mix-ups (`Meters`/`Feet`, `UserId`/`ProductId`).
-- **Branded/phantom types** fake nominal typing inside a structural language by attaching a compile-time-only marker; **type aliases** do *not* — they're just nicknames.
-- Structural typing's signature strengths are **retroactive conformance** and **trivial mocking**; its signature risks are **accidental conformance** and **same-shape confusion**, plus TS's literal-vs-variable excess-property quirk.
-- Use compile-time conformance assertions and single-chokepoint minting to make these systems work *for* you.
+1. Find a real component where **Nominal vs Structural Typing** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
-The senior tier formalizes the subtyping rules (variance, row polymorphism, the function-parameter soundness issue) and explains how compilers actually implement each check; the professional tier covers Rust trait coherence/orphan rules and large-codebase trade-offs.
+## Verify your work
+
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
+
+## Review questions
+
+- Which boundary is most affected by Nominal vs Structural Typing?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

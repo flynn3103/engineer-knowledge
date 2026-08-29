@@ -1,20 +1,11 @@
 # HTTP and APIs — Senior
 
-> **Topic:** [HTTP and APIs](../README.md)
-> **Focus:** Load shedding and backpressure, circuit breakers, request-scoped deadlines propagated across a call chain, connection pool sizing under real load, and API versioning/compatibility.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **HTTP and APIs** under failure, load, and change?
 
-## Introduction
-
-At scale, an API doesn't just need to handle requests correctly — it needs to survive its dependencies failing, its own capacity being exceeded, and years of evolution without breaking existing clients. This level connects HTTP mechanics to systems-level resilience patterns.
-
----
-
-## Prerequisites
-
-- Comfortable with graceful shutdown, connection pooling, and retry-with-backoff (middle level).
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -76,16 +67,6 @@ A request handler called three downstream services sequentially, each wrapped in
 
 ---
 
-## Pros & Cons
-
-| Pattern | Pros | Cons |
-|---|---|---|
-| Load shedding | Bounded latency for accepted requests under overload | Rejected clients need a well-defined retry/backoff response themselves |
-| Circuit breaker | Prevents wasted calls to a known-failing dependency | Adds state and tuning (thresholds, cooldown); a misconfigured breaker can open too eagerly |
-| Single propagated deadline | Predictable total request latency | Requires discipline — every downstream call site must derive from the same context |
-
----
-
 ## Best Practices
 
 1. Set a concurrency limit and shed load with `503` past it, rather than letting requests queue unboundedly.
@@ -120,45 +101,24 @@ A request handler called three downstream services sequentially, each wrapped in
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```
-Load shedding    → concurrency limit + fast 503, don't queue unboundedly
-Circuit breaker  → fail fast on a known-failing dependency, retry-probe periodically
-One deadline     → derive every downstream ctx from r.Context(), never Background() mid-chain
-Pool sizing      → from load-test data, not defaults
-```
+1. State the system invariant that **HTTP and APIs** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
----
+## Verify your work
 
-## Summary
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
 
-- Shed load explicitly (reject with `503` past a concurrency limit) rather than letting requests queue unboundedly under overload.
-- Circuit breakers stop wasting resources on calls to a known-failing dependency.
-- Propagate a single deadline from the incoming request through every downstream call — never start a fresh, independent timeout mid-chain.
-- Size connection pools from real load-test data.
-- Treat API compatibility as an explicit policy, not an assumption.
+## Review questions
 
----
-
-## Further Reading
-
-- Google SRE Book — *Addressing Cascading Failures*: <https://sre.google/sre-book/addressing-cascading-failures/>
-- `sony/gobreaker` (a widely-used Go circuit breaker): <https://github.com/sony/gobreaker>
-
----
-
-## Related Topics
-
-- [Database and Distributed Systems — Senior](../06-database-and-distributed-systems/senior.md) — partial failure handling in depth.
-- [Production Debugging — Senior](../07-production-debugging/senior.md)
-
----
-
-## Check your understanding
-
-1. Explain HTTP and APIs — Senior Level in your own words and name the problem it solves.
-2. How would you apply the ideas around Introduction, Prerequisites, Core Concepts in a realistic engineering change?
-3. What failure mode or misuse should you look for, and what evidence would reveal it?
-4. How would you validate a system-level decision about HTTP and APIs — Senior Level under uncertainty?
-5. What observable result would convince you that the approach improved the system?
+- Which invariant must remain true when HTTP and APIs fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

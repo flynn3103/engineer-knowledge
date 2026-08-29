@@ -1,15 +1,11 @@
-# Memory Pressure & OOM — Professional Level
-> **Topic:** Memory Pressure & OOM
-> **Focus:** Production memory incidents in Kubernetes and containers — QoS, eviction, exit 137, war stories, and the config recipes that prevent them.
+# Memory Pressure & OOM — Professional
 
----
+<!-- level-focus -->
+At professional level, focus on this question:
 
-## Introduction
+> How should teams adopt and operate **Memory Pressure & OOM** with measurable outcomes and limited coordination?
 
-In production, memory pressure stops being a kernel abstraction and becomes a pager going off at 3am with `CrashLoopBackOff`, a dashboard of exit code 137s, and a customer-facing latency spike. The professional level is about operating real systems — almost always containerized, usually orchestrated by Kubernetes — where the failure modes from the lower tiers compound with scheduler decisions, multi-tenant nodes, and runtimes that don't know how much memory they actually have.
-
-This tier is structured around what you actually do on the job: understand how the orchestrator allocates and reclaims memory, recognize the handful of incident shapes that recur endlessly, run a disciplined diagnosis, and apply the config that prevents recurrence. The war stories are composites of the most common real incidents.
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -58,50 +54,6 @@ Same symptom (pod restarted), opposite root cause (my limit vs the node's capaci
 ### Noisy neighbors and node-level pressure
 
 A node packs many pods. If pods are Burstable and oversubscribed, several can burst simultaneously and exhaust node memory even though each is "within its limit." The result is collateral damage: a well-behaved Guaranteed pod is fine, but Burstable/BestEffort neighbors get evicted, and if eviction can't keep up, the node's *global* OOM killer fires and can kill anything — including processes the kubelet wanted to protect. This is the **noisy neighbor** problem, and it's the strongest practical argument for `requests == limits` on anything that matters: oversubscription externalizes your risk onto your neighbors.
-
----
-
-## War Stories
-
-### War Story 1: The CrashLoopBackOff from a too-low limit
-
-**Symptom.** A new service deploys fine, serves traffic for 30–90 seconds, then `OOMKilled` (exit 137), restarts, and repeats — `CrashLoopBackOff`. Crucially, it's *not* a leak: it dies at roughly the same RSS every time.
-
-**Root cause.** The `limits.memory` was copied from a smaller service (say 256Mi) but this service's *steady-state* working set under real traffic is ~400Mi. The limit is simply below the legitimate working set. Each restart re-warms caches and connection pools, climbs past 256Mi, and gets killed before it stabilizes — the warm-up itself guarantees the kill.
-
-**Diagnosis.** `kubectl describe pod` → `Last State: Terminated, Reason: OOMKilled, Exit Code: 137`. RSS metric shows a sawtooth that always peaks at the limit. No upward trend across restarts (rules out a leak).
-
-**Fix.** Right-size the limit from observed working set (peak RSS under load + headroom), not from a template. This is the single most common Kubernetes memory incident, and it's a *configuration* bug, not a code bug. The trap is "fix" by infinitely bumping the limit without ever measuring the actual working set.
-
-### War Story 2: The swap-thrash livelock
-
-**Symptom.** A node (or a VM running a non-containerized service) stops responding to new requests, but doesn't crash. SSH itself takes minutes. CPU shows mostly idle/iowait; disk I/O is pinned at 100%. The system is "up" but doing no useful work — for 20 minutes.
-
-**Root cause.** Swap was enabled, the working set grew past RAM, and the system entered a **thrashing livelock**: every needed page gets swapped out and immediately faulted back in, so nearly all time is spent shuttling pages between RAM and disk. No process is ever killed because, technically, an allocation always *eventually* succeeds — it just takes forever. The OOM killer never fires because reclaim "succeeds" (via swap), it's just catastrophically slow.
-
-**Diagnosis.** `vmstat 1` shows huge `si`/`so` (swap-in/swap-out) columns; PSI `full avg10` near 100%; load average climbing with idle CPU. The tell is high iowait + pinned disk + frozen responsiveness *without* an OOM-kill log.
-
-**Fix.** Short-term: kill the offending process manually to break the livelock. Long-term: disable disk swap for latency-sensitive nodes (so pressure resolves into a *fast* OOM-kill instead of a slow livelock), or move swap to **zram/zswap** (compressed RAM) where the page-shuffle cost is orders of magnitude lower. This is the canonical argument for "swap off in production" — a fast clean kill beats a slow node-wide meltdown.
-
-### War Story 3: The GC death spiral at the limit
-
-**Symptom.** A JVM/Go service's latency suddenly degrades 10–50×, CPU pins at 100%, throughput craters — but the process *doesn't die* (or dies much later than expected). GC time dominates CPU profiles.
-
-**Root cause.** The live working set grew to nearly the heap/soft limit — an unbounded cache, or a traffic surge inflating in-flight state. The GC runs back-to-back collections, each freeing almost nothing because the memory is *live, not garbage*. The JVM may log `GC overhead limit exceeded`; Go with a tight `GOMEMLIMIT` burns CPU collecting constantly. The service is alive but useless.
-
-**Diagnosis.** GC logs show collection frequency climbing while reclaimed bytes shrink. CPU is GC-dominated. Heap-after-GC stays high and flat (live set, not garbage). The trap is to "tune the GC" — no GC setting fixes a live set that doesn't fit.
-
-**Fix.** Bound the cache, shed load to shrink the working set, or raise the limit if the working set is legitimate. The deeper fix is a soft limit (`GOMEMLIMIT`, `memory.high`) plus PSI-driven load shedding so the spiral becomes an *observable, alertable* degradation you shed against — rather than a silent latency cliff or a surprise kill.
-
-### War Story 4: Off-heap blew the cgroup while the heap looked fine
-
-**Symptom.** A Java service is `OOMKilled` (exit 137) repeatedly, but every heap dump and JVM metric shows the heap comfortable at ~55% of `-Xmx`. The team raises `-Xmx`, and the kills get *more frequent*.
-
-**Root cause.** The container is killed because *total RSS* — heap **plus native memory** — exceeded the cgroup `memory.max`. The culprit is off-heap: a flood of direct `ByteBuffer`s (Netty, a Kafka client), an unbounded thread pool inflating thread-stack memory, metaspace growth from dynamic class generation, or glibc arena fragmentation. The heap monitor is blind to all of it. Raising `-Xmx` made it worse: a bigger heap left *less* room for native memory inside the same fixed container, so the cgroup limit was hit *sooner*.
-
-**Diagnosis.** Compare JVM heap-used against container RSS (`kubectl top pod` / cgroup `memory.current`): the gap *is* the native memory. Enable JVM Native Memory Tracking (`-XX:NativeMemoryTracking=summary`, then `jcmd <pid> VM.native_memory summary`) to attribute the off-heap growth. The signature is RSS climbing while heap is flat.
-
-**Fix.** Size the heap *down* to leave native headroom (`-XX:MaxRAMPercentage=75`), cap the off-heap source (bound direct-buffer pools, limit thread count, cap metaspace with `-XX:MaxMetaspaceSize`), and consider switching glibc `malloc` for jemalloc/tcmalloc if arena fragmentation is the driver. The governing rule: **the managed heap is a fraction of the container, never the whole thing.**
 
 ---
 
@@ -196,6 +148,24 @@ Every process you protect pushes the kill onto another — use sparingly and del
 
 ---
 
-## Summary
+## Apply it
 
-Production memory pressure is dominated by a small set of recurring incident shapes, and competence is recognizing them fast. In Kubernetes, the two deaths to never confuse are **OOMKilled (exit 137)** — *this* container hit *its own* cgroup limit, fixed at the container — and **node-pressure eviction** — the *node* ran low and the kubelet shed pods, fixed at the node and its neighbors. Setting `requests == limits` for memory buys Guaranteed QoS, predictable placement, and freedom from noisy-neighbor collateral, trading utilization for safety. The four canonical war stories — a too-low limit CrashLooping, a swap-thrash livelock, a GC death spiral on a live set, and off-heap silently blowing the cgroup while the heap looks fine — cover most pages you'll ever get. The diagnosis discipline is always the same: read the *reason* not the symptom, separate leak from spike from undersized limit by plotting RSS over time, and compare heap-used to RSS to catch native memory. The config that prevents recurrence is unglamorous: right-sized limits from real working sets, the runtime told its true budget with headroom (`GOMEMLIMIT`, `MaxRAMPercentage`), swap decided deliberately, and alerts on PSI and soft limits rather than on the kill itself.
+1. Define the user or business outcome that **Memory Pressure & OOM** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
+
+## Verify your work
+
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
+
+## Review questions
+
+- Which measurable outcome justifies investing in Memory Pressure & OOM?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

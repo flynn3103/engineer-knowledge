@@ -1,72 +1,11 @@
-# DSLs in Practice — Junior Level
+# DSLs in Practice — Junior
 
-> **Topic:** DSLs in Practice
-> **Focus:** What a domain-specific language actually is, the difference between an *external* DSL (its own syntax, lexer, parser) and an *internal* one, and the small pipeline you build to turn DSL text into behaviour.
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **DSLs in Practice** in one small example and prove the result?
 
-## Introduction
-
-> Focus: **What is a DSL, why is SQL one, and what does "external" mean?**
-
-A **domain-specific language (DSL)** is a small programming language built to solve problems in *one* narrow area really well, rather than to be a general tool for any problem. You already use several every day without calling them languages:
-
-- **SQL** describes *what* data you want, not how to fetch it: `SELECT name FROM users WHERE age > 18`.
-- **Regular expressions** describe text patterns: `^\d{3}-\d{4}$`.
-- **CSS** describes how a page looks: `h1 { color: rebeccapurple; }`.
-- A **Makefile** describes how to build software from sources.
-- The **shell** (`bash`) is a language for gluing programs together.
-
-None of these is a "general-purpose language" like Python, Java, or Go — you would not write a web server in regex. Each is tuned to one job. That focus is the entire point: a person who knows the domain can read and write the DSL even if they are not a deep programmer. A data analyst writes SQL; a designer writes CSS.
-
-There are two flavours of DSL, and this topic is about the second one:
-
-- An **internal (or *embedded*) DSL** is built *inside* a host language using that language's own syntax — method chains, operator overloading, builders. A query builder like `db.users().where(age.gt(18))` is an internal DSL: it is just normal method calls dressed up to read like a query. You get internal DSLs "for free" from the host. (The metaprogramming part of this roadmap covers them in depth.)
-- An **external DSL** has *its own syntax* — its own keywords, its own grammar, its own files. SQL, regex, and CSS are external DSLs: `SELECT name FROM users` is not valid Python or Java; something has to *read those characters and understand them*. That "something" is a program you (or a library) write: a **lexer**, a **parser**, and an **interpreter** or **compiler**.
-
-This page is about external DSLs — the applied capstone of everything else in this section. Lexing, parsing, building an AST, and evaluating it are exactly the techniques you have been learning; a DSL is where you put them all together to make a *real little language*. By the end of this level you will understand the pipeline `text → tokens → tree → result` and be able to read the code for a tiny calculator language.
-
-> 🎓 **Why this matters for a junior:** The first time you write code that *reads another little language and runs it* — even a four-function calculator — something clicks. You stop seeing languages as magic and start seeing them as programs that process text. That intuition makes you better at using SQL, regex, and config formats, and far better at debugging them.
-
----
-
-## Prerequisites
-
-What you should be comfortable with before this page:
-
-- **Required:** Writing functions, loops, and `if` statements in at least one language (examples here are in Python and a little JavaScript/Go).
-- **Required:** Strings and arrays — you will be walking over characters and lists of tokens.
-- **Required:** The idea of a **tree** as a data structure (a node that holds children). If you can picture a folder tree, you are fine.
-- **Helpful:** Having used SQL, regex, or CSS as a *user*. You do not need to know how they are implemented — that is what we are about to learn.
-- **Helpful:** A vague memory of "tokens" and "parsing" from earlier topics in this section. We will re-explain the basics here.
-
-You do **not** need:
-
-- Compiler theory, grammars in formal notation (BNF), or parser-generator tools like ANTLR — those appear at higher levels.
-- Knowledge of bytecode, LLVM, or code generation. At this level a DSL just *runs* by walking its tree.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **DSL** | Domain-specific language. A small language aimed at one problem area (queries, styling, build rules). |
-| **GPL** | General-purpose language (Python, Java, Go). Confusingly the same acronym as a software license; in this topic it always means the language kind. |
-| **External DSL** | A DSL with its *own* syntax, stored in its own text/files, that you must lex and parse yourself. SQL, regex, CSS. |
-| **Internal / embedded DSL** | A DSL expressed using a host language's existing syntax (method chains, builders). No separate parser needed. |
-| **Host language** | The general-purpose language your DSL implementation is written in (and, for an internal DSL, the language the DSL is embedded in). |
-| **Lexer (tokenizer / scanner)** | The program that turns raw DSL text into a list of **tokens**. Turns `"3 + 4"` into `[NUMBER(3), PLUS, NUMBER(4)]`. |
-| **Token** | One meaningful chunk of input: a number, a keyword, an operator, a name. The "words" of the language. |
-| **Parser** | The program that turns the flat list of tokens into a **tree** (the AST), checking that the tokens are in a valid order. |
-| **Grammar** | The rules describing which sequences of tokens form valid programs. "An expression is a number, or an expression `+` an expression." |
-| **AST (abstract syntax tree)** | The tree representation of a parsed program. `3 + 4` becomes a `Plus` node with two number children. |
-| **Interpreter** | A program that *runs* the AST directly by walking it — also called **tree-walking**. |
-| **Compiler / transpiler** | A program that *translates* the DSL into something else (machine code, bytecode, or another language like SQL or JavaScript) instead of running it directly. |
-| **Evaluate / eval** | To compute the value or effect of a node in the AST. |
-| **Recursive descent** | The simplest hand-written parsing style: one function per grammar rule, calling each other. |
-| **Little language** | Jon Bentley's term (and Unix's philosophy) for a small, focused DSL such as `awk`, `sed`, or `dc`. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -142,28 +81,6 @@ For a junior, "DSL" mostly means "I parse it and interpret it."
 ### 6. The "little languages" idea
 
 Unix is full of tiny DSLs: `awk` for text processing, `sed` for stream edits, `make` for builds, `dc` for arithmetic, `find`'s expression syntax. The philosophy — credited to Jon Bentley's *Little Languages* essay — is that a small, focused language often beats a pile of command-line flags or a big config file. You are learning to build exactly these.
-
----
-
-## Real-World Analogies
-
-**A vending machine.** You press `B`, then `4`. The machine does not understand "B4" as one thing instantly — it reads `B` (a column), then `4` (a row), then looks up what is at B4 and dispenses it. Lexing is reading the button presses into tokens; parsing is checking "is B4 a valid slot?"; interpreting is dropping the snack.
-
-**Reading a recipe out loud.** "Two cups flour, one egg." Your eyes *lex* the words, your brain *parses* "quantity + ingredient" pairs, and your hands *interpret* by actually scooping flour. If the recipe said "flour two egg cups one," you would stumble — a parse error.
-
-**A translator at the UN.** A *compiler* DSL is like a translator who rewrites a French speech into English text you read later. An *interpreter* DSL is like a live interpreter speaking the meaning right now. Same input language, two ways to act on it.
-
-**A restaurant order ticket.** The waiter's shorthand ("2× burger, no onion") is a tiny external DSL. The kitchen has learned its grammar. It is unreadable to outsiders but perfectly efficient for the domain.
-
----
-
-## Mental Models
-
-- **A DSL is a program that reads a language.** Whenever you feel intimidated, remember: it is string processing with structure on top.
-- **Three jobs, three programs.** Lexer = words. Parser = grammar. Interpreter = meaning. Keep them separate in your head and in your code; bugs become obvious ("is my lexer producing the right tokens?" is a different question from "is my parser building the right tree?").
-- **The tree is the meaning.** Once you have the AST, the original text no longer matters. `3+4` and `3   +   4` and even a totally different syntax that produced the same tree all mean the same thing.
-- **Internal DSL = borrow the host's parser. External DSL = bring your own.** That one sentence captures the whole trade-off you will weigh later: an external DSL gives you any syntax you want but you build (and forever maintain) the lexer, parser, and tooling yourself.
-- **Most "config files" are secretly DSLs.** A `.env` file, a JSON config, an `nginx.conf` — each has a grammar and a reader. Seeing them this way demystifies them.
 
 ---
 
@@ -321,43 +238,6 @@ This is a *line-oriented* DSL — no recursion needed because the structure is f
 
 ---
 
-## Pros & Cons
-
-**Pros of an external DSL (from a junior's view):**
-
-- **Readable by domain experts.** A non-programmer can read `WHEN order.total > 100 THEN discount 10%`.
-- **Exactly the syntax you want.** You are not limited by the host language's punctuation.
-- **Concise.** One line of DSL can replace pages of general code.
-- **Separation.** The DSL lives in its own files; you can change rules without recompiling the whole app.
-
-**Cons (the catch you must respect):**
-
-- **You build the whole front end yourself** — lexer, parser, error messages, and later editor support. That is real, ongoing work.
-- **Error messages are your responsibility.** A bad parser gives users "syntax error" with no line number; that frustration is on you.
-- **It is a language to maintain forever.** Every new feature means new grammar, new parser code, new docs.
-- **Learning curve for users.** A new syntax is one more thing people must learn.
-
-A good rule for now: build an external DSL only when the domain is important and stable, and a plain config file or a library function would be genuinely awkward.
-
----
-
-## Use Cases
-
-External DSLs you will recognise, by category:
-
-- **Query:** SQL, GraphQL — say *what* data you want.
-- **Pattern matching:** regular expressions, glob patterns (`*.txt`).
-- **Styling / markup:** CSS, HTML, Markdown.
-- **Build / automation:** Makefiles, shell scripts, CI pipeline YAML (with its own mini-grammar).
-- **Configuration:** `.env`, `nginx.conf`, `HCL`/Terraform, Dhall, Jsonnet.
-- **Calculation:** spreadsheet formulas (`=SUM(A1:A10)`), a calculator like ours.
-- **Schemas:** Protobuf `.proto` files, JSON Schema.
-- **Rules:** "if cart over $50, free shipping" rule languages in e-commerce.
-
-When *you* might build one early in your career: a small formula or filter language inside an app ("show rows where price < 20 and category = 'books'"), a config format with validation, or a teaching calculator. Start small.
-
----
-
 ## Coding Patterns
 
 ### Pattern: keep the three stages separate
@@ -412,3 +292,27 @@ Always append an end-of-input token in the lexer so the parser never indexes pas
 - **Treating a config file's grammar as "not a real DSL."** It is. A `.env` parser is a DSL implementation, just a flat one. Respecting that helps you write better parsers for them.
 
 Master the calculator until you can write it from memory. Every larger DSL — config languages, rule engines, query languages — is the same three stages with a bigger grammar. The `middle.md` level adds variables, functions, better error messages, and the idea of *transpiling* a DSL into another language.
+
+---
+
+## Apply it
+
+1. Choose one small, known input for **DSLs in Practice**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
+
+## Verify your work
+
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
+
+## Review questions
+
+- What problem does DSLs in Practice solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

@@ -1,8 +1,11 @@
 # Language Selection Criteria — Junior
 
-> **What?** The set of factors you weigh when deciding what language to build something in. Not "which language is best" — there's no such thing — but "which language *fits this situation*," where the situation includes the problem, the people, the deadline, and the risk.
-> **How?** Resist picking by taste or hype. Write down what actually matters for *this* project, weigh those factors honestly, and let the choice fall out. The language is the answer to a question — make sure you asked the question first.
+<!-- level-focus -->
+At junior level, focus on this question:
 
+> How can I apply **Language Selection Criteria** in one small example and prove the result?
+
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## 1. The mistake everyone makes first
@@ -106,11 +109,11 @@ Run every candidate through the must-haves first — most options vanish instant
 
 **Mistake 1: choosing by popularity.** "It's the most-used language on the survey" tells you about the *average* project, not yours. Popularity is a weak signal for hiring and libraries — and irrelevant to whether it fits *your* problem.
 
-**Mistake 2: choosing by benchmark.** A language being 3× faster in a microbenchmark is meaningless if your service spends 95% of its time waiting on the database. Speed only matters where speed is the bottleneck (more in [`02-performance-vs-productivity-tradeoffs`](../02-performance-vs-productivity-tradeoffs/)).
+**Mistake 2: choosing by benchmark.** A language being 3× faster in a microbenchmark is meaningless if your service spends 95% of its time waiting on the database. Speed only matters where speed is the bottleneck (more in [`02-performance-vs-productivity-tradeoffs`](../02-performance-vs-productivity-tradeoffs/README.md)).
 
 **Mistake 3: choosing by résumé.** "I want to learn Rust, so I'll use it at work." Learning is good — but your employer's production system is not your personal training ground. Learn on side projects; choose for the company on company criteria.
 
-**Mistake 4: ignoring what's already there.** Adding a *new* language to a codebase isn't free even if it's the perfect fit — it's a second toolchain, a second hiring pool, a second set of on-call knowledge. (This gets its own topic: [`05-when-to-introduce-a-new-language`](../05-when-to-introduce-a-new-language/).)
+**Mistake 4: ignoring what's already there.** Adding a *new* language to a codebase isn't free even if it's the perfect fit — it's a second toolchain, a second hiring pool, a second set of on-call knowledge. (This gets its own topic: [`05-when-to-introduce-a-new-language`](../05-when-to-introduce-a-new-language/README.md).)
 
 **Mistake 5: treating it as permanent.** Beginners think the choice is forever and panic. Seniors know choices can be migrated — at a cost — so they weigh *reversibility* as one factor among many rather than freezing up.
 
@@ -127,16 +130,24 @@ Run every candidate through the must-haves first — most options vanish instant
 
 ---
 
-## 9. What's next
+## Apply it
 
-| Topic | File |
-|---|---|
-| A real weighted-scoring framework you can fill in | `middle.md` |
-| Where the simple criteria break down and conflict | `senior.md` |
-| Driving a selection decision across a whole org | `professional.md` |
-| Practice scenarios and scoring exercises | `tasks.md` |
-| Interview questions on selection | `interview.md` |
+1. Choose one small, known input for **Language Selection Criteria**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
----
+## Verify your work
 
-**Memorize this:** there is no best language, only the best fit for *this* problem, *this* team, *this* deadline, *this* risk. Ask the question before you reach for the answer — and the loudest factors in the debate (syntax, benchmarks) are usually the cheapest ones.
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
+
+## Review questions
+
+- What problem does Language Selection Criteria solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

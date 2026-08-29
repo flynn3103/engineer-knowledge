@@ -1,8 +1,11 @@
 # Language Selection Criteria — Senior
 
-> **What?** Where the tidy weighted matrix from `middle.md` stops helping — when criteria *conflict* instead of just ranking, when the dominant factor isn't even on your list, when you must decide before you know the workload, and when the choice's second-order effects (hiring, architecture, culture) dwarf its first-order ones.
-> **How?** By treating selection as a decision under deep uncertainty: optimizing for *reversibility* over peak fit, naming the tradeoffs you can't resolve instead of pretending the spreadsheet resolved them, and reasoning about what the choice *becomes* three years out, not what it scores today.
+<!-- level-focus -->
+At senior level, focus on this question:
 
+> Which system invariant is affected by **Language Selection Criteria** under failure, load, and change?
+
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## 1. The matrix lies when criteria conflict, not just differ
@@ -42,7 +45,7 @@ The senior insight: **the right answer depends on your probability of survival, 
 
 The expensive mistake is the **mismatched horizon**: a startup gold-plating with a "scale" language it can't ship fast enough in, or an enterprise picking a "velocity" language for a system it knows will need to handle a billion requests. Match the language's center of gravity to your *actual* risk profile, not to a generic ideal.
 
-> Premature optimization for scale is just as wasteful as premature optimization for speed — see [`02-performance-vs-productivity-tradeoffs`](../02-performance-vs-productivity-tradeoffs/). The cost you pay to be "ready" for a scale you never reach is pure loss.
+> Premature optimization for scale is just as wasteful as premature optimization for speed — see [`02-performance-vs-productivity-tradeoffs`](../02-performance-vs-productivity-tradeoffs/README.md). The cost you pay to be "ready" for a scale you never reach is pure loss.
 
 ---
 
@@ -68,7 +71,7 @@ Irreversible:  a language whose types, idioms, and libraries have leaked into
 
 So reversibility is partly something you *engineer*, not just something you *assess*. A senior making a risky language bet will deliberately **wrap it in a seam** — a clean service boundary, a stable schema, no shared in-process libraries — precisely to keep the door two-way. This is optionality as a design goal: you pay a little structure now to keep the cost of being wrong bounded later.
 
-> **Heuristic:** the riskier the language bet, the harder you invest in the boundary that lets you unwind it. A Rust experiment isolated behind a gRPC contract is a cheap option. The same Rust spread across your monolith's hot path is a mortgage. See [`04-interop-and-polyglot-architectures`](../04-interop-and-polyglot-architectures/) for the seams; [`06-migrating-between-languages`](../06-migrating-between-languages/) for the unwind.
+> **Heuristic:** the riskier the language bet, the harder you invest in the boundary that lets you unwind it. A Rust experiment isolated behind a gRPC contract is a cheap option. The same Rust spread across your monolith's hot path is a mortgage. See [`04-interop-and-polyglot-architectures`](../04-interop-and-polyglot-architectures/README.md) for the seams; [`06-migrating-between-languages`](../06-migrating-between-languages/README.md) for the unwind.
 
 ---
 
@@ -122,7 +125,7 @@ The skill is not scoring all six axes — it's identifying which *one* axis is l
 
 Every selection has a criterion that decides it and never made the spreadsheet, because it's uncomfortable, political, or invisible. Train yourself to hunt for it. Common culprits:
 
-**The real bottleneck is hiring, not the code.** The language is a 9/10 fit and you cannot hire for it in your market within your budget in under six months. The matrix never had a "can we actually staff this in our city at our comp band" row — and that row, had it existed, would have ended the debate before it started. (See [`07-total-cost-of-ownership-and-team-skills`](../07-total-cost-of-ownership-and-team-skills/).)
+**The real bottleneck is hiring, not the code.** The language is a 9/10 fit and you cannot hire for it in your market within your budget in under six months. The matrix never had a "can we actually staff this in our city at our comp band" row — and that row, had it existed, would have ended the debate before it started. (See [`07-total-cost-of-ownership-and-team-skills`](../07-total-cost-of-ownership-and-team-skills/README.md).)
 
 **The decision is really about a person.** Your one Rust expert is leaving in three months. Your staff engineer will quit if forced back to Java. The "neutral technical analysis" is downstream of a human fact nobody wrote down. Pretending otherwise produces a matrix that's technically pristine and practically wrong.
 
@@ -164,7 +167,7 @@ This is why the choice is "cheap to make, ruinously expensive to reverse" (READM
 
 **Step 5 — Resolve with second-order thinking (§7).** This is the company's *first* polyglot step. Whatever they pick becomes the gravitational default for future high-performance work. So the question isn't "best for this pipeline" — it's "best *first second language* for this org." That argues for **Go** over Rust: 80% of the throughput win, a fraction of the ramp, a gentler operational story, and a hiring market a Python shop can actually tap.
 
-**Decision: Go**, isolated behind the ingestion API, with an explicit ADR noting the throughput target, the reversibility seam, and a revisit trigger ("if Go can't sustain 200k/sec at sub-50ms p99 under load test, escalate to Rust for the hot path only"). The three Rust advocates get a time-boxed pilot to *prove* Rust beats Go enough to justify the operational cost — turning a religious argument into a falsifiable experiment (see [`05-when-to-introduce-a-new-language`](../05-when-to-introduce-a-new-language/)).
+**Decision: Go**, isolated behind the ingestion API, with an explicit ADR noting the throughput target, the reversibility seam, and a revisit trigger ("if Go can't sustain 200k/sec at sub-50ms p99 under load test, escalate to Rust for the hot path only"). The three Rust advocates get a time-boxed pilot to *prove* Rust beats Go enough to justify the operational cost — turning a religious argument into a falsifiable experiment (see [`05-when-to-introduce-a-new-language`](../05-when-to-introduce-a-new-language/README.md)).
 
 Notice what decided it: not the matrix, but reversibility, the unlisted operational criterion, and the second-order "what does our org become" question. The matrix was the *opening*, not the verdict.
 
@@ -183,18 +186,24 @@ Notice what decided it: not the matrix, but reversibility, the unlisted operatio
 
 ---
 
-## 10. What's next
+## Apply it
 
-| Topic | File |
-|---|---|
-| The foundational factors these conflicts are built from | `junior.md` |
-| The weighted matrix this level pushes past | `middle.md` |
-| Selection as an org-wide political and economic decision | `professional.md` |
-| Build and defend decisions under conflicting criteria | `tasks.md` |
-| Interview framing of hard selection tradeoffs | `interview.md` |
-| Performance vs productivity, when horizons collide | [`02-performance-vs-productivity-tradeoffs`](../02-performance-vs-productivity-tradeoffs/) |
-| Migrating out when the choice was wrong | [`06-migrating-between-languages`](../06-migrating-between-languages/) |
+1. State the system invariant that **Language Selection Criteria** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
----
+## Verify your work
 
-**Memorize this:** the matrix ranks; it doesn't resolve conflict. When criteria collide, name the bet instead of averaging it; weight reversibility above peak fit and engineer the seam that keeps the door two-way; and assume the criterion that actually decides — hiring, a person, a turf war, the calendar — is the one nobody wrote down. You're not choosing a language for this service; you're choosing what your org becomes after three years of living with it.
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
+
+## Review questions
+
+- Which invariant must remain true when Language Selection Criteria fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

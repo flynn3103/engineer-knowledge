@@ -1,67 +1,11 @@
-# Bounded Polymorphism — Junior Level
+# Bounded Polymorphism — Junior
 
-> **Topic:** Bounded Polymorphism
-> **Focus:** Why a plain `<T>` can only shuffle values around, and how adding a *bound* (`<T extends Comparable<T>>`, `T: Ord`) suddenly lets generic code *do* something with that `T`.
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **Bounded Polymorphism** in one small example and prove the result?
 
-## Introduction
-
-> Focus: **What can you actually *do* with a generic type parameter?** The answer depends entirely on whether you bounded it.
-
-Write a generic function with an unbounded type parameter — `<T>` in Java, `fn f<T>(...)` in Rust, `func FT any` in Go — and you'll quickly hit a wall. You can *hold* a `T`, *pass* a `T`, *return* a `T`, put `T`s in a list and take them back out. What you **cannot** do is call any method on a `T`, compare two `T`s, add them, print them in a formatted way, or even ask "are these equal?". The compiler rejects all of it. The reason is simple and deep: the function promised to work for *every possible type*, and most types don't have a `.compareTo`, a `+`, or a meaningful `<`. The compiler holds you to that promise.
-
-**Bounded polymorphism** is how you negotiate. Instead of "works for every type," you say "works for every type *that can be compared*," or "*that can be added*," or "*that has a `.draw()` method*." You write a **bound** on the type parameter:
-
-```java
-static <T extends Comparable<T>> T max(T a, T b) { ... }   // Java
-```
-```rust
-fn max<T: Ord>(a: T, b: T) -> T { ... }                    // Rust
-```
-
-The bound `extends Comparable<T>` / `: Ord` is a **constraint**. It narrows the set of types `T` can be — only comparable types now qualify — and in exchange the compiler hands you new powers *inside* the function body: now you're allowed to call `a.compareTo(b)`, or write `a < b`. You traded universality for capability. That trade is the entire subject of this page.
-
-> 🎓 **Why this matters for a junior:** The single most common confusion when you start writing generics is "I have a `<T>`, why can't I call `.toString()` / `<` / `.equals()` on it?" The answer is *always* "because you didn't bound it." Once you internalize *unbounded means you can only move it; bounded means you can use it*, generics stop feeling like a wall and start feeling like a dial.
-
-This page covers: the contrast between unbounded and bounded type parameters, why unbounded is so restrictive (the idea of **parametricity**), how to read and write a simple upper bound in Java, Rust, Go, Swift, C#, and Haskell, and the everyday workhorse example — a generic `max` function. The deeper machinery (recursive `T extends Comparable<T>` bounds, multiple bounds, typeclasses vs subtyping, the expression problem) is for the middle and senior pages.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** What a *generic* (parameterized) type or function is at the most basic level — `List<T>`, `Vec<T>`, a function that works on more than one type.
-- **Required:** How to call a method or operator in at least one language (`a.foo()`, `a < b`).
-- **Required:** The idea of an *interface* / *trait* / *protocol* — a named bundle of method signatures a type can implement.
-- **Helpful but not required:** A vague sense of *subtyping* ("a `Dog` is an `Animal`"). Bounds in Java/C#/Swift lean on it.
-- **Helpful but not required:** Having hit the "cannot call method on `T`" compiler error yourself. It makes everything here click.
-
-You do **not** need to know:
-
-- How the compiler implements bounds (dictionary passing vs subtype checks — that's `middle.md`/`senior.md`).
-- F-bounded / recursive bounds (`<E extends Enum<E>>`), associated types, or the expression problem — later pages.
-- Variance (`? extends`, `? super`, covariance) — related but a separate topic.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Generic / parametric polymorphism** | Code written once that works for many types, with the type as a parameter (`<T>`). |
-| **Type parameter** | The placeholder type, e.g. the `T` in `List<T>` or `max<T>`. |
-| **Unbounded type parameter** | A type parameter with **no** constraint (`<T>`, `T: Sized` only, `T any`). You can move values of it but call nothing on it. |
-| **Bound / constraint** | A requirement placed on a type parameter, e.g. `extends Comparable<T>`, `: Ord`, `: Comparable`. |
-| **Bounded polymorphism** | Generic code whose type parameter carries a bound, so the body can *use* the type's capabilities. |
-| **Upper bound** | The common kind of bound: "`T` must be (a subtype of / implement) this interface." `extends`, `:`. |
-| **Interface / trait / protocol / typeclass** | A named set of operations a type can provide. The thing you bound *by*. |
-| **`Comparable` / `Ord`** | The "can be ordered" capability. The textbook example used to demonstrate bounds. |
-| **Parametricity** | The principle that truly unbounded generic code can do almost nothing with its `T` except pass it around — because it has no idea what `T` is. |
-| **Method / operator dispatch** | Choosing which concrete code runs when you call `a.compareTo(b)` on a bounded `T`. |
-| **Capability** | The informal word for "what the bound lets you do" — compare, add, clone, print, etc. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -158,36 +102,6 @@ bigger(new Thread(), new Thread()); // ERROR: Thread is not Comparable
 ```
 
 So the safety is two-sided. Inside the function, the compiler *gives* you the capability. At the call site, it *demands* you supply a type that has it. Neither side can cheat. That's why bounded generics are both flexible *and* type-safe — there's no cast, no runtime "does this support `<`?" check, no `ClassCastException`. It's settled at compile time.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Unbounded `<T>`** | A sealed cardboard box you can carry, hand off, and stack — but never open. You can move it; you can't use what's inside. |
-| **Bound (`extends Comparable`)** | A label on the box that says "contents are weighable." Now you're allowed to put it on a scale. |
-| **The bound's interface** | A job requirement: "must have a driver's license." It rules out some applicants and lets you ask the rest to drive. |
-| **Calling `compareTo` on a bounded `T`** | Asking the licensed driver to drive. You can only ask because the requirement guaranteed they can. |
-| **Call-site check** | The bouncer at the door checking IDs. Only people who meet the requirement get in. |
-| **Constraint propagation** | A subcontractor needs licensed drivers, so the general contractor must *also* require licensed drivers when hiring for that crew. |
-| **Parametricity** | A blindfolded courier: knows nothing about the package, so all they can do is carry it from A to B. |
-
----
-
-## Mental Models
-
-### The "dial from universal to capable" model
-
-Picture a dial. Turn it all the way to one end — *unbounded* — and your function works for the maximum number of types but can do the minimum with them (basically nothing). Turn it toward the other end by adding bounds, and each bound trades away some types (those that don't satisfy it) for some capabilities (the bound's methods). `<T>` works for everything and does nothing; `<T extends Number>` works for numbers and can call `doubleValue()`; `<T extends MyVerySpecificThing>` works for almost nothing and can do almost anything. Bounded polymorphism is choosing where to set the dial.
-
-### The "permission slip" model
-
-A type parameter is an unknown type, and by default the compiler gives you **zero permissions** on it. A bound is a *permission slip*: `extends Comparable<T>` grants you permission to call exactly the methods `Comparable` declares — and nothing more. If you bounded by `Comparable` but try to call `.add()`, the compiler still says no, because `add` wasn't on the slip. You get *precisely* the capabilities of the bound, no more, no less.
-
-### The "what does the compiler know" model
-
-Inside an unbounded function, ask: *what does the compiler know about `T`?* Answer: that it's a type. That's it. So it lets you do only what's safe for *any* type. Inside a bounded function, the compiler additionally knows *`T` implements this interface* — so it lets you do everything that interface promises. The capabilities you have are exactly equal to what the compiler can prove. Bounds are how you tell it more.
 
 ---
 
@@ -324,33 +238,6 @@ The first is happy unbounded because `!= null` is allowed on any reference. The 
 
 ---
 
-## Pros & Cons
-
-| Aspect | Pros | Cons |
-|--------|------|------|
-| **Expressiveness** | Lets generic code actually *use* its type — compare, add, print, clone. | Each new capability you need is another bound to add and maintain. |
-| **Type safety** | The call-site check guarantees no missing-operation errors at runtime. No casts, no `ClassCastException`. | More verbose declarations (`<T extends Comparable<T>>` is a mouthful). |
-| **Reuse** | One `max`, one sorting routine, works for every ordered type forever. | Over-tight bounds reject types that would have worked, hurting reuse. |
-| **Readability** | The bound documents *exactly* what the function needs from `T`. | The recursive/self-referential bounds (later) get genuinely hard to read. |
-| **Performance** | Often compiles to direct calls or even monomorphized code (no runtime lookup). | Subtype-bound languages may box / use virtual dispatch (a small cost). |
-
----
-
-## Use Cases
-
-Reach for a bound whenever generic code must **do something specific** with its type, not just move it:
-
-- **Finding a max/min, sorting, binary search** — needs ordering (`Comparable` / `Ord` / `Comparable`).
-- **Summing / averaging a generic collection** — needs arithmetic (`Number`, `Add`, `Num`).
-- **Deduplicating, using as a map/set key** — needs equality and/or hashing (`Eq`/`Hash`, `equals`/`hashCode`).
-- **Generic serialization / formatting** — needs "can be displayed / encoded" (`Display`, `toString`, `Codable`).
-- **Cloning generic data** — needs a copy capability (`Clone`, `Cloneable`).
-- **A generic "render" / "process" pipeline** — needs a domain interface like `Drawable`, `Validatable`, `Serializable`.
-
-If a function genuinely only *stores and returns* the value — an identity function, a generic stack's `push`/`pop`, a swap — leave it unbounded. Adding a bound you don't use is needless coupling.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Bound by exactly the interface you call — and no more
@@ -428,80 +315,24 @@ Most standard libraries already wrap the common bounds (`sort`, `max`, `min`). U
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. Write the smallest generic function you can that *does not* compile when `T` is unbounded but *does* compile after adding `extends Comparable<T>` / `: Ord`. What single line forced the bound?
-2. In your favorite language, write `min` (the mirror of `max`). Which bound did it need? Was it the same one as `max`?
-3. Take an unbounded `static <T> T identity(T x) { return x; }`. Add `extends Comparable<T>`. Does it still compile? Does anything *break*? What did you gain or lose?
-4. Explain, in one sentence, why `bigger(new Thread(), new Thread())` fails to compile even though `bigger(3, 7)` works.
-5. You have `maxOf(List<T>)` that calls `max(T, T)`. You forgot the bound on `maxOf`. What error do you get, and what's the fix?
-6. Why is it *more* reusable to bound a print helper by `Display`/`toString`-style interface than by `Comparable`? Give a concrete type that the `Comparable` bound would wrongly reject.
-7. Read `<T extends Comparable<T>>` aloud as an English sentence. Now do the same for `T: Ord` and `Ord a =>`. Are you saying the same thing?
+1. Choose one small, known input for **Bounded Polymorphism**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
----
+## Verify your work
 
-## Cheat Sheet
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
 
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│                    BOUNDED POLYMORPHISM (Junior)                  │
-├──────────────────────────────────────────────────────────────────┤
-│  Unbounded <T>      : can store / pass / return T. Nothing else.  │
-│  Bounded   <T: Bnd> : ALSO can use everything Bnd provides.       │
-├──────────────────────────────────────────────────────────────────┤
-│  The trade:  fewer accepted types  <->  more capabilities         │
-├──────────────────────────────────────────────────────────────────┤
-│  "any type that can be ORDERED":                                  │
-│    Java     <T extends Comparable<T>>                             │
-│    C#       where T : IComparable<T>                             │
-│    Swift    <T: Comparable>                                       │
-│    Rust     T: Ord                                                │
-│    Go       [T cmp.Ordered]                                       │
-│    Haskell  Ord a =>                                              │
-├──────────────────────────────────────────────────────────────────┤
-│  Upper bound = "T must implement / be a subtype of this".         │
-│  The common, default kind of bound.                              │
-├──────────────────────────────────────────────────────────────────┤
-│  Rules of thumb:                                                  │
-│    * bound = permission slip; you get EXACTLY its methods         │
-│    * checked at the CALL SITE — no casts, no runtime failure      │
-│    * propagate the bound to every function that uses the helper   │
-│    * bound by the smallest interface that compiles                │
-│    * don't bound a move-only / identity function                  │
-└──────────────────────────────────────────────────────────────────┘
-```
+## Review questions
 
----
-
-## Summary
-
-- **Unbounded** generic code (`<T>`, `T any`) can only **move** values around — store, pass, return. It can call nothing on the type, because it must work for *every* type. This restriction is called *parametricity*.
-- **Bounded** polymorphism adds a **constraint** (`extends Comparable<T>`, `: Ord`, `where T : IComparable<T>`, `<T: Comparable>`, `Ord a =>`) that narrows which types qualify and, in exchange, lets the body **use** that type's capabilities.
-- The core trade in one line: **a bound shrinks who can call you so it can grow what you can do.**
-- **Upper bounds** ("`T` must implement this interface") are the common, default kind and all you need at this level.
-- The bound is a **contract checked at the call site** — supply a type that satisfies it, get the capability inside, with zero runtime casts or failures.
-- Bounds **propagate**: a function calling a bounded helper must declare the same bound.
-- The canonical example is a generic **`max`/`min`**, which needs an *ordering* bound; summing needs *arithmetic*; map keys need *equality/hashing*.
-- Bound by the **smallest** interface that compiles, and don't bound functions that only move values.
-
----
-
-## What You Can Build
-
-- **A generic `max`/`min`/`clamp` library** across the languages you know, each using that language's ordering bound. Try feeding it a non-comparable type and read the error.
-- **A `topThree(list)`** that returns the three largest elements of any ordered type. Notice you must propagate the ordering bound.
-- **A "two versions" demo:** the same function unbounded (won't compile) and bounded (compiles), with a comment on the exact line that forced the bound. Great for explaining generics to a teammate.
-- **A bounded `prettyPrint(item)`** constrained by a "displayable" interface (`Display`, `toString`, `Codable`). Test that it rejects a type that has no display capability.
-- **A tiny `dedup(list)`** for any type with equality, showing why the *equality* bound (not the *ordering* bound) is the right one here.
-
----
-
-## Further Reading
-
-- *Programming Languages: Application and Interpretation* — Shriram Krishnamurthi. Clear treatment of parametric polymorphism and where bounds come in.
-- *The Rust Book* — Chapter 10 ("Generic Types, Traits, and Lifetimes"). The most beginner-friendly explanation of trait bounds. https://doc.rust-lang.org/book/ch10-00-generics.html
-- *Effective Java* — Joshua Bloch. Items on generics explain `<T extends Comparable<T>>` and bounded wildcards in practical terms.
-- *The Swift Programming Language* — "Generics" chapter, on protocol constraints. https://docs.swift.org/swift-book/
-- *Learn You a Haskell for Great Good!* — the "Typeclasses 101" chapter introduces `Ord`, `Eq`, `Num` constraints gently.
-- *Go by Example: Generics* — a short, hands-on look at type constraints. https://gobyexample.com/generics
-- *Types and Programming Languages* — Benjamin Pierce. The rigorous source on parametric polymorphism (Chapter 23); save it for after the middle/senior pages.
+- What problem does Bounded Polymorphism solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

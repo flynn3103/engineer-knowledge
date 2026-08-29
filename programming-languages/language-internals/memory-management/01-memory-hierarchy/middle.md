@@ -1,37 +1,11 @@
-# The Memory Hierarchy — Middle Level
+# The Memory Hierarchy — Middle
 
-> **Topic:** The Memory Hierarchy
-> **Focus:** The mechanisms behind the levels — cache lines, sets and associativity, miss types, prefetching, the TLB — and a working cost model you can reason with.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **The Memory Hierarchy** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-At the junior level the hierarchy is a pyramid of latencies and one rule: be sequential. That rule works because of *machinery* — set-associative caches, hardware prefetchers, and a translation cache called the TLB — that you can now learn to reason about quantitatively. The goal of this tier is to replace "scattered access is slow" with a model that predicts *how* slow and *why*, so you can estimate the cost of a loop before you run it.
-
----
-
-## Prerequisites
-
-- The junior picture: levels, approximate latencies, the 64-byte cache line, locality.
-- Comfort with hexadecimal and bitwise thinking (address bits split into fields).
-- Basic idea of virtual memory: programs see virtual addresses; hardware maps them to physical RAM.
-
----
-
-## Glossary
-
-- **Cache line / block** — the unit of transfer and storage, typically 64 bytes.
-- **Set** — a bucket of cache lines an address is allowed to live in.
-- **Way / associativity** — how many lines fit in one set; an *N-way* cache has N candidate slots per set.
-- **Tag** — the high address bits stored alongside a cached line to verify identity.
-- **Eviction** — kicking out a line to make room; chosen by a replacement policy (pseudo-LRU).
-- **Compulsory / capacity / conflict miss** — the three reasons a needed line isn't cached.
-- **Prefetcher** — hardware (or compiler-inserted) logic that loads lines *before* they're demanded.
-- **TLB (Translation Lookaside Buffer)** — a cache of virtual→physical page translations.
-- **Page** — the unit of virtual memory mapping, usually 4 KB (or 2 MB/1 GB "huge pages").
-- **Working set** — the distinct memory a program touches over a window of time.
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -123,14 +97,6 @@ Worked example: summing 64 million `int32` (256 MB).
 
 ---
 
-## Mental Models
-
-- **A cache is a hardware hash table** keyed by set index, with N slots per bucket and a tag check. Conflict misses are bucket collisions.
-- **Two caches, two failure modes.** Data cache misses come from *touching too much or too scattered data*; TLB misses come from *spanning too many pages*. Huge pages fix the latter, not the former.
-- **Latency is hidden by parallelism; pointer chasing kills parallelism.** Independent accesses overlap; dependent ones serialize.
-
----
-
 ## Code Examples
 
 ### Strided access reveals the cache line
@@ -180,17 +146,6 @@ For a multi-GB `buf`, this is dominated by TLB misses, not data-cache misses —
 
 ---
 
-## Pros & Cons
-
-| Mechanism | Helps when | Hurts when |
-|---|---|---|
-| Set associativity | Reduces conflict misses vs direct-mapped | Costs power/area; not infinite |
-| Hardware prefetch | Sequential/strided streams | Pointer chasing; pollutes cache on mispredict |
-| Software prefetch | Predictable irregular access | Wrong distance wastes bandwidth |
-| Huge pages | Large working sets (TLB pressure) | Fragmentation; wasted RAM if sparse |
-
----
-
 ## Best Practices
 
 1. **Make the inner loop walk contiguous memory.** This single change wins more often than any micro-optimization.
@@ -211,11 +166,24 @@ For a multi-GB `buf`, this is dominated by TLB misses, not data-cache misses —
 
 ---
 
-## Summary
+## Apply it
 
-- A cache is a **set-associative hardware hash table** of 64-byte lines; addresses split into tag / set / offset.
-- Misses come in three flavors — **compulsory, capacity, conflict** — and each points to a different fix.
-- **Prefetching** hides latency for predictable patterns; **pointer chasing** defeats it.
-- The **TLB** is a second cache you can miss; large or page-sparse workloads can be translation-bound, and huge pages help.
-- **Latency vs bandwidth** are distinct: dependent accesses pay latency, independent streams ride bandwidth.
-- Reason about loops by **counting distinct lines, identifying the holding cache level, and classifying the access pattern** — that model predicts the 10–100× differences you'll see in practice.
+1. Find a real component where **The Memory Hierarchy** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
+
+## Verify your work
+
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
+
+## Review questions
+
+- Which boundary is most affected by The Memory Hierarchy?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

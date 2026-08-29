@@ -1,60 +1,11 @@
-# Annotations & Decorators — Senior Level
+# Annotations & Decorators — Senior
 
-> **Topic:** Annotations & Decorators
-> **Focus:** Writing real annotation processors (APT rounds, code generation), how Lombok and Dagger actually work, runtime reflection scanning at scale, and the `reflect-metadata`/design-type machinery behind TypeScript & Angular DI.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Annotations & Decorators** under failure, load, and change?
 
-## Introduction
-
-> Focus: **You can already use and define these. Now you build the *machinery that processes them* — and you understand exactly how the famous frameworks pull off their magic.**
-
-A senior engineer is the person on the team who can answer "but *how* does Lombok actually add a getter?", "why does Dagger have no runtime reflection?", "what does `@Component` cost at Spring startup?", and "why does Angular need `reflect-metadata` and `emitDecoratorMetadata`?" Those answers are the substance of this page.
-
-The deep structure remains the same axis: **compile-time processing vs runtime processing**. But now we go inside each:
-
-- **Compile time:** how `javac` drives annotation processors in *rounds*, how a processor reads the program's `Element` model and uses `JavaPoet`/`Filer` to *generate* new source, why Dagger generates a whole DI graph this way, and why Lombok is the controversial outlier that *mutates the compiler's AST* instead of generating files.
-- **Runtime:** how reflection-based scanners (Spring's classpath scan, JUnit's discovery, Jackson's introspection) find annotated elements, what that costs at startup and per call, and how mature frameworks cache reflective metadata.
-- **The TypeScript bridge:** how `@Component`/`@Injectable` decorators, the `emitDecoratorMetadata` compiler flag, and the `reflect-metadata` polyfill cooperate so a JS runtime — which has erased all the types — can still do constructor-based dependency injection.
-
-By the end you should be able to design a code-generating annotation processor, reason quantitatively about reflection cost, and explain the Angular DI metadata pipeline from `@Injectable` to a resolved constructor argument.
-
----
-
-## Prerequisites
-
-- **Required:** Middle-level fluency: retention, `@Target`, meta-annotations, decorator factories, class decorators, stacking, `functools.wraps`.
-- **Required:** Solid grasp of compile-time vs runtime processing as distinct phases.
-- **Required:** Comfort with Java reflection (`Class`, `Method`, `getAnnotation`) and basic TypeScript classes.
-- **Helpful but not required:** Having seen generated-sources folders (`target/generated-sources`, `build/generated`).
-- **Helpful but not required:** Awareness that TypeScript types are *erased* — they don't exist at runtime in plain JS.
-
-You do **not** yet need:
-
-- The full TC39 Stage-3 decorator semantics and migration concerns (that's `professional.md`).
-- Build-performance budgeting and incremental-processing strategy at monorepo scale (that's `professional.md`).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **`Processor`** | A class implementing `javax.annotation.processing.Processor`, invoked by `javac` during compilation. |
-| **Round** | One pass of annotation processing; generated files can trigger further rounds until none remain. |
-| **`RoundEnvironment`** | The API a processor uses to query elements annotated in the current round. |
-| **`Element`** | The compile-time model of a program node: `TypeElement` (class), `ExecutableElement` (method), `VariableElement` (field/param). |
-| **`Filer`** | The API a processor uses to write generated source/class/resource files. |
-| **`Messager`** | The API a processor uses to emit compile errors/warnings tied to an element. |
-| **JavaPoet** | A popular library for programmatically building `.java` source to emit from a processor. |
-| **AST mutation** | Editing the compiler's parse tree in place (Lombok's approach) rather than generating separate files. |
-| **Classpath scanning** | Walking the classpath at startup to find classes carrying certain annotations (Spring). |
-| **Reflective cache** | Storing the results of reflective annotation lookups to avoid repeating expensive reflection. |
-| **`reflect-metadata`** | A polyfill implementing the `Reflect.metadata` API decorators use to store/read metadata in JS. |
-| **`emitDecoratorMetadata`** | A TS compiler flag that emits `design:type`/`design:paramtypes` metadata for decorated declarations. |
-| **`design:paramtypes`** | The metadata key under which TS stores a constructor's parameter types for DI. |
-| **Type erasure (TS)** | TypeScript types vanish after compilation; runtime sees only JS. Metadata emission is the workaround. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -153,35 +104,6 @@ Every framework on this page is choosing *when* to pay:
 | Angular/NestJS | definition + runtime | decorators + `reflect-metadata` | yes (metadata) |
 
 Senior judgment is picking the right column for your latency, startup, and native-image constraints.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **APT rounds** | An assembly line that, after each pass, may add new parts that themselves need another pass — looping until stable. |
-| **`Element` model** | An architect's drawing of a building: structure and labels, but no actual furniture or running utilities. |
-| **Dagger codegen** | A factory that, from the blueprint's wiring notes, prefabricates the entire electrical harness before construction — plug-and-play, no on-site rewiring. |
-| **Lombok AST mutation** | A contractor who edits the blueprint in pencil right before pouring concrete, so the finished building has rooms that never appeared on the filed plans. |
-| **Spring runtime scan** | An inspection crew that, once the building is occupied, walks every floor reading plaques and wiring things up live. |
-| **`reflect-metadata` pipeline** | The architect re-stamping the erased material specs onto each part so the live crew can still read what each component is made of. |
-
----
-
-## Mental Models
-
-### The "Pay Now or Pay Later" Model
-
-Compile-time processing **pays now** (slower build) to make runtime free. Runtime reflection **pays later** (startup + per-call) to keep builds simple. There is no free lunch; there is only *when you'd rather pay*. Native images and cold-start-sensitive serverless push the whole industry toward "pay now."
-
-### The "Erased Types Resurrected" Model (TypeScript)
-
-Picture TS compilation as shredding all type information. `emitDecoratorMetadata` is a photocopier that, *only for decorated declarations*, copies the types onto a separate sheet (`design:paramtypes`) before shredding. `reflect-metadata` is the filing cabinet that holds those sheets at runtime. DI is the act of reading the right sheet. No decorator → no photocopy → no sheet → DI can't find the types.
-
-### The "Two Halves, Industrialized" Model
-
-The junior "annotation = half a feature, reader = other half" idea scales up: at framework level, the *reader* is an entire subsystem — a processor pipeline (Dagger) or a scanning/proxy engine (Spring). Choosing a framework is choosing which industrialized reader you adopt.
 
 ---
 
@@ -323,28 +245,6 @@ Python decorators can *also* play the "attach metadata, reflect later" game — 
 
 ---
 
-## Pros & Cons
-
-| Aspect | Pros | Cons |
-|--------|------|------|
-| **APT code generation** | Zero runtime reflection; compile-time error checking; debuggable generated source; native-image friendly. | Build time grows; processors are intricate; round model and partial types are tricky. |
-| **Lombok-style AST mutation** | Maximal boilerplate removal with minimal annotations. | Depends on compiler internals (fragile across JDKs); needs IDE plugins; obscures "inert annotation" mental model. |
-| **Runtime reflection scanning** | No build coupling; adapts to any annotated code; simplest to start. | Startup scan cost; per-call reflection cost; errors at runtime; proxy surprises (self-invocation). |
-| **`reflect-metadata` DI** | Enables type-driven DI despite TS type erasure; ergonomic constructor injection. | Requires a global polyfill + compiler flag; metadata only for decorated classes; brittle config. |
-| **Caching reflective lookups** | Recovers most of reflection's cost. | Cache invalidation and memory; still slower than codegen on the cold path. |
-
----
-
-## Use Cases
-
-- **Compile-time DI/codegen:** Dagger, Micronaut, Quarkus, MapStruct, AutoValue — when startup latency or native images matter.
-- **Boilerplate reduction:** Lombok, records-style generators — when teams accept the tooling dependency.
-- **Runtime-flexible frameworks:** classic Spring, Jackson, Hibernate — when developer velocity and dynamism beat startup cost.
-- **TypeScript DI:** Angular, NestJS, TypeDI, InversifyJS — constructor injection via `reflect-metadata`.
-- **Plugin/handler discovery:** scanning for annotated handlers/commands/listeners across a codebase.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Generate, don't reflect, on hot paths
@@ -396,3 +296,27 @@ Ensure `experimentalDecorators` *and* `emitDecoratorMetadata` are on, `reflect-m
 - **Reflection in a hot loop.** Uncached annotation lookups can dominate request latency; always memoize.
 - **Generated code in version control.** Checking in generated sources causes drift and merge pain; generate during the build instead.
 - **Annotation retention mismatch with the chosen reader.** A `SOURCE`-retained annotation can never be read by a runtime scanner, and a `RUNTIME`-retained one needlessly bloats the class file if only a processor reads it.
+
+---
+
+## Apply it
+
+1. State the system invariant that **Annotations & Decorators** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
+
+## Verify your work
+
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
+
+## Review questions
+
+- Which invariant must remain true when Annotations & Decorators fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

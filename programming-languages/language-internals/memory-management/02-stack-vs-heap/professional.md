@@ -1,32 +1,12 @@
-# Stack vs Heap — Professional Level
-> **Topic:** Stack vs Heap
-> **Focus:** Production diagnosis, profiling allocation, hardware reality (cache, TLB, guard pages), and tuning systems under real load.
+# Stack vs Heap — Professional
 
+<!-- level-focus -->
+At professional level, focus on this question:
+
+> How should teams adopt and operate **Stack vs Heap** with measurable outcomes and limited coordination?
+
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
-
-## Introduction
-
-In production, "stack vs heap" stops being a quiz topic and becomes a diagnosis. Your service's tail latency is spiking — is it GC, triggered by an allocation rate you can cut? A worker is crashing with a segfault on deep input — is it stack overflow past a guard page? Memory climbs steadily until OOM — leak or just a high live-set? A CPU profile shows 20% in `mallocgc` — which call site, and can it stay on the stack?
-
-This level is about the tools and hardware knowledge to answer those questions precisely: reading allocation profiles, understanding guard pages and `ulimit`, knowing how cache and TLB behavior make stack-resident data 10–100× faster to touch than scattered heap data, and tuning thread-stack sizing for high-concurrency servers.
-
-## Prerequisites
-
-- Senior-level grasp of cross-language allocation models and escape analysis.
-- Comfort with a profiler (`pprof`, `perf`, async-profiler, Valgrind/Massif).
-- Familiarity with virtual memory: pages, page faults, `mmap`.
-- You have read a flame graph and a heap profile in anger.
-
-## Glossary
-
-- **Guard page:** an unmapped (or `PROT_NONE`) page at the end of a stack; touching it raises a fault, turning silent overflow into a clean crash.
-- **TLB (Translation Lookaside Buffer):** a CPU cache of virtual→physical page translations; a miss costs a page-table walk.
-- **Resident set size (RSS):** physical memory actually backing your process.
-- **TLAB (Thread-Local Allocation Buffer):** a per-thread slab in the JVM heap from which small allocations bump-allocate lock-free.
-- **mimalloc / jemalloc / tcmalloc:** modern general-purpose allocators with per-thread caches and size classes.
-- **Stack canary:** a known value placed before the return address; corruption detection for buffer overflows (a security feature, distinct from a guard page).
-- **`alloca`:** allocate on the *current* stack frame at runtime (C); freed automatically on return, dangerous if size is unbounded.
-- **Allocation rate:** bytes/second your program allocates on the heap; the primary driver of GC frequency.
 
 ## Core Concepts
 
@@ -121,12 +101,6 @@ Interpretation rules:
 - **`inuse_space` climbing forever** → leak or unbounded cache. Find the retaining reference.
 - **Time in `mallocgc`/`malloc` in a CPU profile** → allocation is on the hot path; check whether those sites can stay on the stack (escape report).
 
-## Mental Models
-
-- **Allocation rate is a GC throttle.** GC frequency ≈ allocation rate ÷ heap headroom. Halving allocations roughly halves GC work — often the cheapest latency win available.
-- **Every heap object is a future cache miss.** You pay for an allocation three times: at alloc, at every cold access, and at collection.
-- **The stack is the allocator everyone copies.** TLABs, `mcache`, per-thread free lists — all are attempts to recover stack-like bump-allocation speed for the heap.
-
 ## Code Examples
 
 ### Go — killing an allocation found in a profile
@@ -184,23 +158,6 @@ $ gdb prog core; (gdb) bt           ← backtrace shows a recursion loop into th
 4. **High memory at high connection count**: shrink thread stacks or move to goroutines / virtual threads / an event loop.
 5. **CPU profile dominated by allocator**: pull hot allocations onto the stack (let escape analysis help) or pool them.
 
-## Pros & Cons
-
-**Stack in production**
-
-- Pros: zero GC contribution; cache/TLB-hot; deterministic; lock-free.
-- Cons: hard size ceiling (guard page); overflow is a crash class you must defend against; large frames hurt density at scale.
-
-**Heap in production**
-
-- Pros: scales to large/long-lived/shared data; tunable via allocator choice and GC parameters.
-- Cons: GC pauses and allocation-rate sensitivity; fragmentation and RSS that won't shrink; cache/TLB-cold; a family of memory bugs.
-
-## Use Cases
-
-- **Stack-first:** request-scoped temporaries, hot inner loops, fixed-size scratch, bounded recursion.
-- **Heap-first:** caches, connection/session state, large buffers, shared concurrent structures, anything outliving a request.
-
 ## Best Practices
 
 - Make allocation a tracked SLI: graph allocation rate and GC time alongside latency.
@@ -217,10 +174,26 @@ $ gdb prog core; (gdb) bt           ← backtrace shows a recursion loop into th
 - **`StackOverflowError` swallowed:** catching it in the JVM leaves the stack in an unknown state; treat it as fatal.
 - **Guard-page jump:** a single large frame can skip a one-page guard; rely on stack-clash protection, don't assume one guard page is enough.
 
-## Summary
+---
 
-- **Guard pages** turn stack overflow into a clean crash; stacks are lazily committed and bounded by `ulimit -s` (often 8 MB), and large frames can *jump* a guard without stack-clash protection.
-- The stack-vs-heap performance gap in production is dominated by the **memory hierarchy**: stack data is cache/TLB-hot, heap data is scattered and cold, so cutting allocations cuts allocator cost, GC pressure, *and* cache/TLB misses at once.
-- **Allocation rate drives GC frequency**; profiling (`-benchmem`, pprof `alloc_space`/`inuse_space`, async-profiler, Massif) tells you what to cut and whether you have churn or a leak.
-- Modern allocators (jemalloc, TLABs, Go's `mcache`) succeed by **imitating the stack's bump allocation** per thread.
-- At scale, **thread-stack sizing** is a capacity decision; green threads (goroutines, Loom virtual threads) trade per-call checks for affordable mass concurrency.
+## Apply it
+
+1. Define the user or business outcome that **Stack vs Heap** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
+
+## Verify your work
+
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
+
+## Review questions
+
+- Which measurable outcome justifies investing in Stack vs Heap?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

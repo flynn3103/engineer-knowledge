@@ -1,57 +1,11 @@
-# Capability-Based Security — Senior Level
+# Capability-Based Security — Senior
 
-> **Topic:** Capability-Based Security
-> **Focus:** Where capabilities are actually enforced — capability OS kernels (seL4/KeyKOS/EROS, Fuchsia), object-capability languages (E, SES/Compartments, Pony, Newspeak), WASI, and the membrane/macaroon machinery that makes the model hold under real adversaries.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Capability-Based Security** under failure, load, and change?
 
-## Introduction
-
-> Focus: **Enforcement.** At junior/middle, "no ambient authority" was a discipline; here it is a property a *kernel*, a *language realm*, or a *WASM host* enforces, and we examine the machinery that makes it sound.
-
-Capability discipline by convention is only as strong as the most careless `import os` in your codebase. The senior question is: **what enforces it?** The answer comes from three families that each remove ambient authority at a different layer:
-
-1. **Capability operating systems** put unforgeable capabilities in the *kernel*. A process literally has no way to name a resource except through a kernel-managed capability slot — there is no `open("/path")` syscall that consults a global namespace. KeyKOS, EROS/CapROS, **seL4** (formally verified), and Fuchsia's Zircon (handles) live here.
-2. **Object-capability languages and realms** remove ambient authority at the *language* level. A program's code is denied the powerful globals (`fs`, `net`, even `Date.now`) unless explicitly endowed. E, Joe-E, Pony's capability-secure type system, Newspeak, and **SES (Secure ECMAScript) / `Compartment`** in JavaScript live here.
-3. **Sandbox ABIs** like **WASI** make capabilities the *interface contract*: a WebAssembly module gets no ambient filesystem; the host must *preopen* and hand it a directory capability, or the module cannot touch the disk at all.
-
-Across all three, the same machinery recurs: capability *derivation* (mint a weaker child from a parent), the **membrane** (a transitive, revocable boundary), and, for distributed/token settings, **macaroons** (capabilities you can attenuate with caveats offline). This page is about how those work and where they break.
-
----
-
-## Prerequisites
-
-- **Required:** Middle level — the three ocap rules, facets, caretakers, attenuation/amplification, the powerbox, retrofitting.
-- **Required:** Working knowledge of OS concepts: processes, address spaces, syscalls, virtual memory, IPC.
-- **Required:** Comfort reading two or three languages and basic type-system vocabulary (reference types, capabilities-as-types).
-- **Helpful:** Exposure to microkernels (Mach, L4), to WebAssembly, and to token-based auth (JWT/OAuth) for the macaroon comparison.
-- **Helpful:** A feel for formal verification at the level of "what does it mean to *prove* a kernel correct."
-
-You do **not** yet need:
-
-- Hardware capability machines (CHERI) and ABI-level retrofits at scale — that's `professional.md`.
-- Organizational rollout, migration economics, and the ACL-vs-capability adoption analysis — `professional.md`.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Capability (kernel)** | An opaque, kernel-protected reference to a kernel object (a thread, an endpoint, a page, a fault handler). Lives in a per-process **capability space (CSpace)**; userspace names it by an index it cannot forge into a different object. |
-| **CSpace / CNode** | The per-process table(s) of capability slots in seL4. A process can only invoke objects it has slots for. |
-| **Capability derivation** | Minting a child capability from a parent, usually with *reduced* rights (e.g., read-only, badged). Tracked in a derivation tree so revocation can sweep descendants. |
-| **Badge** | A kernel-attached, unforgeable tag on a capability (seL4 endpoints) so the receiver can distinguish *which* client invoked it — identity without ambient identity. |
-| **Endpoint** | An seL4 IPC rendezvous object; holding a capability to it grants the right to send/receive messages — the unit of inter-component authority. |
-| **Handle (Zircon/Fuchsia)** | Fuchsia's userspace name for a kernel object capability, with rights bits; the *only* way to act on kernel objects. No ambient global namespace. |
-| **Membrane** | A *transitive*, revocable boundary: a wrapper that, whenever an object passes through it (as argument or return), wraps *that* object too, so an entire object subgraph is revoked atomically. The generalization of the caretaker. |
-| **SES (Secure ECMAScript)** | A frozen, ambient-authority-free subset/runtime of JavaScript; `Compartment` evaluates code in a realm with only the endowments you pass. |
-| **Realm / Compartment** | An isolated set of JS intrinsics and globals; a Compartment is a realm you populate with exactly the capabilities a guest may use. |
-| **Reference capability (Pony)** | Pony's six type qualifiers (`iso`, `val`, `ref`, `box`, `trn`, `tag`) that the compiler uses to make data-race-free *and* capability-secure sharing statically checked. |
-| **Macaroon** | A bearer token built from an HMAC chain so that *anyone* holding it can append **caveats** (restrictions) offline, producing a strictly-attenuated token, without contacting the issuer. |
-| **Caveat** | A restriction embedded in a macaroon ("expires before T", "only this object", "only from this IP", or a *third-party* caveat requiring a discharge proof). |
-| **Confinement (formal)** | The provable property that a subject cannot exercise or transmit authority beyond its initial capabilities. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -106,37 +60,6 @@ If capabilities are this good, why is your laptop ACL-based? History and frictio
 - **Audit-by-identity** ("who did this?") maps naturally to ACLs and is what compliance regimes ask for; capabilities answer "what was held," which is harder to retrofit onto identity-centric tooling.
 - **Retrofitting is invasive.** Going capability-secure means *every* program must receive its authority instead of reaching for it — an ecosystem-wide rewrite. Pure capability OSes (KeyKOS, EROS) never reached the application gravity Unix had.
 - **The compromise** — and where the field is actually moving — is *capability islands inside ambient systems*: file descriptors (already capabilities), `pledge`/`unveil` on OpenBSD, `capsicum` on FreeBSD (Capsicum turns an ambient process into a capability one with `cap_enter`), Linux `seccomp` + `landlock`, WASI sandboxes, and SES compartments. You don't convert the OS; you convert the *trust-sensitive component*.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **seL4 CSpace** | A keyring where the kernel is the only locksmith; you can copy or grind-down keys but never forge a new one. |
-| **Capability derivation tree** | A master key from which sub-master and individual keys are cut; rekeying the master invalidates everything cut from it. |
-| **Badge** | A serial number laser-etched into a key so the lock records *which* key opened it. |
-| **Membrane** | A quarantine zone: anything that touches anything inside also becomes quarantined, and you can lift the whole zone at once. |
-| **WASI preopen** | A workshop with no doors to the outside; the only access is the one supply hatch the foreman opened for you. |
-| **Macaroon** | A travel visa you can voluntarily stamp with extra restrictions ("transit only, expires Friday") that no later holder can erase. |
-| **Third-party caveat** | A visa that's valid only if you *also* carry a letter from a second consulate. |
-| **Compartment** | A film set: the actors (guest code) have only the props (endowments) the director placed there; the rest of the studio doesn't exist for them. |
-
----
-
-## Mental Models
-
-### The "Three Layers of Enforcement" Model
-
-Ambient authority can be removed at the **kernel** (seL4/Zircon — confines processes), the **language runtime** (SES/Joe-E/Pony — confines modules), or the **sandbox ABI** (WASI — confines a guest binary). Pick the layer that matches your trust boundary: untrusted *binaries* → WASI; untrusted *modules in your process* → a Compartment; untrusted *services/drivers* → a capability microkernel. The model is identical at every layer; only the unit of confinement and the enforcement mechanism change.
-
-### The "Membrane Is Revocation That Spreads" Model
-
-A caretaker cuts one wire. A membrane cuts a wire *and* every wire that ever passed through it. When you must revoke a *stateful object graph* (a whole plugin's view of your domain objects), reach for a membrane, because the objects you're worried about are the ones the plugin will obtain *later*, transitively — and only a membrane catches those.
-
-### The "Attenuate Without Asking the Issuer" Model (macaroons)
-
-The mental shift macaroons demand: the *holder* attenuates, *offline*, and the result is unforgeably weaker. Stop thinking of a token as a fixed grant you must return to the issuer to narrow. Think of it as a capability the client can voluntarily shrink before delegating — the HMAC chain makes "shrink-only" a cryptographic law. This is what lets you hand a cache server a macaroon scoped to one key with a 30-second expiry, derived client-side from your broad token.
 
 ---
 
@@ -248,29 +171,6 @@ int f = openat(dir, "data.txt", O_RDONLY); // relative to the held directory cap
 
 ---
 
-## Pros & Cons
-
-| Aspect | Pros | Cons |
-|--------|------|------|
-| **Kernel enforcement (seL4)** | Ambient authority impossible; confinement *formally proven*; tiny TCB. | Whole-OS rewrite; no ambient `path` ecosystem; specialized. |
-| **Language realms (SES)** | Module-grain confinement inside one process; deployable today; great for plugins/supply-chain. | Must freeze primordials; guest nondeterminism removed can break code expecting `Date`/`Math.random`. |
-| **WASI** | Zero-authority default; explicit grants; strong supply-chain story; portable. | Younger ecosystem; preopen model differs from POSIX expectations; some APIs still maturing. |
-| **Membranes** | Transitive, atomic revocation of an object graph. | Proxy overhead on every crossing; breaks object identity; subtle to implement correctly. |
-| **Macaroons** | Offline client-side attenuation; third-party caveats compose cross-service auth; no session store. | Bearer secrets (theft = authority); root-key compromise = total; tooling less ubiquitous than JWT. |
-| **Capsicum/pledge/landlock** | Capability islands inside Unix without rewriting the OS. | Per-process opt-in; one un-sandboxed path leaves ambient authority. |
-
----
-
-## Use Cases
-
-- **High-assurance / safety-critical systems.** seL4 in avionics, automotive, defense, secure phones — where you need a *proof*, not a test suite, that components can't exceed their authority.
-- **Plugin and edge runtimes.** WASI/Compartments for running untrusted third-party code (Shopify Functions, Fastly/Cloudflare-style edge, Figma plugins-style sandboxes) with structural confinement.
-- **Supply-chain hardening.** SES lockdown so a compromised npm transitive dependency in a Compartment can't reach the network or filesystem it was never endowed.
-- **Fine-grained, offline-attenuable auth.** Macaroons where a client must derive a tightly-scoped, short-lived token from a broad one without an issuer round-trip (storage gateways, internal service meshes).
-- **Driver / service isolation.** Fuchsia-style handle-based component sandboxing where a driver holds only the MMIO and IRQ capabilities for its device.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Lockdown then compartmentalize (SES)
@@ -360,90 +260,24 @@ macaroon.addThirdPartyCaveat(authServiceLocation, predicate="user is admin")
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. Explain why seL4 can be *formally verified* to enforce authority confinement, and why proving the same about a Unix ACL system is far harder. Tie your answer to ambient authority.
-2. Describe the difference between a caretaker and a membrane. Give a concrete scenario where a caretaker silently fails to revoke and a membrane succeeds.
-3. In SES, what does `lockdown()` do, and why is a `Compartment` without it insecure even if you endow it minimally?
-4. A macaroon's signature verifies but a user still accessed object 99 despite an `object = 42` caveat. Where is the bug, given that HMAC prevents caveat removal?
-5. WASI: a module "has no filesystem" yet reads `/etc/passwd`. List two host-side misconfigurations that could explain this.
-6. Why do object-capability languages tend to withhold `Date.now()` and `Math.random()` from guests? Name both reasons (authority and channel).
-7. Trace a third-party caveat: what extra artifact must the holder present, who issues it, and why does this let two services compose authority without a shared session store?
-8. Capsicum: a program calls `cap_enter()` and then `open("/tmp/log")` fails. Explain precisely why, and how the program should have arranged to write its log.
+1. State the system invariant that **Capability-Based Security** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
----
+## Verify your work
 
-## Cheat Sheet
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
 
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│         WHERE CAPABILITIES ARE ENFORCED (3 layers)               │
-├──────────────────────────────────────────────────────────────────┤
-│ KERNEL    seL4 / KeyKOS / EROS / Fuchsia(Zircon handles)         │
-│   action = invoke a cap in your CSpace; no open("/path")         │
-│   Mint (weaker child, badge) | Copy | Revoke(subtree)            │
-│   seL4: FORMALLY PROVEN authority confinement & integrity        │
-├──────────────────────────────────────────────────────────────────┤
-│ LANGUAGE  E | Joe-E(Java subset) | SES/Compartment(JS) | Pony |  │
-│           Newspeak                                               │
-│   mechanism = DENY ambient globals (fs/net/Date/Math/process)    │
-│   SES: lockdown() freezes primordials; Compartment = endowments  │
-│   Pony: reference capabilities (iso/val/ref/box/trn/tag) static  │
-├──────────────────────────────────────────────────────────────────┤
-│ SANDBOX   WASI                                                  │
-│   zero authority by default; host PREOPENS dir/socket caps       │
-│   no --dir => module has NO filesystem                          │
-├──────────────────────────────────────────────────────────────────┤
-│ MEMBRANE  caretaker that wraps EVERYTHING crossing it           │
-│   => revoke an entire object subgraph atomically                │
-│   (language-level dual of seL4_CNode_Revoke over a subtree)     │
-├──────────────────────────────────────────────────────────────────┤
-│ MACAROON  HMAC-chained bearer token                             │
-│   anyone can ADD caveats offline (attenuate); none can REMOVE   │
-│   third-party caveat => needs a discharge macaroon (compose)    │
-│   PITFALL: verifier must actually CHECK each caveat             │
-├──────────────────────────────────────────────────────────────────┤
-│ CAP ISLANDS in Unix: capsicum(cap_enter) | pledge/unveil |      │
-│   seccomp+landlock  — convert the component, not the whole OS   │
-├──────────────────────────────────────────────────────────────────┤
-│ REMEMBER: capabilities bound AUTHORITY, not INFORMATION          │
-│   timing / cache side channels survive confinement              │
-└──────────────────────────────────────────────────────────────────┘
-```
+## Review questions
 
----
-
-## Summary
-
-- Capability discipline becomes *enforced* at three layers: the **kernel** (seL4, KeyKOS, EROS/CapROS, Fuchsia/Zircon), the **language runtime** (E, Joe-E, SES/Compartments, Pony, Newspeak), and the **sandbox ABI** (WASI). The model is identical; the unit of confinement and the enforcer differ.
-- In a **capability OS** there is no ambient namespace: every action is the invocation of a kernel capability held in a CSpace; capabilities are minted weaker, badged, copied, and **revoked over a derivation subtree**. seL4 is **formally verified** to enforce authority confinement — a proof made tractable *because* the model is capabilities.
-- **Object-capability languages** remove ambient authority by **withholding the powerful globals**. SES `lockdown()` freezes primordials and a `Compartment` runs guest code with only the endowments you pass; Pony encodes capabilities in its type system. The *absence* of ambient globals is the mechanism.
-- **WASI** starts from zero authority and makes every grant explicit (preopened directory/socket capabilities) — the cleanest mainstream supply-chain story: a module handed no socket cannot reach the network.
-- The **membrane** generalizes the caretaker to revoke an entire reachable object subgraph atomically — the in-language dual of the kernel's subtree `Revoke`.
-- **Macaroons** give tokens capability properties: HMAC chaining lets *any holder* add caveats offline (attenuate) but never remove them, enabling client-side delegation and cross-service composition via third-party caveats — with the standing pitfall that verifiers must actually *check* every caveat.
-- Mainstream OSes stayed **ACL-based** for historical/ecosystem reasons; the practical path is **capability islands** (Capsicum, pledge/unveil, landlock, WASI, SES) converting the security-critical component rather than the whole system.
-- The hard limit: capabilities confine **authority**, not **information** — timing and cache side channels survive, and bearer capabilities are total-loss on theft.
-
----
-
-## What You Can Build
-
-- **A working membrane.** Implement transitive wrapping with `Proxy`, demonstrate that revoking the root cuts off objects the holder obtained *after* attachment, and document where object identity breaks.
-- **A macaroon library + a deliberate caveat-check bug.** Implement minting, offline attenuation, and verification; then write a test proving that *skipping* a caveat check defeats attenuation while the signature still verifies.
-- **An SES-sandboxed plugin host.** `lockdown()`, run a third-party plugin in a Compartment endowed with only a logger and a read-only config, and show that `fetch`/`fs` are unreachable.
-- **A WASI confinement demo.** Compile a program that tries to read `/etc/passwd`; run it with no `--dir` (fails), then with `--dir /sandbox` (only the sandbox is visible).
-- **A Capsicum (or landlock) wrapper.** Acquire the fds a tool needs, enter capability mode, and prove that subsequent ambient `open()` calls fail.
-
----
-
-## Further Reading
-
-- *seL4: Formal Verification of an OS Kernel* — Klein et al., SOSP 2009; and the seL4 reference manual (capabilities, CSpace, Mint/Revoke). https://sel4.systems/
-- *KeyKOS / EROS / CapROS* — Bomberger, Hardy, Shapiro. The capability-OS lineage and the EROS confinement proof. https://www.cs.washington.edu/homes/levy/capabook/ and http://www.eros-os.org/
-- *Capsicum: Practical Capabilities for UNIX* — Watson, Anderson, Laurie, Kennaway, USENIX Security 2010. https://www.cl.cam.ac.uk/research/security/capsicum/
-- *Macaroons: Cookies with Contextual Caveats for Decentralized Authorization in the Cloud* — Birgisson et al., NDSS 2014. https://research.google/pubs/pub41892/
-- *WASI: The WebAssembly System Interface* — capability-based design docs. https://wasi.dev/ and https://github.com/WebAssembly/WASI
-- *Hardened JavaScript / SES / Compartments* — Agoric/Endo and TC39 proposals. https://github.com/endojs/endo and https://github.com/tc39/proposal-compartments
-- *Joe-E: A Security-Oriented Subset of Java* — Mettler, Wagner, Close, NDSS 2010. https://www.cs.berkeley.edu/~daw/papers/joe-e-ndss10.pdf
-- *Pony reference capabilities* — the tutorial on `iso/val/ref/box/trn/tag`. https://tutorial.ponylang.io/reference-capabilities.html
-- *The Fuchsia Book — Zircon kernel objects, handles, and rights.* https://fuchsia.dev/fuchsia-src/concepts/kernel
+- Which invariant must remain true when Capability-Based Security fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

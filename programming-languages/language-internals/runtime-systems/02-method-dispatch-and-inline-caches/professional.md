@@ -1,55 +1,11 @@
-# Method Dispatch & Inline Caches — Professional Level
+# Method Dispatch & Inline Caches — Professional
 
-> **Topic:** Method Dispatch & Inline Caches
-> **Focus:** Dispatch as the engine of a production JIT — call-site profiling feeding inlining, V8/SpiderMonkey IC tiers, HotSpot C2's inlining decisions, the real cost of `final`/`sealed`, deopt economics, and how to engineer megamorphic call sites out of a hot system.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Method Dispatch & Inline Caches** with measurable outcomes and limited coordination?
 
-## Introduction
-
-> Focus: **How do production runtimes use dispatch information to drive the optimizer — and how do you, as the engineer, design code and diagnose systems so that the hot call sites stay on the fast path?**
-
-By the senior level the mechanisms were clear: PICs, megamorphic cliffs, CHA, speculative devirtualization, guarded inlining, branch prediction. This page is about how those mechanisms are wired together inside the runtimes you actually deploy on — V8, SpiderMonkey, HotSpot — and about the engineering decisions and diagnostics that follow. The thesis is that **inline caches are not just a dispatch optimization; they are the JIT's primary type-feedback channel.** The IC at a call site, after a warmup period, is a precise record of "which types flowed through here, in what proportion." The optimizing compiler *reads that record* to decide what to inline, what to speculate on, and what to leave as a generic call. Dispatch and inlining are not two topics; they are one feedback loop.
-
-We'll walk the concrete tiering of V8 (Ignition → Sparkplug → Maglev → TurboFan) and HotSpot (interpreter → C1 → C2) specifically through the lens of how each tier collects and consumes IC/type-profile data. We'll quantify the real, measurable cost of `final`/`sealed` hints — not as folklore but as "what they let the compiler prove, and therefore which guards and indirect branches they eliminate." We'll cover the **economics of deoptimization**: a deopt isn't free, and a site that deopts repeatedly can be slower than if it had never been speculated on. And we'll treat the central production skill: **finding and eliminating megamorphic hot call sites** using the runtime's own tracing, profilers, and a disciplined refactoring playbook.
-
-In one sentence: **at this level, method dispatch is the substrate of adaptive optimization — the IC is the sensor, inlining is the actuator, deopt is the safety system, and your job is to keep the loop converged on a fast, stable, monomorphic-or-tightly-polymorphic steady state.**
-
----
-
-## Prerequisites
-
-- **Required:** Senior-level material — PIC/megamorphic states, CHA and speculative devirtualization, guarded inlining, the branch-predictor interaction.
-- **Required:** The hidden-class/shape model as the IC key (topic 01).
-- **Required:** A working mental model of a tiered JIT: interpreter for cold code, optimizing compiler for hot code, deopt to fall back.
-- **Helpful but not required:** Hands-on exposure to `--trace-*` flags or JIT logs in at least one runtime.
-- **Helpful but not required:** Familiarity with a sampling profiler and reading indirect-branch-mispredict counters.
-
-You do **not** need to know:
-
-- The full register allocator or instruction-selection internals of any specific JIT.
-- GC algorithm details (touched only where they interact with object headers/shapes).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Type feedback** | The profile of receiver types/shapes recorded at a call site (in its IC), consumed by the optimizing compiler. |
-| **Tiering** | Running code through successively more optimizing compilers as it gets hotter (and deoptimizing back when assumptions break). |
-| **Ignition / Sparkplug / Maglev / TurboFan** | V8's interpreter, baseline JIT, mid-tier JIT, and top-tier optimizing JIT. |
-| **C1 / C2** | HotSpot's client (fast, light) and server (slow, aggressive) JIT compilers; C2 does the heavy inlining and speculation. |
-| **Inlining budget** | The compiler's bytecode/IR-size limit governing how much callee code it will inline into a caller. |
-| **Polymorphic inlining** | Inlining 2–N speculated targets behind guards at one site, with a fallback. |
-| **Uncommon trap / deopt point** | A site in optimized code where a violated assumption triggers deoptimization. |
-| **OSR (On-Stack Replacement)** | Swapping a running (e.g. long-loop) frame from interpreted/baseline to optimized code mid-execution. |
-| **Lock elision / escape analysis** | Optimizations that become possible only after inlining devirtualized calls. |
-| **Megamorphic stub** | The shared generic dispatch handler a site uses once it gives up per-site caching. |
-| **Dictionary / hashed mode** | A slow object representation (no stable shape) that makes ICs ineffective. |
-| **`final` / `sealed`** | Language hints declaring a class/method non-extensible, letting the compiler prove unique targets without deopt dependencies. |
-| **Deopt storm** | Pathological repeated deoptimization from speculation that keeps being violated. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -117,34 +73,6 @@ The recurring lesson: **megamorphism is usually a data-shape or API-generality p
 ### 8. Cross-Language Synthesis
 
 The professional view unifies the runtimes: V8/SpiderMonkey use ICs to profile shapes in dynamically-typed code and feed an optimizing JIT; HotSpot uses ICs and CHA to profile/prove receiver classes in statically-typed bytecode and feed C2; Go does ahead-of-time itab-based interface dispatch with some compiler devirtualization and no IC tier; C++ does fully static vtable dispatch with optional whole-program/LTO devirtualization. They differ in *when* the type information is available (runtime profile vs compile-time proof) but agree on the goal: **resolve the target uniquely so the body can be inlined and optimized, and keep the hot path's type distribution stable enough that the resolution holds.**
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **IC as type sensor** | A traffic counter at an intersection: it both speeds you through (timed lights) and records the traffic mix that the city later uses to redesign the junction. |
-| **Tiered JIT** | A factory that first hand-assembles a product, then, once demand is proven, builds a dedicated automated line — and scraps the line if the product changes. |
-| **`final`/`sealed`** | A signed contract that "this supplier is the only one" — now you can build a rigid, optimized supply line with no verification step. |
-| **Deopt storm** | Rebuilding the automated line every shift because the product keeps changing — more wasteful than hand-assembly. |
-| **Engineering out megamorphism** | Re-routing a chaotic intersection (all traffic through one light) into dedicated lanes per destination. |
-
----
-
-## Mental Models
-
-### The "Sensor → Actuator → Safety" Loop
-
-Model the adaptive runtime as a control loop: the **IC is the sensor** (measures types), **inlining/devirtualization is the actuator** (commits to a fast layout), and **deopt is the safety system** (reverts when measurement was wrong). Your code is the plant being controlled. Stable inputs (type-stable hot paths) let the loop converge on an aggressive, fast steady state. Noisy inputs (fluctuating types) keep the safety system tripping. Most production tuning is about *feeding the loop clean signal*.
-
-### The "Inlining Budget Ledger" Model
-
-The compiler has a finite ledger of how much callee code it'll pull into a caller. Devirtualization makes a call *eligible* to be inlined, but the budget decides whether it *is*. So two wins are separable: devirtualization (cheaper call, BTB-friendly) and inlining (cross-call optimization). Hot, small, devirtualized callees get both; large ones get only the first. When tuning, distinguish "didn't devirtualize" (a type-stability problem) from "devirtualized but too big to inline" (a code-size problem).
-
-### The "Steady State vs Warmup" Model
-
-Every measurement lives in one of two regimes. **Warmup**: ICs filling, tiers compiling, some deopts — expect noise and don't draw conclusions. **Steady state**: ICs converged, hot methods at top tier, no recurring deopts — this is what production latency reflects. Benchmarks that don't reach steady state (or that measure across a deopt storm) lie. Always ask which regime your numbers describe.
 
 ---
 
@@ -246,27 +174,6 @@ This is how you confirm, with hardware counters, that a slowdown is dispatch-dri
 
 ---
 
-## Pros & Cons
-
-| Aspect | Pros | Cons |
-|--------|------|------|
-| **IC-driven type feedback** | Lets a JIT specialize precisely to observed behavior; near-AOT speed on stable hot paths. | Requires warmup; pre-warmup or transient types cause bad early decisions and deopts. |
-| **Aggressive speculative inlining** | Unlocks the full optimizer (const-fold, escape analysis, lock elision) across calls. | Deopt risk; deopt storms on unstable types can be net-negative. |
-| **`final`/`sealed` proof** | Eliminates guards and deopt dependencies; robust in open worlds. | Limited steady-state gain on already-monomorphic sites; reduces extensibility. |
-| **Megamorphic stub fallback** | Bounded, always-correct, no per-site blowup. | Slow lookup + mispredicts + no inlining; an optimization barrier. |
-| **AOT devirtualization (Go/C++/LTO)** | No warmup, predictable; no deopt machinery needed. | Limited to what's provable at compile time; misses runtime-only monomorphism. |
-
----
-
-## Use Cases
-
-- **Latency-critical services on the JVM/Node.** Keeping hot request-path call sites monomorphic and inlinable is often the difference between p99 targets met and missed; deopt storms show up directly as tail-latency spikes.
-- **Designing plugin/extension systems.** Open-world class loading invalidates CHA and can deoptimize hot code at runtime; architecting stable interfaces (or pre-loading implementations) controls this.
-- **Optimizing interpreters and DSLs.** AST/bytecode dispatch loops are textbook megamorphic-site risks; the "hoist dispatch + specialize callees" playbook is the standard fix (and the basis of techniques like quickening and threaded interpreters).
-- **Cross-runtime performance reviews.** Explaining "why is this hot in production but not in the microbenchmark" almost always involves warmup/steady-state and IC-state differences between the two environments.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Warm the right types before measuring
@@ -319,125 +226,24 @@ After profiling identifies a hot, genuinely non-overridden method, seal it to re
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│         DISPATCH AS THE ENGINE OF ADAPTIVE OPTIMIZATION         │
-├──────────────────────────────────────────────────────────────────┤
-│ IC = dispatch accelerator AND type-feedback sensor               │
-│   optimizer reads IC state to decide inline/speculate/give-up    │
-├──────────────────────────────────────────────────────────────────┤
-│ V8     Ignition -> Sparkplug -> Maglev -> TurboFan               │
-│        (feedback vectors carry shape profiles up the tiers)      │
-│ SpiderMonkey  CacheIR stubs describe each IC; Warp/Ion consume   │
-│ HotSpot  interp -> C1 -> C2 ; CHA proof first, profile spec next │
-│          inlining gated by budget (MaxInlineSize/FreqInlineSize) │
-├──────────────────────────────────────────────────────────────────┤
-│ DEVIRT WINS = (cheaper call) + (UNLOCKS INLINING -> rest)        │
-│   separate "didn't devirt" (type problem)                        │
-│   from     "didn't inline" (size/budget problem)                 │
-├──────────────────────────────────────────────────────────────────┤
-│ final/sealed/concrete:                                           │
-│   prove unique target -> no guard, no deopt dependency           │
-│   big win in OPEN worlds / plugin systems; small on already-mono │
-├──────────────────────────────────────────────────────────────────┤
-│ DEOPT economics:                                                 │
-│   few during warmup = healthy                                    │
-│   STORM (type keeps flipping) = slower than no opt -> fix it     │
-│   let honestly-poly sites stay poly (don't over-speculate)       │
-├──────────────────────────────────────────────────────────────────┤
-│ Kill a megamorphic hot site:                                     │
-│   1 find (--trace-ic / PrintInlining / perf branch-misses)       │
-│   2 classify (accidental shapes vs essential polymorphism)       │
-│   3 accidental -> stabilize shapes / homogenize collections      │
-│   4 essential  -> hoist dispatch + specialize callees, or PIC    │
-│   5 verify (re-trace; mispredicts drop; callee inlined)          │
-├──────────────────────────────────────────────────────────────────┤
-│ Always reason in STEADY STATE; warmup numbers lie.               │
-└──────────────────────────────────────────────────────────────────┘
-```
+1. Define the user or business outcome that **Method Dispatch & Inline Caches** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
----
+## Verify your work
 
-## Summary
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
 
-- The professional reframing: **the inline cache is the JIT's type sensor.** Its recorded shape profile is exactly the type feedback the optimizing compiler reads to decide what to devirtualize, inline, and speculate on — dispatch and inlining are one feedback loop, not two topics.
-- **V8** (Ignition → Sparkplug → Maglev → TurboFan) and **HotSpot** (interpreter → C1 → C2) both thread type feedback up their tiers; **SpiderMonkey** encodes each IC as **CacheIR** stubs the optimizer consumes. HotSpot additionally uses **CHA** to *prove* unique targets (with deopt-on-class-load dependencies), then profile-guided speculation, then megamorphic fallback — all gated by the **inlining budget**.
-- `final`/`sealed`/concrete types let the compiler *prove* uniqueness, removing guards and deopt dependencies. Their real value is on **open-world hot paths** and **deopt-prone (plugin/classloader) systems** and in **enabling inlining**, not in shaving the call instruction on already-monomorphic sites. Measure; don't cargo-cult.
-- **Deopt has economics.** A few deopts during warmup are healthy; a **deopt storm** from speculating on an unstable type can be slower than no optimization. Honestly-polymorphic sites should be *allowed* to be polymorphic; over-speculation is a bug.
-- The core production skill is **engineering megamorphic hot sites out**: find them with runtime traces and hardware counters, classify accidental (shape fragmentation, over-general containers) vs essential polymorphism, then stabilize shapes/homogenize data or hoist dispatch and specialize callees, and verify the fix.
-- Across runtimes the goal is identical — **resolve the target uniquely so the body can be inlined and optimized, and keep the hot path's type distribution stable enough that the resolution holds** — whether that resolution is a runtime profile (V8/HotSpot) or a compile-time proof (Go/C++/LTO).
+## Review questions
 
----
-
-## Diagrams & Visual Aids
-
-### The Adaptive-Optimization Control Loop
-
-```text
-        ┌──────────── observe ────────────┐
-        │                                 │
-   [ inline caches ] ──type feedback──► [ optimizing JIT ]
-   (SENSOR: shapes)                     (ACTUATOR: devirt + inline)
-        ▲                                 │
-        │                                 ▼
-        │                          [ optimized code ]
-        │                                 │
-        └────── deopt (SAFETY) ◄──────────┘
-             (assumption violated -> revert, re-profile)
-```
-
-### V8 Tiering and Where Dispatch Decisions Happen
-
-```text
-   Ignition  ──►  Sparkplug  ──►  Maglev  ──►  TurboFan
-   (interp,        (baseline      (mid-tier    (top-tier opt:
-    ICs collect     JIT, same      opt, some    full devirt +
-    shape feedback) ICs)           devirt)      aggressive inline +
-                                                deopt guards)
-        └────────── feedback vectors carried upward ──────────┘
-```
-
-### HotSpot C2 Call-Site Decision Tree
-
-```text
-   virtual/interface call at JIT time
-        │
-   CHA: single implementor?
-     yes ──► direct call + inline (+ dependency; deopt if new class loads)
-     no
-        │
-   type profile?
-     monomorphic ──► guarded inline of hot type + uncommon trap
-     bimorphic   ──► polymorphic inline (2 targets) + fallback
-     megamorphic ──► real virtual/interface call (NOT inlined)
-        │
-   (all inlining still gated by the inlining budget)
-```
-
-### Deopt: Healthy vs Storm
-
-```text
-   HEALTHY (warmup):
-     opt ──guard fails once──► deopt ──re-profile──► opt' (now stable) ──► fast
-
-   STORM (unstable type):
-     opt ─►deopt─►opt─►deopt─►opt─►deopt ...   (never converges; < interpreter speed)
-     fix: relax speculation / let it be polymorphic / stabilize the type
-```
-
-### Megamorphic-Elimination Playbook
-
-```text
-   [find]  --trace-ic / PrintInlining / perf branch-misses
-      │
-   [classify]
-      ├─ accidental (shape fragmentation, Object/interface{} soup)
-      │      └─► stabilize shapes, homogenize collections, tighten types
-      └─ essential (genuinely many types)
-             └─► hoist one dispatch (switch) + specialize callees (each MONO)
-                 or accept a small healthy PIC
-      │
-   [verify]  re-trace: site MONO/POLY ; mispredicts down ; callee inlined
-```
+- Which measurable outcome justifies investing in Method Dispatch & Inline Caches?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

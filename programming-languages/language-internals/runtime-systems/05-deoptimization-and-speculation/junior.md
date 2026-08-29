@@ -1,67 +1,11 @@
-# Deoptimization & Speculation — Junior Level
+# Deoptimization & Speculation — Junior
 
-> **Topic:** Deoptimization & Speculation
-> **Focus:** Why a JIT compiler *guesses* about your code, what happens when the guess is wrong, and why a wrong guess never changes the answer your program computes — only its speed.
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **Deoptimization & Speculation** in one small example and prove the result?
 
-## Introduction
-
-> Focus: **Why does a JIT compiler bet on assumptions it cannot prove, and what is "deoptimization"?**
-
-When you run a program in a modern language runtime — the JVM (HotSpot), JavaScript (V8 in Chrome and Node.js, SpiderMonkey in Firefox), or .NET — your code does **not** start out as fast machine code. It starts out being *interpreted* or run through a cheap baseline compiler: slow, but quick to get going. Then, while your program runs, the runtime watches which functions are "hot" (called over and over) and hands those to an **optimizing JIT compiler** that produces genuinely fast native code.
-
-Here is the catch that this whole topic is about. To produce *fast* machine code, the optimizing compiler needs to know things about your program — for example, "this variable is always a number," or "this method is never overridden," or "this array only ever holds integers." But the compiler is running *while your program runs*, and it often **cannot prove** these things will always be true. The future hasn't happened yet. So instead of giving up, it does something bold: it **assumes** the thing is true, compiles fast code based on that assumption, and inserts a cheap little check — a **guard** — that verifies the assumption still holds each time the code runs.
-
-If the guard passes: great, the fast path runs. If the guard ever **fails** — say someone finally calls your function with a string instead of a number — the runtime cannot keep running the optimized code, because that code was built on an assumption that's now false. So it performs a **deoptimization** ("deopt"): it throws away the optimized native version mid-execution, rebuilds the equivalent slower state (as if the interpreter had been running all along), and continues from there. Your program keeps computing the **exact same answer** — it just runs slower from that point.
-
-In one sentence: **speculation is the JIT making an educated bet so it can emit fast code; deoptimization is the safety net that catches the program and lands it gently in slow-but-correct mode when the bet loses.**
-
-> 🎓 **Why this matters for a junior:** You will write JavaScript or Java that is mysteriously slow even though it "looks fine." Very often the cause is that you keep *breaking the JIT's guesses* — passing mixed types, changing object shapes, hitting code paths the compiler pruned. Understanding that the engine is *betting on you being consistent* is the key to writing code that stays fast.
-
-This page covers: what "hot code" and tiered compilation are, what an assumption/guard/bet looks like in plain terms, what deoptimization actually does to a running program, why it never changes results, and the most common everyday patterns (in JS especially) that trigger deopts.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** You can write and run a simple program in at least one of: JavaScript (Node.js), Java, C#, or Python.
-- **Required:** You understand what a *function* is and what it means to *call* one repeatedly in a loop.
-- **Required:** A vague sense that source code eventually becomes machine instructions the CPU runs.
-- **Helpful but not required:** You've heard the words "interpreter," "compiler," and "JIT" before.
-- **Helpful but not required:** You know what a variable's *type* is (number vs string vs object).
-
-You do **not** need to know:
-
-- How a register allocator or instruction scheduler works (that's `senior.md` / `professional.md`).
-- The exact metadata format the runtime uses to reconstruct frames (that's `middle.md` and beyond).
-- Anything about escape analysis, scalar replacement, or class-hierarchy analysis yet.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Interpreter** | The component that executes your program one bytecode/instruction at a time. Slow per operation, but starts instantly with no compile step. |
-| **JIT (Just-In-Time) compiler** | A compiler that turns hot parts of your program into native machine code *while the program is running*. |
-| **Baseline / Tier 1 compiler** | A fast-but-dumb compiler (e.g. V8's *Sparkplug*, HotSpot's *C1*) that compiles quickly without heavy optimization. |
-| **Optimizing / Tier 2+ compiler** | The smart, slow compiler (e.g. V8's *TurboFan*, HotSpot's *C2*) that produces the fastest code — by *speculating*. |
-| **Hot code** | A function or loop that runs often enough that it's worth compiling and optimizing. |
-| **Speculation** | The JIT *assuming* something it cannot prove (a type, a call target, a branch never taken) so it can emit faster code. |
-| **Assumption** | The specific thing the JIT is betting on (e.g. "`x` is always a 32-bit int"). |
-| **Guard** | A cheap runtime check inserted by the JIT that verifies an assumption still holds before trusting the fast path. |
-| **Deoptimization (deopt)** | Abandoning the optimized native code mid-run and falling back to slower, more general code (interpreter or baseline). |
-| **Bailout** | V8's word for a deopt: "bailing out" of optimized code back to a less-optimized tier. |
-| **Uncommon trap** | HotSpot's word for the spot in optimized code where a failed guard jumps out to deoptimize. |
-| **Monomorphic** | A call site or operation that has only ever seen *one* type/shape. The JIT loves this — it's the easiest thing to speculate on. |
-| **Polymorphic / Megamorphic** | A site that has seen several / many different types. Harder or impossible to speculate well on. |
-| **Hidden class / Shape / Map** | The engine's internal description of an object's structure (which fields it has, in what order). JS engines key speculation off this. |
-| **SMI (Small Integer)** | V8's tagged representation for small integers. A separate, faster category from floating-point doubles. |
-| **Deopt loop / deopt storm** | A performance bug where code is optimized, deopted, re-optimized, deopted… forever, never settling. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -125,43 +69,6 @@ So you never debug a "deopt produced the wrong number" bug — it can't happen. 
 ### 6. The expensive failure mode: deopt loops
 
 A single deopt is cheap and harmless. The problem is when it happens **over and over**. Imagine your `add` function gets optimized for integers, then deopts when a string shows up, then gets re-optimized, then a string shows up again, deopts again… The engine spends all its time compiling and throwing away code instead of running it. This is a **deopt loop** or **deopt storm**, and it can make code *slower than if it had never been optimized at all*. Most of this topic, at higher tiers, is about recognizing and preventing this.
-
----
-
-## Real-World Analogies
-
-**The express checkout lane.** A grocery store opens an "express lane: 10 items or fewer." The cashier can move fast *because they assume* every customer has ≤10 items — no need to weigh down the lane with logic for huge carts. The "10 items or fewer" sign is the **guard**. If someone rolls up with 40 items (guard fails), the cashier redirects them to a regular lane (deopt). The express lane was never *wrong* — it just only works under its assumption, and there's a fallback for everyone else.
-
-**The commuter who always takes the highway.** You learn that your commute is fastest via the highway and you stop even checking the side streets — you *speculate* the highway is clear. But you glance at the traffic app (the guard) before merging. If it's jammed, you reroute (deopt). You arrive at work either way; speculation just usually saves time.
-
-**A recipe assuming fresh ingredients.** A fast recipe says "throw the eggs straight in." It assumes the eggs are fresh. A careful cook cracks each egg into a separate bowl first (the guard) to check. A bad egg means stopping and getting another (deopt). Either way the dish ends up correct — the check just protects the fast assumption.
-
-**A pre-printed form.** A clerk uses a pre-filled form because *most* applicants are local residents. That's faster than asking every question. But there's a checkbox: "non-resident?" If checked (guard fails), they switch to the long form (deopt). The pre-filled form is a speculation that the common case holds.
-
----
-
-## Mental Models
-
-### Model 1: "Bet, then verify"
-
-Every speculative optimization is a **bet + a guard**:
-
-```text
-BET:    "I think a and b are always integers."
-GUARD:  "Check that they are. Cheap."
-FAST:   "If so, run the one-instruction version."
-DEOPT:  "If not, fall back to the fully general version. Correct, just slow."
-```
-
-If you remember nothing else, remember *bet → guard → (fast | deopt)*.
-
-### Model 2: The trapdoor under the fast floor
-
-Picture the optimized code as a polished fast floor. Scattered across it are **trapdoors** (HotSpot literally calls these *uncommon traps*). Each trapdoor is a guard. As long as your assumptions hold, you sprint across the solid floor. The moment a guard fails, a trapdoor opens and you drop down into the basement — the interpreter — which is slower but where *everything* works. You don't fall and get hurt; you land safely and keep walking. Re-climbing to the fast floor (re-optimization) takes a moment of compiler time.
-
-### Model 3: Speculation is a *consistency contract* with you
-
-The engine is implicitly saying: *"If you keep feeding me consistent shapes and types, I'll keep running your code blazingly fast. The moment you get weird and inconsistent, I have to slow down to stay correct."* Writing JIT-friendly code is mostly about **being predictable**: same types, same object shapes, same call targets. The engine rewards consistency and penalizes surprise.
 
 ---
 
@@ -257,35 +164,6 @@ console.log(half(NaN));      // NaN -> correct
 ```
 
 No matter how many guards fail and how many deopts occur, every printed value is mathematically correct. Speed varies; **answers do not.**
-
----
-
-## Pros & Cons
-
-### Pros of speculative optimization (with deopt as the safety net)
-
-- **Near-native speed for dynamic languages.** This is *the* technique that makes JavaScript and the JVM fast. Without speculation, `a + b` in JS would forever pay the full "what does `+` mean here?" tax.
-- **You only pay for generality you actually use.** If your code is consistent, you get the fast path. The slow, general code exists but rarely runs.
-- **Always correct.** The guard guarantees the fast path is only taken when it's equivalent to the slow path. You never trade correctness for speed.
-- **Adaptive.** The runtime optimizes based on *what your program actually does*, not what it might theoretically do — sometimes beating an ahead-of-time compiler.
-
-### Cons / costs
-
-- **Deopt isn't free.** Reconstructing interpreter state and falling back costs time. Rare deopts are negligible; frequent ones hurt.
-- **Deopt loops are a real performance pathology.** Code that keeps getting optimized and de-optimized can run *slower* than un-optimized code.
-- **Hard to reason about without tools.** You can't tell from the source whether your function got deopted — you have to turn on tracing.
-- **Surprising sensitivity.** Tiny, innocent-looking changes (mixing one float into an int array, adding a property to one object) can flip a hot path from fast to slow.
-
----
-
-## Use Cases
-
-You don't "use deoptimization" directly — the runtime does it for you. But understanding it is essential when you:
-
-- **Profile slow JS/Java/C# code** and need to know *why* a function the profiler flags as hot is slow despite looking simple.
-- **Write hot inner loops** (game loops, parsers, numeric kernels, request handlers) where staying on the fast path matters.
-- **Read engine traces** (`--trace-deopt`, `-XX:+PrintCompilation`) during performance investigation.
-- **Decide how to structure data** — e.g. keeping arrays homogeneous, keeping object shapes stable — to stay JIT-friendly.
 
 ---
 
@@ -386,42 +264,24 @@ Java is statically typed, so you won't get "wrong type" deopts. Java's deopts co
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```text
-WHY SPECULATE?    To emit fast machine code, the JIT must assume facts it
-                  cannot prove (types, call targets, branches, no overflow).
+1. Choose one small, known input for **Deoptimization & Speculation**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
-THE PATTERN       BET  -> assume the common case
-                  GUARD-> cheap runtime check of the assumption
-                  FAST -> run the specialized code if guard passes
-                  DEOPT-> fall back to slow-but-correct code if guard fails
+## Verify your work
 
-DEOPT IS          controlled fallback, NOT a crash, NOT a wrong answer.
-                  Reconstructs interpreter state, resumes there.
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
 
-NEVER             changes program semantics. Slower-but-correct, always.
+## Review questions
 
-WATCH IT          JS:   node --trace-opt --trace-deopt script.js
-                  JVM:  java -XX:+PrintCompilation -XX:+TraceDeoptimization App
-
-PROBLEM SHAPE     deopt LOOP / STORM = optimize -> deopt -> optimize -> ...
-                  Caused by inconsistent types/shapes in a hot function.
-
-STAY FAST (JS)    - same types per function (monomorphic)
-                  - declare all object fields up front (stable shape)
-                  - homogeneous arrays (all ints or all doubles)
-                  - no holes in arrays
-                  - prefer ...rest over arguments
-
-KEY VOCAB         V8: "bailout" / "deopt"   HotSpot: "uncommon trap"
-                  monomorphic (1 type) < polymorphic < megamorphic (many)
-```
-
----
-
-## Summary
-
-A modern language runtime makes your code fast by **speculating**: the optimizing JIT *assumes* facts it can't prove — that a value is always an integer, that a method is never overridden, that a branch is never taken — and emits fast machine code based on those assumptions. Each assumption is protected by a cheap **guard**. When a guard passes, you get near-native speed. When a guard fails, the runtime **deoptimizes**: it abandons the optimized code mid-execution, reconstructs the equivalent slower state, and continues in the interpreter or baseline tier.
-
-The non-negotiable rule is that **deoptimization never changes your program's result** — it only changes its speed. So you never debug "deopt gave the wrong answer"; you only ever debug "my hot code is slow because it keeps deopting." The everyday cause, especially in JavaScript, is *inconsistency*: mixing types, mutating object shapes, holey arrays. Write predictable, consistent hot code, and the JIT will keep its fast bets — and keep your program fast. The deeper mechanics — how the runtime maps optimized registers back to interpreter state, materializes objects that escape analysis had deleted, and invalidates code on class loading — are what `middle.md`, `senior.md`, and `professional.md` build on this foundation.
+- What problem does Deoptimization & Speculation solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

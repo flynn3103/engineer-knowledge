@@ -1,64 +1,11 @@
-# Evaluation Order & Sequencing — Junior Level
+# Evaluation Order & Sequencing — Junior
 
-> **Topic:** Evaluation Order & Sequencing
-> **Focus:** In what order does the machine actually compute the pieces of an expression — and why does `a[i] = i++` sometimes mean nothing at all?
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **Evaluation Order & Sequencing** in one small example and prove the result?
 
-## Introduction
-
-> Focus: **When you write `f(g(), h())` or `x + y * z`, what gets computed first — and does the language even promise an answer?**
-
-When you read an expression like `a + b * c`, you already know `b * c` is multiplied *before* it is added to `a`. That rule is **operator precedence**, and it tells you how the expression is *grouped*. But precedence does **not** tell you *which side runs first*. Does `a` get evaluated before `b`? Before `c`? Precedence and evaluation order are two completely different things, and confusing them is one of the most common sources of "works on my machine" bugs.
-
-**Evaluation order** is the order in which the language actually computes the sub-pieces of an expression — the function calls, the variable reads, the `i++` side effects. For pure code (no side effects), the order is invisible: `2 + 3` is `5` no matter what runs first. The order only becomes *observable* when one of the pieces **changes something** — increments a variable, prints, returns a different value each time, throws. That is when the question "what runs first?" suddenly decides whether your program is correct, broken, or — in C and C++ — has *no defined meaning at all*.
-
-In one sentence: **precedence decides the shape of the tree; evaluation order decides the order you walk it.** And some languages refuse to promise you any particular walk.
-
-> 🎓 **Why this matters for a junior:** You will eventually write something like `data[index++] = index;` or `print(next(), next())` and get a result that makes no sense. The instinct is to blame the function, the compiler, or the universe. The real culprit is almost always evaluation order — and the fix is almost always to *not cram side effects into one expression*. Learning this early saves you from a whole class of bugs that survive code review because they look obviously correct.
-
-This page covers: what a sub-expression is, the difference between precedence and order, what "left-to-right" means and which languages guarantee it, the classic `i++` traps, short-circuit `&&` / `||` as an *ordering* guarantee you can rely on, and a tour of the same examples across C, Java, Python, Go, and JavaScript. The harder model — C's "sequence points" and C++'s "sequenced-before" — is introduced gently here and dissected in `middle.md` and `senior.md`.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** How to read and run a small program in at least one of C, Java, Python, Go, or JavaScript.
-- **Required:** What a variable is, and what `i++` (increment) does.
-- **Required:** Basic arithmetic and boolean expressions (`a + b`, `x && y`).
-- **Helpful but not required:** A vague sense that `a + b * c` multiplies first — that's *precedence*, which we'll contrast with order.
-- **Helpful but not required:** Having once been confused by an off-by-one bug. This topic explains a sneaky family of them.
-
-You do **not** need to know:
-
-- The formal C11 "sequence point" wording or the C++11 "sequenced-before" relation — introduced lightly here, formalized in `middle.md`/`senior.md`.
-- Anything about CPU instruction reordering or the memory model — that's the connection drawn in `senior.md`.
-- Compiler optimization theory or the "as-if" rule — `professional.md`.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Expression** | A piece of code that produces a value: `2 + 2`, `f(x)`, `a && b`, `arr[i]`. |
-| **Sub-expression** | A smaller expression inside a bigger one. In `f(a, b)`, the pieces `f`, `a`, and `b` are sub-expressions. |
-| **Operand** | The input to an operator. In `x + y`, both `x` and `y` are operands. |
-| **Evaluation** | The act of computing an expression's value, *including* running any side effects it contains. |
-| **Evaluation order** | The order in which the language computes the sub-expressions of a larger expression. |
-| **Operator precedence** | The rule that decides *grouping*: `a + b * c` means `a + (b * c)`. This is **not** evaluation order. |
-| **Associativity** | Which way same-precedence operators group: `a - b - c` means `(a - b) - c` (left-associative). Also not the same as order. |
-| **Side effect** | Any observable change an expression makes besides producing a value: `i++`, `print()`, writing a field, throwing. |
-| **Pure expression** | An expression with no side effects. Its value is all it does; order can't be observed. |
-| **Left-to-right** | The guarantee (in Java, C#, JavaScript, Python, ...) that operands and arguments are evaluated leftmost-first. |
-| **Unspecified order** | The compiler may pick *any* order, possibly differing between compilers or builds. C/C++ function arguments are like this. |
-| **Undefined behavior (UB)** | C/C++ term: the program has *no meaning at all*. The compiler may do anything. `i = i++;` is the canonical example. |
-| **Short-circuit** | `&&` and `||` stop evaluating as soon as the result is known. This is also a *guaranteed* left-to-right ordering. |
-| **Sequence point** | (C term) A spot in the program where all prior side effects are finished before the next ones start. |
-| **Sequenced-before** | (C++11 term) The modern replacement for sequence points: a precise "this happens before that" relation. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -142,46 +89,6 @@ a[i] = i++;     // UB in C/C++ (before C++17 for this specific form)
 ```
 
 The problem: this expression both **writes** `i` (via `i++`) and **uses** `i` (to index `a`) with no sequencing between them. The compiler is allowed to assume that never happens, so the result is undefined — it might use the old `i`, the new `i`, set fire to your stack, or appear to work for ten years and break after an upgrade. We will return to exactly why in `middle.md`. For now: **never read and modify the same variable in a single expression in C/C++.**
-
----
-
-## Real-World Analogies
-
-**The recipe with one shared bowl.** A recipe says "combine the flour mixture and the egg mixture." Precedence is the *recipe structure* — which sub-mixtures combine into which. Evaluation order is *which mixture you prepare first*. If both sub-recipes are independent (you have two bowls), order doesn't matter. But if both steps say "pour into THE bowl" and there's only one bowl, the order suddenly decides the outcome — and a recipe that doesn't tell you the order is a buggy recipe. That single shared bowl is your variable `i`.
-
-**Two clerks, one ledger.** Imagine `total = withdraw() + withdraw()` where each `withdraw()` subtracts from and reports a shared balance. If the language doesn't say which clerk goes first, two different banks (compilers) will hand you two different totals. The arithmetic (`+`) is fine; the *order of the two withdrawals* is the whole ballgame.
-
-**Reading a sign while repainting it.** `a[i] = i++` is like telling a painter "paint over the house number, and also deliver mail to that exact number" — at the same instant, with no rule about which happens first. Which number do you deliver to: the old one or the new one? In C, the answer is worse than "we don't know" — it's "the question is meaningless; anything may happen."
-
-**Standing in a doorway.** Short-circuit `&&` is a bouncer who checks IDs left to right and stops the moment someone fails. `p != NULL && p->value` checks "is there a person?" *before* "what's in their wallet?" — and never reaches into a non-existent person's pocket. The left-to-right order is the safety guarantee.
-
----
-
-## Mental Models
-
-### Model 1: The two-step pipeline — parse, then walk.
-
-```
-Source text  →  [PARSE using precedence/associativity]  →  Tree  →  [WALK using evaluation order]  →  Result
-```
-
-Precedence and associativity build the tree *once*, at compile time. Evaluation order decides how the tree is *walked* at run time. Two languages can build the **identical tree** and **walk it differently**. Keeping these two phases separate in your head dissolves 90% of the confusion.
-
-### Model 2: "Can I see the difference?" decision flow.
-
-```
-Does the expression contain a side effect or an impure call?
-  ├── No  → evaluation order is INVISIBLE. Relax.
-  └── Yes → does my language guarantee an order?
-             ├── Yes (Java/C#/JS/Python/Rust) → it's left-to-right; reason accordingly.
-             └── No  (C/C++ args) → order is UNSPECIFIED; do not depend on it.
-                  └── And do you read AND write the same variable?
-                        └── Yes → UNDEFINED behavior in C/C++. Stop. Rewrite.
-```
-
-### Model 3: The "one statement per side effect" rule.
-
-The simplest mental defense: **at most one side effect per statement, and never read a variable you're modifying in the same statement.** When you obey this, evaluation order *cannot bite you*, in any language. Most senior C/C++ codebases enforce exactly this with a linter.
 
 ---
 
@@ -299,37 +206,6 @@ The comma operator is one of the few C operators that *does* impose order (left 
 
 ---
 
-## Pros & Cons
-
-**Of languages that pin evaluation order (Java, C#, JS, Python, Rust):**
-
-| Pros | Cons |
-|------|------|
-| Predictable: the same code behaves the same on every compiler. | Slightly fewer optimization opportunities for the compiler. |
-| Easier to reason about side effects in expressions. | Can lull you into writing dense, side-effect-heavy expressions that *work* but read poorly. |
-| Portable behavior across implementations. | None that matter much for application code. |
-
-**Of languages that leave it unspecified (C, C++ arguments):**
-
-| Pros | Cons |
-|------|------|
-| Compiler is free to choose the fastest argument-evaluation order for the target ABI. | Code that depends on order is non-portable and may silently change behavior. |
-| Enables some register-allocation and instruction-scheduling wins. | Opens the door to undefined behavior when reads/writes of the same object collide. |
-
-The deeper trade-off — why C chose unspecified order on purpose — is the "as-if rule" story in `professional.md`.
-
----
-
-## Use Cases
-
-- **Guarded dereferences:** `ptr != NULL && ptr->field` relies on `&&` ordering. Used in essentially every C/Java/Go codebase.
-- **Default fallbacks:** `value ?? default` / `a || fallback` use short-circuit ordering to avoid evaluating the fallback when not needed.
-- **Lazy / expensive checks:** `cheapCheck() && expensiveCheck()` puts the cheap test first so the expensive one is skipped most of the time — an ordering-based optimization you control.
-- **Iterator consumption:** in left-to-right languages, `pair = (next(it), next(it))` consumes in order — but the explicit two-line form is safer.
-- **Logging inside conditions:** be careful — a side-effecting log call inside `a && log()` will only run when `a` is true. That's sometimes intentional, often a bug.
-
----
-
 ## Coding Patterns
 
 **Pattern: Hoist side effects out of expressions.**
@@ -399,28 +275,24 @@ i++;            // not  a[i] = value, i++  crammed together with a read of i
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```
-PRECEDENCE  = grouping ("a + b * c" means "a + (b*c)")     -- compile time, shapes the tree
-ORDER       = timing (which sub-expression runs first)     -- separate decision
+1. Choose one small, known input for **Evaluation Order & Sequencing**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
-LEFT-TO-RIGHT (guaranteed): Java, C#, JavaScript, Python*, Rust
-UNSPECIFIED  (don't depend): C and C++ FUNCTION ARGUMENTS
-UNDEFINED    (never do):     C/C++ read AND write same var in one expr  -> a[i]=i++
+## Verify your work
 
-ALWAYS ORDERED (every language): &&  ||  ?:  ??   (short-circuit, left first)
-THE COMMA OPERATOR (C/C++): left fully, discard, then right -> guaranteed order
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
 
-GOLDEN RULES
-  1. One side effect per statement.
-  2. Never read+write the same variable in one expression.
-  3. Don't trust argument order unless the spec promises it.
-  4. Put the safe/cheap test on the LEFT of && / ||.
-```
+## Review questions
 
----
-
-## Summary
-
-**Evaluation order** is the order in which a language computes the sub-pieces of an expression — and it is *not* the same thing as operator precedence, which merely decides grouping. For pure code the order is invisible, but the moment a side effect (`i++`, `print`, an impure call) enters the picture, order decides correctness. Most modern languages — Java, C#, JavaScript, Python, Rust — guarantee **left-to-right** evaluation. C and C++ deliberately leave function-argument order **unspecified**, and worse, reading and writing the same variable in one expression (`a[i] = i++`) is **undefined behavior**. The one ordering guarantee you have *everywhere* is short-circuit `&&` / `||` / `??`, which always evaluate left-first and skip the right when the answer is already known. The junior-level discipline is simple and bulletproof: **one side effect per statement, never read-and-modify the same variable in one expression, and don't depend on argument order.** Obey that, and evaluation-order bugs can't touch you. The next level, `middle.md`, formalizes *why* `a[i] = i++` is undefined by introducing C's "sequence points" and C++'s "sequenced-before" relation.
+- What problem does Evaluation Order & Sequencing solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

@@ -1,51 +1,11 @@
-# Higher-Kinded Types — Professional Level
+# Higher-Kinded Types — Professional
 
-> **Topic:** Higher-Kinded Types
-> **Focus:** The engineering economics of HKTs in a real codebase — compile-time and runtime cost, onboarding and readability, library design across languages (Cats/ZIO, fp-ts, Arrow), the compiler-implementation view, and a defensible "should *our* codebase use this?" framework.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Higher-Kinded Types** with measurable outcomes and limited coordination?
 
-## Introduction
-
-> Focus: **Not "what are HKTs" but "what do they cost, what do they buy, and when should a team adopt, contain, or ban them?"** Plus the compiler-implementation perspective that explains why the costs are what they are.
-
-At the senior level the subject was the type theory and the expressive ceiling. At the professional level the subject is *the spreadsheet*: HKTs are a capital investment in your codebase, and like any capital investment they have an acquisition cost (learning, tooling, compile time), an operating cost (readability, hiring, error-message overhead), and a return (deduplication, swappable effects, fewer classes of bug). The professional question is whether the return clears the cost *for this team, this language, this product, this time horizon* — and how to structure the code so the answer can change over time without a rewrite.
-
-This page covers:
-
-- **The cost model in detail:** compile-time impact (implicit/given resolution, type-class derivation, monomorphization), runtime impact (monad-transformer indirection vs. modern effect runtimes), and the human costs (readability, code review, onboarding, hiring pool).
-- **The compiler's view:** how a typechecker actually handles a `* -> *` parameter (kind inference, instance/implicit search, dictionary passing vs. monomorphization), which demystifies *why* the costs land where they do and *why Rust balked*.
-- **Library-grade design:** what it means to ship HKT-based APIs (Cats/ZIO, fp-ts, Arrow), the binary-compatibility and inference traps, and how mature libraries hide the machinery.
-- **A decision framework** you can put in an architecture doc: concrete signals that push toward adopt / contain-to-a-module / avoid, with migration paths in both directions.
-
-> The meta-point: HKTs are neither "the enlightened path" nor "astronaut nonsense". They are a tool with a sharply context-dependent ROI. A professional argues from the ledger, names the costs honestly, and designs so the bet is reversible.
-
----
-
-## Prerequisites
-
-- **Required:** Senior page — the kind system, `Traversable`, tagless-final/MTL, the three "highers", Rust's omission and GATs, the defunctionalization encoding.
-- **Required:** Experience owning a non-trivial codebase: you've felt compile-time pain, onboarding friction, and the cost of an abstraction nobody else understands.
-- **Helpful:** Exposure to at least one production HKT stack (Scala Cats/ZIO, Haskell with `mtl`/effect libs, TypeScript fp-ts, Kotlin Arrow).
-- **Helpful:** Mental model of how typecheckers do constraint resolution and how Rust/C++ monomorphize generics.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Dictionary passing** | Implementing typeclasses by passing a runtime record of methods (the "dictionary") to generic code (GHC, Scala implicits). |
-| **Monomorphization** | Generating a specialized copy of generic code per concrete instantiation (Rust, C++). Trades binary size/compile time for runtime speed. |
-| **Implicit/given resolution** | The compiler's search to fill a typeclass constraint from in-scope instances (Scala `given`, Haskell instance search). |
-| **Coherence** | Global uniqueness of an instance per type. Haskell/Rust enforce it; Scala does not. |
-| **Effect system / effect runtime** | A library (Cats-Effect, ZIO) providing a concrete, optimized `IO`/`Task` effect plus combinators, often replacing hand-rolled transformer stacks. |
-| **Monad transformer** | A constructor (`StateT`, `ExceptT`) that adds one capability to an underlying monad, stackable but with per-layer overhead. |
-| **Abstraction tax** | The cumulative cost (cognitive, compile-time, runtime, hiring) of an abstraction, weighed against its reuse benefit. |
-| **Bus factor / hiring pool** | How many engineers can maintain the code, and how easily you can hire more. HKT-heavy code shrinks both. |
-| **Contain-to-a-module** | Adoption strategy: use HKTs internally in one library/boundary, expose a plain API outward. |
-| **Speculative generality** | Adding generality (e.g. `F[_]`) before a second concrete use exists — a code smell when the second use never comes. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -126,39 +86,6 @@ The honest counter-argument to HKTs: most real duplication can be removed with o
 
 ---
 
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Abstraction tax** | A specialized CNC machine: enormous leverage if you run thousands of identical parts; pure overhead (training, maintenance, downtime) if you make ten one-offs. |
-| **Dictionary passing vs monomorphization** | Renting one shared toolkit passed around the floor (dictionary) vs. handing every worker their own custom-fitted tool (monomorphized) — one costs coordination, the other costs warehouse space. |
-| **Contain-to-a-module** | A clean-room lab inside a normal factory: the exotic process is sealed behind a door; the rest of the plant sees only inputs and outputs. |
-| **Reversible bet** | Building with bolts, not welds, so you can disassemble if the design proves wrong. |
-| **Hiring pool / bus factor** | Specifying a rare alloy that only two suppliers stock: fine until both are out and the line stops. |
-| **Effect runtime vs transformer tower** | A single integrated appliance vs. a tower of stacked single-function gadgets duct-taped together — same capabilities, very different reliability and speed. |
-
----
-
-## Mental Models
-
-### The "capital investment" model
-
-HKTs are capex, not a free abstraction. Acquisition cost (learning, tooling), operating cost (readability, compile time, hiring), return (deduplication, swappable effects, fewer bugs). Approve the investment only when projected return clears total cost over a realistic horizon — and re-evaluate as the team and product change.
-
-### The "implementation predicts the bill" model
-
-Want to know where HKTs will hurt? Ask how the language implements generics. Dictionary-passing (Haskell/Scala) → pay in compile-time search + runtime indirection. Monomorphization (Rust/C++) → pay in code size + resolution complexity, which is why those languages resist HKTs. The cost is not mystical; it falls out of the compilation strategy.
-
-### The "reversibility" model
-
-Don't ask only "is this the right abstraction?" Ask "how expensive is it to undo if I'm wrong?" Generalizing later is usually harder than specializing later, so under uncertainty, lean toward the structure that's cheaper to reverse *in your situation*. Make the effect a parameter *if* you're fairly sure you'll need a second effect; otherwise stay concrete and generalize on demand.
-
-### The "invisible to the consumer" model
-
-A well-deployed HKT abstraction is one most of your team never has to understand. If application engineers call `traverse` and `flatMap` and never see a kind or a `Kind<F,A>`, you've contained the cost to the few who maintain the core. If `F[_]` and implicit-resolution errors bleed into everyone's daily work, you've socialized a cost that should have been quarantined.
-
----
-
 ## Code Examples
 
 ### Measuring the reuse: N hand-written copies vs one `traverse`
@@ -223,29 +150,6 @@ runReport :: Monad m => Sink m -> [Row] -> m Report
 
 ---
 
-## Pros & Cons
-
-| Aspect | Pros | Cons |
-|--------|------|------|
-| **Deduplication ROI** | Removes N drifting copies of `traverse`/validation/retry across effects — strictly less code when you have many effects. | No ROI (pure overhead) when there's one effect; classic speculative generality. |
-| **Compile time** | Dictionary passing compiles generic code once. | Implicit/given resolution and derivation can dominate Scala build times; monomorphizing constructor-generics (Rust/C++) bloats binaries. |
-| **Runtime** | Modern effect runtimes (Cats-Effect/ZIO) make effect-polymorphism nearly free. | Naive transformer towers cost per-layer allocation/indirection on hot paths. |
-| **Human factors** | Force-multiplier for FP-fluent teams; fewer ad-hoc bugs. | Slows review, lengthens onboarding, shrinks hiring pool and bus factor. |
-| **Reversibility** | Generic→concrete specialization is cheap; keeps options open. | Concrete→generic under deadline is costly; over-generalizing upfront is hard to walk back socially. |
-| **Library design** | Mature libs hide the machinery; users just call combinators. | Inference fragility and (JVM) binary-compat hazards in HKT public APIs; encoding leaks if undisciplined. |
-
----
-
-## Use Cases
-
-**Adopt broadly when:** FP-fluent team, native-HKT primary language, many recurring effects/containers, effect-swappability is an architectural goal (e.g. a Scala/ZIO shop building a service platform; a Haskell backend with `mtl`/effect libs).
-
-**Contain to a module when:** a specific subsystem (validation engine, parser, streaming/data pipeline, a typed-FP library you ship) gets large benefit, but the wider team isn't FP-fluent — HKTs inside, plain API outside.
-
-**Avoid (for now) when:** the language lacks native HKTs and encoding cost dominates (Rust today, Go always, most native-TS app teams); single effect with no foreseeable second; onboarding speed / broad hiring is a hard constraint; build-time budget is already strained.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Make the adopt/contain/avoid call explicitly, in writing
@@ -296,26 +200,24 @@ Track CI and local compile times when introducing typeclass-heavy code. If a der
 
 ---
 
-## Summary
+## Apply it
 
-- **HKTs are a capital investment.** Acquisition cost (learning, tooling), operating cost (compile time, readability, hiring/bus factor), return (deduplication, swappable effects, fewer bugs). Approve only when the return clears the total cost for *this* team/language/product/horizon.
-- **The implementation strategy predicts the bill:** dictionary-passing languages (Haskell/Scala) pay in compile-time resolution + runtime indirection; monomorphizing languages (Rust/C++) pay in code size + resolution complexity — the structural reason Rust resists HKTs.
-- **Compile time is the most underrated tax,** especially in Scala (implicit/given resolution, derivation). Measure it; it often decides adoption independent of runtime.
-- **Runtime cost is about transformer towers, not the abstraction itself.** Modern effect runtimes (Cats-Effect, ZIO) and the ReaderT/RIO pattern keep effect-polymorphism while shedding per-layer overhead.
-- **The human ledger usually dominates:** review speed, onboarding, hiring pool, bus factor. HKTs are a force-multiplier for fluent teams and a liability for unprepared ones — the call is sociotechnical.
-- **Library-grade HKT design means hiding the machinery,** law-testing instances, and treating the typeclass surface as an inference-fragile, binary-compat-sensitive contract.
-- **Use a decision framework:** adopt (fluent team, native HKTs, many effects, swappability needed) / contain-to-a-module (one subsystem benefits, team isn't fluent) / avoid (no native support, single effect, onboarding/hiring constraints, tight build budget) — and keep the bet **reversible**, biasing toward the cheaper-to-undo direction.
-- **The professional move is to argue from the ledger, contain the cost, measure the build, and design for reversal** — not to crown or condemn the abstraction on taste.
+1. Define the user or business outcome that **Higher-Kinded Types** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
----
+## Verify your work
 
-## Further Reading
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
 
-- "The ReaderT Design Pattern" — Michael Snoyman (FP Complete). The pragmatic alternative to transformer towers. https://www.fpcomplete.com/blog/2017/06/readert-design-pattern/
-- ZIO documentation and design rationale — `ZIO[R, E, A]` as effect-polymorphism without transformer overhead. https://zio.dev/
-- Cats-Effect documentation — a fused, optimized effect runtime. https://typelevel.org/cats-effect/
-- John A. De Goes, "The Death of Final Tagless" and the surrounding debate — a candid industry argument about HKT-heavy design ROI.
-- "Scala Compile Time" investigations / sbt build-time profiling guides — measuring the implicit/derivation tax.
-- Kotlin Arrow's evolution away from heavy HKT emulation — a real-world retrospective on the ergonomics ceiling.
-- *Functional and Reactive Domain Modeling* — Debasish Ghosh. HKT-based design in production Scala, with trade-offs discussed.
-- Niko Matsakis & the Rust lang team posts on GATs vs HKTs — why Rust shipped one and not the other.
+## Review questions
+
+- Which measurable outcome justifies investing in Higher-Kinded Types?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

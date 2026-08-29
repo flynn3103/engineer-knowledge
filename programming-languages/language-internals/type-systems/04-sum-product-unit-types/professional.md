@@ -1,55 +1,11 @@
-# Sum, Product & Unit Types — Professional Level
+# Sum, Product & Unit Types — Professional
 
-> **Topic:** Sum, Product & Unit Types
-> **Focus:** How compilers actually implement ADTs — discriminant encoding, niche/payload packing, GADTs and indexed sums, the category theory that makes folds principled, and the cross-language ABI/representation reality that bites you at scale.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Sum, Product & Unit Types** with measurable outcomes and limited coordination?
 
-## Introduction
-
-> Focus: **The implementation, the theory underneath, and the seams.** A professional understands ADTs from three angles at once — the bytes the compiler emits, the category theory that says *why* the design is canonical, and the brutal practical reality of moving these types across language and version boundaries.
-
-This page assumes you can already design with sums and products fluently and you've internalized the algebra and the architecture. Here we go down to where it gets interesting and where the abstractions leak:
-
-- **Representation engineering.** Exactly how a discriminant is encoded; how niche/payload optimization is computed; arity-0 vs arity-N variants; layout guarantees (and the lack of them); how `Option`, `Result`, and enums-of-pointers compile down to almost nothing.
-- **GADTs and indexed sums.** When the *variant you matched* refines a *type variable* — the leap from "sum of types" to "sum where each case carries a type equation." This is how you build a well-typed AST evaluator with no runtime type errors, and it's where ADTs touch dependent types.
-- **The category theory, used not worshipped.** Sums are coproducts, products are products, Unit is the terminal object, Void is the initial object, function types are exponentials — and an ADT is the *initial algebra of a polynomial functor*. This isn't decoration: it's *why* the fold is unique, *why* deriving `map`/`fold`/`traverse` is mechanical, and *why* the algebra of types is sound.
-- **Cross-boundary reality.** ABI stability, FFI, serialization, schema evolution, and versioning. The moment a sum type crosses a process, a wire, or a release boundary, "tagged union" becomes a tag-compatibility problem, and the elegant closed-world exhaustiveness becomes an open-world forward/backward-compatibility problem.
-
-> 🎓 **Why this matters at the professional level:** At this depth you're the person who decides the on-disk format, the FFI contract, the compiler flag, or the schema-evolution policy. Those decisions are where the clean theory meets memory layout, ABI, and version skew — and getting them wrong corrupts data, breaks rollbacks, and creates undefined behavior. You're also the person who can say *why* a design is canonical (initial algebra) rather than merely *that it works*.
-
----
-
-## Prerequisites
-
-- **Required:** Junior/middle/senior pages — algebra, layout basics, the expression problem, illegal-states methodology.
-- **Required:** Working knowledge of generics/parametric polymorphism, traits/typeclasses, and at least one language with native sums *and* one without.
-- **Required:** Comfort reading about memory layout, alignment, and pointers; some exposure to an IR or assembly is helpful.
-- **Helpful:** Any prior contact with serialization formats (protobuf, JSON, bincode) and schema evolution.
-- **Helpful:** Loose familiarity with the words *functor*, *initial object*, *coproduct* — we'll define them operationally.
-
-You do **not** need a category-theory course; we use it as an engineering tool, defining each notion by what it buys you.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Discriminant** | The integer value identifying a sum's active variant. May be a separate field or niche-encoded. |
-| **Niche** | An invalid/unused bit pattern of a type that the compiler repurposes to encode a discriminant for free. |
-| **Tag-free / unboxed sum** | A sum represented without a separate tag, using niches (e.g. `Option<&T>`, `Option<NonZero…>`). |
-| **GADT** | Generalized Algebraic Data Type: a sum where each constructor can constrain/refine the type parameters of the result. |
-| **Indexed type** | A type parameterized by a value or another type used as an "index" (`Vec<n>`, `Expr<T>`), enabling type-refining matches. |
-| **Coproduct** | The category-theory name for a sum/disjoint-union; the dual of a product. |
-| **Initial object** | The object with a unique morphism *to* every object; Void. (Terminal = Unit, unique morphism *from* every object.) |
-| **Polynomial functor** | A functor built from `+`, `×`, constants, and the identity; every (regular) ADT is the initial algebra of one. |
-| **Catamorphism / anamorphism** | The unique fold out of / unfold into a recursive type. |
-| **Traverse / Traversable** | Mechanically derivable "map with effects" over an ADT's shape, fundamental to (de)serialization. |
-| **ABI stability** | Whether a type's binary representation is guaranteed stable across compiler versions/builds. |
-| **Tag compatibility** | Whether two endpoints agree on which integer means which variant — the wire-format version of exhaustiveness. |
-| **Open-world / closed-world** | In-process sums are closed (full variant set known); cross-version/wire sums are open (unknown future variants). |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -145,37 +101,6 @@ The professional stance: **in-process, exploit closed-world exhaustiveness; on t
 - **Branch prediction on the discriminant.** A hot match is a switch on the tag; arranging the common case first, or using jump tables, affects throughput. Profile-guided optimization helps.
 - **Struct-of-arrays for bulk sums.** Storing a `Vec<Enum>` wastes the max-variant size per element; splitting into per-variant arrays (an SoA / "columnar" representation) can dramatically cut memory and improve vectorization for data-parallel workloads.
 - **Tagged pointers** (steal low/high pointer bits for a small tag) are a manual niche trick used in VMs and allocators when you control the layout.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Niche encoding** | Writing the apartment number in the otherwise-blank margin of the envelope instead of adding a second label. |
-| **GADT type refinement** | A coat-check ticket whose color *guarantees* which rack your coat is on — handing it back can't retrieve the wrong type of item. |
-| **Initial algebra / unique fold** | A single universal adapter that any device can plug into; there's exactly one way it connects. |
-| **Polynomial functor deriving** | A stamping machine that, given the *shape* of a part, automatically produces its inspection routine. |
-| **ABI instability** | A power plug whose pin layout the manufacturer reshuffles between batches — fine inside one device, disastrous across vendors. |
-| **Tag compatibility on the wire** | Two countries agreeing that "code 3" means the same thing; if one renumbers, messages mean different things. |
-| **Unknown-variant handling** | A form field "Other (please specify)" so newer categories don't break older readers. |
-| **Struct-of-arrays sum** | A filing cabinet with one drawer per document type, instead of one fat folder sized for the biggest document. |
-
----
-
-## Mental Models
-
-### The "Three Representations" Model
-
-For any sum, hold three views simultaneously: the **algebraic** (`1 + A`, cardinality), the **physical** (tag-or-niche, size, alignment, boxing), and the **boundary** (wire tag, ABI, evolution rules). Most production bugs at this level come from reasoning in one view while the problem lives in another — e.g. assuming algebraic equivalence implies wire compatibility (it doesn't), or assuming in-process layout is the FFI contract (it isn't).
-
-### The "Closed In, Open Out" Model
-
-Inside the process, your sums are **closed worlds**: the compiler knows every variant, so exhaustiveness is your safety net — exploit it ruthlessly (no wildcards). The instant a value crosses a wire or a version boundary, you're in an **open world**: future variants exist that today's code can't enumerate, so design for unknowns explicitly. The same `enum` plays both roles; the engineering discipline flips at the boundary.
-
-### The "Initial Algebra = One True Fold" Model
-
-When you define a recursive ADT, you're not just declaring data — you're declaring the *initial algebra of a polynomial functor*, which comes with a **unique** fold. Every legitimate recursive operation over that type is "the fold with a particular algebra." If you find yourself hand-writing bespoke recursion that *isn't* a fold, ask whether you've smuggled in non-structural recursion (which may not terminate and definitely isn't free to derive).
 
 ---
 
@@ -317,29 +242,6 @@ struct Column {
 
 ---
 
-## Pros & Cons
-
-| Aspect | Pros | Cons |
-|--------|------|------|
-| **Representation** | Niche/unboxed sums make `Option`/`Result`/pointer-enums effectively free; fieldless enums are bare integers. | Size is variant-max; no-niche payloads pay a full tag; layout is compiler-dependent without `repr`. |
-| **GADTs / indexed sums** | Type-refining matches eliminate whole classes of runtime type errors (typed ASTs, length-indexed vectors). | Heavy type machinery; poor support outside Haskell/OCaml; can wreck type inference and error messages. |
-| **Category theory** | Justifies uniqueness of folds, mechanical deriving of map/fold/traverse, and soundness of the algebra. | Conceptual overhead; easy to over-intellectualize a simple datatype. |
-| **FFI/ABI** | `repr(C)`-style controls give a precise, documented binary contract. | Default layouts are unstable; manual tag+union reconstruction for C; easy to create UB. |
-| **Serialization/evolution** | `traverse`-based generic codecs; sums map cleanly to wire unions. | Open-world version skew defeats exhaustiveness; tag stability and unknown-handling are mandatory and error-prone. |
-
----
-
-## Use Cases
-
-- **Compiler/VM internals:** typed ASTs via GADTs; tagged-pointer value representations; niche-packed option types pervasive in hot data structures.
-- **High-performance data systems:** columnar/SoA layouts for heterogeneously-typed cells; manual tag encoding; cache-conscious sum design.
-- **FFI boundaries:** exposing tagged unions to C via `repr(C, u8)`; mirroring the tag+union on the foreign side.
-- **Wire protocols and storage formats:** designing evolvable sum encodings (protobuf `oneof`, Thrift/Avro/Cap'n Proto unions) with stable tags and unknown-variant tolerance.
-- **Generic libraries:** serde/aeson-style codecs and `#[derive]`/`deriving` machinery built on the polynomial-functor view (map/fold/traverse).
-- **Type-level guarantees:** length-indexed vectors, well-scoped/well-typed term representations, session-typed protocols built on indexed sums.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Pin discriminants and design for unknowns at every boundary
@@ -395,85 +297,24 @@ When storing millions of sum values in a hot scan path, split into per-variant c
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. Predict `size_of` for: `Option<&u8>`, `Option<u8>`, `Option<NonZeroU8>`, `Result<(), &u32>`, `Option<Option<&u8>>`. Explain each in terms of niches, then check against the compiler.
-2. Write a GADT-typed mini-language with `Int`, `Bool`, `Add`, `If`, and `Eq`, and an `eval` whose return type is refined per branch. Show a term that fails to typecheck and say why.
-3. Explain why a recursive ADT's fold is *unique*, using the words "initial algebra" and "polynomial functor." What goes wrong if you write recursion that isn't a fold?
-4. Your service persists an enum to disk. List the exact compatibility consequences of (a) adding a variant, (b) removing a variant, (c) reordering two variants. Which are safe for old readers? old writers?
-5. You must hand a data-carrying enum to a C library. Which `repr` do you choose, what does the C side declare, and what change to your enum is now an ABI break?
-6. Why is `traverse` the right abstraction for decoding a list of fields? When would you *not* use the `Result` applicative, and what would you use instead?
-7. Given `Vec<enum Cell { Empty, Int(i64), Text(String) }>` with 100M elements, 90% `Empty`, estimate the memory waste of the array-of-sums layout and describe the SoA alternative.
-8. Two services exchange a sum; one is upgraded with a new variant. Trace what happens at the old consumer with and without an `Unknown(tag, raw)` branch. What additional care does a *relay* service need?
+1. Define the user or business outcome that **Sum, Product & Unit Types** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
----
+## Verify your work
 
-## Cheat Sheet
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
 
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│            ADTs UNDER THE HOOD (professional view)              │
-├──────────────────────────────────────────────────────────────────┤
-│ DISCRIMINANT ENCODING                                            │
-│   explicit tag : separate int; size ≈ tag + max(payload)         │
-│   niche        : hide tag in invalid bit patterns (FREE)         │
-│     Option<&T>=8  Option<NonZero>=inner  Option<Box>=ptr         │
-│   fieldless enum = bare integer (a C enum)                       │
-├──────────────────────────────────────────────────────────────────┤
-│ GADT / indexed sum: matched variant REFINES the type            │
-│   typed AST eval :: Expr a -> a, no runtime type errors          │
-│   on-ramp to dependent types (indexed = Σ-flavored sums)        │
-├──────────────────────────────────────────────────────────────────┤
-│ CATEGORY THEORY (as a tool)                                      │
-│   product=product  sum=coproduct  Unit=terminal(1) Void=init(0)  │
-│   function=exponential  ⇒  cartesian closed                      │
-│   recursive ADT = INITIAL ALGEBRA of a POLYNOMIAL FUNCTOR        │
-│     ⇒ fold is UNIQUE; map/fold/traverse are DERIVABLE            │
-│     ⇒ |A+B|=|A|+|B| is a semiring homomorphism (why algebra works)│
-├──────────────────────────────────────────────────────────────────┤
-│ CLOSED IN, OPEN OUT                                              │
-│   in-process : closed world → exploit exhaustiveness, no wildcard │
-│   on the wire: open world → STABLE tags + Unknown(tag,raw)       │
-│   reorder variants = renumber discriminants = corrupt old data   │
-├──────────────────────────────────────────────────────────────────┤
-│ FFI: never default-repr; use repr(C)/repr(C,u8) = tag + C union  │
-│ PERF: box fat variant; niche-friendly payloads; SoA for bulk     │
-└──────────────────────────────────────────────────────────────────┘
-```
+## Review questions
 
----
-
-## Summary
-
-- A sum's **representation** spans a spectrum: explicit tag → **niche** packing (free, e.g. `Option<&T>`, `Option<NonZero…>`) → bare integer for fieldless enums. Cardinality tells you nothing about size; you must know the niche situation.
-- **GADTs / indexed sums** let the matched variant **refine a type variable**, giving typed ASTs and length-indexed data with *no runtime type errors* — the bridge from "sum of types" toward dependent types.
-- The **category theory is an engineering tool**: products are products, sums are coproducts, Unit is terminal, Void is initial, functions are exponentials, and a recursive ADT is the **initial algebra of a polynomial functor**. That's *why* the fold is unique, *why* `map`/`fold`/`traverse` derive mechanically, and *why* the type algebra is sound (a semiring homomorphism).
-- **`traverse`** over the polynomial shape is the principled core of generic (de)serialization — and you must choose the applicative deliberately (short-circuit vs error-accumulation).
-- **Across boundaries the world flips from closed to open.** In-process, exploit exhaustiveness ruthlessly; on the wire/disk, design for unknown future variants with **stable, pinned discriminants** and an explicit `Unknown(tag, raw)` policy. Reordering variants renumbers tags and corrupts persisted data.
-- **FFI** demands `repr(C)`/`repr(C, u8)` to pin a tag+union layout; default layouts are unstable and unsafe to share. **Performance** levers include boxing fat variants, niche-friendly payloads, struct-of-arrays for bulk, and tagged pointers.
-- The professional skill is holding the **algebraic, physical, and boundary** representations at once and knowing which view the current decision belongs to.
-
----
-
-## What You Can Build
-
-- **A layout explorer** that prints size/alignment and the chosen discriminant encoding (tag vs niche) for a battery of sum types, demonstrating null-pointer and `NonZero` optimizations and the "box the fat variant" shrink.
-- **A GADT-typed expression interpreter** (ints, bools, comparisons, conditionals) that statically rejects ill-typed terms, plus a write-up of which branches the type checker proves impossible.
-- **A generic codec** built on derived `Foldable`/`Traversable` (or a hand-written polynomial walker) that serializes and deserializes arbitrary ADTs, with an option to *accumulate* all validation errors instead of short-circuiting.
-- **A schema-evolution test harness**: persist version-1 sum data, evolve the enum (add/remove/reorder variants), and assert exactly which changes old readers/writers survive — proving why discriminant pinning and `Unknown` handling matter.
-- **An FFI tagged-union bridge**: a `repr(C, u8)` Rust enum, the matching C `struct { tag; union; }`, and round-trip tests across the boundary, including a deliberate variant-reorder to show the ABI break.
-- **A columnar (SoA) store** for a heterogeneously-typed column, benchmarked against the naive `Vec<Enum>` for memory footprint and scan throughput.
-
----
-
-## Further Reading
-
-- "Generalized Algebraic Data Types and Object-Oriented Programming" / Peyton Jones et al. on GADTs; the GHC and OCaml manuals' GADT chapters.
-- *Category Theory for Programmers* — Bartosz Milewski. Products/coproducts, initial/terminal objects, exponentials, F-algebras, and catamorphisms for working programmers.
-- "Functional Programming with Bananas, Lenses, Envelopes and Barbed Wire" — Meijer, Fokkinga, Paterson. The origin of recursion schemes (cata/ana/hylo).
-- The Rust Reference, "Type layout," plus the Rustonomicon on `repr` and FFI — niche optimization, discriminants, and the C-compatible union representation. https://doc.rust-lang.org/nomicon/
-- "The Derivative of a Regular Type is its Type of One-Hole Contexts" — Conor McBride. The algebra/calculus of ADTs taken seriously.
-- The Protocol Buffers, Apache Thrift, Apache Avro, and Cap'n Proto specs — real-world rules for evolving `oneof`/union schemas (tag stability, unknown handling).
-- *The Implementation of Functional Programming Languages* — Simon Peyton Jones. How constructors, tags, and pattern matching are compiled.
-- "An Applicative for Validation" / `Data.Validation` docs — error-accumulating traversal vs short-circuiting `Either`.
-- Andres Löh, "A Generic Deriving Mechanism" / GHC Generics — the polynomial-functor view powering derivable type classes.
+- Which measurable outcome justifies investing in Sum, Product & Unit Types?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

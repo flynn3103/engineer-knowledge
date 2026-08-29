@@ -1,30 +1,12 @@
-# Ownership & Borrowing — Senior Level
+# Ownership & Borrowing — Senior
 
-> **Topic:** Ownership & Borrowing
-> **Focus:** Ownership as a language-design decision — what it buys, what it gives up, how it compares to tracing GC and other ownership-influenced languages, and where its model has hard edges.
+<!-- level-focus -->
+At senior level, focus on this question:
 
+> Which system invariant is affected by **Ownership & Borrowing** under failure, load, and change?
+
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
-
-## Introduction
-
-By now the mechanics are familiar. The senior question is *architectural*: ownership is a specific point in the design space of memory management, and choosing it (or rejecting it) has consequences that ripple through an entire codebase. This page treats ownership as a language-design decision. We compare it honestly against tracing garbage collection — not as "Rust good, GC bad," but as two different answers to the same problem with different bills. We place Rust in the lineage of ownership-influenced languages (Cyclone, C++ `unique_ptr`, Swift, Val/Hylo). And we confront the model's structural limits: cyclic graphs, self-referential data, and the cases where the zero-cost guarantee genuinely costs you in expressiveness or developer time.
-
-The thesis: ownership trades **flexibility for determinism**. It moves the cost of memory safety from runtime (where a GC spends CPU and pause time) to compile time and to the programmer's head (where you spend design effort). For a large class of systems that trade is overwhelmingly worth it. For some shapes of data, it is not — and a senior engineer knows the difference.
-
-## Prerequisites
-
-- Middle-level fluency: lifetimes, NLL, aliasing XOR mutability, `Rc`/`Arc`/`RefCell`/`Box`/`Weak`.
-- Working knowledge of how tracing garbage collectors operate (reachability, mark-sweep/copying, generational collection, stop-the-world vs concurrent).
-- Familiarity with RAII in C++ and with reference counting as a GC technique.
-
-## Glossary
-
-- **RAII (Resource Acquisition Is Initialization)** — tying a resource's lifetime to an object's scope; cleanup runs in the destructor. Ownership is RAII generalized and enforced by the compiler.
-- **Tracing GC** — a collector that periodically finds all reachable objects from roots and frees the rest.
-- **Affine type system** — a type system where a value can be used *at most once*. Rust's move semantics are affine: after a move, the source is unusable.
-- **Region-based memory management** — allocating into regions whose lifetimes are statically known; the ancestor of Rust lifetimes (Cyclone, MLKit).
-- **`Pin<P>`** — a guarantee that a value will not be moved in memory, enabling self-referential and async types.
-- **Move semantics (C++)** — transferring resources from one object to another, leaving the source in a valid-but-unspecified state.
 
 ## Core Concepts
 
@@ -68,14 +50,6 @@ Rust did not invent ownership; it productized a research lineage and pushed it m
 - **Val / Hylo** — a research language built on **mutable value semantics**: you program as if everything is a value (no visible references), and the compiler uses borrowing under the hood to avoid copies. An attempt to keep ownership's safety while removing lifetime annotations from the surface language.
 
 The trend across all of these is the same: push memory-safety proofs to compile time, and make aliasing and mutation explicit. Rust is the current mainstream high-water mark; it is not the end of the line.
-
-## Mental Models
-
-**Ownership is "pay at compile time, not runtime."** A GC amortizes safety cost across the program's *execution*. Ownership front-loads it onto the program's *authoring*. The total cost may even be higher with ownership (you think harder), but it lands where latency-sensitive systems can afford it: on the developer's clock, not the user's request.
-
-**The borrow checker is sound but incomplete — and that's a deliberate design stance.** It will reject some safe programs rather than ever accept an unsafe one. The language designers chose this asymmetry knowingly: a false rejection costs you a refactor; a false acceptance costs the world a CVE. `unsafe` exists as the explicit "I'll prove this one myself" override.
-
-**Cyclic data is the model's natural enemy.** Whenever you find yourself fighting ownership badly, ask: *is my data a general graph?* If yes, stop fighting and switch representation — arena + indices, or `Rc<RefCell>` + `Weak` — rather than torturing the borrow checker.
 
 ## Code Examples
 
@@ -123,22 +97,6 @@ In a GC language, the socket closes "eventually," when a finalizer runs — or n
 - **Escape hatches are a spectrum, not a cliff.** `Box` → `Rc`/`Arc` → `RefCell`/`Mutex` → arena indices → `unsafe` is a ladder of increasing flexibility and decreasing static guarantee. Senior judgment is climbing exactly as high as the problem requires and no higher.
 - **`unsafe` is a containment boundary, not an off-switch.** Good Rust isolates `unsafe` behind safe APIs that uphold invariants (the way `Vec`, `Rc`, and `Mutex` are implemented). The goal is a small, audited unsafe core under a large safe surface.
 
-## Pros & Cons
-
-**Pros**
-
-- Deterministic latency and footprint; no GC tuning, no pause budget.
-- Memory **and** thread safety from one unified model (aliasing XOR mutability does both).
-- RAII for *all* resources, not just memory — the underrated everyday win.
-- Optimizer benefits: `&T` non-aliasing assumptions unlock optimizations a GC heap can't.
-
-**Cons**
-
-- General graphs, cyclic, and self-referential structures are awkward and sometimes require `unsafe` or arenas.
-- High upfront design cost and a real learning curve; team onboarding is slower.
-- Reference-counting escape hatches (`Rc`/`Arc`) reintroduce a GC-like cost *and* its cycle-leak problem — without the GC's cycle collection.
-- The model can be *the wrong tool*: for a throwaway script or a graph-heavy domain, GC is simply more productive.
-
 ## Best Practices
 
 - **Design ownership before writing code.** Sketch the ownership tree of your domain types first; the borrow checker is mostly enforcing decisions you should have made consciously anyway.
@@ -155,6 +113,26 @@ In a GC language, the socket closes "eventually," when a finalizer runs — or n
 - **Over-cloning to escape the checker.** Sprinkling `.clone()` to silence errors can quietly turn an O(1) program into an O(n) one. The clone is a real cost the GC version wouldn't pay; treat repeated clones as a design smell.
 - **Mistaking `Rc<RefCell<T>>` for free.** It's effectively single-threaded GC with runtime borrow checks and panic risk — most of what ownership was supposed to avoid. Sometimes correct, but never the "default safe" choice it looks like.
 
-## Summary
+---
 
-Ownership is a deliberate trade: **flexibility and developer convenience for determinism and a runtime-free safety guarantee**. Compared to tracing GC, it gives up automatic cycle collection and low cognitive load to win bounded latency, a tight footprint, and deterministic release of *all* resources via RAII — its most underrated advantage. It descends from a real research lineage (Cyclone's regions, affine types) and is echoed by C++ `unique_ptr`, Swift's ownership work, and Val/Hylo's mutable value semantics. The model's hard edge is cyclic and self-referential data, which a senior engineer routes around with arenas, `Weak`, or carefully contained `unsafe` rather than fighting the borrow checker. Choosing ownership is choosing where to pay the safety bill — at compile time and in design, not at runtime.
+## Apply it
+
+1. State the system invariant that **Ownership & Borrowing** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
+
+## Verify your work
+
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
+
+## Review questions
+
+- Which invariant must remain true when Ownership & Borrowing fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

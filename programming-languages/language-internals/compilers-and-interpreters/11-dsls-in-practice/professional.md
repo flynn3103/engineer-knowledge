@@ -1,58 +1,11 @@
-# DSLs in Practice — Professional Level
+# DSLs in Practice — Professional
 
-> **Topic:** DSLs in Practice
-> **Focus:** The strategic and organisational side of external DSLs — build-vs-buy, total cost of ownership, governance of a language many teams depend on, ANTLR-vs-hand-written at production scale, and the long, unglamorous life of maintaining and eventually retiring a language your company runs on.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **DSLs in Practice** with measurable outcomes and limited coordination?
 
-## Introduction
-
-> Focus: **Should this organisation build a DSL at all — and if so, how does it own one for a decade without it becoming a tax?**
-
-At the senior level the question was "how do I run this DSL safely and fast?" At the professional level it is "should this language exist, who owns it, and what does it cost the company over its whole life?" These are mostly *not* parsing questions. They are product, platform, and governance questions, and getting them wrong produces the worst kind of technical debt: a homegrown language that a critical workflow depends on, that one person understood, that has no tooling, no spec, and no exit.
-
-The defining fact of a production DSL is its **total cost of ownership (TCO)**. The parser is the cheap part — often a week or two. The expensive parts are everything that follows: the language server, the formatter, the documentation, the playground, the migration tooling, the security review of every builtin, the on-call when a customer's formula hangs a worker, the onboarding of every new engineer who must learn a language that exists nowhere else, and the eventual, painful deprecation. A DSL is a *product with users*, and like any product it must be staffed, supported, versioned, and someday sunset.
-
-This level covers:
-
-- **Build-vs-buy-vs-config.** When a DSL is the right answer versus a library, a config schema, an existing language (embed Lua/Starlark/CEL), or an internal DSL. The default should be *not* to build a language.
-- **ANTLR vs hand-written at scale.** The real organisational trade-off: a grammar as the single source of truth and broad tooling, versus maximal control over errors and zero build dependency. Both ship at large companies; the choice is about team, longevity, and error-quality requirements.
-- **Governance.** Who owns the grammar? How are changes reviewed when many teams write the language? How do you keep a DSL from forking into dialects?
-- **Lifecycle and exit.** Migration tooling, deprecation policy, and the question every DSL eventually faces: keep it, or migrate users off it?
-
-The internal/external choice is itself a TCO decision here. Embedding an existing safe language (Lua, **Starlark**, Google's **CEL**, WASM) is often the wise middle path: you get an external-style sandboxed expression surface *without* building and maintaining a parser, evaluator, and tooling from scratch. Building a fully bespoke external DSL is justified only when no existing language gives you the syntax, semantics, or guarantees the domain demands — and you can fund it forever.
-
-> 🎓 **Why this matters at the professional level:** The most expensive DSL mistakes are organisational, not technical: building a language that should have been a config schema; letting an unowned grammar drift into dialects; or shipping a DSL with no migration path and discovering, years later, that you cannot change it because thousands of customer files would break. This page is about not making those mistakes.
-
----
-
-## Prerequisites
-
-- **Required:** The senior-level material — compiling vs interpreting, sandboxing untrusted input, grammar versioning, and the tooling burden.
-- **Required:** Experience owning a long-lived component: deprecation, backward compatibility, on-call, and the reality of migrating real users.
-- **Helpful:** Familiarity with at least one embeddable language (Lua, Starlark, CEL, WASM, Jsonnet) as an *alternative* to building your own.
-- **Helpful:** Having participated in a build-vs-buy decision and seen its consequences play out over years.
-
-This level is deliberately light on new code; the leverage is in judgment, not syntax.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **TCO (total cost of ownership)** | The full lifetime cost of a DSL: build, tooling, docs, support, security review, onboarding, migration, deprecation. Dominated by everything after the parser. |
-| **Build-vs-buy** | The decision to create a bespoke DSL versus adopting an existing language/library/config format. |
-| **Embeddable language** | An existing sandboxable language you host instead of writing your own: Lua, **Starlark** (Bazel's Python subset), **CEL** (Google's Common Expression Language), **WASM**, Jsonnet. |
-| **Governance** | The process and ownership model for changing a shared language: who approves grammar changes, how dialects are prevented. |
-| **Dialect drift** | When teams extend or fork the DSL locally, producing incompatible variants of "the same" language. |
-| **Conformance suite** | The authoritative corpus of programs + expected results that defines what the language *is*, independent of any one implementation. |
-| **Spec** | A written, versioned definition of the grammar and semantics — the source of truth a parser must match. |
-| **Sunset / deprecation** | The managed removal of a DSL or a feature, with timelines, warnings, and migration tooling. |
-| **Lock-in (good and bad)** | Users investing in DSL files. Good: adoption. Bad: it constrains your ability to change or retire the language. |
-| **Bus factor** | How many people understand the DSL implementation. A bus factor of one is a top organisational risk for homegrown languages. |
-| **ANTLR** | A parser generator: grammar `.g4` → generated lexer/parser/visitor in many languages. The common "buy" option for the front end. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -115,31 +68,6 @@ Every DSL eventually faces one of three fates: it thrives (and the TCO is justif
 - **Migration tooling** (the AST-to-source printer again) turns "we must rewrite thousands of files" into "we ran a tool."
 - **A deprecation policy** with timelines and warnings prevents indefinite limbo.
 - **An honest periodic review:** is the language still worth its TCO, or should users migrate to an embeddable language or a library? Killing a DSL that has outlived its value is a senior-leadership win, not a failure.
-
----
-
-## Real-World Analogies
-
-**A DSL is a company pet that becomes a company dependency.** Adopting it is a few hours; feeding, vet bills, and finding a sitter for the next decade is the real commitment. Adopt only if you can care for it for its whole life.
-
-**Build-vs-buy is renting power tools vs forging your own.** CEL/Starlark/Lua are the rental counter: standardised, maintained, good enough for almost everyone. Forging a bespoke language is justified only when no tool on Earth has the shape you need — and you accept becoming the blacksmith forever.
-
-**Governance is keeping one shared language one language.** Without a spec owner, a company-wide DSL fragments into per-team dialects the way a shared codebase fragments into incompatible forks — each locally convenient, collectively unmaintainable.
-
-**The conformance suite is the constitution.** The parser is one administration's interpretation; the suite is the law that every implementation and every version must obey. When they disagree, the suite wins.
-
-**ANTLR vs hand-written is a prefab house vs an architect-built one.** Prefab (ANTLR) goes up fast from a standard plan and is easy to replicate; architect-built (hand-written) gives a perfect, bespoke result and flawless finish, at higher cost and craft.
-
----
-
-## Mental Models
-
-- **A DSL is a product, not a feature.** It needs an owner, a roadmap, support, docs, and an end-of-life plan. Treat it like one or it rots.
-- **The parser is 5% of the cost.** Decisions that only weigh build effort are wrong by an order of magnitude. Weigh the lifetime.
-- **Prefer to host an existing language over inventing one.** CEL/Starlark/Lua/WASM give external-DSL safety and power without owning a front end and tooling. Bespoke is the exception, not the default.
-- **A spec + conformance suite, not an implementation, defines the language.** This is what lets you have multiple back ends, multiple versions, and a migration path without ambiguity.
-- **Lock-in cuts both ways.** Every user file is adoption *and* a constraint on your freedom to change. Design migration tooling early so lock-in never becomes a trap.
-- **Bus factor one is an incident waiting to happen.** A homegrown language understood by a single engineer is among the riskiest assets an org can hold.
 
 ---
 
@@ -211,33 +139,6 @@ Because you own the parser *and* the printer, "we changed the language" becomes 
 
 ---
 
-## Pros & Cons
-
-**Building a bespoke external DSL** — *for:* perfect fit to the domain, full control of syntax/semantics/safety, a differentiator if the language *is* the product; *against:* enormous lifetime TCO, onboarding tax, bus-factor risk, and a permanent dependency that exists nowhere else.
-
-**Embedding an existing language (CEL/Starlark/Lua/WASM)** — *for:* sandboxed external-style power with a fraction of the cost; inherited spec, implementation, and often tooling; transferable skills; *against:* you accept that language's syntax and limits; integration and version-tracking work; less perfect a fit.
-
-**Config schema** — *for:* cheapest, declarative, fully tooled, safe; *against:* cannot express logic; tempts feature creep toward an accidental language.
-
-**Library / internal DSL** — *for:* zero parser, host tooling, low cost; *against:* tied to host syntax and one language; no domain-specific errors; weaker untrusted-input story.
-
-**ANTLR front end** — *for:* grammar-as-spec, multi-language generation, fast for big grammars; *against:* build dependency, generic errors by default, a tool to maintain.
-
-**Hand-written front end** — *for:* superb errors, no deps, LSP-friendly; *against:* more code to own, no single grammar artifact unless you keep a spec.
-
----
-
-## Use Cases
-
-- **Policy/authorization expressions** → embed **CEL** rather than building one; it is purpose-built, total, and sandboxed.
-- **Deterministic build/config logic** → **Starlark** (as Bazel does) rather than a homegrown config language with creeping features.
-- **General embedded scripting** → **Lua** or **WASM** for plugins and user extensions, sandboxed by the host.
-- **A bespoke DSL where the language is the product** → query languages, schema languages, or hardware-description languages where syntax/semantics are core differentiators and the org commits to full ownership (e.g. companies that maintain their own query or rules language as a flagship feature).
-- **Large stable grammars consumed by many languages** → ANTLR-generated front ends (many real DSLs ship a `.g4` and generated visitors).
-- **User-facing languages where errors are the experience** → hand-written front ends (the reason mainstream compilers hand-write theirs).
-
----
-
 ## Coding Patterns
 
 ### Pattern: decision rubric before any code
@@ -292,3 +193,27 @@ Schedule a recurring review: is the DSL still worth its cost, or should users mi
 - **No exit plan.** Treating the DSL as eternal. Every language should be periodically re-justified against its TCO, with a real option to migrate users off it.
 
 The professional view closes the loop: an external DSL is a long-lived product whose cost is dominated by everything after the parser, whose health depends on governance and a spec, and whose existence should be the exception that beat config, libraries, and embeddable languages on the merits. Build one only when the domain truly demands it and you can own it for its whole life — and when you do, ship the spec, the tooling, and the migration path alongside the grammar.
+
+---
+
+## Apply it
+
+1. Define the user or business outcome that **DSLs in Practice** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
+
+## Verify your work
+
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
+
+## Review questions
+
+- Which measurable outcome justifies investing in DSLs in Practice?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

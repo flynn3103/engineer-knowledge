@@ -1,58 +1,11 @@
-# Calling Conventions — Senior Level
+# Calling Conventions — Senior
 
-> **Topic:** Calling Conventions
-> **Focus:** The corner cases that break naive FFI — passing and returning structs by value (the SysV INTEGER/SSE/MEMORY classification and the 16-byte rule), large-struct returns via a hidden `sret` pointer, and how variadic functions like `printf` actually pass their arguments.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Calling Conventions** under failure, load, and change?
 
-## Introduction
-
-> Focus: **Scalars are easy; aggregates are where conventions get vicious.** How a `struct {double; double}` versus a `struct {int; double}` versus a `struct {char[20]}` is passed differs in ways no one would guess, and getting it wrong produces silently shifted fields rather than a crash.
-
-For scalar arguments — `int`, `double`, pointers — the rules from the middle tier are mechanical: drop them into the next register of the right class. The trouble starts when you pass a **struct by value** or **return one**. Suddenly the ABI has to answer questions like: *Does this 12-byte struct go in one register or two? In integer or SSE registers? Or is it too awkward and shoved onto the stack? If a function returns a 64-byte struct, where does the result even live — there's no 64-byte register?*
-
-The SysV AMD64 answer is a genuine **classification algorithm**: it walks the struct's fields, assigns each 8-byte chunk ("eightbyte") a class — `INTEGER`, `SSE`, or `MEMORY` — applies merge rules, and only then decides registers vs stack. The result is full of surprises: `struct {float x, y;}` (two floats, 8 bytes) is passed in *one* `XMM` register as a packed pair, not two; `struct {double; double;}` (16 bytes) goes in *two* XMM registers; but add one more field and it overflows to memory. Returning a large struct doesn't use a register at all — the caller secretly allocates space and passes a hidden pointer as if it were the first argument (this is the `sret` / "return value optimization" mechanism). And variadic functions like `printf` add a final twist: on SysV the caller must set `AL` to the number of vector registers used, or the callee's `va_arg` machinery reads garbage.
-
-In one sentence: **aggregate passing and returning, plus variadics, are where calling conventions stop being a lookup table and become an algorithm — and where FFI tools must replicate that algorithm exactly or corrupt your data.**
-
-> 🎓 **Why this matters at the senior level:** You own the FFI layer, the codegen, or the binding generator. The bugs that reach you are the subtle ones: a struct whose fields are shifted by 8 bytes because your marshaller classified it wrong, a function that "returns the right value on Linux but garbage on Windows" because the two ABIs return small structs differently, a variadic call that works for `printf("%d")` but crashes for `printf("%f")` because `AL` wasn't set. These require understanding the *classification*, not just the register list.
-
-This page covers: the SysV INTEGER/SSE/MEMORY classification and the 16-byte rule; how `RAX`/`RDX` and `XMM0`/`XMM1` combine to return small structs; the hidden `sret` pointer for large returns and its tie to C++ RVO; how Windows x64 treats structs entirely differently (anything not 1/2/4/8 bytes goes by reference); and the variadic ABI, including the SysV `AL` rule and why variadics are a perennial FFI hazard. Name decoration is mentioned in prose; it has its own topic.
-
----
-
-## Prerequisites
-
-- **Required:** The middle tier — the three 64-bit conventions, caller/callee-saved tables, alignment, shadow space, red zone.
-- **Required:** Solid C struct layout knowledge: size, alignment, padding, `offsetof`.
-- **Helpful:** Familiarity with `va_list`, `va_start`, `va_arg`, `va_end`.
-- **Helpful:** Having generated FFI glue or read a binding generator's output (cgo, bindgen, SWIG).
-
-You do **not** yet need:
-
-- ABI versioning, symbol versioning, and large-scale compatibility policy (that's `professional.md`).
-- Exception-unwinding/`.eh_frame` interaction (`professional.md`).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Eightbyte** | An aligned 8-byte chunk of an aggregate. SysV classifies aggregates one eightbyte at a time. |
-| **INTEGER class** | An eightbyte passed in a general-purpose register (RDI, RSI, …). |
-| **SSE class** | An eightbyte passed in an XMM register. |
-| **MEMORY class** | An eightbyte (and thus the whole aggregate) that must be passed on the stack. |
-| **Classification algorithm** | The SysV procedure that assigns each eightbyte a class, merges, and post-processes to decide register vs stack. |
-| **16-byte rule** | SysV: aggregates larger than 16 bytes (two eightbytes) are MEMORY — passed on the stack. (Also any with unaligned fields, etc.) |
-| **`sret` / structure return** | Returning a large aggregate: the caller allocates space and passes a hidden pointer to it (in `RDI` on SysV / `RCX` on Windows), shifting the real arguments down one register. |
-| **RVO / NRVO** | (Named) Return Value Optimization — the compiler constructs the returned object directly in the caller's `sret` slot, avoiding a copy. The ABI's hidden-pointer return is what makes it possible. |
-| **Variadic function** | A function taking a variable number of arguments (`printf(const char*, ...)`). |
-| **`va_list`** | The opaque cursor (`<stdarg.h>`) used to walk variadic arguments. |
-| **`AL` rule** | SysV: for a variadic call, `AL` must hold the number of vector (XMM) registers used by the variadic arguments, so the prologue saves the right ones. |
-| **Register save area** | The block a variadic callee fills in its prologue (from the arg registers + saved XMMs) so `va_arg` can fetch later. |
-| **HFA / HVA** | Homogeneous Float/Vector Aggregate — AArch64's special case: a struct of up to 4 identical float/vector members passed in consecutive V registers. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -140,36 +93,6 @@ Closely related is **name decoration / mangling** (its own topic): the symbol na
 
 ---
 
-## Real-World Analogies
-
-**Sorting luggage by shape, not just count.** Scalar arguments are identical suitcases — drop each on the next belt. Structs are oddly shaped freight: the ABI inspects each piece, decides "this 8-byte all-float chunk rides belt SSE, that mixed chunk rides belt INTEGER, that 24-byte crate is too big — put it in the cargo hold (stack)." The classification *is* this shape-sorting, and the rules are surprising precisely because freight is irregular.
-
-**Mailing something too big for the slot (`sret`).** You can hand back a postcard through the mail slot (`RAX`). You cannot push a wardrobe through it. So the convention says: *you* (the caller) clear out a room and slip the mover a note saying where to put it (`sret` pointer). The mover assembles the wardrobe directly in your room — no double-handling. That "no double-handling" is RVO.
-
-**A buffet where you must announce your tray count (`AL`).** A variadic callee is a kitchen that pre-plates dishes. To avoid plating all eight, it asks: "how many hot dishes (vector args) are you taking?" `AL` is your answer. Lie or forget, and your soufflé (a `double`) never gets plated — `va_arg` serves you an empty plate (garbage).
-
----
-
-## Mental Models
-
-### Model 1: Classification is a per-eightbyte state machine
-
-Don't think "struct → register." Think "split into eightbytes → classify each (SSE if all-float, else INTEGER) → too big or won't fit ⇒ MEMORY → assign from the right register file." Running this in your head for any struct tells you exactly which registers it lands in.
-
-### Model 2: A large return is a hidden out-parameter
-
-Rewrite `Big f(args)` mentally as `void f(Big* out, args)` with `out` in the first integer register and a pointer echoed back in `RAX`. Once you see returns-by-value-of-large-types as out-parameters, `sret`, RVO, and the argument-shift all become obvious.
-
-### Model 3: Variadics are "registers spilled to an array the callee indexes"
-
-`va_arg` is array indexing over the register-save area plus the overflow stack area. `va_start` records where that array begins; each `va_arg` advances a cursor and may switch from the saved-register region to the stack region. `AL` decides how much of that array got populated.
-
-### Model 4: SysV and Windows disagree most on aggregates
-
-For scalars the platforms differ in *which* register. For aggregates they differ in *the entire model* (classification vs by-reference-unless-1/2/4/8). Aggregates are where "it worked on the other OS" bugs concentrate.
-
----
-
 ## Code Examples
 
 ### Watching a struct land in two register files (SysV)
@@ -251,42 +174,6 @@ An FFI binding must branch on the target OS here, or fields silently transpose.
 
 ---
 
-## Pros & Cons
-
-**SysV eightbyte classification:**
-
-- ✅ Packs small structs efficiently into registers (often zero memory traffic).
-- ✅ Splits hybrid structs across register files for speed.
-- ❌ Complex and surprising; reimplementing it correctly in a marshaller is genuinely hard.
-- ❌ Tiny source changes (adding a field, reordering) silently change the ABI of a function.
-
-**Windows by-reference-unless-1/2/4/8:**
-
-- ✅ Dead simple to implement and reason about.
-- ❌ Extra copies and indirection for common 16-byte structs; less efficient.
-
-**`sret` / RVO:**
-
-- ✅ Eliminates the return copy for large objects; enables guaranteed RVO.
-- ❌ Shifts argument registers; an easy thing for tools and hand assembly to miss.
-
-**SysV variadic `AL` rule:**
-
-- ✅ Avoids spilling eight XMMs on every variadic call.
-- ❌ A hidden, prototype-derived requirement that breaks the moment the prototype is lost.
-
----
-
-## Use Cases
-
-- **Writing binding generators / marshallers** (cgo, Rust `bindgen`, .NET interop, JNA): must replicate classification, `sret`, and the `AL` rule per platform.
-- **Generating C shims at the FFI boundary** so the *C compiler* applies the ABI, sidestepping manual classification.
-- **Implementing a JIT or codegen backend** that lowers calls to the platform ABI for structs and returns.
-- **Diagnosing field-shift bugs** where a returned/passed struct's fields are off by 8 bytes — a classification or `sret` mistake.
-- **Porting variadic-using FFI** (anything wrapping `printf`-family or custom variadic C APIs) across OSes.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Prefer pointers to structs across the FFI boundary
@@ -362,130 +249,24 @@ Variadic arguments undergo default argument promotions (`float`→`double`, smal
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```text
-SYSV STRUCT CLASSIFICATION
-  > 16 bytes (or unaligned)        → MEMORY (stack; sret for return)
-  else split into 1-2 eightbytes:
-    eightbyte all float/double     → SSE   → next XMM
-    eightbyte has any int/pointer  → INTEGER → next GP reg
-    (mixed in same eightbyte → INTEGER wins)
-  not enough registers left        → whole thing → MEMORY
+1. State the system invariant that **Calling Conventions** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
-  struct{float x,y}     -> 1 XMM (packed pair)
-  struct{double a,b}    -> XMM0, XMM1
-  struct{long a;double b} -> RDI + XMM0
-  struct{int a;float b} -> RDI (merged INTEGER)
-  struct{long a,b,c}    -> MEMORY (stack)
+## Verify your work
 
-RETURNS
-  <=16 bytes  -> RAX/RDX and/or XMM0/XMM1 by classification
-  >16  bytes  -> sret: caller allocs, hidden ptr in RDI, returned in RAX
-                 (shifts real args: 1st arg -> RSI)
-  == C++ (N)RVO mechanism
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
 
-WINDOWS x64 STRUCTS
-  size 1/2/4/8  -> by value in one register
-  anything else -> BY REFERENCE (caller copies, passes pointer)
-  large return  -> hidden pointer in RCX
+## Review questions
 
-AArch64
-  HFA (<=4 same float/vector members) -> consecutive V regs
-  large return -> address in X8
-
-VARIADICS (SysV)
-  set AL = number of vector (XMM) regs used by varargs
-  callee spills arg regs to a save area; va_arg indexes it
-  default promotions: float->double, small int->int
-  Windows: float varargs in BOTH gp and xmm reg; no AL
-```
-
----
-
-## Summary
-
-Scalar arguments are a lookup; **aggregates are an algorithm.** On SysV AMD64, passing or returning a struct runs the **INTEGER/SSE/MEMORY classification**: structs > 16 bytes go to memory; smaller ones split into eightbytes that ride in integer or XMM registers depending on whether each 8-byte chunk is all-float or contains any integer/pointer — producing genuinely unguessable placements like "two floats in one XMM" and "this 16-byte struct split across `RDI` and `XMM0`." Returning a large struct uses no register at all: the caller allocates space and passes a hidden **`sret`** pointer (shifting the real arguments down a register), the same mechanism that makes C++ **RVO** an ABI guarantee.
-
-Windows x64 throws all of that out and uses a flat rule — by value only if 1/2/4/8 bytes, otherwise by reference — so a 16-byte struct that travels in two registers on Linux travels as a pointer on Windows. AArch64 adds HFAs and an `X8` result pointer. **Variadics** add a final hazard: SysV requires the caller to set `AL` to the number of vector registers used, or the callee's `va_arg` machinery returns garbage for floating arguments — and Windows and AArch64 handle variadics differently again.
-
-The practical upshot for FFI: don't reimplement the ABI by hand. Prefer pointers over by-value structs, generate C shims so the compiler applies classification, route variadics through `va_list` entry points, branch on OS for aggregates, and verify everything in the disassembler. The next tier covers ABI *stability* — versioning, symbol versioning, and the compatibility policy that keeps all of this from breaking across releases.
-
----
-
-## Further Reading
-
-- *System V AMD64 ABI*, §3.2.3 "Parameter Passing" — the full classification algorithm and `sret` rules, plus the variadic register-save-area diagram.
-- Microsoft, "x64 calling convention" — the 1/2/4/8 struct rule and indirect passing.
-- Arm, *AAPCS64*, the HFA/HVA rules and `X8` indirect result register.
-- ISO C `<stdarg.h>` semantics and default argument promotions.
-- Clang/GCC source: the `X86_64ABIInfo` / target ABI lowering — a reference implementation of the classification.
-
----
-
-## Diagrams & Visual Aids
-
-### SysV classification decision flow
-
-```text
-   aggregate
-       │
-  size > 16 bytes? ──yes──► MEMORY (stack; sret on return)
-       │ no
-   split into eightbytes
-       │
-   for each eightbyte:
-     all fields float/double? ──yes──► SSE  → next XMM
-              │ no
-              └──────────────────────► INTEGER → next GP reg
-       │
-  enough registers left? ──no──► MEMORY (whole aggregate)
-       │ yes
-   pass in assigned registers
-```
-
-### A hybrid struct splitting across register files
-
-```text
-   struct C { long a;  double b; }   (16 bytes, two eightbytes)
-
-   eightbyte 0: long a   → INTEGER → RDI
-   eightbyte 1: double b → SSE     → XMM0
-
-   one argument, two different register files.
-```
-
-### Large return via sret
-
-```text
-   struct Big make(int seed);    // 64 bytes
-
-   rewritten by the ABI as:
-   void make(Big* sret /*RDI*/, int seed /*RSI*/);
-                  │                    │
-   caller-allocated slot         shifted: was RDI, now RSI
-   make() writes through RDI, returns RDI in RAX
-```
-
-### Variadic register-save area (SysV)
-
-```text
-   printf(fmt, 7, 2.5)   with  AL = 1
-
-   prologue spills:
-     [save area] RDI RSI RDX RCX R8 R9   (gp regs)
-                 XMM0                      (AL says save 1 of 8)
-   va_start → cursor at start of save area
-   va_arg(int)    → reads RSI slot, advances
-   va_arg(double) → reads XMM0 slot, advances
-   (overflow args continue on the incoming stack)
-```
-
-### Same 16-byte struct, two ABIs
-
-```text
-   struct P { double a, b; };
-
-   SysV:    a → XMM0 , b → XMM1        (in registers, by value)
-   Win x64: &copy_of_p → RCX           (by reference, a pointer)
-```
+- Which invariant must remain true when Calling Conventions fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

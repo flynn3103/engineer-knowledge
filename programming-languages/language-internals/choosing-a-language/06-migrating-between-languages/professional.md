@@ -1,8 +1,11 @@
 # Migrating Between Languages — Professional
 
-> **What?** Migration as an *organizational program*, not an engineering task: justifying a multi-year language migration to leadership in business terms, structuring the teams to run it without stalling the business, using deprecation timelines as forcing functions, learning from the public case studies, and having the spine to abandon a migration that's no longer paying.
-> **How?** Convert the engineering risk model into a business one — funding, opportunity cost, hiring markets, regulatory exposure — and run the migration like a product with a roadmap, owners, and kill criteria, rather than a heroic side quest that some team is doing "when there's time."
+<!-- level-focus -->
+At professional level, focus on this question:
 
+> How should teams adopt and operate **Migrating Between Languages** with measurable outcomes and limited coordination?
+
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## 1. What business case actually warrants a migration
@@ -87,7 +90,7 @@ The Python 2 → 3 saga is the largest-scale public lesson in deprecation forcin
 
 **The pattern across cases:** the public *successes* (Twitter's JVM move, countless quiet strangler-fig migrations) are incremental, business-justified, and ship value along the way. The public *failures* (Netscape, and many enterprise "next-gen platform" programs that quietly die at 70%) are big-bang, often justified by aesthetics or "modernization," and deliver nothing until a finish line they never reach. The strategy, not the languages, predicts the outcome.
 
-One more category worth naming: the *involuntary* migration, where the old language or platform is being deprecated *out from under you* — a cloud provider sunsets a runtime, a vendor drops support, a framework's maintainers walk away. These are the strongest business cases precisely because the timeline isn't yours to negotiate. The professional move is to detect them early (this is what longevity and lock-in analysis is *for* — see [`08-language-longevity-and-lock-in-risk`](../08-language-longevity-and-lock-in-risk/)) so you migrate on your schedule with a strangler, rather than scrambling into a forced big-bang when support actually ends.
+One more category worth naming: the *involuntary* migration, where the old language or platform is being deprecated *out from under you* — a cloud provider sunsets a runtime, a vendor drops support, a framework's maintainers walk away. These are the strongest business cases precisely because the timeline isn't yours to negotiate. The professional move is to detect them early (this is what longevity and lock-in analysis is *for* — see [`08-language-longevity-and-lock-in-risk`](../08-language-longevity-and-lock-in-risk/README.md)) so you migrate on your schedule with a strangler, rather than scrambling into a forced big-bang when support actually ends.
 
 ---
 
@@ -116,16 +119,24 @@ Because the migration was incremental, abandoning it is survivable: you stop wit
 
 ---
 
-## 8. What's next
+## Apply it
 
-| Topic | File |
-|---|---|
-| Interview questions from "Python→Go" to "1M-line Perl monolith" | `interview.md` |
-| Design a business case / kill case, structure a multi-team program | `tasks.md` |
-| The hiring & maintenance economics that trigger migrations | [`07-total-cost-of-ownership-and-team-skills`](../07-total-cost-of-ownership-and-team-skills/) |
-| The lock-in and longevity risks migrations exist to escape | [`08-language-longevity-and-lock-in-risk`](../08-language-longevity-and-lock-in-risk/) |
-| Choosing the *target* language well in the first place | [`01-language-selection-criteria`](../01-language-selection-criteria/) |
+1. Define the user or business outcome that **Migrating Between Languages** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
----
+## Verify your work
 
-**Memorize this:** at the org level a migration is a funded program competing on opportunity cost, justified only by business risk — EOL, unhireable, security, cost-at-scale — never by aesthetics. Embed it in the owning teams, cap its capacity so the business keeps shipping, and drive it to completion with a credible deprecation deadline. Incremental, business-justified migrations finish (Twitter→JVM); big-bang, modernization-for-its-own-sake migrations die at 70% (Netscape). And set the kill criteria before you start.
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
+
+## Review questions
+
+- Which measurable outcome justifies investing in Migrating Between Languages?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

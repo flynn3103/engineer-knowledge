@@ -1,74 +1,11 @@
-# Code Generation — Junior Level
+# Code Generation — Junior
 
-> **Topic:** Code Generation
-> **Focus:** The compiler's back end: how optimized intermediate code becomes real machine instructions a CPU can run.
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **Code Generation** in one small example and prove the result?
 
-## Introduction
-
-> Focus: **What happens after the optimizer is done?** The compiler still holds an idealized program — abstract operations, an infinite supply of named values — and has to turn it into the brutally concrete reality of a specific CPU.
-
-A compiler is usually drawn as a pipeline: a **front end** (parsing, type checking) produces an **intermediate representation** (IR); a **middle end** optimizes that IR; and a **back end** — the subject of this page — turns the optimized IR into **machine code** for a particular target processor. Code generation is that back end.
-
-The reason this is a hard, distinct problem is that the optimized IR is written for an imaginary, perfect machine. It says things like "add these two values" and "store this value," and it assumes you have as many places to keep values as you could ever want. A real CPU is nothing like that. A real x86-64 chip has exactly 16 general-purpose registers. It has its own quirky instructions — one instruction can do an add *and* a multiply, or compute `base + index*4 + offset` in a single step. The back end's job is to bridge that gap: to take "what to compute" and produce "exactly which instructions, in which order, using which registers."
-
-In one sentence: **code generation translates a clean, infinite, abstract program into the cramped, concrete, finite instruction set of a real chip — and tries to make it fast.**
-
-That work breaks into three classic sub-problems, and almost every back end you will ever meet is organized around them:
-
-1. **Instruction selection** — which target instructions implement each IR operation.
-2. **Register allocation** — which of the few physical registers holds each value, and what to do when you run out.
-3. **Instruction scheduling** — what order to emit the instructions in, so the CPU isn't left waiting.
-
-> 🎓 **Why this matters for a junior:** You will spend your career reading code that *eventually becomes* machine instructions. The day a function is mysteriously slow, or a `-O2` build behaves differently from `-O0`, or you see a stack-heavy crash dump, you will reach for the compiler's assembly output. Understanding the back end is what lets you read that output and say "ah, the compiler spilled a value to the stack here because it ran out of registers" instead of staring blankly.
-
-This page covers what each of the three sub-problems is, why a CPU's instruction set forces these choices, and how to actually *look at* generated code. The next level (`middle.md`) goes deep on the algorithms — tree-pattern matching for selection and graph-coloring for allocation. `senior.md` covers the modern frameworks (LLVM's SelectionDAG, the register-allocation-vs-scheduling conflict). `professional.md` covers target description tables, JITs, and DWARF debug info.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** What a compiler does at a high level — that source code becomes an executable, not interpreted line by line.
-- **Required:** The idea of an **intermediate representation**: that compilers don't go straight from source to machine code, they pass through one or more middle languages.
-- **Required:** Roughly what a **CPU register** is — a tiny, extremely fast storage slot inside the processor where arithmetic actually happens.
-- **Helpful but not required:** Having seen assembly language once, even briefly. If you've read `mov`, `add`, `ret`, you're ahead.
-- **Helpful but not required:** A vague sense of the difference between **CISC** (x86, complex instructions) and **RISC** (ARM, RISC-V, simple instructions).
-
-You do **not** need to know:
-
-- The instruction-selection algorithms (maximal munch, BURS — that's `middle.md`).
-- Graph-coloring register allocation internals (also `middle.md`).
-- How a JIT generates code at runtime (`professional.md`).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Back end** | The part of a compiler that turns optimized IR into target machine code. Front end = parse + type-check; middle end = optimize; back end = code generation. |
-| **Target** | The specific processor and ABI you're generating code for: x86-64 Linux, AArch64 macOS, RISC-V, WebAssembly. The "target" is what makes back ends differ. |
-| **IR (Intermediate Representation)** | The compiler's internal program form — abstract operations, often in SSA form, independent of any real CPU. |
-| **Machine code** | The actual bytes the CPU decodes and executes. Assembly is its human-readable spelling. |
-| **Assembly** | A text format with one line per machine instruction (`add rax, rbx`). The assembler turns it into machine-code bytes. |
-| **Instruction selection** | Choosing which target instructions implement each IR operation. |
-| **Register allocation** | Assigning the program's unlimited *virtual registers* to the CPU's limited *physical registers*. |
-| **Instruction scheduling** | Choosing the order to emit instructions so the CPU's pipeline stays busy. |
-| **Virtual register** | An IR-level value name. The IR pretends you have infinitely many. |
-| **Physical register** | A real hardware register: `rax`, `x0`, etc. There are only a handful. |
-| **Spill** | When there aren't enough physical registers, storing a value to the stack (memory) and reloading it later. Slow, but correct. |
-| **Stack frame** | The slice of stack memory a function uses for its locals, spills, and saved registers. |
-| **Calling convention / ABI** | The rules for how functions pass arguments, return values, and which registers they must preserve. |
-| **Prologue / epilogue** | The instructions at a function's start (set up the stack frame) and end (tear it down, return). |
-| **Addressing mode** | A way an instruction can compute a memory address inline, e.g. `[base + index*scale + offset]`. |
-| **CISC** | Complex Instruction Set Computer (x86-64): many instructions, variable length, rich addressing. |
-| **RISC** | Reduced Instruction Set Computer (ARM, RISC-V): few, fixed-width, simple instructions. |
-| **Pipeline** | A CPU's assembly line; an instruction passes through stages (fetch, decode, execute…). Stalls if data isn't ready. |
-| **`lea`** | x86 "load effective address" — does an address computation (a multiply-add) without touching memory; often used for plain arithmetic. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -157,47 +94,6 @@ Finally, the back end has to *produce output*. Two common forms:
 - **Emit machine code directly** (an integrated assembler), which most modern compilers do for speed.
 
 Either way, the output isn't quite a finished program. References to other functions and global data aren't final addresses yet — they're left as **relocations**, placeholders the **linker** fills in later when it knows where everything lives in memory. (This linker/loader handoff is its own large topic.) A **peephole** pass often runs at the very end, scanning short windows of the final instructions to clean up silly sequences (a `mov` into a register that's immediately overwritten, two adds that could be one).
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Code generation (the back end)** | Translating a recipe written for a fantasy kitchen ("use as many pots as you like") into instructions for your actual kitchen with two burners. |
-| **Optimized IR** | A blueprint that says *what* to build, in ideal abstract terms. |
-| **Instruction selection** | Choosing which real tools do the job — and noticing your multi-tool does three steps at once, so you use it instead of three separate tools. |
-| **`lea` doing a multiply-add** | A Swiss Army knife that opens the bottle *and* removes the cork in one motion. |
-| **Register allocation** | You have two burners but five pots to cook. You keep the busiest pots on the burners and set the others on the cold counter (the stack) until you need them. |
-| **Spilling** | Moving a pot off the burner to the counter and back. Possible, but it costs you time and reheating. |
-| **Register pressure** | How many pots want a burner at once. Too many and you're constantly shuffling. |
-| **Instruction scheduling** | Starting the rice (a slow step) *first*, then chopping vegetables while it cooks, instead of standing idle waiting for rice. |
-| **Calling convention** | The agreed handoff at a relay race: the baton (arguments) must be passed in exactly the right place, or the next runner fumbles. |
-| **Prologue/epilogue** | Setting up your workstation when you start a task and cleaning it up when you finish. |
-| **Relocation** | A form with a blank "address" field a clerk (the linker) fills in once the final filing location is known. |
-| **Peephole optimization** | Re-reading your finished instructions and crossing out "go to the fridge, come right back" when nothing was needed. |
-
----
-
-## Mental Models
-
-### The "Translate for a Cramped Kitchen" Model
-
-Hold this picture: the optimizer handed you a recipe for a dream kitchen with infinite pots and magic appliances. Your real kitchen has two burners (registers) and ordinary tools (the instruction set). Code generation is *translating the dream recipe for the real kitchen*. Selection = picking the real tools. Allocation = rationing the two burners. Scheduling = ordering steps so you're never standing idle. Every difficulty in the back end is a consequence of "the real kitchen is smaller and weirder than the dream one."
-
-### The "Three Decisions" Model
-
-For any value the program computes, the back end makes three decisions:
-
-1. **With what instruction** do I compute it? (selection)
-2. **Where** do I keep it — which register, or the stack? (allocation)
-3. **When** do I compute it relative to its neighbors? (scheduling)
-
-When you read generated assembly, you are reading the *answers* to these three questions, frozen in place. Learning to read them backwards ("why is this value on the stack?" → "register pressure") is the whole skill.
-
-### The "It's Still Not Final" Model
-
-The assembly a compiler emits looks like a finished program but isn't. Addresses of other functions and globals are blanks. There's a later stage (assembler → linker → loader) that fills the blanks and places everything in memory. So when you read `call printf`, the `printf` there is a *name with a blank address*, not a real location yet. This keeps you from being confused about why the bytes don't contain final addresses.
 
 ---
 
@@ -329,40 +225,6 @@ objdump -d lea.o            # shows bytes + decoded instructions
 
 ---
 
-## Pros & Cons
-
-This section frames the *design trade-offs* the back end faces, since "code generation" isn't a thing you turn on or off — it's a stage with knobs.
-
-| Aspect | Pros | Cons |
-|--------|------|------|
-| **Good instruction selection** | Fewer, more powerful instructions (`lea`, FMA, rich addressing) = faster, smaller code. | Finding the best tiling is expensive; CISC targets have a combinatorial number of choices. |
-| **Aggressive register allocation** | Keeping values in registers avoids slow memory traffic — often the single biggest speedup. | Optimal allocation is NP-hard; real allocators use heuristics and sometimes spill suboptimally. |
-| **Instruction scheduling** | Hides memory/compute latency, exploits instruction-level parallelism. | Conflicts with register allocation (more parallelism = more pressure); matters less on out-of-order CPUs. |
-| **CISC targets (x86)** | Dense code, powerful single instructions do a lot. | Variable-length encoding and many addressing modes make selection and the assembler complex. |
-| **RISC targets (ARM, RISC-V)** | Simple, uniform, fixed-width instructions; selection and decoding are clean. | More instructions for the same work; you lean harder on scheduling and the register file. |
-| **Optimized codegen (`-O2`)** | Much faster programs. | Harder to debug — variables live in registers, lines reorder, the stack frame may vanish. |
-| **Unoptimized codegen (`-O0`)** | Output maps cleanly to source; great for debugging and *learning*. | Slow, verbose, lots of redundant memory traffic. |
-
----
-
-## Use Cases
-
-You touch code generation, directly or indirectly, when:
-
-- **You're diagnosing why a function is slow.** Reading `-S` or `objdump -d` output reveals spills, missed `lea` fusion, or a redundant load the optimizer left in.
-- **You're confused why optimized and unoptimized builds behave differently.** The back end reorders, register-allocates, and elides the frame at `-O2`; understanding that demystifies "it works at `-O0` but not `-O2`."
-- **You're writing performance-critical code** and want to confirm the compiler is generating the FMA, the vector instruction, or the `lea` you expect.
-- **You're targeting an unusual platform** — an embedded RISC chip, WebAssembly, a GPU — and need to understand why the generated code looks different from your desktop's.
-- **You're reading a crash dump or stack trace** and need to map registers and stack offsets back to your variables.
-- **You're curious how interpreters get faster:** a JIT *is* a code generator that runs at program runtime, turning hot bytecode into machine code on the fly.
-
-You generally *don't* need to think about it when:
-
-- You're writing ordinary application code and performance is fine. Trust the compiler.
-- You're working in a purely interpreted setting with no JIT.
-
----
-
 ## Coding Patterns
 
 These are *practical habits* for working with generated code, not algorithms (those are in `middle.md`).
@@ -418,3 +280,27 @@ When calling across a language boundary or into hand-written assembly, follow th
 - **Different optimization levels can expose latent bugs.** Code that relies on undefined behavior may "work" at `-O0` and break at `-O2` because the optimizer and back end are allowed to assume the UB never happens. The back end isn't buggy; the source is.
 - **Constant power-of-two multiplies look like shifts in the output.** Don't be alarmed that `x * 8` shows up as `shl` or inside a `lea` scale — that *is* the multiply. It's not a compiler error; it's selection doing its job.
 - **WebAssembly "code generation" looks nothing like x86.** Wasm is a stack machine with structured control flow, so a back end targeting it emits push/pop-style stack operations and structured blocks, not register instructions. "Codegen" is target-shaped; don't expect register allocation to look the same there.
+
+---
+
+## Apply it
+
+1. Choose one small, known input for **Code Generation**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
+
+## Verify your work
+
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
+
+## Review questions
+
+- What problem does Code Generation solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

@@ -1,37 +1,11 @@
-# Escape Analysis — Middle Level
+# Escape Analysis — Middle
 
-> **Topic:** Escape Analysis
-> **Focus:** The mechanisms — how the analysis actually decides, the concrete escape triggers in Go (with `-gcflags=-m`) and Java, and the specific code shapes that force heap allocation.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **Escape Analysis** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-At the junior level, escape analysis was a yes/no question: *does this value outlive its function?* Now we open the hood. This tier is about **mechanism**: how the compiler reasons about reachability, the precise set of constructs that trigger an escape, and how to read the diagnostic output that tells you what happened.
-
-The central insight: the compiler builds a model of **where references can flow**. If any reference to a value can flow to a place that outlives the allocating function (or a place the compiler can't analyze), the value escapes. Everything else is detail.
-
----
-
-## Prerequisites
-
-- Junior tier: stack vs heap cost, the basic escape rule, `moved to heap` / `does not escape`.
-- Comfort reading Go and Java code: structs/objects, pointers/references, slices, maps, interfaces, closures.
-- A working `go` toolchain to reproduce the `-gcflags=-m` output, and ideally a JDK for the Java sections.
-- Rough understanding of **inlining** (the compiler pasting a small function's body into its caller).
-
----
-
-## Glossary
-
-- **Points-to / connection graph:** A graph the compiler builds where nodes are variables/allocations and edges mean "may reference." Escape analysis is reachability over this graph.
-- **Escape to heap:** A reference reaches something outliving the function.
-- **Escape to thread/global:** A reference becomes reachable by another thread/goroutine or a global — a stronger form that also affects whether locks can be removed.
-- **Boxing / interface conversion:** Wrapping a concrete value in an interface (Go) or `Object`/wrapper type (Java). Often forces a heap allocation because the interface holds a pointer.
-- **Scalar replacement:** Instead of allocating an object, the JIT replaces it with its individual fields held in registers/locals — heap allocation eliminated entirely.
-- **Inlining:** Substituting a callee's body into the caller. Escape analysis is far more effective *after* inlining, because it can then see across the (former) call boundary.
-- **`//go:noescape`:** A Go compiler directive asserting a function's pointer arguments do not escape (used for assembly/runtime functions).
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## How the Analysis Works
@@ -237,30 +211,6 @@ java -XX:+PrintCompilation ...
 
 ---
 
-## Mental Models
-
-- **"Follow the reference."** Trace every reference to the value. If one reaches a return, a field of something that lives on, a global, a closure, or a function you can't see into — escape. Otherwise — stack/scalar.
-
-- **"Interface = pointer = suspicion."** Whenever a concrete value is widened to an interface (Go) or an `Object`/wrapper (Java), be suspicious: the abstraction holds a reference and often defeats the analysis.
-
-- **"Inlining unlocks the analysis."** Escape decisions are downstream of inlining. If you want stack allocation, you want the surrounding calls inlined.
-
----
-
-## Pros & Cons
-
-**Pros**
-- Removes allocations *for free* in idiomatic code, especially after inlining.
-- In Java, can eliminate not just allocation but **synchronization** (lock elision).
-- Diagnosable: both Go and HotSpot can show you the decisions.
-
-**Cons**
-- **Fragile across edits and across the inlining boundary.** Add a `fmt.Println`, pass a value to an interface, or grow a function past the inlining budget and it flips.
-- **Java's version needs warmup** — it doesn't help until the method is JIT-compiled and inlined.
-- **Megamorphic / virtual calls defeat it** when the target can't be devirtualized.
-
----
-
 ## Coding Patterns
 
 - **Return values, not pointers, for small structs** in hot code (Go) — avoids forcing the callee's result onto the heap.
@@ -289,10 +239,24 @@ java -XX:+PrintCompilation ...
 
 ---
 
-## Summary
+## Apply it
 
-- The analysis is **reachability over a connection graph**: a value escapes if any reference to it can reach something outliving the function (return, field, global, closure, channel) or something the compiler can't analyze (interface, function pointer, reflection).
-- It is **conservative** — unknown means escape — and **strongly coupled to inlining**.
-- In **Go**, see decisions with `go build -gcflags='-m -m'`: `moved to heap`, `escapes to heap`, `does not escape`, `leaking param`. Top triggers: pointer returns, interface boxing (`fmt.Println`), closures, channel sends.
-- In **Java/HotSpot**, escape analysis runs in the **JIT after inlining** and enables **scalar replacement**, limited stack allocation, and **lock elision** (`-XX:+DoEscapeAnalysis`, `-XX:+EliminateAllocations`, `-XX:+EliminateLocks`). It needs warmup.
-- Use it as a *guide to write allocation-light hot paths*, not as a contract.
+1. Find a real component where **Escape Analysis** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
+
+## Verify your work
+
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
+
+## Review questions
+
+- Which boundary is most affected by Escape Analysis?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

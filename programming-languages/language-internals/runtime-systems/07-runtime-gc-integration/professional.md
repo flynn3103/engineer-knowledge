@@ -1,64 +1,11 @@
-# Runtime ↔ GC Integration — Professional Level
+# Runtime ↔ GC Integration — Professional
 
-> **Topic:** Runtime ↔ GC Integration
-> **Focus:** Designing and operating the interface at production scale: stack-map encoding budgets, safepoint protocol design (per-thread polling, hijacking, signals), barrier ABI and codegen contracts, allocation-path co-design (TLABs, bump pointers, sampling), and running latency-SLO incidents to ground. The contract as an engineering system — not the collection algorithm.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Runtime ↔ GC Integration** with measurable outcomes and limited coordination?
 
-## Introduction
-
-> Focus: **The interface as a system you design, ship, and operate** — with budgets, ABIs, protocols, failure modes, and an on-call runbook.
-
-The senior page covered *how* engines solve the hard cases. The professional page is about *owning* the interface: the cross-cutting design decisions, the costs you must budget, the contracts you must specify so independent teams (codegen, runtime, GC) can ship without breaking each other, and the operational discipline to keep latency SLOs intact in production.
-
-Four pillars frame this level:
-
-1. **Metadata economics.** Stack maps / GC info are *data you ship*. In a large application there are millions of safepoints; naive maps can rival code size. You budget and compress this — bitmaps, deltas, dictionary sharing, partially-interruptible regions — trading map size against stop granularity and TTSP.
-
-2. **Safepoint protocol as a distributed agreement.** Bringing N threads to a globally consistent halt is a tiny consensus problem. The protocol (poll mechanism, thread-local vs global, hijacking, signals, native-transition handshakes) determines your TTSP distribution, which *is* your pause-time tail. You design it for the worst thread, not the average.
-
-3. **Barrier ABI and codegen contract.** The barrier is a contract between the GC team and the codegen team: which registers it clobbers, what it may call, what it must not do (allocate? safepoint?), how it's elided. A loose contract here produces correctness bugs that surface as one-in-a-billion crashes. You specify it precisely and test it adversarially.
-
-4. **Allocation/collection co-design.** Throughput is dominated by the allocation fast path (TLAB bump) and the rate at which it feeds the collector. You co-design TLAB sizing, bump-pointer layout, allocation-site sampling (for profiling and for sampled allocation policies), and the slow-path → GC handoff.
-
-Through all of it: **you measure, budget, and SLO the interface.** A pause-time SLO (p99.9 < 10 ms) is met or missed largely by integration decisions — TTSP protocol, barrier cost, allocation rate — not by the collection algorithm in isolation.
-
-> 🎓 **Why this matters at the professional level:** You are the person who signs off that "we can run this collector under this SLO on this workload," who writes the runbook for "GC pause regression," and who arbitrates the codegen-vs-GC contract in design review. That requires treating the interface as an engineered system with explicit budgets and failure modes.
-
----
-
-## Prerequisites
-
-- **Required:** Senior level — precise maps under optimization, deopt × GC, load/colored-pointer barriers, Go hybrid barrier, engine-specific mechanisms.
-- **Required:** Production operations experience: reading flame graphs, GC logs, p99/p99.9 latency, and correlating pauses to upstream symptoms.
-- **Required:** Comfort reasoning about ABIs, calling conventions, and codegen contracts.
-- **Helpful:** Capacity-planning experience (heap sizing, allocation-rate budgeting, headroom).
-- **Helpful:** Exposure to designing or reviewing a runtime component (allocator, JIT, GC).
-
-You do **not** need to author a collector. You **do** need to own its interface in production.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **GC info budget** | The space (and decode-time) cost of stack maps / GC metadata across a program; a first-class engineering budget. |
-| **Partially-interruptible code** | Methods with safepoints only at call sites; smaller maps, coarser stops, longer worst-case TTSP. |
-| **Fully-interruptible code** | Safepoints (nearly) everywhere; larger maps, finer stops, shorter TTSP. |
-| **Safepoint protocol** | The agreement and mechanism that brings all threads to a consistent halt (poll type, signaling, native handshakes). |
-| **Thread-local handshake** | Stopping/scanning a *single* thread without a global STW (HotSpot `Handshake`, used by ZGC/Shenandoah). |
-| **Hijacking** | Rewriting a thread's saved return address so it traps into the runtime on return (.NET). |
-| **Native transition** | The state machine a thread runs through when crossing managed↔native, so the GC knows whether it can scan/move while the thread is in native code. |
-| **Barrier ABI** | The contract specifying the barrier's clobbers, inputs, allowed operations, and elision rules. |
-| **TLAB** | Thread-Local Allocation Buffer: per-thread bump region for lock-free allocation. |
-| **Bump-pointer allocation** | Allocate by advancing a pointer; the heap (or TLAB) is a contiguous arena. |
-| **Allocation-site sampling** | Sampling a fraction of allocations (e.g., every N bytes) for profiling or policy, wired into the slow path or via a sampling counter. |
-| **Allocation rate** | Bytes/sec the mutator allocates; drives GC frequency and thus pause frequency. |
-| **GC pacing** | Runtime feedback loop deciding *when* to start a (concurrent) GC so it finishes before the heap fills (Go's pacer, G1's prediction). |
-| **Safepoint bias** | Profiler artifact where samples cluster at safepoints because stack walking needs maps. |
-| **Stop-the-world budget** | The portion of the SLO you allocate to actual STW phases vs concurrent work. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -141,41 +88,6 @@ A professional note tying threads together: pure load-barrier collectors (early 
 
 ---
 
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **GC info budget** | The weight allowance on an aircraft: maps are cargo you must pay to carry; you compress and ration it. |
-| **Safepoint protocol** | An air-traffic ground-stop: getting every plane to hold at a known point, designed around the slowest taxiing aircraft, not the average. |
-| **Thread-local handshake** | Pulling one car aside for inspection without stopping the whole highway. |
-| **Native transition state machine** | A customs checkpoint: travelers in the duty-free zone (native) are "out of jurisdiction," but re-entry is gated and synchronized. |
-| **Barrier ABI** | A legal contract between two contractors: exactly what each provides, clobbers, and must never do — ambiguity causes a collapse. |
-| **TLAB** | Each chef gets a personal mise-en-place tray, refilled from the pantry only when empty — no queuing for every ingredient. |
-| **Pacing** | A toll plaza opening lanes *before* the rush hits, predicting traffic so it never backs up onto the freeway. |
-| **Pacer fallback to STW** | The toll plaza misjudging the rush and slamming a full stop — the latency cliff. |
-
----
-
-## Mental Models
-
-### The "Interface Has A Budget Sheet" Model
-
-Hold a spreadsheet in mind with rows: *map bytes*, *TTSP p99*, *STW work*, *barrier CPU %*, *allocation MB/s*, *GC CPU %*. Every design decision moves cells: partially-interruptible code shrinks *map bytes* but raises *TTSP p99*; a load barrier raises *barrier CPU* but slashes *STW work*; a bigger TLAB cuts *slow-path CPU* but raises *retained slop*. Professional GC work is *balancing this sheet against an SLO*, not chasing a single metric.
-
-### The "Slowest Thread Owns Your Tail" Model
-
-Pause-time tails are set by stragglers. Average TTSP is irrelevant; the p99.9 pause is the one thread that wouldn't stop. So you design the protocol (signals, per-thread handshakes, native bounds) and the code (no poll-free loops) for the *worst* thread under the *worst* schedule. This reframes "GC tuning" as "straggler elimination."
-
-### The "Allocation Rate Is The Throttle" Model
-
-The collector's workload is whatever the allocator hands it. Allocation rate sets GC frequency, which sets pause frequency and barrier-execution count. The cheapest GC tuning is often *allocating less* (object reuse, value types, avoiding boxing) — it reduces every downstream cost at once. Think of allocation rate as the master throttle on the whole integration.
-
-### The "Contract, Then Fuzz" Model
-
-The barrier ABI and the elision rules are correctness contracts shared by two codebases (codegen, GC). The professional model: *specify it formally, then attack it* — stress GC at every safepoint, randomize timing, run sanitizers, fuzz the schedule. Concurrency-and-relocation bugs are too rare to find by luck; you manufacture the rare schedules deliberately.
-
----
-
 ## Code Examples
 
 ### Measuring the TTSP distribution, not the mean (JVM)
@@ -251,32 +163,6 @@ JNIEXPORT void JNICALL Java_X_process(JNIEnv* env, jobject self, jbyteArray data
 ```
 
 Using `GetByteArrayRegion` (copy) instead of `GetPrimitiveArrayCritical` (pin) keeps a moving collector unblocked during `heavy_compute` — a deliberate TTSP/throughput tradeoff.
-
----
-
-## Pros & Cons
-
-| Design decision | Pros | Cons |
-|-----------------|------|------|
-| **Fully-interruptible code** | Short TTSP; fine stop granularity. | Large GC info; more code-cache pressure. |
-| **Partially-interruptible code** | Small GC info; less metadata. | Longer worst-case TTSP; coarse stops. |
-| **Page-trap / signal polling** | Single-instruction polls; stops poll-free code (signals). | Platform-specific; harder to debug; fault/signal machinery. |
-| **Thread-local handshakes** | One straggler can't stall the world; enables concurrent root scan. | More protocol complexity; per-thread state. |
-| **Big TLABs** | Fewer slow paths; lower contention; high throughput. | Memory waste; worse locality; larger retained slop at GC. |
-| **Allocation-site sampling** | Cheap profiling/policy hooks. | Fast-path counter cost; sampling bias to manage. |
-| **Concurrent + pacing** | Tiny pauses if pacing keeps up. | Latency cliff (STW fallback) if pacing misjudges; pacer tuning. |
-| **Generational load-barrier collector** | Latency *and* better CPU efficiency. | Two barriers (load + write); more codegen obligations and metadata. |
-
----
-
-## Use Cases
-
-- **Setting and defending a pause-time SLO** for a managed service: decompose the SLO into TTSP, STW work, barrier cost, and allocation rate; budget and monitor each.
-- **Choosing/tuning a collector for a fleet:** translate barrier economics, pacing behavior, and metadata budget to the workload and hardware.
-- **Arbitrating codegen ↔ GC contracts** in runtime development: specifying and stress-testing the barrier ABI and elision rules.
-- **Capacity planning:** budgeting allocation rate and heap headroom so the pacer never falls back to STW under peak.
-- **On-call incident response:** running the "pause regression" or "throughput regression" runbook to ground, attributing to a specific interface term.
-- **Hardening native interop** at scale: bounding pinning/critical windows, designing handle lifetimes, reviewing native-transition state machines.
 
 ---
 
@@ -357,121 +243,24 @@ A barrier/elision bug must be reproduced by the harness, never by luck in prod.
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```text
-┌──────────────────────────────────────────────────────────────────────────────┐
-│        RUNTIME ↔ GC INTEGRATION — PROFESSIONAL (design & operate)              │
-├──────────────────────────────────────────────────────────────────────────────┤
-│ THE BUDGET SHEET (balance against the SLO):                                   │
-│   map bytes | TTSP p99.9 | STW work | barrier CPU% | alloc MB/s | GC CPU%      │
-├──────────────────────────────────────────────────────────────────────────────┤
-│ METADATA: fully-interruptible (small TTSP, big maps)                          │
-│           partially-interruptible (small maps, long TTSP)                     │
-│           compress: bitmaps, deltas, dedup; watch code-cache pressure         │
-├──────────────────────────────────────────────────────────────────────────────┤
-│ SAFEPOINT PROTOCOL (design for the SLOWEST thread):                           │
-│   poll: flag | page-trap | signal(async preempt)                              │
-│   scope: global STW | per-thread handshake | return-addr hijack               │
-│   native transitions: in-native = safe; RETURN side must synchronize          │
-├──────────────────────────────────────────────────────────────────────────────┤
-│ BARRIER ABI (codegen ↔ GC contract): inputs, CLOBBERS, may-not-allocate/      │
-│   safepoint on fast path, ELISION rules IDENTICAL on both sides; FUZZ it       │
-├──────────────────────────────────────────────────────────────────────────────┤
-│ ALLOCATION: TLAB bump fast path; size from telemetry; alloc RATE = GC throttle│
-│   sampling: per-thread byte counter, off hot path, unbiased intervals         │
-│   PACING: start concurrent GC early or fall off the STW cliff                  │
-├──────────────────────────────────────────────────────────────────────────────┤
-│ RUNBOOK: pause? -> split TTSP vs STW FIRST -> straggler or heap -> only then   │
-│          GC flags.  throughput? -> barrier CPU + allocation rate.             │
-└──────────────────────────────────────────────────────────────────────────────┘
-```
+1. Define the user or business outcome that **Runtime ↔ GC Integration** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
----
+## Verify your work
 
-## Summary
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
 
-- At production scale the runtime↔GC interface is an **engineered system with budgets**: map bytes, TTSP, STW work, barrier CPU, allocation rate, GC CPU — balanced against a latency/throughput SLO.
-- **GC metadata is cargo you ship.** Fully- vs partially-interruptible code trades **map size against TTSP**; compression (bitmaps, deltas, dedup) and code-cache pressure are real constraints.
-- The **safepoint protocol** is a small agreement protocol whose **TTSP distribution** sets your pause tail. Design it for the **slowest thread**: page-trap/signal polls, **per-thread handshakes** so a straggler stays local, and a correct **native-transition state machine**.
-- The **barrier ABI** is a formal **codegen ↔ GC contract** — clobbers, "fast path may not allocate/safepoint," and **elision rules that must be byte-identical on both sides**. Its failure mode is a rare, memory-corrupting miscompile, so you **specify then fuzz** it.
-- The **allocation path** is co-designed with collection: **TLAB bump** fast path (sized from telemetry), bump-pointer arenas, **allocation-site sampling** off the hot path, and a clean slow-path → GC handoff. **Allocation rate is the GC's throttle** — cutting it reduces pauses, barriers, and CPU at once.
-- **Pacing** decides when a concurrent collector starts; mistuned pacing falls off an **STW latency cliff** under load. Keep headroom; alert on allocation-rate spikes.
-- Collectors evolve by **adding interface obligations** (generational ZGC = load barrier *plus* a young-gen write barrier) to buy efficiency; choosing a collector means choosing which barriers your hot code pays.
-- The operating discipline: **decompose every SLO incident into interface terms and attribute it** — TTSP straggler, STW work, pacer fallback, barrier storm, or allocation rate — before touching a tuning flag.
+## Review questions
 
----
-
-## Further Reading
-
-- *The Garbage Collection Handbook* (2nd ed.) — Jones, Hosking, Moss. The systems chapters: safepoints, barriers, allocation, concurrent coordination.
-- *HotSpot* source and JEPs: JEP 312 (thread-local handshakes), JEP 333/376 (ZGC), JEP 379 (Shenandoah), JEP 439 (generational ZGC). https://openjdk.org/jeps/
-- *A Guide to the Go Garbage Collector* and the Go runtime pacer design — pacing, GOGC, GOMEMLIMIT. https://go.dev/doc/gc-guide
-- *.NET Book of the Runtime (BOTR)* — GC info, GC-safe points, stackwalking, thread suspension/hijacking. https://github.com/dotnet/runtime/blob/main/docs/design/coreclr/botr/
-- *Java Flight Recorder / JFR* and *async-profiler* — allocation-site sampling and safepoint-bias-free profiling. https://github.com/async-profiler/async-profiler
-- *Continuous Profiling and GC* talks (Nitsan Wakart, Aleksey Shipilëv) — TTSP, barriers, allocation in practice.
-- *Idle and tail-latency engineering* literature (Dean & Barroso, "The Tail at Scale") — for the straggler-owns-the-tail mindset.
-- *Generational ZGC* design notes — why a young-gen write barrier returns on top of the load barrier.
-
----
-
-## Diagrams & Visual Aids
-
-### The Interface Budget Sheet
-
-```text
-┌────────────────────┬───────────────┬──────────────────────────────────────┐
-│ Cell               │ Lever         │ Side effect of pushing the lever       │
-├────────────────────┼───────────────┼──────────────────────────────────────┤
-│ map bytes ▼        │ partial-interr│ TTSP p99.9 ▲                           │
-│ TTSP p99.9 ▼       │ signals/handshk│ protocol complexity ▲                 │
-│ STW work ▼         │ load barrier  │ barrier CPU% ▲                         │
-│ barrier CPU% ▼     │ value/index   │ developer effort ▲                     │
-│ alloc MB/s ▼       │ pooling/reuse │ GC freq ▼, pauses ▼, barriers ▼ (win!) │
-│ GC CPU% ▼          │ generational  │ +a second barrier (more codegen oblig.)│
-└────────────────────┴───────────────┴──────────────────────────────────────┘
-```
-
-### Safepoint Protocol — Scope Choices
-
-```text
-GLOBAL STW                 PER-THREAD HANDSHAKE          RETURN-ADDR HIJACK
- stop ALL threads            stop ONE thread, scan,        rewrite return addr;
- at once                     resume; repeat                thread traps on return
- straggler stalls world      straggler is LOCAL            covers call-free returns
- (simple)                    (ZGC/Shenandoah root scan)    (.NET)
-```
-
-### Native Transition State Machine (simplified)
-
-```text
-  IN_MANAGED ──(call native)──► TRANSITION_OUT ──► IN_NATIVE
-      ▲                                                │
-      │                                         (return to managed)
-  (GC may NOT scan mid-transition)                     ▼
-      └────────────── IN_MANAGED ◄── TRANSITION_IN ◄───┘
-                                        │
-                       if GC in progress: BLOCK here until safe
-  IN_NATIVE is treated as "already safe" -> GC can scan/move without this thread.
-```
-
-### Allocation Fast Path + Pacing Feedback
-
-```text
-new(size):
-   if top+size <= end:  p=top; top+=size; return p          ; FAST (bump)
-   else: slow_path -> new TLAB                               ; refill
-            └─ if heap occupancy >= PACER_TRIGGER:
-                   start concurrent GC (pace to finish before full)
-            └─ if heap FULL: STW collection (the cliff — avoid!)
-   alloc-sample counter -= size; if <=0: record stack (off hot path)
-```
-
-### Pause Decomposition Under The SLO
-
-```text
-visible_pause  =  [ TTSP ]  +  [ STW phase work ]  +  ~0 (if concurrent + paced)
-                    │                │
-   straggler? ──────┘                └────── root-set size / pacer fallback
-throughput_loss = barrier_cost*pointer_ops + alloc_overhead + concurrent_GC_share
-```
+- Which measurable outcome justifies investing in Runtime ↔ GC Integration?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

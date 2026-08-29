@@ -1,50 +1,11 @@
-# Nominal vs Structural Typing — Senior Level
+# Nominal vs Structural Typing — Senior
 
-> **Topic:** Nominal vs Structural Typing
-> **Focus:** The formal machinery — subtyping rules, variance, row polymorphism, function-parameter soundness — and how a compiler actually *implements* nominal vs structural compatibility checks, with the consequences for API evolution and large-scale code.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Nominal vs Structural Typing** under failure, load, and change?
 
-## Introduction
-
-> Focus: **What is the formal subtyping relation each model defines, where is it sound or unsound, and what does the compiler do mechanically to answer `S <: T`?**
-
-A senior engineer should be able to derive the corner cases rather than memorize them. That requires three things: (1) the *typing rules* for nominal and structural subtyping written as inference rules, (2) **variance** — how subtyping propagates through generics, functions, and mutable containers, where most real soundness bugs live, and (3) an understanding of the *implementation*: a nominal check is essentially a label comparison plus an ancestry walk (O(1)–O(depth)), while a structural check is a potentially expensive recursive, coinductive comparison that compilers must *memoize* to terminate on recursive types.
-
-The payoff is practical. Variance explains why `List<Dog>` is not a `List<Animal>` in a sound language, why TypeScript's array and method-parameter handling is deliberately unsound, and why structural function compatibility uses contravariant parameters. Row polymorphism explains how OCaml objects and "open record" types achieve "this row plus extra fields" without losing precision. And the implementation view explains the cost models — why structural type-checking of deeply recursive types needs cycle detection, and why nominal systems give O(1) "same type?" comparisons that structural systems can't.
-
-> 🎓 **Why this matters at the senior level:** You design the type-level contracts a team builds on for years. Choosing nominal vs structural (or where to brand) determines whether API evolution is *enforced* or *silent*, whether refactors are *checked* or *trust-based*, and whether your hot type-checking path is cheap (nominal) or needs memoization (structural). You also need to know exactly where each system is unsound so you don't lean on a guarantee the compiler never actually made.
-
-This page covers: subtyping as inference rules, width/depth formalized, variance (co/contra/in/bivariance) with the function and array cases, row polymorphism, structural recursion and coinduction, how compilers implement each check, and the API-evolution and performance consequences.
-
----
-
-## Prerequisites
-
-- **Required:** Middle-tier content — subtyping `S <: T`, width/depth, method sets, newtypes, branded types.
-- **Required:** Generics and parametric polymorphism in a real language.
-- **Required:** The idea that a function type is `(Args) -> Ret`.
-- **Helpful:** Having reasoned about covariance/contravariance even informally ("arrays of subtypes").
-- **Helpful:** Exposure to OCaml objects/polymorphic variants or Scala structural types.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Subtyping rule** | An inference rule of the form "premises ⊢ `S <: T`" defining when subtyping holds. |
-| **Covariance** | Subtyping preserved: if `A <: B` then `F<A> <: F<B>`. Safe for read-only/output positions. |
-| **Contravariance** | Subtyping flipped: if `A <: B` then `F<B> <: F<A>`. Correct for input/parameter positions. |
-| **Invariance** | Neither direction; `F<A> <: F<B>` only if `A = B`. Required for mutable containers. |
-| **Bivariance** | Both directions allowed — generally **unsound**; TS uses it in places for ergonomics. |
-| **Variance position** | Where a type appears (return = covariant/output, parameter = contravariant/input) determining required variance. |
-| **Row polymorphism** | Typing "a record with these fields *and possibly more*" via a row variable, giving precise open records. |
-| **Coinductive subtyping** | Subtyping over (possibly infinite/recursive) types proven by assuming the goal and checking for contradiction — needs cycle detection. |
-| **Coherence** | The property that there is at most one way a type satisfies a constraint/trait (relevant to nominal trait systems). |
-| **Liskov Substitution Principle (LSP)** | Behavioral substitutability; subtyping's semantic counterpart. |
-| **Nominal opacity** | A nominal type can *hide* its representation; structural types expose it (the shape *is* the interface). |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -132,30 +93,6 @@ A nominal type can be **opaque**: `newtype UserId = UserId Int` hides that it's 
 
 ---
 
-## Real-World Analogies
-
-**Contravariant parameters = "a more capable contractor."** A contractor who can repair *any* vehicle is a valid substitute for one hired to repair *only sedans* (accepts more — contravariant input), and if they always deliver a *premium* finish, that's a fine substitute for "any finish" (covariant output).
-
-**Invariant mutable box = "a labeled storage bin."** A bin labeled "dogs only" can't be relabeled "animals" and shared, or someone drops a cat in and the dog-only invariant breaks. Mutability forces invariance.
-
-**Row variable = "and the rest."** A form that says "fill in your name, plus keep whatever else is on the page" — it processes the field it needs while preserving everything else untouched. That "whatever else" is the row variable.
-
-**Memoized coinduction = "assume the loop closes."** Proving two infinite mirror-corridors match: you assume they match, walk one step, and only stop if you ever see a difference — otherwise the assumption stands.
-
----
-
-## Mental Models
-
-**Model 1 — "Variance is positional."** Output positions (returns, read-only fields) are covariant; input positions (parameters, write targets) are contravariant; read-write positions are invariant. Read a type signature and tag each position; that predicts legal assignments.
-
-**Model 2 — "Structural identity is recursive; nominal identity is a pointer."** This single fact explains the cost models, the recursion/termination concerns, and why nominal gives free fast equality.
-
-**Model 3 — "Row polymorphism > width subtyping when you must preserve the rest."** If a function should pass through unknown fields, you want a row variable, not an up-cast that forgets them.
-
-**Model 4 — "Soundness holes are deliberate ergonomics."** TS covariant arrays, TS bivariant method params, Java covariant arrays — each trades a soundness guarantee for convenience, paying with a runtime check or a silent risk. Know which guarantee you *don't* have.
-
----
-
 ## Code Examples
 
 ### Variance you can feel (Scala, declared variance)
@@ -232,37 +169,6 @@ newtype UserId = UserId Int          -- representation hidden behind the constru
 
 ---
 
-## Pros & Cons
-
-### Nominal (formal/implementation lens)
-
-| Pros | Cons |
-|------|------|
-| O(1) identity and fast subtype tests (ancestry walk / bitset). | Expressiveness recovered only via generics + bounds + variance annotations. |
-| Representation opacity → safe API evolution. | Declaration overhead; no retroactive conformance. |
-| No recursion/termination concerns in the checker. | Variance often must be declared explicitly (Scala `+/-`, C# `in/out`). |
-| Coherence achievable (one canonical conformance). | Adapters needed to bridge foreign types. |
-
-### Structural (formal/implementation lens)
-
-| Pros | Cons |
-|------|------|
-| Width/depth + row polymorphism → precise, flexible, retroactive. | Recursive, coinductive checking; needs memoization to terminate and stay fast. |
-| No identity bookkeeping; types are their shapes. | No O(1) identity; relation caching essential at scale. |
-| Foreign types conform for free. | Representation is the contract → harder to evolve safely. |
-| Natural fit for data/JSON and open records. | Soundness corners (bivariance, covariant arrays) leak in for ergonomics. |
-
----
-
-## Use Cases
-
-- **Variance-correct generic APIs.** A producer (`Iterator<+T>`/`out T`) is covariant; a consumer (`Comparator<-T>`/`in T`) is contravariant. Designing these correctly is senior-level type design.
-- **Row-polymorphic middleware.** Functions that augment a context object (`{ ...ctx, user }`) while preserving unknown fields want row types, not lossy up-casts.
-- **Opaque domain types.** Wrap representations (money, IDs, tokens) nominally so you can change the internal format without breaking clients.
-- **Performance-sensitive type-checking.** Massive structural codebases (large TS monorepos) rely on relation caching; understanding the cost model guides how you structure types to keep builds fast.
-
----
-
 ## Coding Patterns
 
 **Pattern: declare variance explicitly where the language allows it** (`out T`/`in T` in C#, `+A`/`-A` in Scala) so the compiler enforces safe substitution.
@@ -312,13 +218,24 @@ export const Id = (s: string): Id => s as Id;
 
 ---
 
-## Summary
+## Apply it
 
-- Subtyping is defined by **inference rules**: nominal adds edges *only* via declaration (S-Nom); structural adds **width** and **depth** rules over members.
-- **Variance** is where soundness lives: functions are **contravariant in parameters, covariant in returns**; mutable containers must be **invariant**. TS arrays (covariant) and TS method params (bivariant) are deliberate, documented soundness holes; Java arrays are covariant with runtime `ArrayStoreException`.
-- **Row polymorphism** gives precise open records ("these fields and possibly more") and is often more expressive than width subtyping because it never discards the rest.
-- Structural subtyping over recursive types is **coinductive** and requires a memo set to terminate; nominal checks are a finite ancestry walk.
-- **Implementation:** nominal = O(1) identity + cheap ancestry subtype tests; structural = recursive member comparison needing aggressive relation caching to stay tractable.
-- **Nominal opacity** enables safe API evolution (hide the representation); **structural transparency** makes the shape the public contract, easing interop but constraining evolution.
+1. State the system invariant that **Nominal vs Structural Typing** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
-The professional tier turns this into real-codebase engineering: Rust trait coherence and orphan rules, hybrid system design, migration strategies, and choosing the model (and where to brand) for a long-lived system.
+## Verify your work
+
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
+
+## Review questions
+
+- Which invariant must remain true when Nominal vs Structural Typing fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

@@ -1,55 +1,11 @@
-# Side Channels & Spectre — Senior Level
+# Side Channels & Spectre — Senior
 
-> **Topic:** Side Channels & Spectre
-> **Focus:** The full transient-execution taxonomy — Spectre v1/v2/v4, Meltdown, MDS/RIDL/Fallout/ZombieLoad, L1TF/Foreshadow, retbleed/PACMAN-class — what microarchitectural structure each one leaks from, and the matching defense for each.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Side Channels & Spectre** under failure, load, and change?
 
-## Introduction
-
-> Focus: **Once you understand "transient execution leaks via the cache," how many different microarchitectural structures can you mislead into leaking — and how does each defense map to a structure?**
-
-The middle page gave you the skeleton every transient-execution attack shares: an **encode** phase (transient, secret-dependent microarchitectural footprint) and a **read** phase (a cache attack that decodes it). The senior task is to see the *whole zoo* and to organize it. The zoo is large because a modern core has *many* speculative and out-of-order structures, and each one is a different lever an attacker can pull: the conditional branch predictor (Spectre v1), the indirect branch predictor / BTB (Spectre v2), the store-to-load forwarding / memory-disambiguation predictor (Spectre v4), the deferred handling of permission faults (Meltdown, L1TF), and the internal data buffers that hold in-flight data (MDS/RIDL/Fallout/ZombieLoad). The return-stack and indirect-branch story even came back from the dead after the first round of mitigations (retbleed).
-
-A senior engineer must be able to do three things with this material: **(1) classify** a new "scary CPU bug" headline into the right bucket within minutes, by asking "which structure does it mislead, and is the boundary it crosses a *bounds check* (Spectre-type) or a *permission/privilege boundary* (Meltdown-type)?"; **(2) reason about defense applicability** — software-only (v1 masking) vs. firmware/microcode (v2, MDS, v4) vs. OS structural (KPTI for Meltdown) vs. scheduling/co-location policy; and **(3) reason about cost** — KPTI's TLB-flush tax, retpoline's indirect-call penalty, buffer-flush-on-context-switch, disabling hyperthreading. This page builds that classification and the defense map. The deep mitigation engineering and the performance/operations economics are `professional.md`.
-
-> 🎓 **Why this matters for a senior:** You will be the person asked "are we affected by <today's CPU CVE>, and do we need to act?" The right answer is rarely "panic" or "ignore" — it's a reasoned mapping from the attack's mechanism to your trust boundaries (do you run untrusted code? on shared cores? across a privilege boundary?) and to the mitigations already deployed in your stack. This page gives you the framework to answer that quickly and correctly.
-
----
-
-## Prerequisites
-
-- **Required:** `middle.md` — speculative/OoO execution, the encode/read model, Flush+Reload and Prime+Probe, Spectre v1, `lfence`, index masking.
-- **Required:** Virtual memory and privilege levels: user vs. kernel, page-table permission bits, the TLB, the difference between a load *issuing* and a fault *being delivered at retirement*.
-- **Required:** Indirect branches (calls/jumps through a register or pointer), the return-stack buffer, and the branch-target buffer (BTB) concept.
-- **Helpful:** SMT / hyperthreading — two logical threads sharing one core's structures (caches, buffers, predictors).
-- **Helpful:** Store buffers and store-to-load forwarding.
-
-You do **not** yet need: the operational rollout, microcode-update mechanics, and detailed performance-cost engineering — that is `professional.md`.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **BTB (Branch Target Buffer)** | Predicts the *target* of an indirect branch. Mistrained → Spectre v2. |
-| **RSB (Return Stack Buffer)** | Predicts return addresses for `ret`. Underflow/mistraining underlies some v2 and retbleed variants. |
-| **Branch-target injection** | Spectre v2: training the BTB so a victim's indirect branch speculatively jumps to an attacker-chosen gadget. |
-| **Meltdown** | Transiently reading data across a *privilege* boundary (kernel from user) before the permission fault retires. |
-| **Deferred fault** | A permission fault is detected at *retirement*, not at *issue* — so the forbidden load's data can be used transiently before the fault squashes it. |
-| **KPTI / KAISER** | Kernel Page Table Isolation: unmap (most of) the kernel from user-mode page tables so Meltdown has nothing to read. |
-| **SSB (Speculative Store Bypass)** | Spectre v4: a load speculatively bypasses an older store to the same address (memory-disambiguation misprediction), reading stale data. |
-| **MDS (Microarchitectural Data Sampling)** | A class (RIDL, Fallout, ZombieLoad) leaking *in-flight* data from internal buffers, not from a chosen address. |
-| **Line-fill buffer / store buffer / load port** | Internal staging buffers MDS variants sample from. |
-| **L1TF / Foreshadow** | L1 Terminal Fault: transiently reading data present in L1 via a not-present/altered page-table entry; breaks SGX enclaves and crosses VM boundaries. |
-| **Retbleed** | A return-oriented Spectre-v2-style attack that mistrains the branch predictor to mispredict `ret` instructions, bypassing some retpoline-era assumptions. |
-| **PACMAN** | A speculative attack against ARM Pointer Authentication: speculatively brute-forcing a PAC without crashing, undermining a memory-safety mitigation. |
-| **IBRS / STIBP / IBPB** | Indirect Branch Restricted Speculation / Single-Thread Indirect Branch Predictors / Indirect Branch Prediction Barrier — microcode controls over indirect-branch prediction (v2 defenses). |
-| **eIBRS** | "Enhanced" IBRS — an always-on hardware mode that isolates indirect-branch prediction by privilege domain. |
-| **Retpoline** | A software construct (a "return trampoline") that converts indirect branches into a controlled `ret` sequence the predictor can't be tricked through. |
-| **VERW flush** | An instruction (re-purposed by microcode) used to flush MDS-affected buffers on a security boundary crossing. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -123,34 +79,6 @@ The senior takeaway is not the name list — it's the pattern: each new structur
 
 ---
 
-## Real-World Analogies
-
-**Spectre vs. Meltdown — burglar vs. inside job.** Meltdown is a burglar who walks into a vault that *should* be locked but the lock only clicks shut *a second after* the door opens — they grab what they can in that second. Spectre is subtler: you can't get into the vault, so you trick an *authorized clerk* into fetching a secret "by mistake" and leaving it on the counter (the cache) where you can read it.
-
-**v2 (branch-target injection) — forging the GPS destination.** The victim's car uses GPS to pick where to drive (indirect branch). You hack the GPS history so it momentarily routes the car to a spot *you* chose — where a useful "gadget" is parked — before it realizes the route was wrong and turns back. The brief detour is enough to leak.
-
-**MDS — eavesdropping on the conveyor belt.** Instead of asking for a specific package, you stand next to the shared conveyor belt (internal buffers) and photograph whatever happens to pass — letters meant for other departments included. Lower aim, but you see traffic you were never meant to.
-
-**L1TF — reading through a "wall under construction" sign.** A wall is marked "not built yet" (not-present page), but there's actually a finished room behind it (data in L1). On affected hardware, you can peek through during the moment the CPU hasn't yet enforced the sign.
-
-**PACMAN — guessing a PIN with a silent keypad.** Normally a wrong PIN locks you out (faults). Here, wrong guesses are *silent and free* because they happen speculatively — so you brute-force the PIN without ever triggering the alarm.
-
----
-
-## Mental Models
-
-**Model 1: Two families, one question each.** Spectre family → "what *check* did I trick the victim into speculating past?" Meltdown family → "what *protection* did the hardware enforce too late, letting me transiently read forbidden data?"
-
-**Model 2: Predictor or buffer or deferred fault.** Every attack misleads one of three kinds of structure. Predictors (conditional/BTB/RSB/disambiguation) → Spectre-style. Deferred faults → Meltdown/L1TF. Internal buffers → MDS. Naming the structure tells you the mitigation layer.
-
-**Model 3: Mitigations create new assumptions, attacks break them.** Retpoline assumed returns were safe → retbleed. PAC assumed wrong guesses fault → PACMAN. Treat every mitigation as a hypothesis that the next paper will test.
-
-**Model 4: SMT is a force multiplier for the attacker.** Many of the nastiest cross-domain leaks (MDS, L1TF, some v2) rely on two logical threads sharing one core's buffers/caches *at the same time*. "Disable SMT" recurs as the heaviest hammer precisely because it removes that concurrency.
-
-**Model 5: Free speculative probing.** Anything that would normally *fault* (a wrong PAC, a not-present page, an out-of-bounds index) can be *tested* speculatively where the fault is squashed and free. That is the unifying superpower of the whole class.
-
----
-
 ## Code Examples
 
 ### Recognizing a v2 indirect-branch gadget surface
@@ -198,32 +126,6 @@ fn verify_tag(a: &[u8], b: &[u8]) -> bool {
 
 ---
 
-## Pros & Cons
-
-| Mitigation | Upside | Downside |
-|------------|--------|----------|
-| **KPTI** (Meltdown) | Structurally removes kernel data from user reach. | Page-table switch / TLB cost on every syscall; historically large for syscall-heavy workloads. |
-| **Retpoline** (v2) | Software-deployable; no microcode dependency on older CPUs. | Slows indirect calls; partially obsoleted/complicated by retbleed. |
-| **IBRS/eIBRS** (v2) | Hardware-enforced domain isolation; eIBRS is low-overhead, always-on. | Older IBRS had high overhead; requires microcode/CPU support. |
-| **SSBD** (v4) | Closes speculative store bypass. | Per-process performance cost; usually enabled selectively. |
-| **VERW buffer flush** (MDS) | Closes buffer sampling at boundary crossings. | Flush cost per crossing; full safety often wants SMT off. |
-| **Disable SMT** | Strongest cut for cross-thread leaks (MDS/L1TF). | Can cut throughput substantially; major capacity/cost impact in fleets. |
-| **L1D flush + PTE inversion** (L1TF) | Protects enclaves and VM boundaries. | Flush cost on VM entry; scheduling complexity. |
-
----
-
-## Use Cases
-
-You reason with this taxonomy when:
-
-- **Triaging a new CPU CVE:** classify it (structure + boundary), check whether your trust model is exposed (do you run untrusted code? across which boundary?), and confirm the relevant mitigation is deployed.
-- **Designing multi-tenant infrastructure:** decide SMT policy, core scheduling, and co-location rules based on which cross-tenant attacks (MDS, L1TF) your hardware/microcode still allows.
-- **Hardening a sandbox/JIT (browser, serverless, WASM runtime):** address v1 gadgets, v4 (SSBD), v2 (retpoline/eIBRS), and the timing primitives attackers need.
-- **Protecting enclaves (SGX) or confidential computing:** L1TF/Foreshadow and MDS directly threaten enclave confidentiality; you must know the mitigations and their residual gaps.
-- **Architecture review for security products:** ensuring a mitigation (PAC, retpoline) isn't itself defeated speculatively (PACMAN, retbleed).
-
----
-
 ## Coding Patterns
 
 **Pattern: classify-then-check.** For any new variant, write down (structure misled, boundary crossed) → look up the mitigation layer → verify it's active in your kernel/microcode/compiler flags.
@@ -259,48 +161,24 @@ You reason with this taxonomy when:
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. State the two classification questions and apply them to Meltdown and to Spectre v2.
-2. Why is Meltdown fixed by KPTI (structural) while Spectre v1 is fixed at the gadget (software)? What's the underlying difference?
-3. What structure does Spectre v2 mislead, and how do retpoline and eIBRS each defeat it?
-4. How does MDS differ in *targeting* from Meltdown — and why does that make "disable SMT" a recurring remedy?
-5. Why does L1TF/Foreshadow threaten SGX enclaves and cross-VM isolation specifically?
-6. Explain how retbleed and PACMAN each broke an assumption created by an earlier mitigation.
-7. Give the "deferred fault" mechanism in one sentence and name two attacks that exploit it.
-8. For a multi-tenant cloud running untrusted guest code, list the mitigations you'd verify and why.
+1. State the system invariant that **Side Channels & Spectre** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
----
+## Verify your work
 
-## Cheat Sheet
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
 
-| Variant | Mislead | Boundary | Fix |
-|---------|---------|----------|-----|
-| Spectre v1 | Cond. predictor | Bounds check | `lfence` / index mask |
-| Spectre v2 | BTB | Indirect branch / domain | Retpoline + (e)IBRS/STIBP/IBPB |
-| Spectre v4 | Mem-disambig. | Stale store-to-load | SSBD (selective) |
-| Meltdown | Deferred fault | User↔kernel | KPTI/KAISER |
-| MDS/RIDL/ZombieLoad | Internal buffers | Cross-domain/SMT | VERW flush + SMT off |
-| L1TF/Foreshadow | L1 + not-present PTE | Enclave/VM | L1D flush + PTE inversion + core sched |
-| Retbleed | RSB/BTB for `ret` | Domain | Extra microcode/return stuffing |
-| PACMAN | Speculate vs. PAC | Memory-safety mitigation | HW PAC hardening |
+## Review questions
 
-**Meta-rule:** Spectre = trick the victim past a *check*; Meltdown-class = read across a *protection boundary* enforced too late.
-
----
-
-## Summary
-
-The transient-execution zoo is large but organizable by two questions: **which microarchitectural structure does the attack mislead** (conditional predictor, BTB/RSB, memory-disambiguation predictor, deferred permission fault, or internal data buffers), and **which boundary does it cross** (a software *bounds check* — the **Spectre** family — or a hardware *privilege/protection boundary* — the **Meltdown/L1TF/MDS** family). **Spectre v1** misleads the conditional predictor past a bounds check; **v2** injects branch targets via the BTB to redirect the victim's speculation; **v4** speculatively bypasses an older store to read stale data. **Meltdown** transiently reads kernel memory because the permission fault is resolved at retirement, not at issue; **L1TF/Foreshadow** reads L1 data through not-present page-table entries, breaking enclaves and VM isolation; **MDS/RIDL/Fallout/ZombieLoad** sample whatever data is in flight in internal buffers, often across SMT siblings. **Retbleed** and **PACMAN** show the arms race: each defeated an assumption a prior mitigation created (retpoline's "returns are safe," PAC's "wrong guesses fault").
-
-The defenses map to the structure and boundary: **`lfence`/index masking** (v1, software), **retpoline + IBRS/eIBRS/STIBP/IBPB** (v2, compiler+microcode), **SSBD** (v4, selective microcode), **KPTI** (Meltdown, OS), **VERW buffer flush + disabling SMT** (MDS), **L1D flush + PTE inversion + core scheduling** (L1TF). No single fix covers the zoo, all cost performance, and the oldest CPU in your fleet sets your real exposure. The senior skill is to classify a new variant in minutes, map it to your trust boundaries, confirm the right mitigation is active, and decide — by exposure, not by panic — whether to act. The economics and rollout of all this is `professional.md`.
-
----
-
-## Further Reading
-
-- The Meltdown paper (Lipp et al., 2018) and the Spectre paper (Kocher et al., 2018).
-- Foreshadow / L1TF papers; the RIDL, Fallout, and ZombieLoad (MDS) papers.
-- "Retbleed" (Wikner & Razavi) and "PACMAN" (Ravichandran et al.).
-- Intel's and AMD's transient-execution mitigation documentation (IBRS/eIBRS/STIBP/IBPB/SSBD/MD_CLEAR).
-- Continue in `professional.md` for mitigation engineering, the performance/operations economics, and verifying constant-time code at scale.
+- Which invariant must remain true when Side Channels & Spectre fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

@@ -1,40 +1,11 @@
-# Manual Memory Management — Professional Level
+# Manual Memory Management — Professional
 
-> **Topic:** Manual Memory Management
-> **Focus:** Production war stories, the tooling that finds memory bugs before users do, and where manual management remains the only viable choice.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Manual Memory Management** with measurable outcomes and limited coordination?
 
-## Introduction
-
-In production, a memory bug is not an academic curiosity — it is a 3 a.m. page, a CVE with your company's name on it, or a customer's data exfiltrated through a heap overflow. Microsoft and Google have both reported that **roughly 70% of their severe security vulnerabilities are memory-safety issues** in C/C++ — the dominant category, year after year. That single statistic is why Rust adoption is accelerating, why Android and Chromium are migrating subsystems, and why the U.S. CISA has urged the industry away from memory-unsafe languages.
-
-This tier is about operating in that reality: catching these bugs in CI before they ship, debugging them when they do, and knowing when manual memory is the right (sometimes only) answer despite all of it.
-
----
-
-## Prerequisites
-
-- The full failure taxonomy and cross-language model (senior tier).
-- Experience building and running C/C++/Rust under a real toolchain (Clang/GCC/rustc).
-- Familiarity with CI pipelines and crash-reporting infrastructure.
-
----
-
-## Glossary
-
-| Term | Meaning |
-|------|---------|
-| **ASan** | AddressSanitizer — compiler instrumentation that detects heap/stack/global overflows and use-after-free at runtime. |
-| **LSan** | LeakSanitizer — detects memory leaks, often bundled with ASan. |
-| **MSan** | MemorySanitizer — detects reads of uninitialized memory. |
-| **TSan** | ThreadSanitizer — detects data races. |
-| **UBSan** | UndefinedBehaviorSanitizer — detects various UB (integer overflow, misalignment, etc.). |
-| **Redzone** | Poisoned guard bytes ASan places around allocations to catch overflows. |
-| **Quarantine** | ASan's delayed-reuse pool for freed memory, so use-after-free is caught. |
-| **Shadow memory** | A compact map ASan/MSan keeps describing the state of every byte of application memory. |
-| **CFI / hardening** | Control-Flow Integrity and allocator hardening that raise the cost of exploiting a memory bug. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -96,24 +67,6 @@ Where sanitizers are too costly to ship, hardened allocators raise the exploitat
 
 ---
 
-## War Stories
-
-**Heartbleed (CVE-2014-0160).** OpenSSL's heartbeat response copied a caller-supplied length without checking it against the actual payload size — a heap **over-read**. Attackers read up to 64 KiB of adjacent process memory per request: private keys, session cookies, passwords. A missing bounds check on one `memcpy` became one of the most damaging vulnerabilities in internet history. Lesson: **never trust a length you didn't measure yourself**; an over-read is as dangerous as an over-write.
-
-**The 40-byte-per-request leak.** A common production pattern: a long-running service leaks a tiny allocation on one code path (often an error path that returns before cleanup). Nothing fails in tests; RSS climbs linearly; days later the OOM killer reaps the process at peak traffic. Diagnosed with LeakSanitizer in CI *or* heap profiling (`jemalloc`/`tcmalloc` profilers, `massif`) in staging. Lesson: **error paths are where ownership bugs hide** — exercise them, and run LSan on long soak tests.
-
-**The use-after-free that only crashed under load.** A request handler freed a buffer, but a logging callback retained a pointer. Under low load the chunk wasn't reused before the callback ran, so it "worked." Under load, another request reused the chunk first, and the log line printed another user's data — an information leak *and* eventual corruption. Reproduced instantly under ASan, invisible without it. Lesson: **manual-memory bugs are load- and timing-dependent; you cannot test them out by hand — you instrument for them.**
-
----
-
-## Mental Models
-
-- **Bugs you can't see, you ship.** Manual-memory defects are silent by nature. Your real safety net is *instrumentation*, not vigilance. Treat "compiles and passes hand tests" as meaningless for memory safety.
-- **The 70% rule.** Assume any non-trivial C/C++ codebase has live memory-safety bugs. The question isn't "are there bugs?" but "what's catching them first — me or an attacker?"
-- **Sanitizers in test, hardening in prod.** ASan/MSan/TSan are too heavy to ship; bake them into CI/fuzzing. Ship hardened allocators + sampling (GWP-ASan) instead.
-
----
-
 ## Code Examples
 
 ### A CI build matrix that earns its keep
@@ -160,31 +113,6 @@ Three stack traces — **use site, free site, allocation site** — turn a "rand
 
 ---
 
-## Pros & Cons
-
-**Pros (of disciplined production manual memory)**
-
-- **Determinism and tail-latency control** unmatched by GC — no stop-the-world pauses (the reason it persists in HFT, audio, kernels).
-- **Tooling has matured enormously**: ASan + fuzzing + hardening makes C/C++ dramatically safer than a decade ago.
-- **Tight footprint** essential for embedded and at hyperscale (memory is a budget line at fleet scale).
-
-**Cons**
-
-- **The 70% tax is real.** Even with tooling, memory-safety CVEs keep appearing; tools reduce, not eliminate.
-- **Tooling has cost and gaps**: sanitizers are too heavy for prod, mutually incompatible, and miss what fuzzing never reaches.
-- **It's a permanent discipline**, not a fix — every new line is a new chance to break the contract.
-
----
-
-## Use Cases
-
-- **Operating-system kernels and drivers** — no runtime, no GC, hard determinism (Linux, Windows; Rust now entering the Linux kernel).
-- **Embedded / real-time** — kilobytes of RAM, hard deadlines; a GC pause is a safety failure.
-- **Latency-critical infrastructure** — trading engines, databases, browsers, game engines, audio/video codecs.
-- **Migration targets** — the same domains are precisely where Rust adoption is strongest, for the safety-without-GC reason.
-
----
-
 ## Best Practices
 
 1. **Make a sanitizer build a required CI gate** (ASan+UBSan+LSan at minimum). No green sanitizer, no merge.
@@ -208,10 +136,24 @@ Three stack traces — **use site, free site, allocation site** — turn a "rand
 
 ---
 
-## Summary
+## Apply it
 
-- ~**70% of severe C/C++ security bugs are memory-safety issues**; each use-after-free or overflow is a potential RCE primitive, not just a crash — this is the central business reality of manual memory.
-- The professional answer is **shift-left detection**: **ASan** (overflows/UAF/double-free with three-trace reports), **LSan** (leaks), **MSan** (uninit reads), **TSan** (races), **UBSan**, **Valgrind** (no-recompile), and **fuzzing** (finds the triggering inputs) — bake them into CI.
-- Sanitizers are for **test/CI/fuzzing**; production ships **hardened allocators + GWP-ASan sampling** instead.
-- War stories (Heartbleed, slow leaks, load-dependent UAF) all share one lesson: **these bugs are silent and timing-dependent — you instrument for them, you don't test them out by hand.**
-- Manual memory persists where determinism and footprint are non-negotiable (kernels, embedded, low-latency) — which is exactly where Rust is now winning the safety-without-GC argument.
+1. Define the user or business outcome that **Manual Memory Management** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
+
+## Verify your work
+
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
+
+## Review questions
+
+- Which measurable outcome justifies investing in Manual Memory Management?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

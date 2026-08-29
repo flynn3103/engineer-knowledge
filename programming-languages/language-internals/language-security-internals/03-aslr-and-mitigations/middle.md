@@ -1,55 +1,11 @@
-# ASLR & Mitigations — Middle Level
+# ASLR & Mitigations — Middle
 
-> **Topic:** ASLR & Mitigations
-> **Focus:** How randomization is actually implemented at exec/mmap time, where the entropy comes from, how PIC threads through the GOT/PLT, and how each companion mitigation composes — and is undermined — in practice.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **ASLR & Mitigations** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-> Focus: **Where do the random bits come from, how does the loader place each region, and how exactly does PIC indirect through the GOT — so you can reason about what each mitigation does and does not protect?**
-
-At the junior level, ASLR was "the OS randomizes base addresses." That's true, but a working engineer needs the next layer of detail: *which* component does the randomizing (the kernel, the dynamic linker, or the program loader), *how many bits* of entropy each region actually gets, and *what the layout looks like in memory* once everything is placed. You also need to understand the GOT/PLT machinery concretely, because half of the companion mitigations (RELRO, lazy vs. eager binding) only make sense once you can picture how a call to `printf` actually resolves.
-
-The through-line of this level is **composition**. ASLR alone is a single layer; in the real world it is always part of a stack — PIE, NX, RELRO, canaries, FORTIFY — and the security you get depends on how those layers *combine* and where the seams are. Equally important is understanding how the stack *fails*: the precise mechanisms by which an info leak, a partial overwrite, a low-entropy region, or a forking server quietly hands the attacker back the addresses you thought you'd hidden.
-
-This page stays defensive and conceptual. We describe *bypass classes* (info-leak-then-reuse, brute force on forks, partial overwrites) at the level needed to design and audit defenses — never as working exploits.
-
----
-
-## Prerequisites
-
-- **Required:** The junior-level picture: ASLR randomizes base addresses; PIE randomizes the executable; NX/canary/RELRO/FORTIFY are companions; an info leak defeats ASLR.
-- **Required:** Comfort reading C and a terminal. You should be able to compile with flags and read tool output.
-- **Required:** The virtual-memory basics: pages, page permissions (read/write/execute), `mmap`, the stack and heap.
-- **Helpful:** A rough idea of how dynamic linking works — that `libc` is loaded separately and your program calls into it.
-- **Helpful:** Familiarity with ELF (the Linux executable format) terminology: sections, segments, the dynamic linker `ld.so`.
-
-You do **not** need to write ROP chains or read disassembly fluently — that's `senior.md`.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **mmap base / mmap_base** | The address the kernel uses as the starting point for memory mappings (shared libraries, large allocations). Randomized under ASLR. |
-| **Load bias** | The random offset added to a PIE/library's preferred base when the loader places it. "Base = preferred + bias." |
-| **Dynamic linker (`ld.so`, `dyld`)** | The component that loads shared libraries, applies relocations, and resolves symbols at runtime. |
-| **Relocation** | A fix-up the linker applies so that addresses in loaded code/data point to the right place after the load bias is applied. |
-| **GOT (Global Offset Table)** | Writable table holding resolved addresses of external functions/data. Lives in the data segment. |
-| **PLT (Procedure Linkage Table)** | Code stubs that route external calls through the GOT; implement lazy binding. |
-| **Lazy binding** | Resolving a function's real address on its *first* call rather than at load time. Requires a writable GOT. |
-| **Eager binding (`-z now`)** | Resolving all symbols at load time, so the GOT can then be made read-only. |
-| **Partial RELRO** | Reorders sections so GOT-for-data is read-only, but the **PLT-related GOT** (`.got.plt`) stays writable for lazy binding. |
-| **Full RELRO** | `-z relro -z now`: resolve everything eagerly, then mark the entire GOT read-only. |
-| **Stack canary / stack cookie** | A random per-process guard value placed before the saved return address; checked on function return. |
-| **FORTIFY_SOURCE** | Compiler/libc feature that replaces certain functions with size-checked `__*_chk` variants when a compile-time size is known. |
-| **Entropy bits** | log2 of the number of possible base positions for a region. |
-| **Prelink** | A historical Linux optimization that pre-assigned fixed library addresses to speed loading — and thereby *weakened* ASLR. |
-| **Info leak** | A bug disclosing a real runtime address, collapsing ASLR for the containing region. |
-| **W^X** | Write-XOR-Execute: a page may be writable or executable but not both. The principle behind NX. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -126,37 +82,6 @@ NX doesn't stop the attacker from *taking control*; it changes *what they can do
 ### 8. Prelink: how an optimization weakened ASLR
 
 A historical cautionary tale worth knowing. **Prelink** was a Linux tool that pre-computed and *baked in* fixed load addresses for shared libraries to speed up program startup (skipping relocation work). The side effect: every prelinked library loaded at the *same* address across runs and across machines — effectively **disabling ASLR for those libraries.** It traded a security property for a small startup speedup. Modern systems have largely abandoned prelink (faster hardware and better linking made the speedup marginal, and the ASLR cost unacceptable). The lesson generalizes: **any optimization that fixes an address re-introduces the predictability ASLR removed.** Watch for it in your own systems — pinned addresses, cached layouts, shared snapshots.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Load bias** | The random number of floors a building's elevator is shifted before you enter — the apartments keep their relative positions, but the whole stack slides. |
-| **GOT/PLT** | A company phone directory (GOT) and the receptionist (PLT) who looks up the right extension the first time you ask, then writes it on a sticky note for next time. |
-| **Lazy binding** | The receptionist only looks up an extension when someone actually calls it. |
-| **RELRO (Full)** | Laminating the directory after everyone's looked up their numbers, so nobody can scribble a fake extension into it. |
-| **Partial RELRO** | Laminating the *address* pages but leaving the *phone-number* page (`.got.plt`) on a wipe-clean whiteboard — exactly the page a saboteur wants. |
-| **Entropy asymmetry** | A bank with a 10-digit vault code but a 2-digit code on the back door. Thieves attack the back door. |
-| **Prelink** | Management posting everyone's permanent room number on the lobby wall "to save time" — convenient, and a gift to burglars. |
-| **NX forcing reuse** | Banning visitors from bringing their own tools; they must improvise using equipment already in the building (and so must know where it is). |
-
----
-
-## Mental Models
-
-### The "entropy is a minimum, not an average" model
-
-When you reason about a process's randomization, don't average the bits across regions. The attacker picks the weakest region they can reach. A process with a 28-bit library base but a 12-bit something-else has a 12-bit weak point. Always ask: *what is the lowest-entropy region an attacker can target, and is that region enough to pivot from?*
-
-### The "writable table is a steering wheel" model
-
-The GOT is a table of *where to go when I call X*. While it's writable, it's a steering wheel an attacker can grab: change one entry and you redirect a call. RELRO (Full) welds the steering wheel in place after startup. Whenever you see a writable table of function pointers, ask whether it can be frozen.
-
-### The "every fixed address is a free anchor" model
-
-ASLR's value is that nothing is predictable. Every component that *does* sit at a fixed address — a non-PIE executable, a prelinked library, a hardcoded mapping, a JIT region at a guessable address — is a free anchor the attacker gets without spending a guess or a leak. Audit for fixed anchors; they're where ASLR silently fails.
 
 ---
 
@@ -251,29 +176,6 @@ gcc -O2 \
 
 ---
 
-## Pros & Cons
-
-| Aspect | Pros | Cons |
-|--------|------|------|
-| **ASLR** | Cheap on 64-bit; breaks hardcoded-address exploits; layered with NX it forces leaks. | Defeated by a single info leak; weakest region sets the bar; non-PIE/prelink create fixed anchors. |
-| **PIE** | Randomizes your own code; closes the biggest fixed anchor. | Small perf cost (GOT/PLT indirection, RIP-relative); historically worse on 32-bit x86. |
-| **NX/DEP** | Essentially free; kills code injection; the reason ASLR matters. | Pushes attackers to ROP/return-to-libc, not a complete stop; complicates JITs. |
-| **Full RELRO** | Freezes the GOT — no GOT-overwrite hijack. | Slower startup (eager binding); loses lazy binding's pay-for-use. |
-| **Stack canaries** | Cheap; catches the classic contiguous stack smash. | Misses non-contiguous writes; the cookie can be leaked; per-function cost. |
-| **FORTIFY** | Free, targeted; catches common library overflows. | Only where size is statically known; needs `-O1`+; not a general bounds check. |
-
----
-
-## Use Cases
-
-- **Hardening a network-facing native service.** Full set: PIE, NX, Full RELRO, canaries, FORTIFY, plus CET/shadow stack where the hardware supports it.
-- **Auditing third-party binaries** before deploying them: `checksec` + `readelf` to confirm the protections, and to flag any non-PIE or Partial-RELRO modules.
-- **Distribution packaging policy.** Enforce hardening flags across all packages; CI gates on `checksec`.
-- **Incident triage.** When investigating a crash that might be exploitation, the layout (`/proc/pid/maps`), RELRO status, and whether a region had low entropy inform how reachable an exploit was.
-- **Designing a forking server safely.** Knowing that forks share layout, you add re-exec-on-crash or per-connection process spawning to restore re-randomization, closing the brute-force door.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Re-randomize per request where it matters
@@ -347,139 +249,24 @@ Strip raw pointers from logs, error messages, serialized output, and debug endpo
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. Run a PIE binary and a non-PIE binary twice each, dumping `/proc/pid/maps`. Which bases move in each case? Explain the difference.
-2. Use `readelf -d` to determine whether a binary has Full or Partial RELRO. Which dynamic-section flag tells you eager binding is in effect?
-3. Explain, in terms of writability, *why* Partial RELRO leaves function-pointer hijacking possible but Full RELRO does not.
-4. A 64-bit forking server crashes and respawns a clone on each malformed request. Estimate, qualitatively, how this changes the attacker's brute-force cost compared with a server that re-`exec`s each worker.
-5. Describe how a partial (low-byte) pointer overwrite can redirect a pointer *within the same page* without defeating ASLR at all. Why doesn't high entropy help here?
-6. Why does eager binding (`-z now`) enable a read-only GOT, while lazy binding requires a writable one?
-7. Explain the historical prelink weakness in one sentence, then name two modern ways the same "fixed address" mistake can sneak back in.
+1. Find a real component where **ASLR & Mitigations** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
----
+## Verify your work
 
-## Cheat Sheet
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
 
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│              ASLR INTERNALS & COMPOSITION (MID-LEVEL)            │
-├──────────────────────────────────────────────────────────────────┤
-│ WHO RANDOMIZES:                                                  │
-│   kernel  -> stack base, mmap base, brk; PIE load bias at exec   │
-│   ld.so   -> places libs within randomized mmap, applies relocs  │
-├──────────────────────────────────────────────────────────────────┤
-│ ENTROPY:  strength = MIN entropy over targetable regions         │
-│   32-bit mmap ~16 bits  -> brute-forceable                       │
-│   64-bit mmap ~28 bits  -> impractical without a leak            │
-│   low 12 bits (page offset) NOT randomized -> partial overwrites │
-├──────────────────────────────────────────────────────────────────┤
-│ PIC CALL PATH:  call f@plt -> jmp *GOT[f] -> (lazy) resolver      │
-│                 resolver writes real addr into GOT[f]            │
-│   GOT must be WRITABLE for lazy binding -> attack surface        │
-├──────────────────────────────────────────────────────────────────┤
-│ RELRO:  Partial = .got.plt still writable (func ptrs hijackable) │
-│         Full (-z now) = eager bind, ENTIRE GOT read-only         │
-│ NX:     data not executable -> forces code REUSE -> needs ASLR   │
-│ CANARY: detects contiguous stack-return smash; can be leaked     │
-│ FORTIFY:size-checked libc funcs; needs -O1+, static size known   │
-├──────────────────────────────────────────────────────────────────┤
-│ WEAKNESSES:  info leak (whole region), partial overwrite (page), │
-│   forking servers (shared layout), non-PIE / prelink (anchors)   │
-└──────────────────────────────────────────────────────────────────┘
-```
+## Review questions
 
----
-
-## Summary
-
-- Randomization is a **division of labor**: the kernel randomizes the stack/mmap/brk bases and the PIE load bias at `exec`; the dynamic linker places libraries within the randomized mmap region and applies relocations.
-- **Entropy is a minimum, not an average.** 32-bit mmap (~16 bits) is brute-forceable; 64-bit (~28 bits) is not, absent a leak. The low ~12 bits (page offset) are never randomized — the door for partial overwrites.
-- **PIC** avoids absolute addresses with RIP-relative addressing internally and **GOT/PLT** indirection externally. Lazy binding resolves on first call and *writes the resolved address into the GOT* — which is why the GOT is writable, which is why it's attacked.
-- **RELRO**: Partial leaves the function-pointer GOT (`.got.plt`) writable; **Full** (`-z relro -z now`) eager-binds and makes the entire GOT read-only. Always want Full.
-- **NX/DEP** is what gives ASLR teeth: it forbids code injection, forcing attackers into code reuse, which requires the addresses ASLR hides.
-- **Canaries** and **FORTIFY** add targeted layers — contiguous-overflow detection and size-checked library calls — each with known blind spots (non-contiguous writes; unknown sizes / `-O0`).
-- **Prelink** is the cautionary tale: an optimization that fixed library addresses and thereby disabled ASLR. Any pinned address (`MAP_FIXED`, cached layouts, constant shared memory, predictable JIT regions) re-creates that weakness.
-- The practical bypass classes — **info leak** (de-randomizes a region), **partial overwrite** (retarget within a page), **brute force on forking servers** (shared layout), **fixed anchors** (non-PIE) — all follow from these mechanics. Design and audit against them.
-
----
-
-## Further Reading
-
-- *"On the Effectiveness of Address-Space Randomization"* — Shacham, Page, Pfaff, Goh, Modadugu, Boneh (CCS 2004). The 16-bit brute-force result.
-- *PaX ASLR design docs* — https://pax.grsecurity.net/docs/aslr.txt
-- *"RELRO: Relocation Read-Only"* — write-ups explaining Partial vs. Full RELRO and the `.got.plt` distinction.
-- *ELF and dynamic linking* — *"How To Write Shared Libraries"* by Ulrich Drepper. The authoritative PIC/GOT/PLT reference.
-- *Linux kernel docs* — `Documentation/admin-guide/sysctl/kernel.rst` (`randomize_va_space`) and per-arch ELF ASLR settings.
-- *The GCC and binutils manuals* — `-fPIE`, `-z relro`, `-z now`, `-fstack-protector-strong`, `-D_FORTIFY_SOURCE`.
-- *"Hardening ELF binaries"* — distribution hardening guides (e.g., the Debian and Gentoo hardening wikis).
-- *Intel CET documentation* — shadow stacks and indirect-branch tracking (for the modern-hardening section in later levels).
-
----
-
-## Diagrams & Visual Aids
-
-### The randomization pipeline at exec
-
-```text
-   execve("/path/program")
-        │
-        ▼
-   ┌────────────────────────── kernel ──────────────────────────┐
-   │  pick random stack base                                    │
-   │  pick random mmap base                                     │
-   │  pick random brk offset                                    │
-   │  if PIE: pick random load bias for the executable          │
-   └────────────────────────────┬───────────────────────────────┘
-                                 ▼
-   ┌──────────────────────── ld.so ────────────────────────────┐
-   │  load each shared lib within the randomized mmap region    │
-   │  apply relocations (fix up addresses for the chosen bias)  │
-   │  (eager binding if -z now: resolve all symbols now)        │
-   │  apply RELRO: mprotect read-only-after-reloc data          │
-   └────────────────────────────┬───────────────────────────────┘
-                                 ▼
-                       program main() runs
-```
-
-### Lazy binding through the PLT/GOT
-
-```text
-   1st call:                          subsequent calls:
-   call printf@plt                    call printf@plt
-        │                                  │
-   PLT stub: jmp *GOT[printf]          PLT stub: jmp *GOT[printf]
-        │  (points back to resolver)        │  (now points to printf)
-        ▼                                    ▼
-   ld.so resolver                         printf  (direct)
-        │ writes real addr -> GOT[printf]
-        ▼
-      printf
-
-   GOT writable  =>  lazy binding works  =>  GOT-overwrite attack works
-   Full RELRO (-z now) eager-binds, then freezes GOT read-only.
-```
-
-### Partial vs. Full RELRO
-
-```text
-   PARTIAL RELRO                       FULL RELRO  (-z relro -z now)
-   ┌────────────────────┐              ┌────────────────────┐
-   │ .got     read-only │              │ .got     read-only │
-   │ .got.plt WRITABLE  │ <-- attack   │ .got.plt read-only │ <-- frozen
-   └────────────────────┘              └────────────────────┘
-   func-ptr table hijackable           func-ptr table frozen
-```
-
-### Partial overwrite: why high entropy isn't enough
-
-```text
-   Pointer = [ randomized high bits | fixed page offset (low ~12 bits) ]
-                       ^^^^                       ^^^^
-                 ASLR randomizes here       NEVER randomized
-
-   Attacker overwrites only the low byte(s):
-     original  0x7f3c9a1b2d40
-     becomes   0x7f3c9a1b2dXX   <- still in the SAME known page
-   => retargets within a known region WITHOUT defeating ASLR.
-```
+- Which boundary is most affected by ASLR & Mitigations?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

@@ -1,45 +1,11 @@
 # Error Handling — Junior
 
-> **Topic:** [Error Handling](../README.md)
-> **Focus:** The `error` interface, `errors.New`/`fmt.Errorf`, checking errors immediately, wrapping with `%w`, and why Go's explicit `if err != nil` is a deliberate design choice.
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **Error Handling** in one small example and prove the result?
 
-## Introduction
-
-Go has no exceptions for ordinary error conditions. Functions that can fail return an `error` as their last return value, and callers are expected to check it immediately:
-
-```go
-data, err := os.ReadFile("config.json")
-if err != nil {
-    return err
-}
-```
-
-This is verbose compared to try/catch, and that's deliberate: **errors are values**, visible in every function signature, impossible to silently ignore without writing `_ = err`. The goal of this page is fluency with the basic vocabulary — `error`, wrapping, sentinel errors — that everything else in Go error handling builds on.
-
----
-
-## Prerequisites
-
-- Comfortable with functions returning multiple values.
-- Basic familiarity with interfaces (see [Interfaces](../03-interfaces/junior.md)) — `error` is just an interface.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **`error`** | A built-in interface: `type error interface { Error() string }`. Any type with an `Error() string` method is an error. |
-| **`errors.New(msg)`** | Creates a simple error from a string message. |
-| **`fmt.Errorf`** | Like `Sprintf`, but returns an `error`; supports `%w` to wrap another error. |
-| **Wrapping** | Embedding one error inside another so the original is still recoverable via `errors.Unwrap`/`errors.Is`/`errors.As`. |
-| **Sentinel error** | A specific, exported `error` value (e.g. `io.EOF`, `sql.ErrNoRows`) compared with `==` or `errors.Is`. |
-| **`errors.Is`** | Checks whether an error, or any error it wraps, matches a target sentinel error. |
-| **`errors.As`** | Checks whether an error, or any error it wraps, can be assigned to a target error *type*, and extracts it. |
-| **Custom error type** | A struct implementing `Error() string`, carrying structured data beyond a message string. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -171,27 +137,6 @@ func handle(err error) {
 
 ---
 
-## Pros & Cons
-
-| | Pros | Cons |
-|---|---|---|
-| **Explicit `if err != nil`** | Impossible to silently skip without a visible `_`; error paths are visible in the code | Verbose; repetitive boilerplate in functions with many fallible calls |
-| **Wrapping with `%w`** | Preserves context and the original error simultaneously | Easy to forget and use `%v` instead, silently breaking `errors.Is`/`errors.As` downstream |
-| **Sentinel errors** | Simple, fast comparison via `errors.Is` | Doesn't carry structured data — use a custom type for that |
-
----
-
-## Use Cases
-
-| Situation | Approach |
-|---|---|
-| A specific, well-known failure condition (not found, EOF) | Sentinel error + `errors.Is` |
-| An error needs to carry extra data (which field, which ID) | Custom error type + `errors.As` |
-| Adding context as an error propagates up the call stack | `fmt.Errorf("...: %w", err)` |
-| A one-off, never-checked-for error | `errors.New("message")` is enough |
-
----
-
 ## Best Practices
 
 1. Check every error at the call site; never discard with `_` unless you have a specific, documented reason.
@@ -221,45 +166,24 @@ func handle(err error) {
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```go
-err := fmt.Errorf("context: %w", original) // wrap
-errors.Is(err, ErrSentinel)                 // sentinel check, through wrapping
-var target *MyErrType
-errors.As(err, &target)                     // type extraction, through wrapping
-errors.Unwrap(err)                          // one level of unwrapping
-```
+1. Choose one small, known input for **Error Handling**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
----
+## Verify your work
 
-## Summary
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
 
-- `error` is an interface with one method, `Error() string` — anything can be an error.
-- Check errors immediately at the call site; never silently continue with a broken value.
-- Wrap with `%w` to preserve the original error for later inspection while adding context.
-- Use `errors.Is` for sentinel errors, `errors.As` for extracting structured custom error types — never raw `==` or type assertions on potentially-wrapped errors.
+## Review questions
 
----
-
-## Further Reading
-
-- The Go Blog — *Working with Errors in Go 1.13*: <https://go.dev/blog/go1.13-errors>
-- Go documentation — `errors` package: <https://pkg.go.dev/errors>
-
----
-
-## Related Topics
-
-- [Interfaces](../03-interfaces/junior.md) — `error` is itself an interface.
-- [Production Debugging](../07-production-debugging/junior.md) — turning wrapped errors into useful logs.
-
----
-
-## Check your understanding
-
-1. Explain Error Handling — Junior Level in your own words and name the problem it solves.
-2. How would you apply the ideas around Introduction, Prerequisites, Glossary in a realistic engineering change?
-3. What failure mode or misuse should you look for, and what evidence would reveal it?
-4. What small example would prove that you can apply Error Handling — Junior Level correctly?
-5. What observable result would convince you that the approach improved the system?
+- What problem does Error Handling solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

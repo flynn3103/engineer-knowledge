@@ -1,61 +1,11 @@
-# DSLs in Practice — Middle Level
+# DSLs in Practice — Middle
 
-> **Topic:** DSLs in Practice
-> **Focus:** Growing a toy DSL into a usable one — variables, functions, types, real error messages — and the four ways to build the parser (recursive descent, Pratt, parser combinators, ANTLR). Plus the first big decision: *interpret or transpile?*
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **DSLs in Practice** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-> Focus: **How do real external DSLs get built, and which parsing technique should I reach for?**
-
-At the junior level a DSL was three small functions: lex, parse, evaluate. That is enough for a calculator, but real DSLs — a rule language, a config language like HCL, a query language that turns into SQL — need more: **variables**, **functions or operators with proper precedence**, **good error messages** with line and column, a way to **report multiple errors**, and often a decision about whether to **interpret** the language or **transpile** it into a target like SQL or JavaScript.
-
-This page is about the *engineering* of an external DSL, not just the toy. We cover:
-
-- The four standard ways to build a parser, and when each fits: **recursive descent** (hand-written, simplest), **Pratt parsing** (the elegant way to handle operator precedence), **parser combinators** (parsers built from small composable functions — parsec, nom, FParsec), and **parser generators** (ANTLR, Lex/Yacc — you write a grammar, the tool writes the parser).
-- The split between **front end** (lex + parse → AST) and **back end** (interpret OR compile/transpile). Once you have an AST you can run it, *or* turn it into something else: bytecode, SQL, another language. Transpiling a DSL to SQL or to JavaScript is one of the most common real uses.
-- Why **error messages** are a first-class feature of a DSL, not an afterthought — a DSL nobody can debug is a DSL nobody uses.
-
-We will still keep the internal-vs-external distinction front of mind. An **external** DSL (the subject here) brings its own syntax and therefore needs all this machinery. An **internal** DSL borrows the host's parser (it is just method calls) and needs none of it — but gives up syntactic freedom and dedicated error messages. The metaprogramming section covers internal DSLs; here we pay the price of external syntax and learn to do it well.
-
-> 🎓 **Why this matters at this level:** You are now the person who *decides* how the parser is built and whether the DSL interprets or compiles. Picking recursive descent when you needed Pratt (and drowning in precedence bugs), or hand-rolling a parser when ANTLR would have been a day's work, are the mistakes this page exists to prevent.
-
----
-
-## Prerequisites
-
-- **Required:** The junior-level calculator pipeline (lex → parse → evaluate) and recursive descent. We extend it directly.
-- **Required:** Recursion you are comfortable reading and writing — every parser here is recursive.
-- **Required:** Basic data structures: maps/dictionaries (for variable environments), stacks, trees.
-- **Helpful:** Having used SQL and at least one config DSL (Terraform/HCL, YAML pipelines) as a user, so the "transpile to SQL" examples land.
-- **Helpful:** Awareness of higher-order functions / closures — parser combinators lean on them heavily.
-
-You do **not** yet need: formal grammar theory (LL/LR, FIRST/FOLLOW sets), LLVM or native code generation, or DSL tooling like language servers. Those are senior/professional material.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Front end** | Lexer + parser: turns DSL text into an AST. Independent of what you do next. |
-| **Back end** | What consumes the AST: an interpreter, a bytecode compiler, or a transpiler to another language. |
-| **Recursive descent** | Hand-written top-down parser: one function per grammar rule. Simple, readable, total control over errors. |
-| **Pratt parser** | A parsing technique (top-down operator precedence) that handles operator precedence and associativity cleanly via per-token "binding power." |
-| **Parser combinator** | A small parser is a function; combinators (`seq`, `or`, `many`) glue small parsers into bigger ones. Libraries: parsec (Haskell), nom (Rust), FParsec (F#). |
-| **Parser generator** | A tool (ANTLR, Yacc/Bison, Lex/Flex) that reads a grammar file and *generates* lexer/parser source code for you. |
-| **Grammar (BNF/EBNF)** | A formal notation for the rules of a language, e.g. `expr := term ('+' term)*`. ANTLR and Yacc consume grammars like this. |
-| **Interpreter (tree-walk)** | Runs the AST directly by recursively visiting nodes. Easiest back end. |
-| **Compiler** | Translates the AST to a lower form: bytecode for a VM, or machine code (often via LLVM). |
-| **Transpiler / source-to-source** | A compiler whose *target is another high-level language* — DSL → SQL, DSL → JavaScript, TypeScript → JavaScript. |
-| **Environment / scope** | The map from variable names to values used while interpreting (`{x: 10}`). |
-| **Visitor** | A pattern (and ANTLR's output) for walking an AST: one method per node type. |
-| **Precedence** | Which operators bind tighter (`*` before `+`). |
-| **Associativity** | For equal precedence, which side groups first. `-` is left-associative: `8 - 3 - 2 = (8-3)-2`. |
-| **Token stream** | The lexer's output, consumed by the parser one token at a time, usually with one-token lookahead. |
-| **Sentinel / synchronisation** | A recovery point (like a newline or `;`) the parser skips to after an error so it can report more than one error per run. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -108,28 +58,6 @@ A DSL's error messages are part of its UX. Minimum bar: report **line and column
 ### 6. Where the internal/external line really bites
 
 An **internal** DSL (method chains in the host language) gives you the host's parser and error messages for free — but every expression must be valid host syntax, so you cannot have your own keywords or operators, and a typo produces a *host*-language error, not a domain error. An **external** DSL gives you any syntax and domain-specific errors, at the cost of building (and maintaining) everything on this page. Choosing external means signing up for a lexer, a parser, an evaluator/transpiler, *and* eventually tooling — forever.
-
----
-
-## Real-World Analogies
-
-**Two parser styles, two kitchens.** Recursive descent is a chef cooking from memory — total control, every dish exactly how they want, but they must know every recipe. A parser generator (ANTLR) is a meal kit: you write the recipe card (grammar), the factory pre-portions everything (generated parser). Faster to start, less control over the final plate.
-
-**Transpiling is dubbing a film.** Interpreting a DSL is live subtitling — meaning delivered in real time. Transpiling to SQL is dubbing: you produce a whole new soundtrack (the SQL) that the cinema (the database) plays perfectly on its own equipment.
-
-**Parser combinators are LEGO.** Each brick (`number`, `whitespace`, `keyword`) is tiny and useless alone; snapped together with combinators they build any structure. The grammar and the code look almost identical.
-
-**Pratt's binding power is a tug-of-war rope strength.** Each operator pulls its operands with a certain strength; `*` pulls harder than `+`, so it wins the operand in the middle. The parser just compares pull strengths in a loop.
-
----
-
-## Mental Models
-
-- **AST is the contract.** Design it well and the front end and back end evolve independently. Every back end (interpreter, transpiler, linter) is "just" a walk over the same tree.
-- **Precedence is binding power, not nesting of functions.** Once you see Pratt's binding-power model, the recursive-descent `expr/term/factor` tower reveals itself as one fixed precedence ladder. Pratt makes the ladder data, not code.
-- **Choose the parser by the grammar's shape, not by fashion.** Expression-heavy → Pratt. Big and stable → ANTLR. Medium and you value readable code → combinators. Need the best errors and minimal deps → recursive descent.
-- **"Transpile to a mature engine" beats "write my own engine."** If your DSL's semantics map onto SQL or JS, emit that. You inherit decades of optimisation and tooling for free.
-- **A DSL's error messages are its user manual.** Invest there early; it is the difference between adoption and abandonment.
 
 ---
 
@@ -284,31 +212,6 @@ A fresh `dict(env)` per scope gives correct lexical scoping cheaply. Real interp
 
 ---
 
-## Pros & Cons
-
-**Recursive descent** — *for:* simplest mental model, best errors, no deps; *against:* precedence is verbose.
-
-**Pratt** — *for:* elegant precedence/associativity, easy to extend; *against:* the binding-power idea takes a moment to click; only solves expressions.
-
-**Parser combinators** — *for:* code reads like the grammar, composable, no build step; *against:* error messages and left-recursion need effort, can be slower, runtime library dependency.
-
-**Parser generators (ANTLR/Yacc)** — *for:* grammar is the single source of truth, scales to large languages, generates visitors; *against:* build-step dependency, weaker default error messages, less control, a tool to learn and keep updated.
-
-**Interpret vs transpile** — interpreting is *simplest to build and debug* but *slowest to run*; transpiling *reuses a mature engine* and *runs fast* but is *more work and an indirection to debug through*.
-
----
-
-## Use Cases
-
-- **Filter / search DSLs transpiled to SQL** (the example above) — extremely common in admin tools and analytics products.
-- **Config languages with logic** — HCL/Terraform, Jsonnet, CUE. They parse to an AST and *evaluate* to plain JSON/config.
-- **Template engines** (Jinja, Handlebars, ERB) — a DSL embedded in text that transpiles/interprets to a rendered string. (More at senior level.)
-- **Rule engines** — "when X then Y" languages interpreted over events.
-- **Schema DSLs** — Protobuf, GraphQL SDL, JSON Schema: parsed, then code-generated (a kind of transpile) into types for many languages.
-- **ANTLR-built languages** — many real DSLs ship an ANTLR grammar (`.g4`) and generated visitors.
-
----
-
 ## Coding Patterns
 
 ### Pattern: separate `Lexer`, `Parser`, and `Evaluator`/`Emitter` classes
@@ -359,3 +262,27 @@ After a parse error, skip tokens until a known boundary (`;`, newline, `}`), the
 - **Choosing hand-written for a 300-rule grammar.** Conversely, hand-maintaining a huge grammar is error-prone; that is exactly where a generator earns its keep.
 
 You now have the tools to build a *usable* external DSL: a parser chosen for the grammar, variables and scope, real error messages, and a back end that either interprets or transpiles. The `senior.md` level goes deeper on compiling DSLs (bytecode, LLVM, transpiling at scale), **sandboxing untrusted DSLs** (resource limits, no arbitrary code execution), grammar **versioning and evolution**, and building **tooling** (LSP, formatter, highlighting) for your language.
+
+---
+
+## Apply it
+
+1. Find a real component where **DSLs in Practice** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
+
+## Verify your work
+
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
+
+## Review questions
+
+- Which boundary is most affected by DSLs in Practice?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

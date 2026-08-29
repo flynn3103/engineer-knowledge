@@ -1,53 +1,11 @@
-# Parsers — Professional Level
+# Parsers — Professional
 
-> **Topic:** Parsers
-> **Focus:** Parsers as long-lived production systems — front-end architecture, grammar evolution over a language's decades-long life, parser performance and security, the build-it-into-a-platform decisions (compiler + IDE + formatter from one tree), and how parser choices ripple through an entire toolchain.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Parsers** with measurable outcomes and limited coordination?
 
-## Introduction
-
-> Focus: **A parser is not a phase you write once. It is a load-bearing component of a platform that compilers, editors, formatters, linters, and refactoring tools all stand on for twenty years.** The professional question is how to architect it so that it survives grammar growth, powers a whole toolchain, runs fast and safe on adversarial input, and never becomes the thing nobody dares to touch.
-
-By the senior level you can choose a parsing technology and justify it. At the professional level you own the consequences of that choice across an organization and across time. The parser you ship for version 1.0 of a language will still be parsing version 9.0 — by which point the grammar has doubled, three new contextual keywords have been added without breaking old code, an IDE team depends on its tree, a formatter depends on its trivia, and a security team has filed bugs about stack overflows on pathological nesting. None of that is "parsing theory." All of it is what parsing *is* in production.
-
-This level is about the parser as a **system**. We look at front-end architecture (the lexer/parser/CST/AST pipeline and where the boundaries should fall); how grammars **evolve** over a language's life without breaking the world (contextual keywords, soft keywords, the cost of every syntactic addition); the **one-tree platform** decision that the most successful modern languages made — building the compiler, language server, formatter, and linter on a *single* parser and syntax-tree library (Roslyn, the Rust ecosystem's rustc/rust-analyzer story, Swift's libsyntax/SwiftSyntax); parser **performance** at scale (the parser is rarely the bottleneck, but when it is, here's why); parser **security** (the parser is the first code to touch fully untrusted input, and a stack-overflow-on-deeply-nested-input is a real DoS); and the **organizational** reality of owning a grammar that many teams and external users depend on.
-
-The through-line: at this level you are not asking "how do I parse this?" but "**how do I make a parsing system that an entire ecosystem can build on for a decade, and that bends instead of breaking when the language and its users push on it?**"
-
----
-
-## Prerequisites
-
-- **Required:** The senior level — generators vs hand-written, PEG/packrat, GLR/GLL, error recovery, lexer feedback, and incremental/error-tolerant parsing. This page treats all of it as the toolbox and asks how to wield it at scale and over time.
-- **Required:** Experience shipping and *maintaining* a parser (or a language front end), not just writing one — the failure modes here are temporal and organizational.
-- **Required:** A working model of the whole compiler/toolchain pipeline: where the parser sits, what consumes its output (type checker, formatter, IDE), and what depends on its stability.
-- **Helpful:** Exposure to a language-server / LSP architecture, a code formatter's needs, and a real grammar's version history (e.g. how C# added `async`, how Go has resisted grammar growth, how Python added the walrus operator and pattern matching).
-- **Helpful:** Familiarity with fuzzing and with thinking about untrusted input as an attack surface.
-
-You do **not** need to be a language designer, but you will think like one here, because at this level parser decisions and language decisions are the same decisions.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Front end** | The lexer + parser + (often) name resolution that turns source text into a tree the rest of the compiler consumes. |
-| **CST (full-fidelity tree)** | Concrete syntax tree preserving every token, paren, and piece of trivia — round-trips to the exact source. The IDE/formatter substrate. |
-| **AST** | Abstract syntax tree — semantics-only, trivia and redundant tokens dropped. What the type checker and codegen want. |
-| **Trivia** | Whitespace, comments, line endings — lexically insignificant to semantics, essential to formatting and faithful refactoring. |
-| **Contextual / soft keyword** | A word that is a keyword only in specific positions (`async`, `await`, `yield`, `await`, `record`) and a valid identifier elsewhere — lets a grammar grow without breaking old code. |
-| **Reserved keyword** | A word that is *always* a keyword and can never be an identifier; adding one is a breaking change. |
-| **One-tree platform** | An architecture where compiler, language server, formatter, and linter all share one parser and one syntax-tree library (Roslyn, SwiftSyntax). |
-| **Red-green tree** | Roslyn's syntax-tree representation: immutable "green" nodes shared structurally, with lazily-created "red" wrappers carrying parent links and absolute positions. |
-| **Compiler-as-a-service** | The compiler exposed as an API (parse, bind, analyze) for tools to call, not just a batch executable. |
-| **Stack-overflow DoS** | An attack where deeply nested input (`((((((...`) blows a recursive-descent parser's native stack and crashes the process. |
-| **Catastrophic backtracking** | Exponential-time blowup in a backtracking parser/regex on crafted input — a denial-of-service vector. |
-| **Grammar churn** | The rate at which a language's grammar changes; high churn punishes brittle parser architectures. |
-| **Round-trip property** | `print(parse(src)) == src` — a parser/printer pair that reproduces the input exactly, including trivia. Required for formatters and codemods. |
-| **Codemod** | An automated, tree-based source-to-source transformation across a codebase (rename, API migration). Depends on a faithful CST. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -138,38 +96,6 @@ At the professional level the parser has *stakeholders*. The grammar is depended
 - **Documentation and a formal grammar** (even if the real parser is hand-written) let external tool authors build against a stable reference. Many languages publish a grammar in the spec that the hand-written parser is kept consistent with by review and testing.
 
 The professional doesn't just write a parser; they **steward a syntax** that an ecosystem and a user base depend on, with the change-management discipline that responsibility demands.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **CST as platform, AST as view** | The full architectural blueprint (every dimension, every note) vs the simplified floor plan handed to a specific contractor — both needed, but the blueprint is authoritative. |
-| **Contextual keyword** | A word like "table" that's furniture in the dining room and a verb in a meeting — meaning depends on where it appears. |
-| **Reserved keyword addition** | Renaming a street that thousands of businesses already print on their letterhead — technically possible, breaks everyone. |
-| **One-tree platform** | A single master record every department reads from, instead of each keeping its own spreadsheet that slowly diverges. |
-| **Red-green tree** | A printed book (immutable, shared by all readers) with a personal bookmark-and-margin overlay each reader adds on their own copy-on-demand. |
-| **Stack-overflow DoS** | A nested-box prank where each box contains a smaller box — open enough of them and the opener collapses. |
-| **Parser differential** | Two border guards reading the same passport rule differently — a smuggler walks through the gap between their interpretations. |
-| **Grammar as public API** | A power-socket standard — once millions of devices plug into it, you can add new sockets but you can never change the old one. |
-| **Round-trip property** | A photocopier that must reproduce the page *exactly*, including the coffee stain, not just the text. |
-
----
-
-## Mental Models
-
-### The "the parser outlives you" model
-
-Architect every parser decision as if the parser will be maintained for twenty years by people who haven't been hired yet, parsing a grammar that will double in size, feeding tools that don't exist yet. This single framing makes the right calls obvious: keep a full-fidelity CST (a future formatter will need it), make it error-tolerant and incremental (a future IDE will need it), treat the tree shape as a versioned API (future analyzers depend on it), and add syntax only with backward compatibility. The batch-compiler shortcuts all look cheap until you measure them against a decade.
-
-### The "untrusted input first" model
-
-The parser is the airlock. Everything downstream — type checker, codegen — gets to assume a well-formed tree *because the parser already enforced structure and rejected garbage.* That privilege comes with the duty of treating the input as hostile: bound recursion, bound memory, bound time, fuzz relentlessly. If you remember one thing, it's that the parser is the only component that sees raw attacker-controlled bytes, so it's the one component a crash in is a security incident.
-
-### The "one tree, many readers" model
-
-Picture every tool in the ecosystem — compiler, IDE, formatter, linter, codemod, the spec — as a reader standing around *one* syntax tree. The professional's job is to keep that single tree authoritative, complete (full-fidelity), stable (versioned API), and always-available (error-tolerant). The moment you let a second, divergent tree exist (a separate IDE parser), you've created a maintenance and a security liability that will leak "the compiler says X, the IDE says Y" bugs forever.
 
 ---
 
@@ -288,19 +214,6 @@ This is exactly the context-sensitivity a hand-written parser absorbs with a sin
 
 ---
 
-## Use Cases
-
-- **Designing a new language's front end** that must serve compiler, IDE, and formatter → commit to the one-tree platform (error-tolerant, incremental, full-fidelity, immutable) before writing line one.
-- **Evolving a mature language's grammar** → contextual/soft keywords for additive growth; treat reserved-word additions as nearly forbidden; weigh every syntactic addition as a permanent tax.
-- **Hardening a parser that ingests untrusted input** (JSON/config/query/protocol) → recursion-depth bounds, memory/time limits, continuous fuzzing, prefer a single authoritative parser.
-- **Building a code-modernization tool or formatter** → requires a full-fidelity CST with trivia and a verified round-trip property.
-- **Operating parsing at fleet scale** (monorepo indexing, CI on every PR, code search) → invest in parser throughput and incrementality because the constant factors multiply across millions of files.
-- **Stewarding a language used by an ecosystem of external tools** → version the syntax-tree API, keep one source of truth, publish a reference grammar, and manage grammar changes like any breaking-change-sensitive API.
-
-When the heavy machinery is overkill: an internal one-off DSL parsed in a trusted batch tool needs none of the platform, security, or evolution apparatus — a plain parser is correct. The professional skill is knowing which of your parsers is a throwaway and which is a twenty-year foundation, and not confusing the two.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: CST-first, AST-as-projection
@@ -356,68 +269,24 @@ Wire coverage-guided fuzzing, differential testing against any second implementa
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. A startup ships a compiler-only parser that produces an AST directly. Two years later they want an IDE plugin and a formatter. Explain precisely why this is now a front-end rewrite, and what one early decision would have prevented it.
-2. Distinguish a reserved keyword from a contextual keyword with an example of each. Why can a language add the second freely but almost never the first? Tie your answer to a real addition (e.g. Python `match`).
-3. Describe the stack-overflow DoS against a recursive-descent parser, the exact input that triggers it, and two different mitigations. Why is this specifically a *security* issue and not just a robustness one?
-4. Explain the red-green tree: what problem does it solve, what does each color store, and how does it deliver immutability, incrementality, and absolute positions simultaneously?
-5. Rust maintains `rustc`'s parser and rust-analyzer's parser separately. State the benefit and the recurring cost of this split, and contrast it with Roslyn's one-tree approach.
-6. Why is a packrat parser's linear-time guarantee a *security* property and not only a performance one? What attack does it prevent?
-7. You're the owner of a widely-used language's grammar. A contributor proposes new syntax. List the dimensions you must evaluate before accepting it, beyond "does it parse."
-8. Define the round-trip property and explain why a code-modernization (codemod) tool is unusable without it. What single lexer decision most commonly breaks it?
+1. Define the user or business outcome that **Parsers** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
----
+## Verify your work
 
-## Cheat Sheet
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
 
-```text
-┌────────────────────────────────────────────────────────────────────────┐
-│            PROFESSIONAL PARSING-AS-A-SYSTEM CHEAT SHEET                 │
-├────────────────────────────────────────────────────────────────────────┤
-│ FRONT-END PIPELINE:                                                    │
-│   text → lexer(+trivia) → parser → CST(full-fidelity) → AST(view+spans)│
-│   CST is the PLATFORM; AST is a VIEW of it. Decide CST-first day one.   │
-├────────────────────────────────────────────────────────────────────────┤
-│ ONE-TREE PLATFORM (compiler+IDE+formatter+linter, one parser/tree):    │
-│   Roslyn (.NET), SwiftSyntax, TypeScript = one tree                    │
-│   rustc vs rust-analyzer = TWO parsers → permanent "keep them agreeing"│
-│   needs: error-tolerant + incremental + full-fidelity + immutable      │
-│   red-green tree = immutable+shared (green) + positions/parent (red)    │
-├────────────────────────────────────────────────────────────────────────┤
-│ GRAMMAR EVOLUTION (grow without breaking):                             │
-│   contextual/soft keyword = keyword by POSITION (async, match, record) │
-│   reserved keyword addition = BREAKING change → avoid                  │
-│   every syntax addition = permanent tax (readers, tools, compat)       │
-│   evolvability is WHY flagships hand-write                             │
-├────────────────────────────────────────────────────────────────────────┤
-│ SECURITY (parser = first code on untrusted input):                     │
-│   deep nesting ((((( → stack-overflow DoS → BOUND recursion depth      │
-│   backtracking/regex → catastrophic blowup (ReDoS) → audit / packrat   │
-│   parser differential → smuggling → ONE authoritative parser           │
-│   fuzz continuously + differential test + round-trip property          │
-├────────────────────────────────────────────────────────────────────────┤
-│ PERFORMANCE:                                                           │
-│   parser is RARELY the batch bottleneck → measure first                │
-│   it MATTERS in: IDE keystroke loop (incrementality), fleet-scale tools│
-├────────────────────────────────────────────────────────────────────────┤
-│ ORGANIZATION:                                                          │
-│   tree shape = versioned public API (analyzers/codemods depend on it)  │
-│   backward compat is sacred; one source of truth for syntax            │
-│   round-trip: print(parse(src)) == src  (formatter/codemod requirement)│
-└────────────────────────────────────────────────────────────────────────┘
-```
+## Review questions
 
----
-
-## Summary
-
-- **A production parser is a long-lived system, not a phase.** The front-end pipeline (text → lexer-with-trivia → parser → full-fidelity CST → AST-with-spans) should be architected so the **CST is the platform and the AST is a view** — because compilers, IDEs, formatters, linters, and codemods will all build on it for a decade.
-- **The defining modern architecture is the one-tree platform**: compiler, language server, formatter, and linter share one parser and one immutable, incremental, error-tolerant, full-fidelity syntax-tree library (Roslyn, SwiftSyntax, TypeScript). Maintaining two parsers (rustc vs rust-analyzer) is a permanent tax. The **red-green tree** is the canonical way to get immutability, incrementality, and absolute positions at once.
-- **Grammars evolve for the life of a language**, and the parser pays the compatibility cost. **Contextual (soft) keywords** let syntax grow additively without breaking old code; reserved-word additions are nearly forbidden; every syntactic addition is a permanent tax. Grammar evolvability is one more reason flagships hand-write.
-- **The parser is a security boundary** — the first code to touch fully untrusted input. Bound recursion depth (or you ship a stack-overflow DoS), bound memory and time, audit backtracking/regex for catastrophic blowup (packrat's linear time is a security property), avoid parser differentials by keeping one authoritative parser, and fuzz + differential-test + round-trip-test continuously.
-- **The parser is rarely the batch compiler's bottleneck** — measure before optimizing. Where parser performance genuinely matters is the IDE keystroke loop (incrementality) and fleet-scale tooling (constant factors × millions of files).
-- **Owning a grammar is an organizational responsibility.** The syntax-tree shape is a versioned public API, backward compatibility is sacred, there must be one source of truth for syntax, and the round-trip property (`print(parse(src)) == src`) is mandatory for any formatter or codemod platform.
-- **The professional habit:** before writing a parser, ask "is this a throwaway or a twenty-year foundation, who will build on its tree, and what untrusted input will hit it?" — and let those three answers, not raw grammar power, drive every decision.
-
----
+- Which measurable outcome justifies investing in Parsers?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

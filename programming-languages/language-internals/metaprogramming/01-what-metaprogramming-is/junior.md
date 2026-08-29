@@ -1,72 +1,11 @@
-# What Metaprogramming Is — Junior Level
+# What Metaprogramming Is — Junior
 
-> **Topic:** What Metaprogramming Is
-> **Focus:** Programs that read, write, or transform programs (sometimes themselves). What that actually means, and the one question that organizes the whole field: *when does the meta-code run?*
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **What Metaprogramming Is** in one small example and prove the result?
 
-## Introduction
-
-> Focus: **What does it mean for a program to treat another program — or itself — as data?** And **why does almost everything you call a "framework" secretly do this?**
-
-Most code you have written so far treats *data* as the thing it manipulates: numbers, strings, lists, rows from a database. **Metaprogramming** is what happens when the thing being manipulated *is code itself*. A metaprogram is a program whose input or output is another program (or a description of one), or that inspects and changes its own structure while running.
-
-That sounds abstract until you notice you have already used it dozens of times without naming it:
-
-- When you write `@app.route("/users")` above a Python function and a web request magically arrives at it, **a decorator read your function and wrapped it**.
-- When Java's Spring sees `@Autowired` on a field and fills it in with the right object, **the framework used reflection to inspect your class at runtime and inject a value you never wrote code to assign**.
-- When you run `protoc` or `go generate` and a `.go` file full of struct definitions appears, **a code generator wrote source for you**.
-- When Rust's `#[derive(Debug)]` makes your struct printable without you writing a single line of the printing logic, **a macro generated that code at compile time**.
-
-Every one of those is metaprogramming. The field is just the collection of techniques for *programs operating on programs*.
-
-In one sentence: **metaprogramming is code about code.** The ordinary program is the "base level" — it does the actual work. The metaprogram is the "meta level" — it generates, inspects, or rewrites the base level.
-
-> 🎓 **Why this matters for a junior:** You do not have to *build* a metaprogramming framework in your first year. But you will *use* them constantly — every annotation, every decorator, every generated stub, every ORM. The moment something "works by magic," that magic is almost always metaprogramming. Learning to see it turns mysterious behavior into something you can reason about, debug, and trust.
-
-This page is the front door to the whole `metaprogramming` section. It gives you the vocabulary (reflection, macros, code generation, annotations, and friends) and the *single most important organizing idea*: **the meta level runs at some specific time — either while you build the program (compile-time) or while it runs (runtime) — and that timing decides almost everything about the trade-offs.** Later topics in this section go deep on each technique: reflection, annotations and decorators, build-time code generation, macros, metaclasses, dynamic proxies, and DSLs. Here, we just learn what they all have in common.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** You can write and run a small program with functions in at least one language (Python, Java, Go, JavaScript, Rust, or C++).
-- **Required:** You know what a function, a class/struct, and a variable are.
-- **Required:** You have a rough idea of the difference between *compiling/building* a program and *running* it. (Even interpreted languages have a "load and parse" phase before "run.")
-- **Helpful but not required:** You have seen an annotation (`@Override`, `@app.route`) or a decorator and wondered how it works.
-- **Helpful but not required:** You know a program is stored as text (source code) before it becomes something the machine executes.
-
-You do **not** need to know:
-
-- How a compiler is built, or what an AST is in detail (later topics cover this).
-- How reflection or macros are *implemented* — that comes in `reflection.md`, `macros.md`, and the rest of this section.
-- Type theory, bytecode, or any specific framework's internals.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Base level** | The ordinary program that does the real work — your business logic. |
-| **Meta level** | Code that operates on the base level: generating it, inspecting it, or rewriting it. |
-| **Metaprogramming** | The practice of writing code that reads, generates, or transforms code (including itself). |
-| **Reflection / Introspection** | A program *examining its own structure at runtime* — asking "what fields does this object have? what methods? what type is this?" |
-| **Intercession** | A program *modifying* its own behavior or structure at runtime, not just observing it. (Reflection = look; intercession = change.) |
-| **Code generation** | Producing source code (or lower-level code) as the *output* of a program, usually before compilation. |
-| **Macro** | A construct the compiler expands into other code *before* the program is fully compiled. Code that writes code, at build time. |
-| **Annotation / Attribute / Decorator** | A label attached to code (`@Override`, `@route`, `#[derive]`) that some tool reads and acts on. |
-| **Metaclass** | In some languages (notably Python), the "class of a class" — code that controls how classes themselves are built. |
-| **Dynamic proxy** | An object created at runtime that stands in for another and intercepts calls to it. |
-| **`eval` / `exec`** | A function that takes a string of source code and runs it *as code* at runtime. The bluntest metaprogramming tool. |
-| **Homoiconicity** | A property of some languages (Lisp) where *code is written in the same structure as data*, so manipulating code is as easy as manipulating a list. |
-| **Compile-time / build-time** | The phase *before the program runs*, when source is turned into something executable. |
-| **Runtime** | The phase *while the program runs*. |
-| **Quoting** | Treating a piece of code as *data* (a value you can pass around) instead of running it. |
-| **Generated code** | Source that a tool wrote, not a human. Usually marked "DO NOT EDIT." |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -155,53 +94,6 @@ When you understand *what* metaprogramming is, these stop being magic and become
 ### 7. The Fundamental Trade
 
 Metaprogramming buys you **power and DRY-ness**: write a rule once, apply it everywhere; eliminate boilerplate; let the machine generate what would be tedious or error-prone by hand. The price is **comprehensibility, debuggability, and tooling**: code that is generated or rewritten is harder to read, harder to step through in a debugger, and harder for your IDE to autocomplete or jump to. The whole rest of this section, ultimately, is about spending that power wisely.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Base level vs meta level** | A recipe (base) vs. a cookbook editor who writes and standardizes recipes (meta). |
-| **Code generation** | A form-letter mail merge: one template + a list of names produces hundreds of personalized letters. |
-| **Reflection / introspection** | Reading the label on a jar to find out what's inside, instead of being told in advance. |
-| **Intercession** | Editing the jar's label *and* swapping its contents while it sits on the shelf. |
-| **Macro (compile-time)** | A find-and-replace shortcut a typesetter applies *before* the book is printed — readers never see the shorthand. |
-| **`eval` (runtime)** | Handing someone a note that says "do whatever this slip of paper tells you," then writing the slip on the spot. |
-| **Annotations / decorators** | Sticky notes on a document ("translate this," "review this") that an assistant later acts on. |
-| **Homoiconicity (Lisp)** | A language where the *blueprints* and the *building blocks* are made of the same Lego bricks, so you reshape plans the same way you stack pieces. |
-| **Dynamic proxy** | A receptionist who stands in for an executive, takes every call, and decides what to forward, log, or handle. |
-| **Compile-time vs runtime** | Pre-printing a wedding invitation (compile-time: fixed forever) vs. an usher improvising seating as guests arrive (runtime: adapts to who shows up). |
-
----
-
-## Mental Models
-
-### The "Two Levels" Model
-
-Picture two layers stacked. The **bottom layer** is your ordinary program — the loop that processes orders, the function that adds two numbers. The **top layer** is code that looks *down* at the bottom layer and does something with it: generates more of it, inspects it, or rewrites it. Whenever you are confused about a piece of "magic" code, ask: *Which layer is this? Is it doing work, or is it doing work on the code that does work?* The framework annotation is top layer; the function it decorates is bottom layer.
-
-### The "When Does It Run?" Model
-
-Before you reason about any metaprogramming feature, locate it on the timeline:
-
-```text
-   write code ──► BUILD ──► ship ──► RUN ──► done
-                    ▲                  ▲
-                    │                  │
-            compile-time meta     runtime meta
-            (macros, codegen)    (reflection, eval)
-```
-
-A macro and a reflection call may *look* similar in source, but one finished its job before you shipped and the other is happening live in front of your user. That single fact predicts the performance, the failure mode, and the debuggability. Always place the feature on this line first.
-
-### The "Code Is a Tree" Model
-
-After the parser reads your source text, your program is a **tree**: a function contains statements, a statement contains an expression, an expression contains operators and operands. Metaprogramming tools that "manipulate code" are usually walking and rewriting this tree (the AST — abstract syntax tree). You don't need to build one yet; just hold the picture that "rewriting code" means "rewriting a tree," not "editing a string of text" (though `eval` really does take a string).
-
-### The "Magic Has a Mechanism" Model
-
-The most useful junior habit: when something works by magic, refuse to accept "magic." Replace it with the question *"what read my code, and when?"* The answer is always one of a small handful of mechanisms — an annotation processor at build time, reflection at startup, a decorator at import, a generated file on disk. Naming the mechanism turns fear into understanding.
 
 ---
 
@@ -342,40 +234,6 @@ The macro `my-unless` receives its arguments *as lists of code* and builds new c
 
 ---
 
-## Pros & Cons
-
-| Aspect | Pros | Cons |
-|--------|------|------|
-| **Boilerplate** | Eliminates repetitive code — write the rule once, generate the rest. Huge DRY win. | The generated/expanded code is real code you still ship, debug, and maintain — just invisibly. |
-| **Expressiveness** | Lets you build DSLs and concise APIs that read like the problem domain. | Readers must learn *your* mini-language on top of the host language. |
-| **Performance (compile-time meta)** | Zero runtime cost — work is done before shipping. | Slower builds; harder to debug the build step. |
-| **Performance (runtime meta)** | Adapts to data known only at runtime (plugins, config). | Reflection and `eval` are slow; runs on every call. |
-| **Safety (compile-time)** | Errors caught before you ship. | Cryptic compiler errors pointing at generated code. |
-| **Safety (runtime)** | Flexible. | Failures happen in production, in front of users. |
-| **Tooling** | Frameworks built on it are wildly productive (Spring, Django, serde). | Your IDE, debugger, and "go to definition" often can't see through the magic. |
-| **Comprehensibility** | One concept ("just add `@route`") instead of pages of wiring. | "Where does this behavior come from?" can be genuinely hard to answer. |
-
----
-
-## Use Cases
-
-Metaprogramming is the right tool when:
-
-- **You're eliminating mechanical boilerplate.** Serialization (`#[derive(Serialize)]`), `equals`/`hashCode`, getters/setters, builder patterns. Code no human should write by hand.
-- **You're generating glue from a schema.** gRPC stubs, ORM models from a database, API clients from an OpenAPI spec.
-- **You're building a framework or library used by many people.** The framework absorbs the metaprogramming so its users don't have to (they just add an annotation).
-- **You're wiring cross-cutting concerns.** Logging, transactions, authentication applied uniformly via decorators/proxies/annotations.
-- **You're building a small domain language.** A test matcher, a query builder, a configuration syntax.
-
-It is the **wrong** tool when:
-
-- A plain function, a loop, or a bit of copy-paste would be clearer and is read more often than it is written.
-- The team can't maintain it — metaprogramming concentrates cleverness, and clever code outlives the clever person.
-- You reach for `eval`/`exec` on untrusted input (that's a security hole, not a technique).
-- The "savings" is three lines of boilerplate but the cost is a debugging mystery.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Classify before you touch — *which technique, run when?*
@@ -432,130 +290,24 @@ Write the boring version first (one explicit function, one explicit registration
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│                   WHAT METAPROGRAMMING IS                         │
-├──────────────────────────────────────────────────────────────────┤
-│ Metaprogramming = code that reads / generates / transforms code   │
-│ Base level   = the program that does the work                     │
-│ Meta level   = code that operates ON the base level               │
-├──────────────────────────────────────────────────────────────────┤
-│ THE ONE AXIS:  WHEN does the meta level run?                      │
-│   BUILD-TIME : macros, C++ templates, annotation processors,      │
-│                code generators, Rust #[derive]                    │
-│   RUNTIME    : reflection, metaclasses, dynamic proxies,          │
-│                monkeypatching, eval/exec                          │
-├──────────────────────────────────────────────────────────────────┤
-│ Two more slices:                                                  │
-│   Introspection  = observe (look)                                 │
-│   Intercession   = modify (change)                                │
-│   Generative     = produce new code                               │
-│   Reflective     = inspect/alter existing code                    │
-├──────────────────────────────────────────────────────────────────┤
-│ Purest form: HOMOICONICITY (Lisp) — code IS data (a list)         │
-├──────────────────────────────────────────────────────────────────┤
-│ Frameworks built on it: Spring, Hibernate, Django, Rails,         │
-│                         serde, gRPC stubs, mocking libs           │
-├──────────────────────────────────────────────────────────────────┤
-│ The trade: power + DRY   vs   comprehensibility + debuggability   │
-├──────────────────────────────────────────────────────────────────┤
-│ Junior habit: "magic" → ask "WHAT read my code, and WHEN?"        │
-└──────────────────────────────────────────────────────────────────┘
-```
+1. Choose one small, known input for **What Metaprogramming Is**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
----
+## Verify your work
 
-## Summary
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
 
-- **Metaprogramming is code about code:** programs that read, generate, or transform programs — sometimes themselves.
-- The ordinary program is the **base level**; code that operates on it is the **meta level**. Learn to see which layer you're looking at.
-- The single most important organizing idea is **when the meta level runs**: **compile-time/build-time** (macros, templates, annotation processors, code generators, `#[derive]`) vs **runtime** (reflection, metaclasses, proxies, monkeypatching, `eval`/`exec`). The *when* predicts speed, safety, and debuggability.
-- Two more useful distinctions: **introspection** (observe) vs **intercession** (modify), and **generative** (make code) vs **reflective** (inspect existing code).
-- **Homoiconicity** (Lisp — code is written as data) is the purest form of the idea; most other languages bolt metaprogramming on with special machinery.
-- You already use it everywhere: **Spring, Hibernate, Django, Rails, serde, gRPC, mocking libraries** are all metaprogramming under the hood.
-- The fundamental trade is **power and DRY-ness vs comprehensibility, debuggability, and tooling.** Spend the power deliberately.
-- The rest of this section drills into each technique — reflection, annotations and decorators, build-time code generation, macros, metaclasses, dynamic proxies, and DSLs — and into *when not to metaprogram*. This page is the map; those are the territory.
-- A junior's #1 habit: when code "works by magic," refuse the word "magic" and ask **"what read my code, and when?"**
+## Review questions
 
----
-
-## Diagrams & Visual Aids
-
-### The Two Levels
-
-```text
-        ┌─────────────────────────────────────────┐
-        │            META LEVEL                    │
-        │  (reads / generates / rewrites the code  │
-        │   below — macros, reflection, codegen)   │
-        └───────────────────┬─────────────────────┘
-                            │ operates on
-                            ▼
-        ┌─────────────────────────────────────────┐
-        │            BASE LEVEL                    │
-        │   (your ordinary program: the loop, the  │
-        │    function, the business logic)         │
-        └─────────────────────────────────────────┘
-```
-
-### The Timeline (Where Each Technique Lives)
-
-```text
-  YOU WRITE        BUILD / COMPILE              SHIP        RUN
-  ──────────────────────────────────────────────────────────────►
-                  │                                        │
-                  │  macros                                │  reflection
-                  │  C++ templates / constexpr             │  metaclasses
-                  │  annotation processors                 │  dynamic proxies
-                  │  code generators (protoc, go generate) │  monkeypatching
-                  │  Rust #[derive]                        │  eval / exec
-                  ▼                                        ▼
-            "already decided,                       "deciding live,
-             baked into binary"                      in front of users"
-```
-
-### Generative vs Reflective
-
-```text
-   GENERATIVE                          REFLECTIVE
-   ──────────                          ──────────
-   schema / annotation                 existing object / class
-        │                                    │
-        ▼                                    ▼
-   [ meta-code ]                        [ meta-code ]
-        │                                    │
-        ▼                                    ▼
-   NEW CODE produced               structure observed (introspection)
-   (stubs, derive, codegen)        or altered (intercession)
-```
-
-### Homoiconicity in One Picture
-
-```text
-  Most languages:        code  ≠  data       (must use a reflection API
-                         (special syntax)     or macro machinery to bridge)
-
-  Lisp:                  code  =  data        ( (+ 1 2)  is just a list )
-                         (both are lists)      → manipulate code with list ops
-```
-
-### The "Magic Has a Mechanism" Decision Flow
-
-```text
-        "this works by magic"
-                │
-                ▼
-     ┌─────────────────────────┐
-     │ WHAT read my code?       │ ── annotation? decorator? reflection?
-     │                          │    codegen file? macro?
-     └────────────┬────────────┘
-                  ▼
-     ┌─────────────────────────┐
-     │ WHEN did it run?         │ ── build-time → look at generated output
-     │                          │    runtime    → look at startup / each call
-     └────────────┬────────────┘
-                  ▼
-            no more magic — just a mechanism you can debug
-```
+- What problem does What Metaprogramming Is solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

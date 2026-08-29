@@ -1,56 +1,11 @@
-# Build-Time Code Generation — Middle Level
+# Build-Time Code Generation — Middle
 
-> **Topic:** Build-Time Code Generation
-> **Focus:** The three kinds of generation (template, schema-driven, annotation-driven), how generators wire into real build systems, and the regeneration discipline that keeps generated code honest.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **Build-Time Code Generation** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-> Focus: **What are the distinct *kinds* of build-time generation, and how does each one plug into a build?** And **how do you keep generated code from silently going stale?**
-
-At the junior level, "code generation" is one idea: a tool writes source before the compiler runs. At the middle level you need to see that it is really a **spectrum** of techniques that differ in *what the input is* and *how the generator is triggered*. The three you will meet constantly:
-
-1. **Template-based generation** — a string template (Mustache, Jinja, Go `text/template`, .NET T4) plus some data produces text. The most general and the most "manual": you control the template and the data, you write the output shape.
-2. **Schema-driven generation** — a formal schema (`.proto`, OpenAPI, Thrift, GraphQL SDL, a SQL schema) drives a dedicated generator (`protoc`, `openapi-generator`, `sqlc`, jOOQ) that knows how to turn that schema into typed code.
-3. **Annotation-driven generation** — you annotate your *own* source (`@Data`, `@Component`, `@AutoValue`) and a processor that runs *inside the compiler* (Java APT, Kotlin KSP/KAPT) emits companion code.
-
-These differ in coupling, in where they run, and in how regeneration is triggered — and getting those mechanics right is what separates a tidy build from a flaky one. This page covers the three kinds in depth, how each integrates with Make/Gradle/Cargo/Bazel, the committed-vs-gitignored decision with its real trade-offs, incremental regeneration, and the CI **drift check** that catches stale output before it reaches `main`.
-
-> 🎓 **Why this matters at the middle level:** Most generation bugs are not in the generated code — they are in the *plumbing*. Stale output, version skew between developers, a build that "works on my machine" because the generator ran an hour ago: these are build-engineering problems. Knowing the three kinds and their triggers lets you diagnose and fix them fast.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** Everything in `junior.md` — the pipeline (input → generator → generated code → compiler), single source of truth, "never edit generated code."
-- **Required:** Working knowledge of at least one build system: `go build`/`go generate`, Maven/Gradle, Cargo, or Make.
-- **Required:** Comfort reading a schema (`.proto`, JSON/YAML, a SQL `CREATE TABLE`).
-- **Helpful but not required:** Having configured a CI pipeline (GitHub Actions, GitLab CI) before.
-- **Helpful but not required:** Exposure to gRPC, OpenAPI, or a DI framework (Dagger/Spring).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Template-based generation** | Generation driven by a text template with placeholders, filled from data. Examples: Mustache, Jinja2, Go `text/template`, T4. |
-| **Schema-driven generation** | Generation driven by a formal schema/IDL through a dedicated generator. Examples: protobuf, OpenAPI, Thrift, GraphQL, sqlc, jOOQ. |
-| **Annotation-driven generation** | Generation driven by annotations on your own source, processed during compilation. Java APT, Kotlin KSP/KAPT, Rust derive macros (a near relative). |
-| **IDL (Interface Definition Language)** | A language for describing data/interfaces independent of any programming language — `.proto`, Thrift, OpenAPI are IDLs. |
-| **APT (Annotation Processing Tool)** | Java's mechanism for compiler plugins that read annotations and emit new source/classes during compilation. |
-| **KSP / KAPT** | Kotlin Symbol Processing (fast, modern) and Kotlin Annotation Processing Tool (older, runs the Java APT pipeline over stubs). |
-| **`build.rs`** | A Rust build script compiled and run by Cargo *before* the crate, used to generate code, run `bindgen`/`prost`, or configure linking. |
-| **`OUT_DIR`** | The Cargo-provided directory where `build.rs` writes generated files; the crate pulls them in with `include!`. |
-| **Drift check** | A CI step that regenerates code and fails if the working tree changes — i.e. someone forgot to regenerate. |
-| **Incremental regeneration** | Regenerating only the outputs whose inputs changed, instead of everything, to keep builds fast. |
-| **Hermetic build** | A build that depends only on declared inputs (including the generator and its version), so it is reproducible anywhere. Bazel aims for this. |
-| **Single source of truth** | The canonical artifact (schema/annotation/template+data) from which generated code is derived. |
-| **Version skew** | Different developers/CI using different generator versions, producing different output. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -144,28 +99,6 @@ The deciding factors: *does the build run the generator automatically?* and *is 
 
 ---
 
-## Real-World Analogies
-
-**Three ways to get a translated document.** Template-based is filling in a form letter yourself. Schema-driven is sending the original to a professional translation service that knows the target language's grammar. Annotation-driven is having a translator sit *inside the printing press*, translating as the document is printed.
-
-**Make as a smart kitchen.** A recipe (Makefile) says "the cake (generated code) depends on the batter (schema); only re-bake if the batter changed." Make checks timestamps and skips work that is already up to date — incremental regeneration.
-
-**The drift check as a spell-checker on commit.** Just as a pre-commit spell-check refuses text with typos, a drift check refuses a commit where the generated code does not match its schema.
-
----
-
-## Mental Models
-
-**Model 1 — "Same idea, three triggers."** All three kinds expand a compact input into code. They differ in *who pulls the trigger*: you (template), a dedicated generator (schema), or the compiler itself (annotation).
-
-**Model 2 — "The generator is a build dependency, like a compiler."** Treat `protoc` exactly as you treat `go`/`javac`: it must be present, pinned to a version, and reproducible. Version skew in the generator is as bad as version skew in the compiler.
-
-**Model 3 — "Generated code has a freshness date."** It is valid only relative to the input it was made from. The drift check is the expiry alarm.
-
-**Model 4 — "Move it left."** The recurring theme: shift work from runtime to build time. Reflection-based DI at startup becomes generated DI at compile time; runtime serialization becomes generated serialization. Earlier failure, less runtime cost.
-
----
-
 ## Code Examples
 
 ### Example 1: Go `go generate` with `mockgen`
@@ -249,38 +182,6 @@ SELECT id, name, email FROM users WHERE id = $1;
 
 ---
 
-## Pros & Cons
-
-### Pros
-
-- **Schema-driven generation guarantees cross-language agreement** — one `.proto` makes a Go server and a Java client that cannot disagree on the wire.
-- **Annotation-driven generation needs no separate schema** — annotations live with the code they describe.
-- **Build-system integration (Make/Bazel/Cargo) gives free incrementality** — only changed inputs regenerate.
-- **Drift checks make staleness impossible to merge.**
-- **Move work left:** compile-time DI (Dagger), compile-time mapping (MapStruct), compile-time serialization — runtime failures become compile errors.
-
-### Cons
-
-- **Template-based generation has no language awareness** — easy to emit syntactically broken code.
-- **Annotation processors slow compilation** — APT/KAPT add a measurable build cost; KSP mitigates but does not eliminate it.
-- **Generator-as-build-dependency** must be installed, pinned, and reproducible everywhere, or you get version skew.
-- **The committed-vs-gitignored decision has no free option** — each side has real costs (diff noise vs setup burden).
-- **`go generate` is not part of `go build`** — a common trap; forgetting to run it produces stale output with no warning.
-
----
-
-## Use Cases
-
-- **Cross-language microservices:** protobuf/gRPC as the contract; each service generates its own stubs.
-- **Public API SDKs:** an OpenAPI spec generates client SDKs in many languages from one source.
-- **Type-safe persistence:** sqlc/jOOQ so schema drift becomes a compile error.
-- **Compile-time DI:** Dagger in Android/JVM apps where startup time and native-image support matter.
-- **Object mapping at boundaries:** MapStruct between entities and DTOs without reflection.
-- **FFI bindings:** Rust `build.rs` + `bindgen` to wrap a C library with safe, typed Rust.
-- **Test doubles:** `mockgen`/Mockito-generated mocks regenerated as interfaces evolve.
-
----
-
 ## Coding Patterns
 
 **Pattern: One canonical generate command, wired into the build.** A `make gen` (or `go generate ./...`, or a Gradle task) that regenerates everything. Document it; CI runs it for the drift check.
@@ -325,33 +226,24 @@ SELECT id, name, email FROM users WHERE id = $1;
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-| Topic | Key point |
-|------|------|
-| Three kinds | Template (you trigger), schema-driven (dedicated generator), annotation-driven (compiler triggers). |
-| Template tools | Mustache, Jinja2, Go `text/template`, T4 — general but language-unaware. |
-| Schema tools | protoc/gRPC, OpenAPI, Thrift, GraphQL, sqlc, jOOQ — typed, cross-language. |
-| Annotation tools | Lombok, Dagger, AutoValue, MapStruct (Java APT); KSP/KAPT (Kotlin). |
-| `go generate` | A convention; **not** run by `go build`. Commit generated Go. |
-| `build.rs` | Cargo runs it every build, before the crate; writes to `OUT_DIR`; often gitignored. |
-| Dagger vs Spring | Compile-time DI (errors at build) vs runtime DI (errors at startup). |
-| Drift check | CI: regenerate + `git diff --exit-code` → fail on staleness. |
-| Commit policy | Auto-generated by build → gitignore; manual/awkward generator → commit. |
+1. Find a real component where **Build-Time Code Generation** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
----
+## Verify your work
 
-## Summary
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
 
-Build-time code generation is a **spectrum**, not a single technique. **Template-based** generation is general but language-unaware; **schema-driven** generation (protobuf, OpenAPI, Thrift, GraphQL, sqlc, jOOQ) turns a language-independent IDL into typed, cross-language-consistent code; **annotation-driven** generation (Java APT — Lombok, Dagger, MapStruct, AutoValue; Kotlin KSP/KAPT) runs *inside the compiler* and emits companions to your annotated source. Each integrates with a build differently: Make rules give incrementality, `go generate` is a convention outside `go build`, Gradle/Maven run annotation processors automatically, Cargo runs `build.rs` on every build, and Bazel makes generation a hermetic build rule. The two recurring engineering decisions are **committed-vs-gitignored** (decided by whether the build auto-runs the generator) and **keeping output fresh** (a CI **drift check** that regenerates and fails on diff). The throughline is "move work left" — Dagger's compile-time DI versus Spring's runtime DI is the canonical example of turning runtime failures into compile errors.
+## Review questions
 
----
-
-## Further Reading
-
-- The protobuf and gRPC generated-code guides; the `protoc` plugin model.
-- The OpenAPI Generator project and its templating model (it is itself template-based under the hood).
-- The Dagger documentation on compile-time dependency graphs.
-- Kotlin Symbol Processing (KSP) overview and its comparison with KAPT.
-- The Cargo book chapter on build scripts (`build.rs`).
-- `senior.md` in this folder — codegen vs macros vs reflection, and schema evolution.
+- Which boundary is most affected by Build-Time Code Generation?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

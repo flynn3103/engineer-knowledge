@@ -1,57 +1,11 @@
-# Character & String Internals (Unicode) — Senior Level
+# Character & String Internals (Unicode) — Senior
 
-> **Topic:** Character & String Internals (Unicode)
-> **Focus:** The semantic operations on text — normalization (NFC/NFD/NFKC/NFKD), grapheme cluster segmentation, locale-sensitive case folding, and collation. Where "two strings that look identical are not equal," and how to make them be.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Character & String Internals (Unicode)** under failure, load, and change?
 
-## Introduction
-
-> Focus: **Why does `"café" === "café"` return false, and what is the disciplined way to compare, sort, fold case, and count text that humans wrote?**
-
-At the byte level (middle.md), text is mechanical: a code point maps to fixed bytes. At the *semantic* level, text is treacherous, because the relationship between code points and meaning is many-to-one and context-dependent. The letter `é` has **two** valid Unicode spellings. The uppercase of `ß` is debated. The lowercase of Turkish `İ` is not `i`. Sorting "naïve" before "naive" depends on the user's language. A single emoji on screen may be seven code points. None of these are bugs in Unicode — they are faithful reflections of how human writing actually works, and a senior engineer must handle them rather than wish them away.
-
-This page covers the four pillars of correct text semantics:
-
-1. **Normalization** — collapsing the multiple valid spellings of the same text into one canonical form (NFC/NFD/NFKC/NFKD).
-2. **Grapheme cluster segmentation** — counting and slicing text the way a human perceives it (so 👨‍👩‍👧‍👦 is one unit and é-with-combining-mark is one unit).
-3. **Case folding** — comparing text case-insensitively, with all the locale traps (Turkish `i`, German `ß`, Greek final sigma).
-4. **Collation** — sorting text in a locale-correct order that is *not* code-point order.
-
-> 🎓 **Why this matters for a senior:** These are the operations that decide whether two users can register the same username, whether a search box finds what the user typed, whether a "remove duplicates" job actually deduplicates, and whether your filename comparison on macOS matches the one on Linux. Get them wrong and you ship account-takeover vulnerabilities, broken search, and data-integrity bugs that are nearly impossible to reproduce because they depend on *how* the input was typed. The next level (`professional.md`) covers the storage internals and the security exploits that weaponize exactly these semantics.
-
----
-
-## Prerequisites
-
-- **Required:** Middle-level mechanics: UTF-8/16 byte layout, surrogate pairs, code units vs code points.
-- **Required:** Comfort with the idea that one human character ≠ one code point.
-- **Helpful:** Exposure to a Unicode library (ICU, Python `unicodedata`, Go `golang.org/x/text`, JS `Intl`).
-- **Helpful:** Awareness that locale (language + region) affects text behavior.
-
-You do **not** need: in-memory string storage (Latin-1 vs UTF-16 compact strings, PEP 393), SSO, ropes, or the security-attack catalogue — those are `professional.md`.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Normalization** | Transforming text to a canonical form so that equivalent strings become byte-identical. |
-| **Canonical equivalence** | Two sequences that represent the *same* abstract character (e.g. precomposed `é` vs `e`+combining acute). Must display and behave identically. |
-| **Compatibility equivalence** | A weaker relation: characters with the same *meaning* but different *form* (e.g. `ﬁ` ligature vs `fi`, full-width `Ａ` vs `A`). |
-| **NFC** | Normalization Form C: canonical decomposition, then canonical *composition* — prefer precomposed forms. The web/storage default. |
-| **NFD** | Normalization Form D: canonical decomposition — split into base + combining marks. macOS filesystem uses a variant. |
-| **NFKC / NFKD** | Compatibility forms: like NFC/NFD but also collapse compatibility equivalents (ligatures, full-width, super/subscripts). Lossy. |
-| **Combining mark** | A code point that attaches to the preceding base character (e.g. `U+0301` combining acute accent). |
-| **Grapheme cluster** | A maximal run of code points perceived as one character; defined by UAX #29. |
-| **ZWJ** | Zero-Width Joiner `U+200D`; glues code points into a single emoji (e.g. 👨‍👩‍👧‍👦). |
-| **Regional indicator** | Pairs of `U+1F1E6`–`U+1F1FF` that render as flag emoji (🇺🇸 = `U+1F1FA U+1F1F8`). |
-| **Case folding** | A normalization for caseless comparison; stronger and more stable than `toLowerCase`. |
-| **Collation** | Locale-aware ordering of strings (UCA + locale tailoring). |
-| **UCA** | Unicode Collation Algorithm, the standard multi-level comparison. |
-| **Locale** | Language + region (+ variant) context that tailors case, collation, and formatting. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -114,32 +68,6 @@ Sorting strings by code point gives nonsense to humans: `Z` (`U+005A`) sorts bef
 4. **Quaternary:** punctuation/variants.
 
 On top of UCA, each **locale tailors** the order: Swedish sorts `å ä ö` *after* `z`; German phonebook order treats `ä` like `ae`; Spanish once treated `ll` as one letter. There is no single "correct" sort — it depends on the user's language. Use a locale-aware collator (`Intl.Collator`, ICU `Collator`, `golang.org/x/text/collate`), never `<` on raw strings, for anything a user will read as "alphabetical."
-
----
-
-## Real-World Analogies
-
-**Two recipes, one dish (canonical equivalence).** `é` precomposed vs decomposed is like writing "1 cup sugar" vs "16 tablespoons sugar" — different text, identical result. Normalization is converting every recipe to the same units before checking whether two recipes are the same.
-
-**The LEGO minifig (grapheme cluster).** 👨‍👩‍👧‍👦 is a built minifig family clipped together with connector pegs (ZWJ). A human sees one family. Counting "characters" by code point is like counting every torso, leg, and peg separately and reporting "7 people."
-
-**Library shelving (collation).** Code-point order is shelving books by the ASCII value of the first byte of the title — gibberish to a patron. Collation is shelving the way a librarian does: ignoring "The", folding accents, respecting the local alphabet. Different countries' libraries shelve differently; so do collators.
-
-**The dotless-i border crossing (locale case).** Lowercasing `I` is like translating a word — the "correct" answer changes when you cross from English into Turkey. Code that assumes one global translation breaks at the border.
-
----
-
-## Mental Models
-
-**Model 1: Normalize, then compare. Always.** Any time you compare, hash, dedupe, or index user text, normalize both operands to the same form first (NFC for general text, NFKC_Casefold for identities). Comparison of un-normalized Unicode is comparison of accidental byte spellings.
-
-**Model 2: Three different "same."** *Byte-equal* (raw `==`), *canonically equal* (same after NFC), and *compatibility-equal* (same after NFKC). Pick the right one for the job: byte-equal for caches keyed on exact input, canonical for "is this the same text," compatibility for "is this the same identity."
-
-**Model 3: Three different "length/character."** Code units (for serializers/buffers), code points (for algorithms), graphemes (for humans/UI). The grapheme count is the one users mean and the one your language gives you *least* easily.
-
-**Model 4: Locale is an input, not a constant.** Case and collation are functions of *(text, locale)*. Hard-coding the developer's locale is a latent bug. For identity/security, the locale must be the fixed *invariant* locale, never the request's.
-
-**Model 5: NFKC is a one-way door.** It throws away distinctions (ligatures, width) you can never recover. Use it for matching keys, never for the canonical stored value you might need to render back exactly.
 
 ---
 
@@ -227,46 +155,6 @@ print(identity_key("Ａdmin") == identity_key("admin"))  # True
 
 ---
 
-## Pros & Cons
-
-**Storing NFC**
-
-| Pros | Cons |
-|------|------|
-| Compact (precomposed), web-standard | Must normalize on input; cost per string |
-| Stable equality and hashing | Some rare characters have no precomposed form (stay decomposed) |
-| Interoperates with most systems | macOS filesystem returns NFD-ish — needs re-normalization |
-
-**Using NFKC_Casefold for identities**
-
-| Pros | Cons |
-|------|------|
-| Defeats homoglyph/width/ligature spoofing | Lossy — cannot render the exact original |
-| Stable caseless matching | Can over-merge distinct identities if applied too broadly |
-| Aligns with UTS #39 security guidance | Extra step many teams forget, causing account-takeover bugs |
-
-**Grapheme-aware operations**
-
-| Pros | Cons |
-|------|------|
-| Correct user-facing length, truncation, reversal | Requires a Unicode library + data tables |
-| Survives emoji, skin tones, flags | Slower than code-unit ops; rules update with each Unicode version |
-
-**The core trade-off:** correctness costs a dependency and a normalization pass. The naive `==`, `<`, `.length`, and `.toLowerCase()` are fast and wrong; the correct versions need ICU-class data and locale awareness. A senior decides *where* correctness is mandatory (identity, search, sort, filenames) and where the cheap version is acceptable (internal opaque tokens, ASCII-only protocol fields).
-
----
-
-## Use Cases
-
-- **Username / email / domain canonicalization:** NFKC_Casefold + a confusable check before deciding two identities are "the same" (prevents look-alike account takeover).
-- **Search and indexing:** index NFKD/NFKC-folded, accent-optionally-stripped forms so queries match regardless of how the user typed accents.
-- **Deduplication and equality keys:** normalize to NFC before hashing; otherwise the same text appears twice.
-- **Filename handling across OSes:** normalize to a known form when comparing paths, because macOS and Linux disagree on stored form.
-- **UI character counters / truncation:** count and cut by grapheme, not code unit.
-- **Locale-correct alphabetical lists:** collate with the user's locale, never raw `<`.
-
----
-
 ## Coding Patterns
 
 **Pattern 1: The canonicalization pipeline.** For identities: `NFKC → casefold → confusable-skeleton check`. For general comparison: `NFC → compare`. Build this once, reuse everywhere, and make raw `==` on user text a code-review red flag.
@@ -316,13 +204,24 @@ print(identity_key("Ａdmin") == identity_key("admin"))  # True
 
 ---
 
-## Summary
+## Apply it
 
-- The same text has **multiple valid Unicode spellings**; **normalization** (NFC/NFD/NFKC/NFKD) collapses them. Store **NFC**; canonicalize identities with **NFKC_Casefold**.
-- **Canonical** equivalence preserves the character; **compatibility** equivalence (NFKC/NFKD) is lossy and flattens ligatures, width, and styling.
-- A **grapheme cluster** is the human "character" — often many code points (combining marks, ZWJ emoji, skin tones, flags). Count, truncate, and reverse by grapheme.
-- **Case folding** is for matching and must use the **invariant locale**; `toLowerCase`/`toUpperCase` are locale-sensitive (Turkish `i`, German `ß`, Greek final sigma) and for display only.
-- **Collation** sorts in locale-tailored order, not code-point order. Use a collator, never `<`.
-- The senior discipline: **normalize before comparing/hashing/sorting/storing**, carry locale explicitly, and reserve correctness-heavy operations for identity, search, sort, and filenames.
+1. State the system invariant that **Character & String Internals (Unicode)** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
-The next level, `professional.md`, covers how strings are *stored* (JVM compact strings/JEP 254, Python PEP 393, SSO, ropes, interning) and how attackers weaponize everything on this page (homoglyph/IDN spoofing, Trojan Source, overlong UTF-8, normalization filter bypass), plus the real incidents that resulted.
+## Verify your work
+
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
+
+## Review questions
+
+- Which invariant must remain true when Character & String Internals (Unicode) fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

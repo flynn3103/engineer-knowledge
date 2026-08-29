@@ -1,60 +1,11 @@
-# Runtimes (Language Runtime Support) — Senior Level
+# Runtimes (Language Runtime Support) — Senior
 
-> **Topic:** Runtimes (Language Runtime Support)
-> **Focus:** The hard lowerings the compiler performs against the runtime — write barriers and safepoints in detail, exception unwinding with personality routines, and the big one: **`async/await` compiled into a poll-able state machine**. Plus the runtime startup path and the fat-vs-thin trade-off as an engineering decision.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Runtimes (Language Runtime Support)** under failure, load, and change?
 
-## Introduction
-
-> 🎓 At junior level you learned a runtime exists. At middle level you learned the contract — allocation calls, write barriers, safepoints, stack-growth checks. At senior level you must implement that contract's hard parts in your head: **what exactly does a write barrier compile to, how does a safepoint actually stop a thread, how does the unwinder find the handler, and how does an `async fn` become a state machine you can poll?** These are the lowerings that separate "I use a runtime" from "I could build one."
-
-The throughline of this tier is **compiler-driven lowering**: taking a high-level construct your source expresses and transforming it into low-level code plus runtime calls plus metadata. Four lowerings matter most:
-
-1. **GC barriers** — the precise shape of insertion (Dijkstra/Yuasa style), and why the barrier exists (the tri-color invariant). The GC *algorithm* belongs to the memory-management section; here we own the *compiler's emitted barrier* and the *safepoint* that lets the GC run.
-2. **Safepoints and preemption** — how a running thread is brought to a stop where its stack is describable, including Go's signal-based asynchronous preemption and the JVM's poll-page trick.
-3. **Exception handling** — zero-cost EH: unwind tables, the **personality routine**, and two-phase unwinding, all of which the compiler emits *metadata* for rather than runtime checks on the happy path.
-4. **Async/await as a state machine** — the coroutine transform that turns straight-line `async` code into a struct holding a discriminant plus saved locals, with a `poll`/`resume` method the runtime's executor drives.
-
-We close on the **runtime startup path** in detail and on **fat vs thin** as a deliberate engineering trade — why Rust ships *no* GC/scheduler runtime by design, and what that buys (embedded, FFI-friendly, predictable) and costs (you write the async executor; you manage memory). Deep GC internals and stack-management internals live in the memory-management and runtime-systems sections; this page always reasons from **what the compiler must emit**.
-
----
-
-## Prerequisites
-
-- **Required:** The middle tier — the compiler/runtime contract, G-M-P scheduling, growable stacks, escape analysis.
-- **Required:** Comfort with assembly-level mental models (registers, the stack pointer, prologues) and with reading Rust/Go/C++.
-- **Required:** A working understanding of garbage collection mechanics (tri-color marking) at the level the memory-management section provides.
-- **Helpful:** Exposure to `async/await` in Rust, C#, or JavaScript, and to exceptions in C++/Java.
-- **Helpful:** Familiarity with calling conventions and the System V / Itanium ABIs.
-
-You do **not** need to know:
-
-- The full GC algorithm zoo (generational, region-based, concurrent compaction) — memory-management section.
-- JIT internals or runtime embedding — that's `professional.md`.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Tri-color invariant** | GC reachability is tracked by coloring objects white (unreached), gray (reached, children pending), black (reached, children scanned). The invariant a barrier protects: no black object points to a white object without the GC knowing. |
-| **Write barrier (Dijkstra/insertion)** | On a pointer write, shade the *target* gray so it won't be missed. Protects the invariant for concurrent marking. |
-| **Write barrier (Yuasa/deletion)** | On overwrite, remember the *old* pointer so a snapshot-at-the-beginning collector doesn't lose it. Go uses a hybrid. |
-| **Read barrier** | Code on pointer *reads* (used by some moving/concurrent collectors, e.g. ZGC's load barrier) to maintain invariants or redirect to moved objects. |
-| **Safepoint** | An instruction where the thread's register/stack state is fully describable (stack map present) so the runtime can stop it for GC or preemption. |
-| **Poll page / safepoint poll** | A read of a guard page that the runtime can make unreadable to trap all threads at their next poll (HotSpot technique). |
-| **Stack map** | Per-safepoint metadata: which slots/registers hold live GC pointers, for precise scanning and for relocation when stacks move. |
-| **Unwind table (`.eh_frame`/`.gcc_except_table`)** | Compiler-emitted DWARF CFI describing how to restore registers and find handlers while walking up the stack during an exception. |
-| **Personality routine** | A language-specific runtime function the unwinder calls per frame to decide "does this frame handle the exception / need cleanup?" |
-| **Two-phase unwinding** | Phase 1 (search) finds the handler without changing state; phase 2 (cleanup) runs destructors/`finally` and transfers control. |
-| **Coroutine transform / lowering** | The compiler pass that rewrites a suspendable function into a state machine with saved locals and a resume point. |
-| **State machine (async)** | The struct the compiler generates from an `async fn`: a discriminant (which `.await` we're at) plus the live locals across suspension points. |
-| **`Future` / `poll`** | Rust's model: a state machine implementing `poll(cx) -> Poll<T>` that the executor calls; returns `Pending` or `Ready`. |
-| **Executor / reactor** | The runtime that drives futures: polls them, parks them on `Pending`, and wakes them when I/O is ready (Rust's Tokio, C#'s thread pool + sync context). |
-| **Self-referential future** | A future whose state machine holds a pointer into its own saved locals; the reason Rust needs `Pin`. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -192,28 +143,6 @@ Two senior implications: (1) **static initializers run single-threaded, before t
 
 ---
 
-## Real-World Analogies
-
-**The bookmark vs. the whole reading room (stackless vs stackful).** A *stackful* coroutine is like reserving an entire reading room mid-book: when you leave, the room (stack) stays exactly as you left it, ready to resume. A *stackless* async task is like writing a single bookmark slip — "I'm on chapter 3, paragraph 2, holding these two notes" — and freeing the room entirely. The slip (state machine struct) is tiny; the room (stack) is not.
-
-**The fire drill (safepoints).** "Stop the world" isn't a switch; it's a fire drill. You announce it (flip the poll page / send signals), and you wait at the exit until the *last* person leaves the building. One person stuck in a long phone call (a syscall, a cgo call) holds up the whole drill. The drill's duration is the slowest straggler, not the average.
-
-**The relay race with a baton-check (write barrier).** The GC is an auditor counting who still holds a baton (pointer). Runners keep passing batons around. Every time a runner hands a baton to someone the auditor already checked off (a black object), they must shout it out (the barrier) so the auditor re-checks that person. The shout is cheap, but it must never be skipped, or a live runner gets declared finished.
-
----
-
-## Mental Models
-
-**Model 1 — Lowering is the senior lens.** Every "magic" feature is a *lowering*: high-level construct → low-level code + runtime calls + metadata. Async → state machine. Exceptions → tables + personality. GC cooperation → barriers + stack maps + safepoints. Ask "what did the compiler emit?" and the magic disappears.
-
-**Model 2 — Suspension = where do I save state?** Stackful saves the whole stack; stackless saves only cross-suspension live locals into a struct. Everything about cost, ergonomics, and `Pin` follows from *that one choice*.
-
-**Model 3 — Metadata over checks.** Zero-cost EH and precise GC both work by emitting **metadata** consumed only on the slow path, instead of **runtime checks** on the fast path. The compiler trades binary size for runtime speed.
-
-**Model 4 — The executor is the new scheduler.** In stackless-async land, the runtime's scheduler is the **executor** that polls futures and the **reactor** that wakes them. It plays the same role Go's G-M-P plays, but it drives compiler-generated state machines rather than stacks.
-
----
-
 ## Code Examples
 
 ### Example 1 — A hand-written future shows what the compiler generates (Rust)
@@ -325,16 +254,6 @@ Go deliberately does **not** use table-driven C++-style unwinding. `panic` unwin
 
 ---
 
-## Use Cases
-
-- **Designing an async runtime / executor:** you must understand the state-machine contract (`poll`, `Waker`, `Pin`) the compiler emits against.
-- **Embedded / `no_std` async:** stackless async runs without a GC or OS threads — pick it when you can't afford a fat runtime.
-- **Diagnosing GC tail latency:** trace safepoint stalls; a goroutine stuck in cgo or a long syscall lengthens stop-the-world.
-- **Auditing binary size:** unwind tables (`.eh_frame`) and reflection metadata are large; strip or shrink when targeting size-constrained deployments.
-- **Choosing an error model for a library:** zero-cost EH vs explicit `Result` is a real performance/ergonomics decision driven by how the runtime implements each.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1 — Minimize locals live across `.await` (smaller futures)
@@ -417,76 +336,24 @@ When unwind tables or GC overhead matter (embedded, hot loops), `Result`/error r
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. State the strong tri-color invariant and explain how an insertion write barrier preserves it.
-2. Why does Go use a *hybrid* write barrier, and what does it save?
-3. Describe how the HotSpot poll-page mechanism brings all threads to a safepoint.
-4. What are the two phases of Itanium-style unwinding, and what does the personality routine do in each?
-5. Sketch the state machine the compiler generates for an `async fn` with two `.await`s. What's in the discriminant? What's in the fields?
-6. Why is a stackless async task often smaller in memory than a goroutine, and what's the trade-off?
-7. What is a self-referential future and why does Rust need `Pin`?
-8. Why does a long cgo call lengthen a GC stop-the-world pause?
+1. State the system invariant that **Runtimes (Language Runtime Support)** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
-> Answers: (1) No black object points to a white object unseen; the Dijkstra insertion barrier shades the *target* gray on every pointer store so any new black→white edge is caught. (2) Hybrid (Yuasa deletion + Dijkstra insertion) keeps stacks black after one scan, so the runtime avoids re-scanning all goroutine stacks during mark termination — shorter pauses. (3) The runtime mprotects the poll page unreadable; each thread's inserted poll (a load of that page) faults; the fault handler parks the thread at a point with a valid stack map. (4) Search phase: walk frames calling each personality routine to find a handler, no state change; cleanup phase: walk again running cleanup landing pads (destructors/`finally`) until control transfers to the handler. (5) A struct/enum whose discriminant says which `.await` we suspended at (the resume point), and whose fields are the locals live across that suspension point. (6) It stores only cross-suspension live locals in a flat struct, not a whole call stack; trade-off is function coloring and `Pin`/self-reference complexity. (7) A generated state machine that holds a pointer into its own saved locals; moving it would dangle that pointer, so `Pin` guarantees it won't move after polling starts. (8) That thread is running C code with no Go safepoint, so it can't acknowledge the stop request until the call returns; stop-the-world waits for it.
+## Verify your work
 
----
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
 
-## Cheat Sheet
+## Review questions
 
-```text
-LOWERINGS (senior lens = "what did the compiler emit?")
-  GC:        write barrier (conditional on mark phase) + stack maps + reachable safepoints
-             tri-color invariant: no black -> white edge unseen
-             Dijkstra(insertion, shade target) | Yuasa(deletion, save old) | Go = hybrid
-  SAFEPOINT: poll-page fault (HotSpot/old Go)  OR  signal-based async preempt (Go 1.14+)
-             stop-the-world = wait for SLOWEST thread to reach a safepoint
-  EXCEPTIONS (zero-cost/table-driven, C++/Rust):
-             .eh_frame (CFI) + LSDA + personality routine; phase1 search, phase2 cleanup
-             Go panic/recover = walk per-goroutine DEFER chain (different mechanism)
-  ASYNC -> STATE MACHINE (stackless coroutine transform):
-             enum discriminant = resume point; fields = locals live across that .await
-             suspend = return Pending; resume = call poll() again; executor drives + Waker wakes
-             self-referential future -> needs Pin; async "colors" functions
-
-STACKFUL (goroutine): whole stack saved, synchronous-looking, fat runtime
-STACKLESS (async):    flat struct saved, .await visible, runs with NO GC (Rust embedded)
-
-STARTUP: rt0 -> heap/GC/scheduler init + signal handlers -> .init_array/init() -> main
-```
-
----
-
-## Summary
-
-The senior view of a runtime is the view of its **compiler-emitted lowerings**. Precise, concurrent garbage collection works because the compiler emits **write barriers** (preserving the tri-color invariant), **stack maps** (so roots are scannable and stacks relocatable), and **safepoints** (so threads can be stopped where their state is describable) — and "stop the world" is bounded by the slowest thread reaching one. Exceptions in C++/Rust are **table-driven and zero-cost on the happy path**: the compiler emits unwind tables and an LSDA, and the runtime's unwinder calls a **personality routine** in a two-phase search/cleanup walk — whereas Go deliberately uses a simpler **defer-chain** `panic` mechanism instead.
-
-The defining senior topic is **async/await as a state machine**: the compiler's **coroutine transform** rewrites suspendable code into a struct whose **discriminant is the resume point** and whose **fields are the locals live across each suspension**; suspension is `return Pending`, resumption is another `poll`, and an **executor + reactor** (the new scheduler) drives the whole thing via `Waker`s. This **stackless** strategy saves only live locals (not a whole stack), which makes async memory-lean and **runtime-free enough to run with no GC** — the reason Rust chose it and markets "no runtime" for embedded — at the cost of function coloring and `Pin`/self-reference complexity. The opposite **stackful** strategy (goroutines) trades memory and a fatter runtime for synchronous-looking ergonomics. Across all of it, the senior habit is the same: when a high-level feature feels like magic, ask **what metadata and calls the compiler emitted against the runtime** — and the magic resolves into mechanism.
-
----
-
-## What You Can Build
-
-- **A hand-written future** that mimics what `async`/`.await` compiles to, with a tiny single-threaded executor and a `Waker` — proving you understand `poll`/`Pending`/`Ready`.
-- **A state-machine visualizer:** take a 2–3 `.await` async function and draw the generated enum (states + saved locals) by hand, then verify saved-state size with a benchmark.
-- **A safepoint-latency probe:** in Go, induce a long cgo call during GC (`GODEBUG=gctrace=1`) and observe stop-the-world stretch.
-- **An unwind-table inspector:** compile a C++ program with and without exceptions (`-fno-exceptions`), compare `.eh_frame` size and binary size with `size`/`readelf`.
-
----
-
-## Further Reading
-
-- The Rust async book and "Pin and suspension" chapters; `std::future`, `std::task`, and the `Future` trait docs.
-- Itanium C++ ABI: exception handling (the canonical spec for unwind tables and personality routines).
-- HotSpot safepoint and "poll page" write-ups; the OpenJDK GC barrier documentation.
-- Go runtime sources: `mbarrier.go` (write barrier), `preempt.go` and `signal_unix.go` (async preemption), `panic.go` (defer/panic).
-- The memory-management section (GC algorithm internals) and the runtime-systems section (stack management internals).
-
----
-
-## Related Topics
-
-- Runtimes (Language Runtime Support) — the hub for this topic.
-- The **memory-management** section: the GC algorithms behind the barriers and safepoints described here.
-- The **runtime-systems** section: stack management, scheduler internals, and the runtime viewed from its own side.
-- The **foreign-function-interface-and-interop** section: throwing/panicking across FFI boundaries and cgo's effect on safepoints.
+- Which invariant must remain true when Runtimes (Language Runtime Support) fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

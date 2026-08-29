@@ -1,20 +1,11 @@
 # Interfaces — Middle
 
-> **Topic:** [Interfaces](../README.md)
-> **Focus:** Interface design principles ("accept interfaces, return structs"), dependency injection, interface composition via embedding, generics vs. interfaces, and designing for testability.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **Interfaces** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-At the junior level you learned interfaces are satisfied implicitly and should be kept small. At this level the focus shifts to **design**: how do you structure a codebase so dependencies are injectable and testable, when should you compose interfaces via embedding, and — since Go 1.18 — when should you reach for generics instead of an interface?
-
----
-
-## Prerequisites
-
-- Comfortable with implicit satisfaction, type assertions, and small consumer-defined interfaces (junior level).
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -136,27 +127,6 @@ func SumT Number T {
 
 ---
 
-## Pros & Cons
-
-| | Pros | Cons |
-|---|---|---|
-| Dependency injection via interfaces | Testable without a mocking framework; swappable implementations | Adds a layer of indirection; overused, it obscures what's actually happening |
-| Interface embedding | Composes small interfaces into larger ones cleanly | A composed interface's implementers must satisfy *all* embedded methods — can't partially implement |
-| Generics for type-parameterized logic | Type-safe, no runtime assertions, one implementation for many types | Newer to the language; constraint syntax has a learning curve; overuse can reduce readability |
-
----
-
-## Use Cases
-
-| Situation | Approach |
-|---|---|
-| A service needs a swappable, testable dependency | Interface + dependency injection |
-| Combining `Read` and `Close` behavior | Interface embedding |
-| Writing a `Max`/`Sum`/`Filter` that works identically across `int`, `float64`, custom numeric types | Generics with a constraint |
-| A struct has exactly one implementation and no test ever needs a fake | Skip the interface — pass the concrete type |
-
----
-
 ## Coding Patterns
 
 - **Interface at the point of use**: define `type Fetcher interface { Fetch(...) }` in the package that *calls* `Fetch`, not the package that implements it.
@@ -199,50 +169,24 @@ func SumT Number T {
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```go
-// Dependency injection
-type Store interface { Get(id string) (T, error) }
-func NewSvc(s Store) *Svc { return &Svc{s} }
+1. Find a real component where **Interfaces** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
-// Composition via embedding
-type RW interface { io.Reader; io.Writer }
+## Verify your work
 
-// Generic constraint
-type Number interface { ~int | ~float64 }
-func SumT Number T { ... }
-```
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
 
----
+## Review questions
 
-## Summary
-
-- Use interfaces for dependency injection: define them at the point of use, keep them narrow, and hand-write fakes for tests instead of reaching for a mocking framework.
-- Compose interfaces via embedding rather than duplicating method sets.
-- Reach for generics, not `any`, when the relationship between input and output types is fixed — reach for interfaces when the point is behavior, not type identity.
-- Avoid interface pollution: don't add an interface until you actually need substitutability.
-
----
-
-## Further Reading
-
-- Go Blog — *Type Parameters Proposal*: <https://go.dev/blog/intro-generics>
-- Dave Cheney — *Practical Go: Real world advice for writing maintainable Go programs* (interface design sections)
-
----
-
-## Related Topics
-
-- [Interfaces — Junior](junior.md)
-- [Error Handling — Middle](../04-error-handling/middle.md) — custom error types are just another interface consumer.
-
----
-
-## Check your understanding
-
-1. Explain Interfaces — Middle Level in your own words and name the problem it solves.
-2. How would you apply the ideas around Introduction, Prerequisites, Core Concepts in a realistic engineering change?
-3. What failure mode or misuse should you look for, and what evidence would reveal it?
-4. Which local design trade-off would make you choose or reject Interfaces — Middle Level in an existing codebase?
-5. What observable result would convince you that the approach improved the system?
+- Which boundary is most affected by Interfaces?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

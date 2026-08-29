@@ -1,60 +1,11 @@
-# Name Mangling & Linking — Senior Level
+# Name Mangling & Linking — Senior
 
-> **Topic:** Name Mangling & Linking
-> **Focus:** MSVC's mangling scheme, Rust's legacy vs `v0` mangling and `#[no_mangle]`, weak/COMDAT/vague linkage for inline functions and templates, and diagnosing cross-compiler ABI/mangling mismatches.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Name Mangling & Linking** under failure, load, and change?
 
-## Introduction
-
-> Focus: **The Itanium scheme is one of several. How does MSVC mangle (differently, and worse)? How does Rust mangle, and why does `v0` exist? And why does the *same* inline function or template appear in twenty object files without a multiple-definition error?**
-
-At middle level the world was Itanium: GCC and Clang, one mangling grammar, `c++filt` to decode. The senior reality is that **there is no single C++ mangling**. Microsoft's compiler (`cl.exe`) uses a completely different, prefix-`?`-based scheme that encodes the same information in an entirely different alphabet. The two are *incompatible*: a C++ library built with MSVC cannot be directly linked against object files from GCC, because the same function `add(int,int)` has a different symbol in each (`_Z3addii` vs `?add@@YAHHH@Z`), and the calling conventions and object layouts differ too. This is *the* reason "you can't mix C++ compilers" and *the* reason `extern "C"` is the only safe cross-compiler C++ boundary.
-
-Rust is its own story. Rust mangles because it has generics, modules, traits, and monomorphization — all of which need distinct symbols. Its *legacy* scheme appended a hash and was lossy and unstable; the modern **`v0`** scheme (RFC 2603) is a documented, demangle-able, hash-free grammar analogous in spirit to Itanium. And `#[no_mangle]` is Rust's `extern "C"`-for-symbols: it forces a plain, unmangled name so other languages can call in.
-
-The deepest senior topic here is **vague linkage**: inline functions, templates, vtables, and certain statics are *emitted in every translation unit that uses them*, so the same symbol legitimately appears in many object files. If the linker treated those as multiple definitions, nothing would compile. Instead they're emitted as **weak/COMDAT** symbols, and the linker *folds* them — keeps one, discards the rest. Understanding weak vs strong symbols, COMDAT groups, and why an ODR violation across these can *silently pick one definition and corrupt your program* is a senior-grade skill, because these bugs don't error out — they miscompile.
-
-> 🎓 **Why this matters at senior level:** When you ship a library that others link, or you integrate prebuilt binaries, or you debug a heisenbug that turns out to be an ODR violation across two differently-compiled translation units, you need the full picture: which mangling, which linkage, which definition won and why. This is where "the linker is magic" becomes "I can predict and control exactly what the linker does."
-
-This page covers MSVC and Rust mangling, weak/COMDAT/vague linkage, and ABI-mismatch debugging. `professional.md` covers symbol versioning, version scripts, `strip`, and the operational scale picture.
-
----
-
-## Prerequisites
-
-- **Required:** `junior.md` and `middle.md` — symbols, the Itanium grammar, archives vs shared objects, visibility, `nm`/`c++filt`/`readelf`.
-- **Required:** Working knowledge of C++ inline functions, templates, and (helpful) vtables.
-- **Required:** Some exposure to Rust, or willingness to read short Rust snippets.
-- **Helpful:** Having built C++ on both Linux/macOS and Windows, or at least understanding the toolchain split.
-- **Helpful:** Familiarity with the term "ABI" beyond just mangling.
-
-You do **not** need:
-
-- Symbol versioning (`GLIBC_2.x`), version scripts, or `strip` internals (that's `professional.md`).
-- The full grammar of MSVC mangling (we cover the readable shape, not every modifier).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **MSVC mangling** | Microsoft Visual C++'s name decoration scheme. Begins with `?`, encodes name, scope, calling convention, and types in its own alphabet. Incompatible with Itanium. |
-| **`undname`** | The Windows tool that demangles MSVC names (Itanium's `c++filt` equivalent). |
-| **Calling convention** | The contract for passing arguments and returning values (`__cdecl`, `__stdcall`, `__thiscall`). MSVC encodes it *into* the mangled name. |
-| **Rust legacy mangling** | The original Rust scheme: path plus a hash suffix; lossy, version-unstable, hard to demangle reliably. |
-| **Rust `v0` mangling** | RFC 2603's deterministic, hash-free, demangle-able scheme. Symbols start with `_R`. |
-| **`#[no_mangle]`** | A Rust attribute that emits a function/static under its plain source name, unmangled — the FFI export switch. |
-| **`extern "C"` (Rust)** | Declares C calling convention; combined with `#[no_mangle]` to expose C-callable functions. |
-| **Weak symbol** | A symbol the linker may override with a strong one, and may safely see multiple definitions of (keeping one). |
-| **Strong symbol** | The normal kind: exactly one allowed; a strong overrides a weak. |
-| **COMDAT** | A linker mechanism grouping a symbol with its data so duplicate copies across object files are *folded* to one. |
-| **Vague linkage** | The C++ notion that inline functions, templates, vtables, etc. are emitted in every using TU and deduplicated by the linker. |
-| **ODR violation** | Two *different* definitions of the same entity exist; the linker silently keeps one → undefined behavior, often a heisenbug. |
-| **ICF** (Identical Code Folding) | A linker optimization merging *functionally identical* functions into one symbol — distinct from COMDAT folding of *the same* entity. |
-| **ABI** (Application Binary Interface) | The full binary contract: mangling, calling convention, struct layout, vtable layout, exception model. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -128,37 +79,6 @@ A concrete, classic ODR trap: two `.cpp` files include a header defining `struct
 ### 7. ABI mismatch is more than mangling
 
 Mangling is the *visible* part of the ABI, but a true cross-compiler mismatch involves more: calling convention, struct/class layout, vtable layout, name of the standard-library symbols (libstdc++ vs libc++ vs MSVC STL), and the exception-handling model. Two libraries can have *matching* C symbol names yet still be incompatible if they assume different `std::string` layouts. This is why the only *guaranteed*-stable cross-compiler C++ interface is a **C interface** (`extern "C"` functions passing only C-compatible types — POD structs, pointers, primitives), and why mature cross-language SDKs expose a flat C API even when implemented in C++ or Rust.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Itanium vs MSVC mangling** | Two countries encoding the same address with different formats — both unambiguous internally, but neither postal service can deliver the other's labels. |
-| **Calling convention in the MSVC name** | A shipping label that also encodes *how* to hand over the package (front door vs loading dock); deliver wrong and it bounces. |
-| **Rust legacy hash** | A filename with a random suffix to avoid collisions — unique, but you can't tell what's inside from the name. |
-| **Rust `v0`** | A structured, parseable filename: project, module, function, generics, all readable. |
-| **`#[no_mangle]`** | Insisting your shop sign use plain block letters so any passer-by can read it, not the company's internal code. |
-| **Vague linkage / COMDAT folding** | Fifty offices each printing the same standard form; the archivist keeps one master and shreds the duplicates. |
-| **ODR violation** | Fifty offices printing forms they *think* are identical but aren't (different fine print); the archivist keeps one at random, and now everyone's working from possibly the wrong version. |
-| **ABI mismatch beyond mangling** | Two builders who agree on the door *labels* but disagree on the *floor plan* — the rooms don't line up even though the signs match. |
-
----
-
-## Mental Models
-
-### The "Many Dialects, One C Lingua Franca" Model
-
-Picture mangling as a set of mutually unintelligible dialects: GCC/Clang speak Itanian, MSVC speaks Microsoftese, Rust speaks `v0`-ish. Within a dialect, communication is perfect. Across dialects, nothing resolves. The one shared trade language everyone learned is **C linkage** — plain, unmangled names with the C calling convention. Every FFI bridge in existence is built on this trade language, which is why `extern "C"` (and `#[no_mangle]`) is the universal export switch.
-
-### The "Print Many, Keep One" Model for Vague Linkage
-
-An inline function or template instantiation is a stamp every using office presses onto its own paperwork. By design, dozens of identical copies exist. The linker is the archivist who, seeing the COMDAT tag "these are interchangeable," keeps exactly one and shreds the rest. The system *only works if the copies are truly identical*. The ODR violation is when the copies *differ but are tagged interchangeable* — the archivist still keeps one, and the mismatch becomes a silent, location-independent corruption.
-
-### The "Symbol Match Is Necessary, Not Sufficient" Model
-
-A resolved symbol means the *name* lined up. It does **not** mean the *meaning* lined up. Calling convention, struct layout, and standard-library version are invisible to symbol resolution. Treat a successful link across compiler/ABI boundaries with suspicion: the name matched, but did the contract? The discipline is to *narrow the boundary to C-compatible types and `extern "C"`*, where the contract is small enough to be stable.
 
 ---
 
@@ -312,29 +232,6 @@ Two different `make_widget` bodies (different `Widget` layouts) under one weak s
 
 ---
 
-## Pros & Cons
-
-| Aspect | Pros | Cons |
-|--------|------|------|
-| **MSVC mangling** | Encodes calling convention → catches convention mismatches at link time. | Dense, hard to read; incompatible with Itanium; even MSVC-version drift breaks the STL ABI. |
-| **Rust `v0` mangling** | Hash-free, deterministic, demangle-able, encodes generics precisely. | Still version-fragile as an FFI surface; long names. |
-| **`#[no_mangle]` / `extern "C"`** | A stable, universal export switch for FFI. | Forfeits overloading/generics at the boundary; you must hand-maintain a flat C surface. |
-| **Vague linkage / COMDAT** | Lets inline functions and templates live in headers without multiple-definition errors. | Hides ODR violations: differing definitions fold silently into undefined behavior. |
-| **Weak symbols** | Enable overridable defaults and optional hooks. | Subtle override semantics; accidental weak/strong clashes are confusing. |
-
----
-
-## Use Cases
-
-- **Shipping a cross-language SDK** — implemented in C++/Rust, exposed as a flat `extern "C"` / `#[no_mangle]` C API so any consumer and any compiler can link it.
-- **Integrating prebuilt third-party binaries** and diagnosing why their C++ symbols don't resolve against your compiler (mangling/ABI mismatch).
-- **Reading Windows link errors** (`unresolved external symbol ?...@@...`) and decoding them with `undname`/`dumpbin`.
-- **Putting templates and inline functions in headers** safely, relying on vague linkage — and knowing when an ODR violation is silently corrupting you.
-- **Providing overridable defaults** with weak symbols (plugin hooks, test stubs replacing production functions).
-- **Debugging a heisenbug** that profiling traces to a function compiled inconsistently across translation units (the classic ODR/flag-mismatch corruption).
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Flat C API over a C++/Rust core
@@ -422,74 +319,24 @@ Every FFI-exported Rust function is `#[no_mangle] pub extern "C"` and passes onl
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. Compile `int add(int,int)` with both GCC and MSVC (or read the symbols given above). Why can these two object files never link against each other for this function? Name two ABI differences beyond the symbol name.
-2. Demangle `?dist@Point@@QEBAHH@Z` (with `undname` if you have it). Which part is the class, which is the `const` member marker, which is the calling convention?
-3. Build a Rust lib with `legacy` and then `v0` mangling. Compare the symbol for the same function. What does the legacy hash suffix prevent you from recovering?
-4. Write a Rust function callable from C. Remove `#[no_mangle]` and observe the C-side link error. Then remove `extern "C"` instead — why is that error different and more subtle?
-5. Put a template in a header, instantiate the *same* specialization in two `.cpp` files, and inspect the symbol's binding with `nm`. Why is it `W` (weak)? Why does linking both not produce a multiple-definition error?
-6. Reproduce the `Widget`/`-DEXTRA` ODR example. Confirm it links cleanly. Then run it under a sanitizer or add prints to show the layout mismatch. Why did the linker not catch it?
-7. Define a `__attribute__((weak))` default function and, in a separate object, a strong override. Show that linking the override changes behavior. Now put the override in an archive nothing else references — does it still win? Why or why not?
+1. State the system invariant that **Name Mangling & Linking** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
----
+## Verify your work
 
-## Cheat Sheet
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
 
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│        MANGLING SCHEMES + LINKAGE (SENIOR)                       │
-├──────────────────────────────────────────────────────────────────┤
-│ Same function add(int,int):                                      │
-│   Itanium (GCC/Clang):  _Z3addii        demangle: c++filt        │
-│   MSVC (cl.exe):        ?add@@YAHHH@Z   demangle: undname        │
-│   Rust v0:              _RNv...          demangle: rustfilt       │
-│   Rust legacy:          _ZN..17h<hash>E (lossy, version-fragile)  │
-├──────────────────────────────────────────────────────────────────┤
-│ MSVC encodes the CALLING CONVENTION in the name:                 │
-│   __cdecl YA...  __stdcall YG...  → convention mismatch = link   │
-│   error (a feature, not a bug)                                   │
-├──────────────────────────────────────────────────────────────────┤
-│ Rust FFI export switch (BOTH required):                          │
-│   #[no_mangle]  →  plain symbol name                             │
-│   extern "C"    →  C calling convention                          │
-├──────────────────────────────────────────────────────────────────┤
-│ Vague linkage: inline fns, templates, vtables, RTTI emitted in   │
-│   EVERY using TU as WEAK/COMDAT → linker FOLDS to one copy.      │
-│   nm shows 'W' (weak). No multiple-definition error. By design.  │
-├──────────────────────────────────────────────────────────────────┤
-│ ODR VIOLATION: differing definitions under ONE weak symbol →     │
-│   linker keeps one SILENTLY → undefined behavior, heisenbug.     │
-│   Defense: identical defs + identical flags across all TUs.      │
-├──────────────────────────────────────────────────────────────────┤
-│ Cross-compiler / cross-language safe boundary = C ABI:           │
-│   extern "C" / #[no_mangle], pass only POD + pointers.           │
-│   A matching symbol name does NOT guarantee a matching ABI.      │
-└──────────────────────────────────────────────────────────────────┘
-```
+## Review questions
 
----
-
-## Summary
-
-- There is **no single C++ mangling.** GCC/Clang use **Itanium** (`_Z…`, demangle with `c++filt`); MSVC uses a `?`-prefixed scheme (`?add@@YAHHH@Z`, demangle with `undname`) that also encodes the **calling convention**. The two are mutually unintelligible — you cannot link C++ across them.
-- **Rust mangles** because of monomorphized generics, modules, and traits. The **legacy** scheme appended an opaque, version-fragile hash; the modern **`v0`** scheme (`_R…`) is hash-free, deterministic, and demangle-able with `rustfilt`.
-- **`#[no_mangle]` + `extern "C"`** is Rust's FFI export switch — both are required to get a stable, C-callable symbol. It's the exact analogue of C++'s `extern "C"`.
-- **Vague linkage** emits inline functions, templates, vtables, and RTTI in *every* using translation unit as **weak/COMDAT** symbols; the linker **folds** the duplicates to one. This is why headers can carry inline/template code without multiple-definition errors.
-- A **strong** symbol overrides a **weak** one; weak symbols enable overridable defaults and optional hooks.
-- An **ODR violation** — different definitions of the same entity (often via flag-dependent struct layouts) under one weak symbol — folds *silently*, producing location-independent undefined behavior. The link succeeds; the program is wrong.
-- **ABI is more than mangling:** calling convention, struct/vtable layout, STL version, and exception model all matter. A matching symbol name is **necessary but not sufficient**.
-- The only **guaranteed-stable** cross-compiler/cross-language interface is a **flat C ABI** (`extern "C"` / `#[no_mangle]`, POD and pointers) — which is why every serious SDK exposes one.
-
----
-
-## Further Reading
-
-- *Itanium C++ ABI* mangling spec — https://itanium-cxx-abi.github.io/cxx-abi/abi.html#mangling
-- *Microsoft C++ name decoration / `undname` docs* — https://learn.microsoft.com/cpp/build/reference/decorated-names
-- *Rust RFC 2603: the `v0` symbol mangling scheme* — https://rust-lang.github.io/rfcs/2603-rust-symbol-name-mangling-v0.html
-- *The Rustonomicon* — FFI chapter, on `#[no_mangle]` and `extern "C"`. https://doc.rust-lang.org/nomicon/ffi.html
-- *"What Is the One Definition Rule and Why Do We Care?"* — multiple clear write-ups; cppreference's ODR page is the reference. https://en.cppreference.com/w/cpp/language/definition
-- *How To Write Shared Libraries* — Ulrich Drepper, on weak symbols and COMDAT.
-- *GCC docs* on `__attribute__((weak))`, COMDAT, and template instantiation linkage.
-- *LLVM `lld` docs* on Identical Code Folding (`--icf`).
+- Which invariant must remain true when Name Mangling & Linking fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

@@ -1,61 +1,11 @@
-# Method Dispatch & Inline Caches — Middle Level
+# Method Dispatch & Inline Caches — Middle
 
-> **Topic:** Method Dispatch & Inline Caches
-> **Focus:** The concrete machinery: vtable layout for single inheritance, why multiple inheritance needs thunks, interface dispatch (itables), and how inline caches actually check their guard.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **Method Dispatch & Inline Caches** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-> Focus: **Exactly how is a vtable laid out, and what breaks when a class has more than one base?** And **what is the guard inside an inline cache actually comparing?**
-
-At the junior level, a vtable was "a table of function pointers, indexed by a fixed slot." That model is correct for the common case — **single inheritance** — and it's worth being able to draw the exact memory layout. But the moment a class inherits from *two* bases, the clean "slot N means method M" picture cracks, and real C++ implementations resort to a small piece of glue code called a **thunk** to patch it back together. Understanding why is a rite of passage for anyone who works at the runtime level.
-
-This page also takes apart the second big mechanism: **interface dispatch**. A method call through an interface (`Comparable`, `io.Reader`) is *not* the same as a call through a class, because an object can implement an interface without that interface being anywhere near its main inheritance line. Java solves this with **itables**, Go solves it with the **itab**, and C++ solves the analogous problem through multiple-inheritance vtables. Each is a different answer to the same question: *"given an object and an interface, how do I find the right method quickly?"*
-
-Finally, we go one level deeper on the inline cache: what the **guard** physically compares (a class/shape pointer), how a **monomorphic** cache is built and torn down, and the first sign of trouble — what happens when a second type shows up at a call site. The senior page generalizes that to polymorphic inline caches (PICs) and devirtualization.
-
-In one sentence: **this level is where dispatch stops being a metaphor and becomes a concrete data structure you could draw on a whiteboard — vtable slots, itab headers, and a guard that's just a pointer comparison.**
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** The junior-level model — static vs dynamic dispatch, the vtable/vptr idea, naive dynamic lookup, and the basic inline cache.
-- **Required:** What a pointer and a struct/object memory layout look like (fields at offsets).
-- **Required:** The difference between class inheritance and interface implementation.
-- **Helpful but not required:** Reading simple pseudo-assembly (loads, an indirect `call`).
-- **Helpful but not required:** Basic awareness that objects have a header word or two (type info, vptr).
-
-You do **not** need to know:
-
-- JIT internals or speculative optimization (that's `professional.md`).
-- The CPU branch predictor's microarchitecture (that's `senior.md`).
-- Garbage-collector interactions with object headers.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **vtable slot** | A fixed index into a class's vtable corresponding to one virtual method. Determined at compile time. |
-| **Single inheritance** | A class has at most one base class. The clean case for vtable layout: the derived vtable is the base vtable extended. |
-| **Multiple inheritance** | A class inherits from two or more bases. Forces multiple vptrs and pointer adjustment. |
-| **`this` pointer adjustment** | Correcting the receiver pointer so it points at the right sub-object before calling a method. The job of a thunk. |
-| **Thunk** | A tiny stub of generated code that adjusts the `this` pointer (and/or return value) and then jumps to the real method. Used in multiple-inheritance vtables. |
-| **Interface** | A named set of method signatures a type can implement, independent of its class hierarchy (Java `interface`, Go interface). |
-| **itable** | Java's per-(class, interface) table mapping interface methods to the class's implementations. |
-| **itab (Go)** | Go's interface table: a small header holding the dynamic type and a function-pointer array for the interface's methods. |
-| **Interface value (Go)** | A two-word pair: a pointer to the itab and a pointer to the concrete data. |
-| **Guard** | The runtime check in an inline cache that compares the receiver's class/shape against the cached one. |
-| **Hidden class / shape / map** | The runtime descriptor of an object's structure (V8 "Map", SpiderMonkey "Shape", Python type). The guard's comparison key. |
-| **Monomorphic IC** | An inline cache holding exactly one (class → target) entry. |
-| **Cache miss** | The guard fails: the receiver isn't the cached type, so the runtime must re-resolve and update the cache. |
-| **Dispatch token / type ID** | A unique per-class value the guard compares against, often just the class pointer. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -143,36 +93,6 @@ An inline cache's **guard** is mechanically simple: it compares the receiver's t
 - **Go/C++ vtable calls** don't need a guard at all — the vtable *is* the dispatch; there's no speculation to verify.
 
 The guard's whole job is to make speculation safe: *we bet the type is X; the guard confirms it before we trust the cached target.* On success, jump to the cached method. On failure (a **cache miss**), re-resolve and update the cache. A monomorphic IC is just `{ cached_type, cached_target }` plus this compare-and-branch. The next page generalizes one entry to several (a PIC).
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Single-inheritance vtable** | A company org chart where each role's extension is fixed; a new department just appends new extensions to the list. |
-| **Multiple inheritance** | An employee who sits in two departments at once, with a desk in each wing of the building. |
-| **`this` adjustment** | To deliver mail to that employee's "marketing desk," you walk to the marketing wing first — a different physical spot than their "engineering desk." |
-| **Thunk** | A receptionist who intercepts mail addressed to the marketing desk, walks it over to the right wing, and hands it off — invisible to the sender. |
-| **itable / itab** | A cross-reference card: "for the *Comparable* role, this person's relevant methods are here" — separate from their main org-chart entry. |
-| **Go interface value** | A name badge with two lines: which *role* you're acting as, and *who* you actually are. |
-| **Guard** | Checking the badge still says the expected name before trusting last time's directions. |
-
----
-
-## Mental Models
-
-### The "Layered Vtable" Model (single inheritance)
-
-Picture a vtable as a stack of layers: the base layer at the bottom, each subclass adding a layer on top. Overrides *replace a card in a lower layer in place*; new methods *add cards on top*. Because lower layers never move, code that only knows about the base can index into the bottom layers safely. This image makes it obvious why single inheritance needs no pointer math and why slots are stable.
-
-### The "Two Desks, One Person" Model (multiple inheritance)
-
-A multiply-inheriting object literally has more than one "front door" (vptr/sub-object). Whoever knocks on the `B` door is standing N bytes into the object; the method, though, lives in the unified `C` and expects you at the front door. The thunk is the usher that walks you from the `B` door to the front door before the method runs. Hold this and multiple-inheritance dispatch stops being mysterious.
-
-### The "Badge Plus Person" Model (Go interfaces)
-
-A Go interface value is a person wearing a role badge: the badge (itab) says *which role's method list to use*, and underneath is the actual person (data). Dispatch is "read the role's method list, pick the right method, call it on the person." The itab cache means the runtime figures out a person's badge-for-this-role once and laminates it.
 
 ---
 
@@ -297,26 +217,6 @@ One stray shape is enough to push a monomorphic site toward polymorphic. That tr
 
 ---
 
-## Pros & Cons
-
-| Aspect | Pros | Cons |
-|--------|------|------|
-| **Single-inheritance vtable** | Stable slots, no pointer adjustment, one vptr. Fastest dynamic dispatch. | Limited to one base; can't model "is-a" with two parents. |
-| **Multiple-inheritance vtable** | Models multiple bases / multiple interfaces in C++. | Multiple vptrs (bigger objects), thunks add a small cost, `this` differs per base pointer. |
-| **itable / itab interface dispatch** | Decouples interface satisfaction from the class hierarchy; any type can implement any interface. | Resolution is more work than a vtable slot; relies on caching to be fast. |
-| **Inline-cache guard** | Turns dynamic-language lookup into a guarded jump. | Adds a compare-and-branch and must be invalidated when types/shapes change. |
-
----
-
-## Use Cases
-
-- **Reading C++ ABI behavior.** When a `dynamic_cast`, a `reinterpret_cast` between base pointers, or a multiple-inheritance pointer comparison surprises you, the vtable/thunk model explains it.
-- **Understanding Go interface cost.** Knowing the interface value is `(itab, data)` and that itabs are cached explains why interface calls are cheap after warmup but boxing a value into an interface still has a cost.
-- **Explaining `invokeinterface` vs `invokevirtual` performance in the JVM.** Interface calls historically cost more; the itable-plus-IC story is why, and why it usually doesn't matter after warmup.
-- **Debugging a JS/Python hot path that's mysteriously slow.** A call site that slid from monomorphic toward polymorphic is a frequent culprit; the guard/miss model tells you what to look for.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Prefer single inheritance + interfaces over deep multiple inheritance
@@ -365,128 +265,24 @@ If you already hold the concrete type, calling it directly is a static dispatch 
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│            VTABLES, ITABLES, AND GUARDS                          │
-├──────────────────────────────────────────────────────────────────┤
-│ SINGLE INHERITANCE                                               │
-│   derived vtable = base slots (same order) + new slots           │
-│   override = replace target in same slot                         │
-│   no this-adjustment (base sub-object at offset 0)               │
-├──────────────────────────────────────────────────────────────────┤
-│ MULTIPLE INHERITANCE                                             │
-│   object has one vptr + sub-object PER base                      │
-│   B* and A* of same object differ by an offset                   │
-│   THUNK = stub that adjusts `this` then jmps to real method      │
-├──────────────────────────────────────────────────────────────────┤
-│ INTERFACE DISPATCH                                               │
-│   Java   invokeinterface -> itable (per class,interface) + IC    │
-│   Go     interface value = (itab, data); itab.fun[i] = method    │
-│          itabs cached by (interface type, concrete type)         │
-│   C++    interface = abstract base => multiple-inheritance vtbl  │
-├──────────────────────────────────────────────────────────────────┤
-│ THE GUARD (inline cache)                                         │
-│   compare receiver's class/shape ptr to cached ptr               │
-│   hit  -> jump cached target                                     │
-│   miss -> re-resolve, update IC (mono -> poly transition)        │
-├──────────────────────────────────────────────────────────────────┤
-│ vtable/itab calls need NO guard (no speculation to verify)       │
-│ inline caches DO (they bet on the type)                          │
-└──────────────────────────────────────────────────────────────────┘
-```
+1. Find a real component where **Method Dispatch & Inline Caches** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
----
+## Verify your work
 
-## Summary
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
 
-- **Single-inheritance vtables** are the clean case: the derived table extends the base table with stable slot indices, overrides replace targets in place, and no pointer adjustment is needed because the base sub-object sits at offset 0.
-- **Multiple inheritance** gives an object more than one vptr and more than one sub-object, so a base pointer can be offset from the real object. **Thunks** — tiny stubs that adjust `this` and jump — patch the difference, invisibly to the caller.
-- **Interface dispatch is a distinct problem** because interface satisfaction is independent of the class tree. Java uses **itables** (resolved lazily, accelerated by inline caches), Go uses the **itab** inside a two-word interface value (cached by interface/type pair), and C++ folds it into multiple-inheritance vtables.
-- vtable and itab calls need **no guard** — the table *is* the dispatch. **Inline caches** do need a guard, because they *speculate* on the type.
-- The **guard** is mechanically a pointer comparison: the receiver's class/shape pointer against the cached one. A hit jumps to the cached target; a **miss** re-resolves and updates the cache, often pushing a site from monomorphic toward polymorphic.
-- The practical levers: prefer single inheritance plus small interfaces, keep object shapes stable so ICs stay monomorphic, and don't assume base-pointer identity under multiple inheritance.
+## Review questions
 
----
-
-## Diagrams & Visual Aids
-
-### Single vs Multiple Inheritance Object Layout
-
-```text
-SINGLE INHERITANCE (Derived : Base):
-  ┌──────────────────────────┐
-  │ vptr -> Derived vtable    │   one vptr; Base part at offset 0
-  │ base fields              │
-  │ derived fields           │
-  └──────────────────────────┘
-
-MULTIPLE INHERITANCE (C : A, B):
-  ┌──────────────────────────┐  <- A* and C* point here (offset 0)
-  │ vptr_A -> C's A-vtable    │
-  │ A fields                 │
-  ├──────────────────────────┤  <- B* points here (offset N)
-  │ vptr_B -> C's B-vtable    │
-  │ B fields                 │
-  └──────────────────────────┘
-```
-
-### A Thunk in the B-vtable
-
-```text
-   pb (a B*) ──► B-sub-object of C
-                    │ vptr_B
-                    ▼
-              C's B-vtable
-              ┌───────────────────────────┐
-              │ [0] fb -> thunk_C_fb        │
-              └──────────────┬──────────────┘
-                             ▼
-                    thunk_C_fb:
-                        this -= N      (B* -> C*)
-                        jmp  C::fb
-```
-
-### Go Interface Value and itab
-
-```text
-   interface value (2 words)
-   ┌──────────────┬──────────────┐
-   │ tab  ────────┼──► itab       │      data ──► concrete object
-   │ data ────────┼──► object     │
-   └──────────────┴──────────────┘
-                       │
-                       ▼
-                 ┌──────────────────────────┐
-                 │ inter : *io.Reader         │
-                 │ _type : *os.File           │
-                 │ hash  : 0x...              │
-                 │ fun[0]: os.(*File).Read    │  <- the method
-                 └──────────────────────────┘
-   r.Read(buf)  =  tab.fun0
-```
-
-### Inline-Cache Guard, Step by Step
-
-```text
-   obj.method()  with IC = { Map_M1 -> target_T1 }
-
-        load  map = obj.hiddenClass
-        cmp   map, Map_M1            ; the guard
-        jne   miss                  ; cache miss path
-        call  target_T1             ; FAST: guarded direct call
-   miss:
-        ; slow generic lookup, then update IC
-```
-
-### Class vs Interface Dispatch Side by Side
-
-```text
-   CLASS CALL (invokevirtual / C++ virtual):
-     vptr -> vtable -> [fixed slot] -> method        (slot index is constant)
-
-   INTERFACE CALL (invokeinterface / Go interface):
-     value -> itab/itable -> [interface-relative slot] -> method
-     (the itab is found per (type, interface); cached; warm = fast)
-```
+- Which boundary is most affected by Method Dispatch & Inline Caches?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

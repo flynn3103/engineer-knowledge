@@ -1,62 +1,11 @@
-# Static vs Dynamic Typing — Senior Level
+# Static vs Dynamic Typing — Senior
 
-> **Topic:** Static vs Dynamic Typing
-> **Focus:** The machinery underneath — type soundness, what each discipline actually *guarantees*, erasure vs reification, inference, and the precise places where guarantees survive or break.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Static vs Dynamic Typing** under failure, load, and change?
 
-## Introduction
-
-> Focus: **What does a type system actually *prove*, and what does it cost to prove it?** Static and dynamic typing differ not just in *when* they check but in *what theorem they establish* — and understanding that theorem is what lets a senior engineer reason precisely about where a program can and cannot go wrong.
-
-At junior and middle level, static vs dynamic is "when are types checked" and "how do the hybrids work." At senior level you need the *formal substance*: the property a static type system establishes is **soundness** — "well-typed programs don't go wrong" (Milner, 1978) — and the entire engineering trade-off space is about *how much* of "wrong" a system rules out, at what cost in expressiveness and runtime mechanics.
-
-Three things separate a senior's understanding from a mid-level's:
-
-1. **Soundness is a precise claim, and it's about a specific set of errors.** A sound type system guarantees that a program that type-checks will never, at runtime, apply an operation to a value of the wrong type *for the operations the type system tracks*. It says **nothing** about logic errors, division by zero (usually), array bounds (usually), or `null` (unless the system tracks it). Knowing the boundary of the guarantee is the senior skill — "sound" doesn't mean "correct."
-
-2. **The dynamic discipline establishes the *opposite* contract at runtime.** A dynamic language is, in a sense, *trivially* "sound" — it can't execute a bad operation, because it checks every operation right before performing it and raises an exception instead. The dynamic runtime is a *universal* type checker that fires at the last possible moment. Static typing is the project of moving that check *earlier* — before execution, over *all* paths — at the cost of conservatism.
-
-3. **Erasure vs reification determines what survives to runtime**, which decides whether you can do `isinstance`, reflection, and runtime dispatch — and whether gradual typing's boundaries can be *enforced* or merely *erased*.
-
-> 🎓 **Why this matters for a senior:** You will make architecture-level calls — "do we adopt a sound static layer, or stay dynamic with good tests?", "do we need reified types for our plugin system?", "why does our 'fully typed' codebase still crash?" — and these require reasoning about the *guarantee*, not vibes. The phrase "sound but not complete," the difference between erased Java generics and reified C# generics, and the Hindley–Milner contract are the senior-level vocabulary for these decisions.
-
-This page covers: soundness (and its dual, completeness) and the inevitable trade-off between them; the static checker as conservative over-approximation; the dynamic runtime as a deferred universal check; erasure vs reification and what each enables; type inference (Hindley–Milner) as the bridge that makes static typing terse; and the precise anatomy of how an unsound gradual boundary leaks. `professional.md` then takes these foundations into performance, empirical research, and migration at scale.
-
----
-
-## Prerequisites
-
-- **Required:** `junior.md` and `middle.md` — the static/dynamic and strong/weak axes, gradual/optional typing, `any` semantics, duck/structural/nominal typing.
-- **Required:** Comfort reading types as propositions — a function `A -> B` as "give me an A, I'll give you a B."
-- **Required:** Familiarity with at least one strongly statically typed language with inference (Rust, Haskell, OCaml, Go, or TypeScript with `strict`).
-- **Helpful:** Having debugged a `ClassCastException`, a deserialization type mismatch, or a gradual-typing boundary bug — concrete experience of where static guarantees end.
-
-You do **not** need to know:
-
-- The full operational semantics or a mechanized soundness proof (we use them informally).
-- The HM constraint-solving algorithm in mechanical detail (forward-referenced; we cover the *contract* and intuition).
-- JIT/runtime-performance internals (that's `professional.md`).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Soundness** | The property that every program the type checker accepts is free of the type errors the system tracks — "well-typed programs don't go wrong." No false negatives. |
-| **Completeness** | The property that the type checker accepts every program that *would* run without type errors. No false positives. Practically unattainable for useful languages. |
-| **Type safety** | The combination usually meant by "sound": well-typed programs don't reach an undefined/stuck state. |
-| **Progress & preservation** | The two lemmas a syntactic soundness proof establishes: a well-typed term isn't stuck (progress), and evaluation preserves well-typedness (preservation). |
-| **Conservative / over-approximation** | The checker rejects anything it can't *prove* safe, so it rejects some safe programs to guarantee it rejects all unsafe ones. |
-| **Erasure** | Removing type information before runtime; no type survives execution (Java generics, TypeScript, ML after compilation). |
-| **Reification** | Preserving type information at runtime so it can be inspected/dispatched on (Python values, Go reflection, C# generics, JVM `Class`). |
-| **Type inference** | Reconstructing unannotated types from usage. **Hindley–Milner (HM)** is the classic complete algorithm for the ML family. |
-| **Principal type** | The single most general type HM assigns; every other valid type is an instance of it. |
-| **Unsound (deliberately)** | A type system that accepts some programs that *can* fail at runtime, by design — gradual systems with `any`, Java array covariance, TypeScript's bivariance. |
-| **Gradual guarantee / blame** | Formal properties of gradual systems: blame tracking attributes a runtime cast failure to the responsible boundary (in sound gradual systems with runtime casts). |
-| **Stuck state** | An execution state with no valid next step that isn't a final value — what soundness forbids for well-typed programs. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -162,37 +111,6 @@ A senior states the guarantee precisely: **a sound static type system guarantees
 
 ---
 
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Soundness** | A bridge inspection that *guarantees* no bridge it passes will collapse — at the cost of failing some perfectly safe bridges it can't fully verify. |
-| **Completeness (unattainable)** | An inspection that passes *every* safe bridge and no unsafe one — impossible when "will it hold?" can't be decided in finite time. |
-| **Conservative over-approximation** | A bouncer who turns away anyone whose ID he can't *positively* verify — some real adults get turned away, but no minors get in. |
-| **Dynamic runtime as deferred check** | A tightrope walker who tests each plank *as their foot lands on it* — never falls through a tested plank, but only tests planks they actually step on. |
-| **Erasure** | Scaffolding taken down once the building stands — it shaped construction but isn't part of the finished structure, and you can't ask the wall about it later. |
-| **Reification** | A nutrition label fused into the product — the information travels with the item forever and you can read it any time. |
-| **Hindley–Milner inference** | A master tailor who measures you by watching you move, never asking your size, and produces a garment that fits exactly — and the *most general* pattern that still fits. |
-| **Gradual boundary leak** | A customs lane with the scanner switched off — contraband (wrong types) passes unexamined and is only discovered when it explodes deep inside the country. |
-
----
-
-## Mental Models
-
-### The "Approximate-Early vs Exact-Late" Model
-
-Lay the two disciplines on a time axis. Static typing makes its judgment **early** (compile time) and therefore **approximately** — it reasons about values it has never seen, over branches that may never run, so it must over-approximate and reject the unprovable. Dynamic typing makes its judgment **late** (the instant before each operation) and therefore **exactly** — the real value is in hand, no guessing, but only for operations that actually execute. Every property of the topic falls out of this one trade: earliness buys whole-program guarantees and costs conservatism; lateness buys exactness and costs "you only learn about the paths you ran."
-
-### The "Theorem and Its Footnotes" Model
-
-Treat a static type system as a *theorem*: "no type errors at runtime." Then read the *footnotes* that bound it: "...for the operations we track (not `null`, not bounds, not division), ...assuming you don't use casts/reflection/`unsafe`/`any`, ...assuming deserialization actually produced the claimed type." A senior never quotes the theorem without the footnotes. Most production "static type system didn't save us" stories are footnote violations — a cast, a `null`, an `any`, a bad deserialize — not a failure of the theorem.
-
-### The "Information Lifetime" Model
-
-Ask of any language: *when does type information cease to exist?* Dynamic: never — it lives in every value forever (reification), which is exactly what makes runtime checking possible. Static + erased (Java generics, TS): at the compile boundary — gone before main runs, enabling zero-cost abstraction but disabling runtime type queries on those parameters. Static + reified (C#, Go): it persists, costing memory but enabling reflection and runtime dispatch. This single question predicts whether `isinstance`/reflection works, whether gradual boundaries can self-enforce, and what the runtime costs.
-
----
-
 ## Code Examples
 
 ### Soundness boundary: where the "guarantee" stops
@@ -278,29 +196,6 @@ This is the difference between *sound* gradual typing (runtime-checked boundarie
 
 ---
 
-## Pros & Cons
-
-| Aspect | Sound Static (no escape hatches) | Dynamic (reified, deferred check) |
-|--------|----------------------------------|-----------------------------------|
-| **Guarantee** | Provable absence of the modeled type errors over *all* paths. | Exact per-operation safety, but only on *executed* paths; no whole-program claim. |
-| **When it fires** | Compile time, before any execution. | Runtime, last-possible-moment, per operation. |
-| **Precision** | Approximate — rejects unprovable-but-correct programs. | Exact — has the real value in hand. |
-| **Runtime cost** | Often zero (erased) — no type tags or checks needed. | Pays for reified tags and per-op dispatch/checks. |
-| **Introspection / reflection** | Limited if erased; full if reified. | Full — types are always present. |
-| **Escape-hatch risk** | Casts/`null`/reflection/`any` reopen runtime risk. | N/A — it's all runtime anyway, but no compile-time net. |
-| **Expressiveness ceiling** | Bounded by what the checker can *prove* (conservatism). | Unbounded — any runtime-valid program runs. |
-
----
-
-## Use Cases
-
-- **Reach for sound static typing** when you need *provable* properties over the whole program — security-sensitive code, protocol state machines, anything where "we tested the paths we thought of" is insufficient. Encode invariants in types so the compiler proves them (make illegal states unrepresentable).
-- **Reach for reified types** when the system genuinely needs runtime type knowledge — serialization frameworks, dependency-injection containers, ORMs, plugin systems, generic runtime dispatch. Erased generics will fight you here (the classic "can't get `T.class`" Java pain).
-- **Accept dynamic typing's deferred-exact model** when the program's shape is inherently runtime-determined — interpreters, REPLs, data-shape-varies-by-input glue code, rapid exploration — and back it with tests that *execute every path* (since only executed paths are checked).
-- **Choose a sound gradual system** (Typed Racket-style) when you need both incremental adoption *and* boundary enforcement; choose an erased/optional one (TS, mypy) when you need JS/Python interop and zero runtime cost more than boundary enforcement — and then guard boundaries by hand.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Encode invariants into types (push runtime checks to compile time)
@@ -350,71 +245,24 @@ Use `Option`/`Maybe`/`T?`/`strictNullChecks` so the single biggest soundness hol
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. State Milner's soundness slogan and define "go wrong" precisely (stuck state). What two lemmas does a syntactic soundness proof use, and what does each say?
-2. Why must a useful static type checker reject some valid programs? Tie your answer to decidability and the soundness/completeness trade-off.
-3. Explain the claim "a dynamic language is trivially sound at runtime." In what sense is the dynamic runtime a *deferred universal type checker*, and what makes it *exact* where static is *approximate*?
-4. Give three concrete, deliberate unsoundness holes in a "strong static" language and the runtime backstop (if any) for each.
-5. Java generics vs C# generics: which is erased, which reified? Show one operation each enables/forbids as a result.
-6. Explain *precisely* why a "fully typed" TypeScript program can throw at runtime, referencing both `any` (no static check) and erasure (no runtime check). Contrast with a sound gradual system's boundary.
-7. What does Hindley–Milner guarantee about the type it infers (principal type)? Why can't Java use full HM? What's the consequence for annotations?
-8. Why does dynamic typing *require* reification? Why does erasure *enable* TypeScript's silent `any` leak rather than a clean boundary error?
+1. State the system invariant that **Static vs Dynamic Typing** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
----
+## Verify your work
 
-## Cheat Sheet
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
 
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│        SOUNDNESS · ERASURE/REIFICATION · INFERENCE               │
-├──────────────────────────────────────────────────────────────────┤
-│ SOUNDNESS  "well-typed programs don't go wrong" (Milner)         │
-│   proof = PROGRESS (not stuck) + PRESERVATION (stays well-typed) │
-│   guarantee is RELATIVE to the errors the system models          │
-│   sound != correct (logic bugs, div0, bounds, null may remain)   │
-├──────────────────────────────────────────────────────────────────┤
-│ SOUND vs COMPLETE (can't have both, undecidable)                 │
-│   real checkers: SOUND + incomplete                              │
-│     -> reject some valid programs (conservatism = the price)     │
-│   richer type features = prove MORE correct programs, no leaks   │
-├──────────────────────────────────────────────────────────────────┤
-│ STATIC = check EARLY, all-paths, APPROXIMATE                     │
-│ DYNAMIC = check LATE, per-op, executed-paths, EXACT              │
-│   dynamic runtime = deferred universal checker (always reified)  │
-├──────────────────────────────────────────────────────────────────┤
-│ ERASURE  type gone before runtime (Java generics, TS, ML)        │
-│   + zero runtime cost   - no isinstance/reflection on param      │
-│   - gradual `any` boundary leaks SILENTLY (no tag to check)      │
-│ REIFICATION  type survives (Python, Go, C# generics, JVM class)  │
-│   + reflection/dispatch/serialization   - memory + per-op tax    │
-├──────────────────────────────────────────────────────────────────┤
-│ INFERENCE  terseness is a property of INFERENCE, not dynamism    │
-│   Hindley-Milner: no annotations, finds PRINCIPAL (most general) │
-│     type; sound+complete for its discipline; breaks w/ subtyping │
-│   subtyping langs (Java/TS/C#): LOCAL inference + signature annos │
-├──────────────────────────────────────────────────────────────────┤
-│ DELIBERATE UNSOUNDNESS HOLES (know your language's)              │
-│   Java/C# array covariance · null in every ref type · casts ·    │
-│   reflection · deserialize · gradual `any`                       │
-└──────────────────────────────────────────────────────────────────┘
-```
+## Review questions
 
----
-
-## Summary
-
-- Static typing's foundational claim is **soundness** — Milner's "well-typed programs don't go wrong," proved via **progress** (never stuck) and **preservation** (stays well-typed). The guarantee is **relative to the errors the system models**: sound is not correct, and a system that doesn't track `null`/bounds/division proves nothing about them.
-- A useful checker is **sound but incomplete** by necessity (the question is undecidable). It **over-approximates conservatively**, rejecting some valid programs — that conservatism *is* the price of the guarantee, not a bug. Richer type features expand what the checker can *prove* safe without admitting unsafe programs.
-- The unifying frame: **dynamic typing is a deferred, per-operation, *exact* check that only ever sees executed paths; static typing hoists that check to compile time, over all paths, where it must be *approximate*.** Earliness buys whole-program guarantees at the cost of conservatism; lateness buys exactness at the cost of "only the paths you ran are checked."
-- **Erasure vs reification** decides what survives to runtime. Erased types (Java generics, TypeScript) cost nothing at runtime but disable `instanceof`/reflection on the parameter — and make gradual `any` boundaries leak **silently**, because there's no runtime tag to check. Reified types (Python values, Go reflection, C# generics) enable runtime introspection and dispatch at a memory/speed cost. **Dynamic typing requires reification by definition.**
-- **Type inference** — culminating in **Hindley–Milner**, which finds the **principal (most general) type** with zero annotations and is sound+complete for its discipline — proves that *terseness is a property of inference, not of dynamic typing*. Subtyping languages can't use full HM and so combine local inference with signature annotations.
-- Every "strong static" language ships **deliberate unsoundness holes** — array covariance, `null` in every reference type, unchecked casts, reflection, deserialization, and the gradual `any` — and these are *precisely* the places a program re-enters runtime type risk. A senior states the guarantee with its footnotes and quarantines every escape hatch behind a validated edge.
-
----
-
-## What's Next
-
-- `professional.md` — how these foundations cash out in **performance** (monomorphization, inline caches, hidden classes), the **empirical research** on whether static types reduce bugs, and migrating a large dynamic codebase to static checking.
-- `interview.md` — soundness, erasure, inference, and gradual-boundary questions across difficulty bands.
-- `tasks.md` — exercises that make soundness footnotes, erasure observability, and inference concrete.
+- Which invariant must remain true when Static vs Dynamic Typing fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

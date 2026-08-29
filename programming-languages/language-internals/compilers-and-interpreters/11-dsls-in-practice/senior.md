@@ -1,60 +1,11 @@
-# DSLs in Practice — Senior Level
+# DSLs in Practice — Senior
 
-> **Topic:** DSLs in Practice
-> **Focus:** Production external DSLs — compiling vs interpreting at scale, **sandboxing untrusted DSLs** (resource limits, no arbitrary code), grammar **versioning**, and the **tooling burden** (LSP, formatter, highlighting). And the discipline that keeps a DSL from quietly becoming a programming language.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **DSLs in Practice** under failure, load, and change?
 
-## Introduction
-
-> Focus: **What does it take to run an external DSL in production — safely, fast, and maintainably — for years?**
-
-By now the pipeline is routine: design a grammar, lex, parse (recursive descent / Pratt / combinators / ANTLR), build an AST, then interpret or transpile. The senior problems are different. They are about *operating* a DSL as a long-lived product:
-
-1. **Performance at scale.** A rules DSL evaluating millions of events per second cannot tree-walk each time. You compile to **bytecode** for a tiny VM, or transpile to a target the platform already runs fast (SQL, native via LLVM, host-language source). When and how to make that jump is a senior call.
-2. **Security.** The moment your DSL evaluates **untrusted input** — a formula a customer typed into a spreadsheet, a rule an external partner uploaded, a filter from a public API — it becomes an attack surface. You must guarantee **no arbitrary code execution**, bound **CPU and memory**, prevent **infinite loops**, and stop the DSL from reaching the host's file system, network, or process. This is the single most under-appreciated part of building DSLs, and the part that separates a senior implementation from a toy.
-3. **Evolution.** A DSL ships, customers write thousands of files in it, and now you must add a feature without breaking them. **Versioning the grammar**, deprecation, and migration are real engineering problems.
-4. **Tooling.** A language people use daily needs syntax highlighting, a formatter, and ideally a **language server (LSP)** giving completion and inline errors in editors. This is permanent, ongoing cost — the part teams forget when they decide to "just build a small DSL."
-
-Running through all of it is one discipline: **resisting Turing-completeness creep.** Config languages that grew loops, variables, and conditionals — and so became unsandboxable, untestable programming languages by accident — are a recurring industry cautionary tale. A senior engineer scopes the language deliberately and *defends that scope*.
-
-Keep the internal/external distinction sharp: an **internal** DSL inherits the host's sandbox story (or lack of one) and tooling, but you cannot give it its own safe evaluation model. An **external** DSL lets you *guarantee* "this language cannot do arbitrary I/O" — precisely because you wrote every operation it can perform. That guarantee is often the whole reason to choose external in the first place.
-
-> 🎓 **Why this matters at the senior level:** The hard questions are no longer "how do I parse this?" but "can a hostile user hang my server with a crafted formula?", "how do I add a feature to a DSL 4,000 customer files depend on?", and "who maintains the language server next year?" Getting these right is what makes a DSL an asset instead of a liability.
-
----
-
-## Prerequisites
-
-- **Required:** The middle-level material — the four parsing techniques, the front-end/back-end split, interpret vs transpile, environments and scoping.
-- **Required:** Comfort reading bytecode/VM concepts (a stack machine, opcodes) and a working idea of what a compiler back end does.
-- **Required:** Security fundamentals: what "arbitrary code execution" means, why `eval` of untrusted strings is dangerous, what a resource limit is.
-- **Helpful:** Exposure to LLVM or any IR-based compiler back end (for the "compile to native" discussion).
-- **Helpful:** Having used or written a language server / editor extension, even a small one.
-
-You do **not** need: formal type-theory or production-compiler internals beyond the conceptual level. This is applied DSL engineering, not compiler research.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Bytecode** | A flat list of simple instructions for a small virtual machine, compiled from the AST. Faster than tree-walking for repeated runs. |
-| **VM (virtual machine)** | The loop that executes bytecode — usually a stack machine (`PUSH`, `ADD`, `JUMP`). |
-| **JIT** | Just-in-time compilation: turning hot bytecode into native code at runtime. Rare for DSLs but possible. |
-| **Transpile** | Compile to another high-level language (SQL, JS, Go source). Reuses that target's engine. |
-| **Sandbox** | An execution environment that limits what code can do — no file/network access, bounded CPU/memory/time. |
-| **Untrusted input** | DSL text written by someone you do not control (a customer, a partner, the public). Must be assumed hostile. |
-| **Resource limit** | A cap on steps executed, memory allocated, or wall-clock time, enforced by the evaluator. |
-| **Turing-completeness creep** | The gradual addition of loops/recursion/conditionals to a "config" or "rule" language until it is a full programming language — and no longer safe or analysable. |
-| **Total / terminating language** | A language guaranteed to halt (no unbounded loops/recursion). Sandboxable by construction. Dhall and CUE aim for this. |
-| **Grammar versioning** | Evolving DSL syntax over time without breaking existing files — version headers, deprecations, migrations. |
-| **LSP (Language Server Protocol)** | A standard protocol so one "language server" provides completion, errors, and navigation to many editors. |
-| **Linter / formatter** | Tools that check style/correctness and canonicalise layout for your DSL. |
-| **Capability** | A specific power granted to DSL code (e.g. "may read field X"). A sandbox grants capabilities explicitly rather than allowing everything. |
-| **Fuel / gas** | A decrementing counter that bounds execution; when it hits zero, evaluation aborts. Borrowed from blockchain VMs but useful anywhere. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -111,30 +62,6 @@ Config formats famously slide into Turing-completeness: someone adds variables "
 - **Decide up front whether the language is total** (no loops/recursion) and *enforce* it in the grammar.
 - **Push computation out.** If users need real logic, give them a way to call out to *reviewed host functions*, not a way to write logic inside the config.
 - **Say no.** Each feature request is weighed against the permanent cost and the loss of safety/analysability. "Use a real programming language for that" is often the right answer.
-
----
-
-## Real-World Analogies
-
-**The sandbox is a casino's chips.** Inside the casino you can only use chips (the DSL's allowed operations); you cannot spend real money (host capabilities) at the tables. To convert chips to anything real you must go to a controlled cashier (an explicit, audited builtin). That is exactly an allow-listed external DSL.
-
-**Fuel/gas is a metered taxi.** The meter ticks with every operation; when the fare hits the cap, the ride stops — no matter where you are. A hostile passenger cannot drive you forever.
-
-**Grammar versioning is electrical plug standards.** New devices (v2 files) get new plugs, but you ship adapters (migrators) and keep old sockets (v1 parsing) alive for years so nothing already installed stops working.
-
-**A language server is a spell-checker that knows your DSL.** It does not run your program; it reuses the parser to underline mistakes and suggest the next valid word as you type — across every editor, from one engine.
-
-**Turing-completeness creep is a treehouse becoming a skyscraper.** Each plank ("just one variable") seems harmless, but you end up with an unpermitted high-rise on a foundation poured for a treehouse, and no inspector ever signed off.
-
----
-
-## Mental Models
-
-- **An external DSL's power set is exactly what you implemented.** Security flows from this: list the opcodes/builtins and you have listed everything a hostile input can do. Keep that list short and audited.
-- **Sandboxing is allow-list plus resource limits plus no ambient authority.** All three. Drop any one and you have a hole: unlimited fuel hangs you; ambient file access exfiltrates data; a deny-list eventually misses something.
-- **Total beats sandboxed.** A language that *cannot* loop needs no step limit to guarantee halting. Prefer designing the danger out over policing it.
-- **The AST-to-source printer is reused everywhere.** Formatter, migrator, "fix-it" suggestions all need to turn an AST back into text. Build it once, well.
-- **Every DSL feature is a forever cost** across grammar, parser, evaluator, sandbox, docs, formatter, and language server. Multiply the request by that list before saying yes.
 
 ---
 
@@ -256,33 +183,6 @@ Because you own the parser and the printer, automatic, lossless upgrades for tho
 
 ---
 
-## Pros & Cons
-
-**Compiling to bytecode** — *for:* big runtime speedups, stable execution model, easy to add a fuel limit; *against:* a compiler and VM to build and debug; harder to trace than tree-walking.
-
-**Transpiling to SQL/host** — *for:* inherits a mature engine and optimiser; *against:* debugging through generated code; semantic mismatches between DSL and target.
-
-**LLVM/native** — *for:* maximum speed for compute-heavy DSLs; *against:* heavy dependency and expertise; overkill for most DSLs.
-
-**Sandboxing (resource limits + allow-list)** — *for:* makes untrusted evaluation safe; the reason to choose external; *against:* every builtin is a security review; limits add overhead and edge cases (what happens at the budget boundary?).
-
-**Total/terminating design** — *for:* provable halting, strongest sandbox; *against:* users sometimes genuinely need iteration, and saying no is socially hard.
-
-**Full tooling (LSP/formatter/highlighting)** — *for:* adoption, productivity, fewer support tickets; *against:* large, permanent maintenance cost most teams underestimate.
-
----
-
-## Use Cases
-
-- **Spreadsheet / formula languages** — untrusted, must be sandboxed and (ideally) total; compiled for recalculation speed.
-- **Rules / policy engines** — e-commerce promotions, access policies (think a policy DSL), fraud rules; evaluated on every event, so compiled and sandboxed.
-- **Query/filter DSLs at scale** — transpiled to SQL to push work into the database.
-- **Config languages** — HCL/Terraform, Dhall, Jsonnet, CUE; Dhall/CUE are deliberately total to keep config safe and predictable.
-- **Numeric/financial expression languages** — high throughput; candidates for bytecode or LLVM.
-- **Template engines under multi-tenant load** — must sandbox per-tenant templates against resource exhaustion and data leakage.
-
----
-
 ## Coding Patterns
 
 ### Pattern: AST → bytecode → stack VM
@@ -337,3 +237,27 @@ Freeze representative real files plus expected outputs; run on every grammar/eva
 - **Assuming the GIL or host VM bounds cost.** Host-level safety (a GIL, a memory-managed runtime) does not bound *your DSL's* execution. You must impose limits yourself.
 
 You can now run an external DSL as a real product: compiled for speed where it matters, sandboxed for untrusted input, versioned for evolution, and tooled for daily use — without letting it metastasise into an accidental programming language. The `professional.md` level steps back to the *strategic* view: the org-wide build-vs-buy decision, total cost of ownership, governance of a DSL used by many teams, ANTLR-vs-hand-written at production scale, and the long-term maintenance and deprecation of a language your company depends on.
+
+---
+
+## Apply it
+
+1. State the system invariant that **DSLs in Practice** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
+
+## Verify your work
+
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
+
+## Review questions
+
+- Which invariant must remain true when DSLs in Practice fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

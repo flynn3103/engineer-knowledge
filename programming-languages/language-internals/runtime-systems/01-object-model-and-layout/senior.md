@@ -1,56 +1,11 @@
-# Object Model & Layout — Senior Level
+# Object Model & Layout — Senior
 
-> **Focus:** Compressed oops, the mark word's lock/GC encoding and biased-locking history, vtable placement and virtual-dispatch mechanics, hot/cold field splitting, false sharing of hot fields, and the transition-tree machinery behind hidden-class deopts.
+<!-- level-focus -->
+At senior level, focus on this question:
 
-> **Topic:** Object Model & Layout
+> Which system invariant is affected by **Object Model & Layout** under failure, load, and change?
 
----
-
-## Introduction
-
-> Focus: **The encoding tricks and dispatch mechanics that a runtime engineer must reason about precisely — not as folklore, but bit by bit.**
-
-By now the shape is clear: header, fields, padding; managed runtimes add per-object headers; dynamic languages use hidden classes to recover fixed offsets. This page is where those abstractions become *mechanisms you can reason about under pressure*.
-
-We'll encode and decode **compressed oops** — the JVM trick that stores a 64-bit reference in 32 bits by exploiting object alignment, and why the heap size where it stops working (the "compressed-oops cliff") is a real production tuning knob. We'll read the **mark word as a state machine**: the bit patterns for unlocked, biased, thin-locked, and inflated states, what biased locking was, why it was disabled by default in JDK 15 and removed in JDK 18, and what replaced the displaced-hash dance. We'll lay out **vtables** precisely — where the vptr sits, what's in the table, how a virtual call resolves, and how single vs multiple inheritance changes the picture (this sets up the next topic, method dispatch). And we'll do the production layout moves: **hot/cold field splitting**, eliminating **false sharing of hot fields**, and reading **deopt traces** to find and kill shape pollution.
-
-The senior distinction is precision. A mid-level engineer knows "objects have headers." A senior can tell you that turning off compressed oops above ~32 GB heap *doubles* every reference field's footprint, that a `@Contended` field burns 128 bytes to dodge a coherence storm, and that a megamorphic call site in V8 isn't just "slow" — it has bailed out of the optimizing tier and is interpreting.
-
----
-
-## Prerequisites
-
-- **Required:** The middle page: JVM/CPython/C++ headers, hidden classes, inline caches, monomorphic/polymorphic/megamorphic.
-- **Required:** Binary/hex fluency, bit masking and shifting, two's complement.
-- **Required:** A working model of cache lines, the MESI-family coherence protocol, and what a cache-line bounce costs.
-- **Helpful:** Familiarity with a JIT's tiered compilation (interpreter → baseline → optimizing) and deoptimization.
-- **Helpful:** Having read a `perf c2c` report or a JFR/async-profiler flame graph.
-
-You do **not** need: production capacity-planning workflows or cross-language ABI negotiation at scale — that's `professional.md`.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **oop** | "Ordinary object pointer" — the JVM's term for a managed reference to a heap object. |
-| **Compressed oops** | Storing a 64-bit oop as a 32-bit value by encoding it as `(heap_base) + (index << shift)`, exploiting 8-byte object alignment. |
-| **Compressed class pointer** | The same trick applied to the klass pointer in the header (`UseCompressedClassPointers`). |
-| **Mark word** | The 64-bit header slot whose bit layout depends on the object's lock/GC state. |
-| **Biased locking** | A (now removed) optimization that "biased" an object's lock to one thread to avoid CAS on uncontended locks. |
-| **Thin / lightweight lock** | A lock held via a CAS of a stack-allocated lock record pointer into the mark word. |
-| **Inflated / heavyweight lock** | A lock backed by an OS monitor (`ObjectMonitor`), used under contention. |
-| **Displaced mark word** | The original mark word value relocated into a lock record while the object is locked. |
-| **vptr / vtable** | Per-object pointer to the per-class table of virtual function pointers. |
-| **thunk / trampoline** | A small code stub a vtable slot may point to, e.g. for `this`-pointer adjustment under multiple inheritance. |
-| **Hot/cold splitting** | Separating frequently accessed ("hot") fields from rarely accessed ("cold") ones into different cache lines or objects. |
-| **False sharing** | Two unrelated hot fields on the same cache line, causing coherence traffic when different cores write them. |
-| **`@Contended`** | A JVM annotation (JDK 8+) that pads a field onto its own cache line to prevent false sharing. |
-| **Deoptimization (deopt)** | The JIT discarding optimized code and falling back to the interpreter when an assumption (e.g. shape) is violated. |
-| **Transition tree** | The tree of hidden-class transitions an engine maintains as properties are added. |
-| **NaN-boxing / pointer tagging** | Encoding small values or type tags inside pointer/double bit patterns (referenced in prose). |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -146,38 +101,6 @@ So a deopt is not a one-time hiccup. A site that keeps seeing new shapes can ent
 ### 8. Tagged vs Boxed, and Where the Header Goes Away
 
 A boxed small integer pays a full header. The escape is **tagged representation**: steal the low bits of a machine word for a type tag (pointer tagging) or hide a payload in the unused bits of a NaN double (NaN-boxing in JS engines). A "Smi" (small integer) in V8 is a tagged 31-bit int stored *inline in the pointer slot* — no heap object, no header. The senior connection to layout: **whether a field is tagged-inline or boxed-out-of-line changes the object's footprint and the cache behavior of every loop over it.** When you control representation (Rust enums with niche optimization, C unions with a discriminant, custom NaN-boxing), you're doing object-model engineering — covered in depth by the data-representation topic, but you must recognize it here because it determines whether a "field" costs 0 extra bytes or a pointer plus a header.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Compressed oops** | Numbering parking spots 1–N instead of writing full GPS coordinates; multiply the spot number by the lot's grid spacing to recover the real position. The scheme breaks once the lot is bigger than your numbering can address. |
-| **Mark word states** | A single status light that means "free / reserved / in-use / being-towed" depending on a tiny color code — one fixture, four meanings. |
-| **Biased locking** | Reserving a meeting room for one regular so they walk straight in — great until someone else needs it and you must formally un-reserve it (revocation). |
-| **Displaced hash** | Temporarily moving the room's nameplate to a clipboard while it's occupied, then putting it back. |
-| **vtable dispatch** | Calling the front desk (vptr) to get the right specialist's extension (vtable slot) before you can talk to them — two lookups before the actual call. |
-| **`this`-adjustment thunk** | A receptionist who hands you a corrected room number because you walked in the wrong entrance (the second base). |
-| **Hot/cold splitting** | Keeping the tools you use every minute on the bench and the once-a-year tools in the basement, so the bench stays uncluttered. |
-| **False sharing** | Two clerks forced to share one ledger page: every time one writes, the other must wait for the page back, even though they track different columns. |
-| **Deopt loop** | A factory line re-tooling for a new product on every single unit because the units keep arriving in unpredictable variants. |
-
----
-
-## Mental Models
-
-### The "Encoding Has a Range" Model
-
-Every compaction trick — compressed oops, tagged pointers, NaN-boxing, packed mark words — buys density by *encoding* values into fewer bits, and every encoding has a **range** and a **cliff**. Compressed oops cliff at the addressable heap; Smis cliff at 31 bits; mark-word bits cliff when hash and lock both want them. The senior habit is to always ask "what's the range of this encoding, and what happens at the boundary?" The boundary is where production surprises live (the 32 GB heap, the int that overflows into a boxed bignum, the hash that forces lock revocation).
-
-### The "Dependent Loads Cost" Model
-
-Virtual dispatch, boxed-field access, and pointer-chasing all share a shape: **load a pointer, then load through it** (sometimes twice). Each dependent load is a potential cache miss that *can't* be overlapped with the previous one because you need the first result to issue the second. Model layout decisions as "how many dependent loads to reach the byte I want?" Inline field: zero hops. Boxed field: one hop + a header. Virtual call: vptr load + slot load. The fewer hops on the hot path, the faster — which is the whole argument for inline fields, flattening, and devirtualization.
-
-### The "Coherence Is a Shared Resource" Model
-
-A cache line is a unit of *ownership*, and writing it requires exclusive ownership across all cores. Two cores writing the same line — even different bytes — serialize on that ownership. So treat each hot, frequently-written field as needing its *own* line, and treat the cache line as a contended resource to be partitioned across threads, exactly like you'd partition a lock. This model turns "false sharing" from a mystery into an obvious consequence of two writers sharing a unit of exclusive ownership.
 
 ---
 
@@ -292,34 +215,6 @@ assert_eq!(std::mem::size_of::<Option<&u8>>(), std::mem::size_of::<&u8>());
 
 ---
 
-## Pros & Cons
-
-| Technique | Pros | Cons |
-|-----------|------|------|
-| **Compressed oops** | Halves reference/klass-pointer footprint; more live data per GB; better cache density. | Hard cliff near 32 GB; a decode `(base + (n<<3))` on each deref (cheap, but nonzero). |
-| **Packed mark word** | Hash + lock + GC metadata in one 64-bit slot; no separate allocation in the common case. | Hash and lock contend for bits; identityHashCode can force lock revocation; version-fragile encoding. |
-| **vtable dispatch** | Uniform polymorphism, one indirection. | Dependent loads + unpredictable indirect call; blocks inlining; multiple inheritance adds vptrs/thunks. |
-| **Hot/cold splitting** | Big cache-efficiency wins on hot loops; no algorithm change. | More objects/arrays to manage; indirection to reach cold data; complexity. |
-| **`@Contended` / padding** | Eliminates false sharing; restores parallel scaling. | Burns ~128 bytes per isolated field; wasteful if applied where there's no contention. |
-| **Tagged/niche representation** | Removes per-value header; inline small values; zero-cost `Option`. | Limited value range; encoding/decoding logic; harder to reason about and debug. |
-
----
-
-## Use Cases
-
-Apply senior-level layout reasoning when:
-
-- **A JVM service is memory-bound near 32 GB.** The compressed-oops cliff may mean a *smaller* heap holds more — measure both sides.
-- **A parallel workload scales sub-linearly or negatively.** Suspect false sharing of hot fields; confirm with `perf c2c`; fix with padding/`@Contended`/sharding.
-- **A hot loop over large objects is cache-bound.** Hot/cold split or go SoA so the inner loop streams only what it needs.
-- **A JS/TS hot path keeps deopting.** Trace it, find the shape-forking construction path, and enforce a single shape.
-- **You're writing a runtime, allocator, serializer, or off-heap store** that reads or writes object headers — you must track the per-JDK mark-word/compressed-oop encoding.
-- **You're designing a polymorphic-heavy C++ hot path.** Weigh the vtable indirection against templates/CRTP or `std::variant` + visitation for devirtualization.
-
-Reasoning at this depth is overkill for small object counts, cold code, or anything not on a measured hot path.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Cluster hot fields, exile cold ones
@@ -398,163 +293,24 @@ class Vec3 { constructor(x,y,z){ this.x=x; this.y=y; this.z=z; } }
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. Encode the address `0x0000_0008_0000_0040` as a narrow oop given `heap_base = 0x0000_0008_0000_0000` and a 3-bit shift. Then decode it back. Show the arithmetic.
-2. Explain precisely why a heap of 34 GB can hold less live data than one of 31 GB. What single flag changes, and what is its effect on every reference field?
-3. Walk through what happens to an object's mark word when you (a) call `hashCode()`, then (b) enter a `synchronized` block on it. Where does the hash go?
-4. Why was biased locking removed, and what does its removal mean for a tool that parses mark-word bits across JDK versions?
-5. Lay out `struct C : A, B` where both `A` and `B` have virtual methods. How many vptrs does a `C` have, and why does calling a `B`-inherited virtual through a `C*` need a `this` adjustment?
-6. You have a per-core counter array that scales *negatively* with core count. Name the bug, the tool to confirm it, and two fixes. Why pad to 128 bytes rather than 64?
-7. Given a 96-byte object whose hot loop touches only two 4-byte fields, design a hot/cold split and estimate the change in useful-bytes-per-cache-line.
-8. A V8 function deopts repeatedly. Describe the compile→deopt→megamorphic progression and the exact construction-time mistake most likely causing it.
+1. State the system invariant that **Object Model & Layout** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
----
+## Verify your work
 
-## Cheat Sheet
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
 
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│            OBJECT MODEL & LAYOUT — SENIOR MECHANICS             │
-├──────────────────────────────────────────────────────────────────┤
-│ COMPRESSED OOPS:  real = base + (narrow << 3)                    │
-│   8-byte align -> 32-bit index covers 32 GB heap                 │
-│   CLIFF near 32 GB: cross it -> all refs become 8 bytes          │
-│   ObjectAlignmentInBytes=16 -> reach 64 GB (more padding)        │
-├──────────────────────────────────────────────────────────────────┤
-│ MARK WORD STATES (low tag bits):                                 │
-│   01 unlocked (hash|age)   00 thin-lock (lock-record ptr)        │
-│   101 biased (gone >=JDK18) 10 inflated (ObjectMonitor ptr)      │
-│   hash and lock share bits -> hashCode can revoke a bias         │
-├──────────────────────────────────────────────────────────────────┤
-│ VTABLE:  vptr@0 -> [slot]=fn ptr; call = 2 dependent loads+icall │
-│   multiple inheritance -> N vptrs + this-adjusting thunks        │
-├──────────────────────────────────────────────────────────────────┤
-│ HOT/COLD SPLIT: cluster hot fields in front; exile cold behind   │
-│   a pointer or into a sidecar -> more hot sets per cache line    │
-├──────────────────────────────────────────────────────────────────┤
-│ FALSE SHARING: independent hot fields on one line -> ping-pong   │
-│   fix: pad to 128B (adj-line prefetch), @Contended, per-CPU      │
-│   confirm with: perf c2c                                         │
-├──────────────────────────────────────────────────────────────────┤
-│ DEOPT: optimized code guards on shape; new shape -> discard+redo │
-│   repeated -> megamorphic -> generic hash lookup / no opt        │
-└──────────────────────────────────────────────────────────────────┘
-```
+## Review questions
 
----
-
-## Summary
-
-- **Compressed oops** store 64-bit references in 32 bits via `real = base + (narrow << 3)`, exploiting 8-byte alignment to cover a ~32 GB heap; crossing that **cliff** fattens every reference to 8 bytes, so a slightly bigger heap can hold *less* data.
-- The **mark word** is a state machine: unlocked (hash/age), thin-locked (lock-record pointer), inflated (monitor pointer), with hash and lock contending for the same bits — so `identityHashCode` can trigger bias revocation.
-- **Biased locking** was a one-thread fast path, disabled in JDK 15 and removed in JDK 18; the mark-word encoding is therefore **version-dependent**, and compact-header work will change it again.
-- **vtable dispatch** is a vptr load (offset 0) plus a slot load plus an indirect call — two dependent loads that block inlining; **multiple inheritance** gives an object several vptrs and inserts `this`-adjustment thunks.
-- **Hot/cold splitting** clusters hot fields onto their own cache lines (or exiles cold fields behind a pointer/sidecar), raising useful-bytes-per-line in the inner loop with no algorithm change.
-- **False sharing** of independent hot fields on one cache line serializes parallel writers; fix by padding to ~128 bytes (`@Contended`, `alignas`, filler) or per-CPU sharding, and confirm with `perf c2c`.
-- **Hidden-class deopt** is mechanical: optimized code guards on a shape; a new shape forces a deopt back to the interpreter, and enough shape variety yields a **megamorphic** generic lookup or a deopt loop.
-- **Tagged/niche representation** (Smis, NaN-boxing, Rust niches) removes per-value headers and is the layout-level lever that decides whether a field costs zero extra bytes or a pointer plus a header.
-
----
-
-## What You Can Build
-
-- **A compressed-oops cliff demonstrator.** A program that fills the heap with reference-heavy objects at `-Xmx31g` and `-Xmx34g` and reports how much live data fit in each — proving the paradox.
-- **A mark-word watcher.** Using JOL, snapshot an object's header through fresh → hashed → locked → contended states and pretty-print the bit transitions.
-- **A false-sharing benchmark + fix.** A per-core counter array that scales negatively, plus a padded version that scales linearly; include the `perf c2c` output.
-- **A vtable layout dumper.** For a small class hierarchy (including multiple inheritance), print vptr offsets, vtable contents, and the `this`-adjustment thunks (e.g. via `-fdump-lang-class` or by reading disassembly).
-- **A deopt-loop reproducer.** A JS function that you can flip between monomorphic and megamorphic, with `--trace-deopt` output annotated to show the compile/deopt cycle.
-
----
-
-## Further Reading
-
-- *JEP 374: Disable and Deprecate Biased Locking* — the rationale and the encoding change.
-- *Project Lilliput* (compact object headers) — the future of the JVM header layout.
-- OpenJDK *JOL* samples on mark words, compressed oops, and `@Contended`.
-- *The Itanium C++ ABI* — the authoritative spec for vtable layout, vptr placement, and `this`-adjustment thunks.
-- *What Every Programmer Should Know About Memory* — Drepper, on cache coherence and false sharing.
-- *Memory-efficient Java* talks and the Aleksey Shipilëv blog (JOL author) — deep, precise JVM-layout material.
-- V8 blog: *Slack tracking*, *Maps*, and the deoptimization design docs; Node `--trace-deopt`/`--trace-ic`.
-- Intel/AMD optimization manuals on adjacent-line prefetch (why 128-byte padding).
-
----
-
-## Related Topics
-
-- This folder: `junior.md`, `middle.md`, `professional.md`, `interview.md`, `tasks.md`.
-- The next runtime topic, **method dispatch**, builds directly on the vtable mechanics here — inline caches, devirtualization, and speculative inlining as ways to dodge the vtable indirection.
-- **Data representation** owns the tagged-vs-boxed, NaN-boxing, and pointer-tagging material referenced here in prose.
-- **Garbage collection** depends on the mark word's GC/age bits and the forwarding-pointer state, and on the compressed-oop encoding for heap walking.
-- **Cache architecture and coherence** underpin false sharing, hot/cold splitting, and the cost of dependent loads.
-
----
-
-## Diagrams & Visual Aids
-
-### Compressed Oop Encode/Decode
-
-```text
-real address (8-byte aligned):   ...XXXX X000   (low 3 bits = 0)
-                                          │ shift right 3
-narrow oop (stored, 4 bytes):    ...XXXX X       (the "index")
-
-decode:   real = heap_base + (narrow << 3)
-range:    2^32 indices * 8 bytes = 32 GB  <-- the cliff
-```
-
-### Mark Word State Transitions
-
-```text
-   new object
-       │
-       ▼
- ┌───────────┐  hashCode()  ┌───────────────┐
- │ unlocked  │─────────────▶│ unlocked+hash │
- │  age|01   │              │  hash|age|01  │
- └─────┬─────┘              └───────┬───────┘
-       │ synchronized               │ synchronized
-       ▼                            ▼
- ┌───────────┐  contention   ┌───────────────┐
- │ thin-lock │──────────────▶│   inflated    │
- │ rec-ptr|00│               │ monitor-ptr|10│
- └───────────┘               └───────────────┘
-   (hash, if any, is "displaced" into the lock record while locked)
-```
-
-### vtable Dispatch
-
-```text
- object p                 vtable for p's class
-┌──────────┐  load vptr  ┌────────────────────┐
-│  vptr  ──┼────────────▶│ slot0: &Base::f     │
-│  field a │             │ slot1: &Derived::g  │◀── load [vptr + slot*8]
-│  field b │             │ slot2: &Base::h     │
-└──────────┘             └────────────────────┘
-   call site: 2 dependent loads, then an INDIRECT call (hard to inline)
-```
-
-### Hot/Cold Split and the Cache Line
-
-```text
-BEFORE (fat object, hot loop reads only `pos`):
- cache line: [ pos | vel | name-ptr | created_at | audit-ptr ... ]
-              ^use   ^use   ^------- cold, dragged in for nothing -----^
-
-AFTER (hot array):
- cache line: [ pos | vel | pos | vel | pos | vel ... ]
-              ^---------------- all useful ----------------^
-```
-
-### False Sharing
-
-```text
-        one 64-byte cache line
-       ┌───────────────┬───────────────┐
-core 0 │  counterA     │               │  writes A
-core 1 │               │  counterB     │  writes B
-       └───────────────┴───────────────┘
-   every write needs exclusive ownership of the WHOLE line
-   -> line ping-pongs between cores even though A and B are unrelated
-   fix: put counterA and counterB on separate lines (pad)
-```
+- Which invariant must remain true when Object Model & Layout fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

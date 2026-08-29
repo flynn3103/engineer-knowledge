@@ -1,62 +1,11 @@
-# Bytecode & Virtual Machines — Middle Level
+# Bytecode & Virtual Machines — Middle
 
-> **Topic:** Bytecode & Virtual Machines
-> **Focus:** Stack VMs vs register VMs, the anatomy of an instruction, jumps and backpatching, and what really lives in a `.class` / `.pyc` file.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **Bytecode & Virtual Machines** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-> Focus: **The two great VM architectures (stack vs register), how a single instruction is laid out, how control flow (jumps) is encoded, and what a real bytecode file contains.**
-
-At the junior level, "bytecode" meant a flat list of simple opcodes run by a software CPU, and "stack machine" was the only model. That's the most common design, but it isn't the only one — and the choice between **stack-based** and **register-based** VMs is one of the central engineering decisions in language implementation. It shapes instruction count, instruction size, decode cost, and how easy the bytecode is to JIT-compile later.
-
-This level answers four practical questions:
-
-1. **Stack vs register** — what's the difference, and what does each buy you? (Lua 5 famously switched from a stack VM to a register VM for speed.)
-2. **Anatomy of an instruction** — how is one opcode physically encoded? Fixed vs variable width, inline operands vs constant-pool indices.
-3. **Control flow** — `if`, loops, and `&&` all compile to *jumps*. How are jump targets encoded when you don't yet know where the target is? (Answer: **backpatching**.)
-4. **The file format** — what's actually inside a `.class` or `.pyc`? Magic numbers, the constant pool, method tables, line-number tables.
-
-In one sentence: **this page is where bytecode stops being a black box and becomes a format you could read with a hex editor and a spec.**
-
-> 🎓 **Why this matters at this level:** Once you can read a constant pool, follow a jump offset, and explain why Lua picked register over stack, you can debug "why is my disassembly weird," reason about code size, and understand performance discussions that previously sounded like magic. This is also the knowledge you need before `senior.md`'s interpreter-dispatch and verification material makes sense.
-
----
-
-## Prerequisites
-
-- **Required:** Everything in `junior.md` — what bytecode is, the operand stack, local slots, the constant pool, the fetch-decode-execute loop, reading `dis` / `javap` output.
-- **Required:** Comfort tracing a stack machine evaluating an expression by hand.
-- **Required:** Basic understanding of `if`/`while` and boolean short-circuiting (`&&`, `||`).
-- **Helpful:** Having seen hexadecimal and byte-level thinking (offsets, widths).
-- **Helpful:** A loose idea of what a CPU register is.
-
-You do **not** yet need: interpreter dispatch techniques (direct threading, computed goto), JIT internals, or the formal verifier — those are `senior.md`.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Stack-based VM** | Instructions take inputs from / push results to an implicit operand stack. JVM, CPython, CLR, Wasm. |
-| **Register-based VM** | Instructions name their operands explicitly as numbered "virtual registers." Lua 5, Dalvik, BEAM. |
-| **Virtual register** | A numbered slot in a register VM — not a hardware register; just an index into the frame's value array. |
-| **Instruction width** | The size in bytes of one encoded instruction. *Fixed-width* (every instr same size) or *variable-width*. |
-| **Inline operand** | An operand stored in the bytes immediately following the opcode (e.g. a jump offset, a slot index). |
-| **Pool index** | An operand that's an *index into the constant pool*, not the value itself. |
-| **Program counter (PC)** | The "where am I" pointer into the bytecode. Incremented as instructions are fetched; modified by jumps. |
-| **Jump / branch** | An instruction that sets the PC to a target, instead of falling through to the next instruction. |
-| **Conditional branch** | A jump taken only if a condition holds (`if_icmplt`, `POP_JUMP_IF_FALSE`). |
-| **Jump offset** | How a target is encoded: often *relative* (target = PC + N), sometimes *absolute*. |
-| **Backpatching** | Emitting a jump before its target address is known, leaving a placeholder, and filling it in once the target is reached. |
-| **Stack effect** | How many values an instruction pops and pushes. `ADD` is (−2, +1) = net −1. Must stay consistent. |
-| **Maximum stack depth** | The largest the operand stack ever grows in a method. Stored in the `.class` so the VM can pre-size frames. |
-| **Magic number** | A fixed signature at the start of a file identifying its format. `.class` starts with `0xCAFEBABE`. |
-| **Symbolic reference** | A name (class/method/field) in the constant pool, resolved to a concrete address lazily at runtime. |
-| **Line-number table** | Debug metadata mapping bytecode offsets back to source lines (for stack traces). |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -199,30 +148,6 @@ A **`.pyc`** file is simpler: a small header (magic number identifying the Pytho
 
 ---
 
-## Real-World Analogies
-
-**1. Stack vs register = postfix calculator vs spreadsheet.** A stack VM is like an old HP RPN calculator: you key `2 ENTER 3 +`, and operands live on an implicit stack. A register VM is like a spreadsheet formula `C1 = A1 + B1`: every operand is *named*. The RPN version needs more keystrokes (more instructions); the spreadsheet names everything in one formula (fewer, bigger instructions).
-
-**2. Backpatching = leaving a blank in a form letter.** You write "...as we discussed on ____, your order will ship..." and fill in the date once you know it. The jump offset is the blank; you come back and fill it.
-
-**3. The constant pool = a footnotes section.** Rather than repeating "the Free Software Foundation, 51 Franklin Street..." inline every time, the text says "see footnote 3," and the address lives once in the footnotes. Instructions cite pool entry numbers the same way.
-
-**4. Magic number = a file's secret handshake.** `0xCAFEBABE` at the start of a `.class` is the JVM checking the handshake before trusting the rest. Wrong handshake → "this isn't a class file."
-
----
-
-## Mental Models
-
-**Model 1: Dispatch is the tax; instruction count is the bill.** Every instruction executed pays a fixed dispatch tax in the interpreter loop. Stack VMs run more instructions (higher total tax) but each is simpler. Register VMs run fewer instructions (lower total tax) but each does more decoding. The whole stack-vs-register debate is an argument about which bill is smaller for real programs.
-
-**Model 2: Bytecode is a *protocol*, not a *program for the CPU*.** Especially for the JVM and Wasm, bytecode is a *transport and verification format* — designed to be compact, safe to ship, and easy to validate — with actual performance delivered later by interpretation + JIT. Judging bytecode purely by "how fast does the interpreter run it" misses the point of why it was designed that way.
-
-**Model 3: Control flow = PC arithmetic.** There is no structured `if` at the bytecode level (except Wasm). Everything is "conditionally or unconditionally set the program counter." Once you internalize that, disassembly of loops and branches stops being confusing — find the targets, follow the arrows.
-
-**Model 4: The constant pool is a layer of indirection you can flatten in your head.** Whenever you see `#7` or an index operand, mentally substitute the pool entry. The bytecode reads as if the value were inline.
-
----
-
 ## Code Examples
 
 ### Example 1: See a forward jump and its offset (Python)
@@ -349,36 +274,6 @@ This is the same shape as the junior VM, now with control flow. Notice the jump 
 
 ---
 
-## Pros & Cons
-
-**Stack-based VMs**
-
-| Pros | Cons |
-|------|------|
-| Trivial codegen (no register allocation) | More instructions ⇒ more dispatch overhead |
-| Compact, uniform encoding | Dataflow is implicit ⇒ JIT must reconstruct it |
-| Easy to verify and port | Pure-interpreter speed is lower |
-
-**Register-based VMs**
-
-| Pros | Cons |
-|------|------|
-| Fewer instructions ⇒ less dispatch | Codegen must allocate virtual registers |
-| Explicit operands ⇒ easier, faster JIT | Larger instructions; wider encoding |
-| Often faster as a plain interpreter (Lua's win) | More complex toolchain |
-
----
-
-## Use Cases
-
-- **Stack VM, chosen for portability + verifiability:** JVM and WebAssembly. The bytecode is a *transport format*; speed comes from the JIT.
-- **Register VM, chosen for interpreter speed:** Lua 5 (embedded, must be fast *without* a JIT). Dalvik (Android), chosen for register-based to suit AOT/JIT and constrained devices.
-- **Dynamic-typing stack VM:** CPython — untyped opcodes because types aren't known until runtime.
-- **Concurrency-first VM:** the BEAM (Erlang/Elixir) — register-based, with reduction-counting for fair scheduling of millions of processes.
-- **You designing a VM:** if you have no JIT and want speed, lean register. If you want the simplest correct implementation and a clean verifiable format, lean stack.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Compute stack effects to validate your codegen
@@ -448,61 +343,24 @@ To understand a loop in someone else's bytecode: find the backward `goto`/`JMP` 
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. State the stack-vs-register trade-off in terms of *instruction count* and *instruction size*. Why did Lua 5 switch to register-based?
-2. Why does reducing dispatch count matter, and which design dispatches less?
-3. What is a stack effect, and why must the operand stack "balance" across branches?
-4. Explain backpatching. Which jumps need it — forward, backward, or both?
-5. What is the magic number of a `.class` file, and what is a magic number *for*?
-6. What does the JVM constant pool hold, and why do instructions use indices into it?
-7. How does WebAssembly's control flow differ from the JVM's, and why does that make Wasm faster to validate?
-8. Why do `long` and `double` occupy two slots on the JVM?
+1. Find a real component where **Bytecode & Virtual Machines** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
----
+## Verify your work
 
-## Cheat Sheet
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
 
-```
-STACK VM   operands implicit (operand stack) → more, smaller instrs → simple codegen
-REGISTER VM operands named  (virtual regs)   → fewer, bigger instrs → easier JIT
-  Lua5 / Dalvik / BEAM = register   |   JVM / CPython / CLR / Wasm = stack
+## Review questions
 
-INSTRUCTION = opcode [+ operands]
-  width:    fixed (Lua, 32-bit) vs variable (JVM)   | CPython = 2-byte wordcode
-  operands: inline (jump offset, slot) | constant-pool INDEX (string, big num, ref)
-  typed (iadd/ladd/fadd JVM) vs untyped (BINARY_OP CPython, types at runtime)
-
-STACK EFFECT  pops vs pushes; ADD = (−2,+1). Stack MUST balance across merges.
-MAX_STACK     largest depth a method reaches; stored to pre-size frames.
-
-CONTROL FLOW = jumps (set the PC). No 'if'/'while' opcodes.
-  forward jump → BACKPATCH (emit placeholder, fill later)
-  backward jump (loops) → emit directly, target already known
-  Wasm = STRUCTURED control flow (block/loop/if/br) → fast to validate
-
-.class  CAFEBABE | versions | constant_pool | methods{ Code: max_stack, bytecode }
-.pyc    magic(version) | flags | hash/mtime | size | marshalled code object
-```
-
----
-
-## Summary
-
-- VMs come in two architectures: **stack-based** (implicit operand stack — JVM, CPython, CLR, Wasm) and **register-based** (explicit numbered operands — Lua 5, Dalvik, BEAM). The trade-off is *more/smaller instructions and simple codegen* (stack) vs *fewer/bigger instructions, easier JIT, less dispatch* (register). Dispatch overhead is why Lua 5 switched to register-based.
-- An **instruction** is an opcode plus operands, encoded fixed- or variable-width, with operands either inline or as **constant-pool indices**, and opcodes either typed (JVM) or untyped (CPython).
-- Every instruction has a **stack effect**; the operand stack must **balance**, and the compiler records **max_stack**.
-- **Control flow is jumps** that modify the program counter. **Forward jumps require backpatching**; backward jumps (loops) don't. WebAssembly's **structured control flow** is the deliberate exception, making it fast to validate.
-- Real files have structure: `.class` starts with `0xCAFEBABE` and is spined by a **constant pool**; `.pyc` is a small version header plus a marshalled code object.
-
-`senior.md` goes into the interpreter loop's *dispatch techniques* (switch, direct/computed-goto threading, superinstructions, stack caching), **bytecode verification** (the JVM verifier and why it exists for untrusted code), and lazy linking / symbol resolution.
-
----
-
-## Further Reading
-
-- "The Implementation of Lua 5.0" (Ierusalimschy, de Figueiredo, Celes) — the canonical paper on the register-VM switch and *why*.
-- *The Java Virtual Machine Specification* — the class-file format chapter and the instruction-set chapter.
-- *Crafting Interpreters* (Nystrom) — chapters on compiling expressions, jumping back and forth (backpatching), and the bytecode chunk format.
-- CPython internals: the `dis` module docs, `Include/opcode.h`, and `Python/compile.c` for how branches are emitted and patched.
-- The WebAssembly specification's "Structured Control Flow" and "Validation" sections.
+- Which boundary is most affected by Bytecode & Virtual Machines?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

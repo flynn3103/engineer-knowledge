@@ -1,8 +1,11 @@
 # Interop & Polyglot Architectures — Senior
 
-> **What?** The second-order costs of language boundaries that the mechanism comparison hides: cross-language debugging and observability, the impedance mismatch in error handling and type systems, the real FFI-vs-network tradeoff once you account for failure modes, runtime-level polyglot (JVM, .NET, GraalVM, WASM), and the judgment call that separates *principled* polyglot from *sprawl*.
-> **How?** By treating every language boundary as a line item with a recurring cost — paid in serialization, type mapping, two debuggers, two performance models, and on-call cognitive load — and by being able to say, for any boundary in your system, *what relationship justifies it* and *what it costs to keep.*
+<!-- level-focus -->
+At senior level, focus on this question:
 
+> Which system invariant is affected by **Interop & Polyglot Architectures** under failure, load, and change?
+
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## 1. Every boundary is a cost, not a free abstraction
@@ -129,7 +132,7 @@ Here is the judgment that separates senior architecture from a museum of languag
 - A Node service whose only justification is "we already had Node for the frontend."
 - Boundaries that follow no team or ecosystem logic, none observable across, each a separate on-call burden.
 
-The test for any language in your system: **"What would we lose if this were rewritten in our primary language, and is that loss worth the toolchain, hiring, and on-call tax it imposes — forever?"** If the answer is "we'd lose the entire ML ecosystem," it's principled. If the answer is "nothing, really, it's just history," it's sprawl, and you have a consolidation candidate (the migration mechanics live in [`../06-migrating-between-languages/`](../06-migrating-between-languages/)).
+The test for any language in your system: **"What would we lose if this were rewritten in our primary language, and is that loss worth the toolchain, hiring, and on-call tax it imposes — forever?"** If the answer is "we'd lose the entire ML ecosystem," it's principled. If the answer is "nothing, really, it's just history," it's sprawl, and you have a consolidation candidate (the migration mechanics live in [`../06-migrating-between-languages/`](../06-migrating-between-languages/README.md)).
 
 ---
 
@@ -159,16 +162,24 @@ This is why the senior instinct is **"minimize the number of *languages*, not ju
 
 ---
 
-## 10. What's next
+## Apply it
 
-| Topic | File |
-|---|---|
-| The org-level view: governance, supported-language lists, the platform team, hiring & on-call economics, WASM's future, monoglot-core strategy | [`professional.md`](professional.md) |
-| Interview Q&A from junior framing to staff-level interop strategy | [`interview.md`](interview.md) |
-| Design exercises: choose boundaries, design a contract, cost a 4th language, critique an over-polyglot system | [`tasks.md`](tasks.md) |
-| When to *introduce* a new language — and when to refuse | [`../05-when-to-introduce-a-new-language/`](../05-when-to-introduce-a-new-language/) |
-| The full TCO picture of multiple languages on a team | [`../07-total-cost-of-ownership-and-team-skills/`](../07-total-cost-of-ownership-and-team-skills/) |
+1. State the system invariant that **Interop & Polyglot Architectures** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
----
+## Verify your work
 
-**Memorize this:** every language boundary is a permanent liability paid in serialization, type mapping, two debuggers, error-handling impedance, and on-call load — and the bill comes due in incident time, not request latency. Choose network over FFI for the fault isolation; reach for runtime-level polyglot when you need cheap multi-language; and for every language in the system, be able to say what's lost without it. Minimize *languages*, not just services — that's where the tax really lives.
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
+
+## Review questions
+
+- Which invariant must remain true when Interop & Polyglot Architectures fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

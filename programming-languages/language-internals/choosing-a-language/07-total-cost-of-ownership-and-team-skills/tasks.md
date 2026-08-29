@@ -98,7 +98,7 @@ Consequences: TBD.
 
 ## Task 5 — Build the people-cost side of a selection
 
-**Scenario.** Two candidate languages have already scored *tied* on the technical/problem-fit axis of a weighted matrix (see [`01-language-selection-criteria`](../01-language-selection-criteria/)). The decision now turns entirely on **people cost.** The org is a fast-growing startup planning to triple engineering headcount in 18 months.
+**Scenario.** Two candidate languages have already scored *tied* on the technical/problem-fit axis of a weighted matrix (see [`01-language-selection-criteria`](../01-language-selection-criteria/README.md)). The decision now turns entirely on **people cost.** The org is a fast-growing startup planning to triple engineering headcount in 18 months.
 
 **Your job.** Construct the people-cost comparison that breaks the tie. Cover: hireability (pool size, time-to-fill against an *aggressive* hiring plan), onboarding/ramp multiplied by the hiring rate, salary premium over 18 months at the projected headcount, bus-factor/key-person risk, and the recruiting/retention effect of each language.
 

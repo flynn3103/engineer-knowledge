@@ -1,58 +1,11 @@
-# Practical Type-System Patterns — Senior Level
+# Practical Type-System Patterns — Senior
 
-> **Focus:** Typestate, phantom types, session-types-lite, type-driven development, and TypeScript's advanced utility/conditional/template-literal machinery — encoding *protocols* and *workflows* in types, plus the judgment to know when the cleverness pays and when it doesn't.
+<!-- level-focus -->
+At senior level, focus on this question:
 
-> **Topic:** Practical Type-System Patterns
+> Which system invariant is affected by **Practical Type-System Patterns** under failure, load, and change?
 
----
-
-## Introduction
-
-> Focus: **How do you make calling a method in the wrong state a compile error? How do you encode an entire protocol — "you must open before you read, and read before you close" — so the compiler enforces the sequence?**
-
-The middle page made *values* safe: ids that can't be confused, emails that are always valid, money that can't be added to distance. This page makes *behavior* safe. The technique is **typestate**: encode an object's state in its *type*, so that the set of available methods changes as the state changes — and calling a method that's invalid in the current state simply doesn't compile.
-
-A `Connection<Open>` has a `read()` method; a `Connection<Closed>` does not. A `File<Unopened>` has `open()` but not `read()`; calling `read()` on an unopened file isn't a runtime check that throws — it's a method that *isn't there*. The state machine of your object lives in the type system, and the compiler walks the machine for you. This is the same idea as the typed builder from the middle page, generalized to arbitrary protocols.
-
-The vehicle for typestate is the **phantom type**: a type parameter that appears in the type signature but carries no runtime data. `Connection<Open>` and `Connection<Closed>` are the *same bytes* at runtime; the `Open`/`Closed` tag exists only to steer the compiler. Phantom types are how you attach compile-time-only information — a state, a capability, a unit, a permission level — to a value at zero runtime cost.
-
-Layered on top is **type-driven development**: a workflow where you write the *types* first, leave the implementations as holes, and let the holes guide you to the implementation. The types become a specification the compiler helps you satisfy.
-
-And finally, the **judgment**. Every technique here can be over-applied into an unreadable mess. A senior engineer knows that a type encoding a six-state protocol with conditional types is sometimes brilliant and sometimes a liability your teammates will curse. This page treats *when not to* as a first-class topic — the same wisdom the metaprogramming material teaches about when a macro or a clever abstraction costs more than it saves.
-
-> 🎓 **Why this matters for a senior:** You design the APIs others build on. A typestate API makes an entire class of usage errors *impossible* for every future caller — but a *too-clever* one makes the API unapproachable and the error messages incomprehensible. The senior skill is not knowing the most powerful pattern; it's choosing the pattern whose power-to-readability ratio fits the team and the lifetime of the code.
-
----
-
-## Prerequisites
-
-- **Required:** The middle page's newtypes, smart constructors, branded types, and typed builders.
-- **Required:** Comfortable with generics, type parameters, and bounded/constrained generics.
-- **Required:** Some Rust ownership/move semantics, or comfort reading them — Rust typestate relies on consuming `self`.
-- **Helpful:** TypeScript's conditional types, mapped types, and `infer` (we use them).
-- **Helpful:** Exposure to the idea of a finite state machine and to session types / protocol typing.
-
-You do **not** need: dependent types, full session-type theory, or compiler-internals knowledge.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Typestate** | A pattern where a value's *state* is part of its *type*, so the available operations change with the state and invalid transitions don't compile. |
-| **Phantom type** | A type parameter present in a type's signature but not used by any runtime field. Carries compile-time-only information (state, unit, capability). |
-| **State machine in types** | Encoding the states and transitions of an FSM as types and state-changing methods. |
-| **Session types** | A type discipline describing the *sequence and shape* of a communication protocol (send then receive then close). "Session-types-lite" = applying the idea to local APIs. |
-| **Type-driven development** | Writing types first and using compiler-reported "holes" (typed gaps) to guide implementation. Associated with Idris and Haskell's typed holes. |
-| **Typed hole** | A placeholder in an expression whose *expected type* the compiler reports, telling you what you must produce next. |
-| **Consuming `self`** | A method that takes ownership of the receiver (`fn open(self) -> ...`), so the old-state value is *gone* after the transition — you can't reuse a stale state. |
-| **Mapped type** | A TypeScript type that transforms each property of another type: `{ [K in keyof T]: ... }`. |
-| **Conditional type** | A TypeScript type-level `if`: `T extends U ? X : Y`. |
-| **Template literal type** | A TS type built from string literals and interpolation: `` `/users/${string}` ``. |
-| **`satisfies`** | A TS operator: check a value conforms to a type *without widening* its inferred type. |
-| **Capability** | A token type that grants permission to perform an operation; holding the type *is* the authorization. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -170,37 +123,6 @@ Every pattern here trades safety for cognitive load. The senior question is *whe
 - A deeply conditional TS utility type can be a maintenance hazard the team routes around.
 
 The metaprogramming material's "when not to" wisdom applies verbatim: the cleverest version is rarely the right version. Optimize for the *reader* — the colleague debugging this at 2 a.m. who didn't write it. If the type error message is incomprehensible, you've over-built. A simpler type plus a runtime check and a test is sometimes the better engineering choice.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Phantom type** | A wristband color at a festival. The wristband adds no weight, but it determines which gates open for you. |
-| **Typestate** | A vending machine's physical state: the "dispense" lever is mechanically locked until coins are inserted. The button literally isn't pressable in the wrong state. |
-| **Consuming `self`** | A used boarding pass — once you've gone through the gate, the pass is taken; you can't re-use the old one to walk a different path. |
-| **Session-types-lite** | An assembly line where station N can only receive work that has passed station N−1. Out-of-order parts physically don't fit. |
-| **Capability as a type** | A keycard. The function (door) opens only when you present the card type; possession of the card *is* the permission. |
-| **Type-driven development** | A jigsaw puzzle where the hole's shape tells you exactly which piece fits — you're guided by the gap, not guessing. |
-| **`satisfies`** | A tailor checking a suit fits the customer without restitching it into a generic size. |
-| **Over-engineered types** | A door with seven sequential locks "for security" that everyone props open because it's unusable. |
-
----
-
-## Mental Models
-
-### The "the compiler walks your state machine" model
-
-Draw your object's finite state machine: states as nodes, transitions as edges. Typestate maps each *node* to a type and each *edge* to a method that consumes the from-state and returns the to-state. Methods valid only in a state live on that state's type. Once you've drawn the FSM, the type design is mechanical — and the compiler then refuses every edge you didn't draw. The illegal-states-unrepresentable idea from the junior page, lifted from *data* to *behavior*.
-
-### The "types as a shrinking search space" model
-
-A loose type (`User -> User`) admits astronomically many implementations, most wrong. Each refinement — adding `Either Conflict`, splitting into `ValidatedUser`, returning `NonEmptyList` — *removes* wrong implementations from the space the compiler will accept. Type-driven development is the deliberate shrinking of that space until the remaining region is small enough that the right implementation is obvious. The type is doing your reasoning.
-
-### The "readability budget" model
-
-Treat type cleverness as spending from a fixed budget the whole team shares. A `Connection<Open>` costs almost nothing — everyone gets it. A nested conditional-mapped-template-literal type costs a lot — only you and one other person can maintain it. Spend the budget where the safety payoff is highest (protocols people *will* misuse, money, security) and economize everywhere else. Going over budget doesn't crash the program; it crashes your teammates' velocity.
 
 ---
 
@@ -359,33 +281,6 @@ fn main() {
 
 ---
 
-## Pros & Cons
-
-| Aspect | Pros | Cons |
-|--------|------|------|
-| **Protocol safety** | Out-of-order or wrong-state calls become compile errors — entire bug classes vanish for all callers. | Designing the state types correctly takes real upfront effort and FSM thinking. |
-| **Runtime cost** | Phantom types are zero-sized; typestate compiles to the same code as the unsafe version. | None at runtime; the cost is at design and reading time. |
-| **API misuse-resistance** | A typestate API teaches itself: autocomplete shows only valid next methods. | Error messages for advanced types can be cryptic, especially in TS/Rust generics. |
-| **Type-driven dev** | Types act as a checked spec; the compiler co-authors the implementation. | Requires a language with good typed holes / inference to feel natural. |
-| **Guarantee strength** | In Rust (with `self`-consumption), the guarantee is airtight. | In structural langs (TS), typestate is advisory — stale handles can be reused. |
-| **Maintainability** | Encodes intent permanently and machine-checked. | Over-engineered types are a liability: hard to read, hard to change, intimidating to teammates. |
-
----
-
-## Use Cases
-
-- **Resource protocols:** files, sockets, connections, transactions, locks — open/use/close sequences that must not be violated.
-- **Builders with mandatory steps:** "you must set `url` and `method` before `send`," generalized to multi-step construction.
-- **Network/IPC handshakes:** TLS-like negotiations, login flows, multi-message protocols — session-types-lite.
-- **Authorization:** capability tokens threading permissions through the type system.
-- **Workflow/state machines:** order lifecycle (draft → submitted → paid → shipped), where each phase exposes different operations.
-- **Validation pipelines:** `Form<Unvalidated>` → `Form<Validated>` so persistence accepts only validated data.
-- **Typed APIs in TS:** routes, event maps, config schemas via template-literal/mapped/conditional types and `satisfies`.
-
-When to **prefer a simpler approach** (judgment): a state machine with one or two transitions used in a single file; a protocol that changes frequently (the type churn outweighs the safety); a team unfamiliar with the technique where a clear runtime check plus a test communicates better.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: phantom-state newtype + per-state impls
@@ -445,13 +340,24 @@ If a powerful conditional type is genuinely needed, hide it behind a clearly-nam
 
 ---
 
-## Summary
+## Apply it
 
-- **Typestate** lifts "make illegal states unrepresentable" from data to *behavior*: encode an object's state in its type so the available methods change with the state and wrong-state calls don't compile (`Connection<Open>` has `read`, `Connection<Closed>` doesn't).
-- **Phantom types** are the vehicle: a type parameter with no runtime field, carrying compile-time-only information (state, unit, capability) at zero runtime cost.
-- In Rust, **consuming `self`** on transitions makes the guarantee airtight — the stale-state handle is moved away. In structural languages like TS, typestate is *advisory* (stale handles can be reused).
-- **Session-types-lite** generalizes typestate to multi-step protocols; each step returns the next step's type, so out-of-order calls are type errors.
-- **Capabilities as types** thread authorization through the type system — holding the token type *is* the permission.
-- **Type-driven development** writes types first and uses typed holes to guide the implementation, shrinking the space of valid programs until the right one is nearly forced.
-- **TypeScript's type-level machinery** — mapped/conditional/template-literal types, `Pick`/`Omit`/`Partial`, `as const`, `satisfies` — lets you derive typed routes, event maps, and DTOs from a single source instead of hand-maintaining parallel definitions.
-- The senior **judgment**: every technique here trades safety for cognitive load. Spend the readability budget where misuse is likely and costly (protocols, money, security, public APIs); economize elsewhere. Optimize for the error message and the next reader. The metaprogramming "when not to" wisdom holds — the cleverest type is rarely the right one, and a simpler type plus a test is often the better engineering choice.
+1. State the system invariant that **Practical Type-System Patterns** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
+
+## Verify your work
+
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
+
+## Review questions
+
+- Which invariant must remain true when Practical Type-System Patterns fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

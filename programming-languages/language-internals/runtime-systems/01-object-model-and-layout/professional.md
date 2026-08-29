@@ -1,52 +1,11 @@
-# Object Model & Layout — Professional Level
+# Object Model & Layout — Professional
 
-> **Topic:** Object Model & Layout
-> **Focus:** Layout as a production discipline — designing object models for footprint, throughput, and tail latency at scale; off-heap and columnar layouts; ABI-stable wire structs; layout regressions in CI; and the cross-runtime trade-offs you defend in a design review.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Object Model & Layout** with measurable outcomes and limited coordination?
 
-## Introduction
-
-> Focus: **When billions of objects, a P99 SLO, and a multi-team API all depend on how a record is arranged in memory, layout stops being a micro-optimization and becomes architecture.**
-
-At production scale, object layout decisions show up in the metrics that matter: heap size and GC pause time, cache-miss rate and instructions-per-cycle, serialization throughput, and the cost-per-request on your cloud bill. A 20-byte-per-object saving is irrelevant for a thousand objects and a multi-million-dollar decision for ten billion. A single field that false-shares can cap a 64-core box at the throughput of an 8-core one. A wire struct whose layout drifts across a version boundary corrupts data silently for every client.
-
-This page treats layout as the production discipline it becomes for staff-level engineers: choosing **on-heap vs off-heap vs columnar** representations and owning the consequences; building object models that an allocator and GC can manage cheaply; pinning **ABI-stable** layouts at trust boundaries (wire formats, FFI, shared memory) so they never drift; and **guarding layout in CI** so a careless field addition doesn't regress footprint or re-fork a hidden class. It also covers the cross-runtime arguments you must make crisply in a design review: when boxing is acceptable, when to flatten, when to go SoA/columnar, and how to quantify the trade-offs rather than assert them.
-
-The professional distinction is **ownership and quantification**. A senior knows the mechanisms; a professional sets the policy, defends it with numbers, encodes it as an enforced invariant, and accepts responsibility for the production outcome.
-
----
-
-## Prerequisites
-
-- **Required:** The senior page: compressed oops, mark-word encoding, vtables, hot/cold splitting, false sharing, deopt mechanics.
-- **Required:** Practical experience reading production profiles — GC logs, flame graphs, `perf stat`/`perf c2c`, allocation profilers.
-- **Required:** Familiarity with at least one serialization/columnar format (Protobuf/FlatBuffers/Cap'n Proto, Arrow/Parquet).
-- **Helpful:** Having owned an SLO and traced a latency regression to its physical cause.
-- **Helpful:** Experience with off-heap memory (`Unsafe`/`MemorySegment`, `mmap`, custom allocators) or FFI/ABI boundaries.
-
-You do **not** need novel research; you need disciplined application, measurement, and the judgment to choose among known techniques under real constraints.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Footprint** | Total memory a population of objects occupies, including headers, padding, boxing, and structural overhead. |
-| **On-heap** | Objects managed by the language's GC/allocator, carrying its headers and layout rules. |
-| **Off-heap** | Memory the runtime doesn't manage as objects (native, `mmap`, `MemorySegment`), laid out by you, header-free. |
-| **Columnar** | Storing each field as a contiguous column across all records (SoA at storage scale); the basis of Arrow/Parquet/vectorized engines. |
-| **ABI** | Application Binary Interface — the binding contract for how data is laid out in memory/registers across a boundary. |
-| **Wire layout** | The byte arrangement of a record as it crosses a network/file/process boundary; must be stable and endianness-defined. |
-| **Schema evolution** | Changing a record's fields over time without breaking older/newer readers. |
-| **Layout regression** | An unintended change to object size/shape that increases footprint or breaks an inline-cache/deopt assumption. |
-| **Value type / inline class** | A type stored inline without an object header (Rust struct, Go struct, C++ value, Java Project Valhalla value class). |
-| **Arena / region allocation** | Bump-allocating many objects in one contiguous block, freed together; improves locality and dealloc cost. |
-| **Cache footprint** | The working set's size relative to L1/L2/L3; the predictor of whether a hot loop is cache-resident. |
-| **NUMA locality** | Whether an object's memory is on the socket of the core that accesses it; cross-socket access is far slower. |
-| **Flattening** | Replacing a pointer-to-sub-object with the sub-object's fields inline, removing a hop and a header. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -123,37 +82,6 @@ In a design review you'll be asked to justify a representation. The professional
 - **"Polymorphism or closed set?"** Keep vtables for open, extensible hierarchies; use closed sets (`variant`, sealed types, enums) on hot paths to enable devirtualization.
 
 Each is a trade between ergonomics/flexibility and footprint/speed, decided by *measured* importance, not dogma.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Footprint budget** | A shipping manifest where the per-box packaging weight, multiplied by a million boxes, dwarfs the cargo — so you redesign the packaging, not the cargo. |
-| **On-heap vs off-heap** | Storing goods in a managed, staffed warehouse (GC) vs renting a bare lot you organize and guard yourself (off-heap): less service, more control, no per-shelf tax. |
-| **Columnar storage** | A spreadsheet stored column-by-column so "sum all salaries" reads one contiguous strip instead of hopping across every row. |
-| **ABI-stable wire layout** | A legal contract: every clause (field) in a fixed place; reorder one and every counterparty misreads the document. |
-| **Endianness at the boundary** | Two countries writing dates differently — you must convert at the border or every date is wrong. |
-| **Layout CI gate** | A scale at the loading dock that rejects any pallet over the weight limit before it ships. |
-| **Value types** | Stamping the part directly into the assembly instead of bolting on a separately-boxed, separately-tracked component. |
-| **NUMA locality** | Keeping each team's files in their own office rather than a distant central archive they must walk to. |
-
----
-
-## Mental Models
-
-### The "Multiply by N" Model
-
-Every layout decision has a per-object cost; the architecture question is always *what is N?* A header is 16 bytes — trivial at N=1,000, decisive at N=10 billion. Before optimizing layout, estimate N and multiply. Conversely, before *ignoring* layout, multiply to confirm it's truly negligible. This single discipline separates premature micro-optimization from genuine architecture: the same 16 bytes is noise or a six-figure cloud line item depending only on N.
-
-### The "Boundary vs Interior" Model
-
-Split your data world into **interior** (hot in-memory representation, optimized for the CPU and GC: reordered, flattened, maybe SoA) and **boundary** (wire/FFI/persisted representation, optimized for stability and interop: packed, endianness-fixed, schema-versioned). They are *different* layouts connected by a conversion step. Conflating them — letting the wire format dictate your hot-path struct, or shipping your CPU-optimized struct raw over the wire — is a classic source of both slowness and corruption. Keep them separate; own the conversion.
-
-### The "Layout Is a Contract You Must Test" Model
-
-A layout property the system relies on — a struct size, a field offset, a hot function staying monomorphic, an allocation rate ceiling — is a contract. Untested contracts rot. Model each such property as something with a **test that fails when it's violated**, in the same way you'd test an API response shape. If you can't articulate the test, you don't actually have the guarantee; you have a hope that holds until the next refactor.
 
 ---
 
@@ -260,35 +188,6 @@ assertThat(allocatedBytesPerOp).isLessThan(BUDGET_BYTES);
 
 ---
 
-## Pros & Cons
-
-| Decision | Pros | Cons |
-|----------|------|------|
-| **On-heap objects** | Ergonomic, type-safe, GC-managed; default. | Per-object header/boxing; GC tracing cost; pauses at scale. |
-| **Off-heap buffers** | No header, no GC tracing, mmap/shareable, full layout control. | Manual lifetime, no type safety, hand-rolled (un)marshalling, segfault risk. |
-| **Columnar / SoA** | Vectorizable scans, strong compression, one header per column, cache-resident aggregation. | Poor for whole-record random access; complex updates; reassembly cost. |
-| **Pinned ABI layout** | Stable, interoperable, corruption-proof across boundaries. | Rigid; no compiler reorder benefit; manual endianness; weak evolution unless schema'd. |
-| **Layout CI gates** | Catch footprint/shape regressions at build time. | Maintenance; brittle if too strict; must be updated with intentional changes. |
-| **Value types / flattening** | Remove header tax at the type level; dense arrays; fewer allocations. | Lose reference identity/nullability; not always available (pre-Valhalla Java). |
-| **NUMA/large-page placement** | Lower latency and TLB pressure at top scale. | Platform-specific, complex, easy to get wrong; premature for most systems. |
-
----
-
-## Use Cases
-
-Professional layout engineering is warranted when:
-
-- **Object cardinality is in the millions to billions.** Per-object constants dominate the cost; flattening, off-heap, or columnar pays for itself.
-- **GC pauses or heap size threaten an SLO.** Layout changes (less boxing, off-heap caches, fewer/larger objects) directly reduce allocation rate and tracing cost.
-- **An analytical/scan workload reads few fields across many records.** Columnar/SoA is the architecture, not an optimization.
-- **Data crosses a versioned boundary** — network protocol, on-disk format, FFI, shared memory. Layout becomes a contract requiring pinning and schema evolution.
-- **A hot path must stay optimized across releases.** Shape/deopt and allocation regressions need CI gates.
-- **You're at the top of the latency/throughput curve** where NUMA and page placement become measurable.
-
-It is *not* warranted for modest scale, cold paths, prototypes, or anywhere correctness and delivery speed dominate and the footprint multiplies to nothing.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Separate interior and boundary representations
@@ -360,147 +259,24 @@ struct Line { start: Point, end: Point }  // Point flattened inline, no Box, no 
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. A service holds 8 billion cache entries. Each could be an on-heap object (16-byte header + 24 bytes of fields, padded) or an off-heap 24-byte record. Compute the footprint difference and argue when off-heap is justified.
-2. Your P99 latency regressed after a refactor that replaced an `int` field with `Integer` in a hot path. Explain the chain from that one-field change to a GC-pause regression.
-3. Design the interior and boundary layouts for a market-data tick, naming exactly what differs between them and where the conversion lives.
-4. Write the CI gate (size + offset assertions) for an ABI struct that three teams' services depend on. What does each assertion protect against?
-5. A reporting query sums one column across 2 billion rows. Argue for columnar over row layout with concrete cache-line and compression reasoning. When would row layout still win?
-6. You move a hot LRU cache off-heap to cut GC pauses. List the three new failure modes you've taken on and how you'd guard each.
-7. Explain how NUMA first-touch can make a "correctly sharded" per-core structure slow, and how you'd fix the allocation.
-8. When would you keep a vtable-based polymorphic hierarchy in production despite the dispatch cost, and when would you convert it to a closed set?
+1. Define the user or business outcome that **Object Model & Layout** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
----
+## Verify your work
 
-## Cheat Sheet
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
 
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│         OBJECT MODEL & LAYOUT — PRODUCTION DISCIPLINE           │
-├──────────────────────────────────────────────────────────────────┤
-│ FOOTPRINT = N × (header + fields + padding + structure)          │
-│   ALWAYS multiply by N before optimizing OR dismissing           │
-├──────────────────────────────────────────────────────────────────┤
-│ REGIME by access pattern + scale:                                │
-│   on-heap   : default; ergonomic; pays header/boxing + GC        │
-│   off-heap  : flat, header-free, mmap/shareable; manual lifetime │
-│   columnar  : scan few fields over many rows; vectorize+compress │
-├──────────────────────────────────────────────────────────────────┤
-│ LAYOUT <-> GC: boxing -> alloc rate; object count -> mark cost;  │
-│   bigger objects -> faster promotion -> old-gen pressure         │
-├──────────────────────────────────────────────────────────────────┤
-│ INTERIOR vs BOUNDARY: two layouts, one conversion                │
-│   interior: reordered/flattened/SoA for CPU+GC                   │
-│   boundary: packed, endianness-fixed, schema-versioned          │
-├──────────────────────────────────────────────────────────────────┤
-│ PIN ABI: static_assert size & offset; define endianness;        │
-│   use schema'd format if fields evolve (don't ship raw structs)  │
-├──────────────────────────────────────────────────────────────────┤
-│ CI GATES: size asserts | offset asserts | alloc-rate budget |    │
-│   deopt-free hot path (JS) -> regressions fail the BUILD         │
-├──────────────────────────────────────────────────────────────────┤
-│ STRUCTURAL FIX: value types / flatten -> remove header at type   │
-│ TOP 10%: NUMA first-touch + large pages (measure first)          │
-└──────────────────────────────────────────────────────────────────┘
-```
+## Review questions
 
----
-
-## Summary
-
-- At scale, **footprint** is a first-class metric: `N × (header + fields + padding + structure)`, where per-object constants dominate when N is large. Always multiply by N before optimizing or dismissing.
-- **Layout and GC are coupled:** boxing drives allocation rate, object count drives mark cost, larger objects promote sooner. A local layout change can be a global pause regression — validate with GC logs.
-- Choose the **regime** by access pattern and scale: **on-heap** (default, ergonomic, header-paying), **off-heap** (flat, header-free, GC-free, manually managed), or **columnar/SoA** (scan-and-aggregate, vectorizable, compressible).
-- Keep **interior** (CPU/GC-optimized) and **boundary** (wire/FFI, packed, endianness-fixed, schema-versioned) representations **separate**, joined by an explicit, tested conversion. Never let one dictate the other.
-- **Pin ABI layouts** with size and offset assertions, define endianness explicitly, and use a schema'd format for evolvable wire data — raw structs have no evolution story.
-- **Guard layout in CI:** size/offset assertions, allocation-rate budgets, and deopt-free hot-path checks turn invisible layout regressions into build failures, because a depended-on layout property is a contract that must be tested.
-- **Value types and flattening** remove the header tax structurally; reach for off-heap/columnar deliberately, accepting the loss of ergonomics and safety only when footprint, GC, or scan patterns justify it.
-- At the top of the performance curve, **NUMA first-touch placement and large pages** decide whether a well-shaped object is also well-placed — measure before reaching for them.
-- The professional stance is **ownership and quantification**: set the layout policy, defend it with numbers, encode it as an enforced invariant, and own the production result.
-
----
-
-## What You Can Build
-
-- **A footprint calculator** that, given a class/struct definition and an N, reports on-heap vs off-heap vs columnar footprint and flags the dominant overhead.
-- **An off-heap record store** (Java Foreign Memory or C++/Rust over `mmap`) with a flat layout, benchmarked against the on-heap equivalent for footprint and GC-pause impact.
-- **A layout-regression CI suite:** size/offset assertions for ABI structs, an allocation-rate gate for a hot path, and a deopt-free check for a Node service.
-- **A columnar mini-engine** that loads a dataset row-wise and column-wise and compares scan-one-field throughput, with per-column compression.
-- **An interior/boundary codec** that maintains a CPU-optimized in-memory struct and a pinned, endianness-defined, versioned wire format, with round-trip and evolution tests.
-
----
-
-## Further Reading
-
-- *Apache Arrow* and *Parquet* specifications — the reference designs for columnar/SoA layout at scale.
-- *Project Valhalla* (JEPs and design notes) — value/primitive classes and flattening on the JVM.
-- Java *Foreign Function & Memory API* (JEP 454 and successors) — off-heap layout and FFI.
-- *Cap'n Proto* and *FlatBuffers* design docs — zero-copy, schema-evolved wire layouts.
-- *Designing Data-Intensive Applications* — Kleppmann; encoding, evolution, and storage-layout chapters.
-- *Systems Performance* — Brendan Gregg; NUMA, large pages, and how layout shows up in production profiles.
-- *Data-Oriented Design* — Richard Fabian; the production case for SoA and layout-led architecture.
-- Vendor optimization manuals (Intel/AMD) and `perf` documentation for `c2c`, `stat`, and memory analysis.
-
----
-
-## Related Topics
-
-- This folder: `junior.md`, `middle.md`, `senior.md`, `interview.md`, `tasks.md`.
-- The next runtime topic, **method dispatch**, is where the polymorphism-vs-closed-set trade-off from this page is decided at the instruction level.
-- **Garbage collection** is the runtime subsystem most tightly coupled to the layout decisions here — allocation rate, tracing cost, and promotion all follow from the object model.
-- **Data representation** owns the boxing/tagging/value-type material that drives footprint at the field level.
-- **Cache architecture, NUMA, and the memory hierarchy** determine whether a well-shaped object is also well-placed and cache-resident.
-- **Serialization and wire formats** are the boundary-layout discipline this page pins and version-controls.
-
----
-
-## Diagrams & Visual Aids
-
-### Three Layout Regimes
-
-```text
-ON-HEAP (rows, managed)        OFF-HEAP (rows, flat)       COLUMNAR (SoA)
-┌────────────┐ ┌────────────┐  ┌────┬────┬────┬────┐       a: [a0 a1 a2 a3 ...]
-│hdr│ a │ b  │ │hdr│ a │ b  │  │ a  │ b  │ a  │ b  │       b: [b0 b1 b2 b3 ...]
-└────────────┘ └────────────┘  └────┴────┴────┴────┘       c: [c0 c1 c2 c3 ...]
- +header each, GC-traced        no header, no GC,           one schema for all
- scattered                      contiguous, mmap-able        rows; scans stream
-```
-
-### Interior vs Boundary
-
-```text
-   INTERIOR (in memory)                  BOUNDARY (on the wire)
- ┌──────────────────────┐   to_wire()   ┌──────────────────────────┐
- │ reordered, padded,   │──────────────▶│ packed, endianness-fixed, │
- │ flattened, maybe SoA │◀──────────────│ schema-versioned          │
- │ tuned for CPU + GC   │   from_wire() │ tuned for stability       │
- └──────────────────────┘               └──────────────────────────┘
-        DIFFERENT layouts, joined by an explicit, TESTED conversion
-```
-
-### The Multiply-by-N Decision
-
-```text
- per-object overhead: 16 bytes
-        │
-        ├── N = 1,000        -> 16 KB     -> ignore
-        ├── N = 1,000,000    -> 16 MB     -> maybe
-        └── N = 10,000,000,000 -> 160 GB  -> ARCHITECTURE
-                                            (flatten / off-heap / columnar)
-```
-
-### Layout as a Tested Contract
-
-```text
-  source change ──▶ struct grows / field reorders / boxing creeps in
-                          │
-                   ┌──────┴───────────────────────────┐
-                   ▼                                   ▼
-        static_assert(sizeof==32)            alloc-rate budget gate
-        offset assertions                    deopt-free hot-path check
-                   │                                   │
-                   └──────────── BUILD FAILS ──────────┘
-            the regression is caught here, not in production metrics
-```
+- Which measurable outcome justifies investing in Object Model & Layout?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

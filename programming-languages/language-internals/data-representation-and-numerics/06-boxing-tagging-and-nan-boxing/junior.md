@@ -1,67 +1,11 @@
-# Boxing, Tagging & NaN-Boxing — Junior Level
+# Boxing, Tagging & NaN-Boxing — Junior
 
-> **Topic:** Boxing, Tagging & NaN-Boxing
-> **Focus:** A single slot in memory has to hold *either* a number *or* a pointer to an object — and you must tell which is which without a separate label. How runtimes solve that, starting with the simplest trick: boxing.
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **Boxing, Tagging & NaN-Boxing** in one small example and prove the result?
 
-## Introduction
-
-> Focus: **Why can't a list hold a plain `int`, and what does the runtime do instead?**
-
-Here is a problem that every flexible language quietly solves a hundred times a second. You write `list = [1, "hi", obj]`. The list needs to store three *values* of three different *kinds* in its slots. But a slot is just a fixed number of bytes — typically eight bytes, a single machine word. How does the runtime put the number `1`, a string pointer, and an object pointer all into eight-byte slots **and still remember which is which** when it reads them back later?
-
-If every slot were a raw pointer, the number `1` would have to become a pointer too — to a little object on the heap that says "I am the integer 1." That act of wrapping a plain value into a heap object so it can be pointed at is called **boxing**. Pulling the value back out is **unboxing**. Java does this every time you put an `int` into an `ArrayList<Integer>`. It works, it's simple, and it is also slow: every boxed integer is a separate heap allocation that the garbage collector must track, and reading it means chasing a pointer out into memory.
-
-Because boxing is expensive, language designers invented cleverer tricks. **Pointer tagging** steals a few unused bits of a pointer to mark "this isn't really a pointer, it's a small integer." **NaN-boxing** goes further and hides *everything* — small integers, pointers, `true`, `false`, `null` — inside the spare bits of a floating-point number. These tricks let a runtime store a number directly in the slot, with no heap object at all, while still knowing it's a number and not a pointer.
-
-In one sentence: **a dynamically typed slot must carry both a value and its kind in the same eight bytes, and boxing, tagging, and NaN-boxing are three escalating answers to "how do we fit both?"**
-
-> 🎓 **Why this matters for a junior:** The first time you profile a Java or C# program and discover that 40% of your allocations are boxed `Integer` objects, or you wonder why `Integer.valueOf(127) == Integer.valueOf(127)` is `true` but `128` is `false`, you are staring straight at this topic. Understanding boxing turns a baffling bug into an obvious one — and teaches you why `int[]` crushes `ArrayList<Integer>` on performance.
-
-This page covers: what boxing and unboxing actually are, the cost of boxing (allocation, GC, cache misses), the famous Java autoboxing pitfalls (`==` vs `.equals`, the `Integer` cache, NullPointerExceptions on unboxing), and a first, gentle look at the alternatives — tagging and NaN-boxing — that the higher tiers explore in depth.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** What a variable, a value, and a pointer (reference) are. You should be able to picture "a slot in memory holds eight bytes."
-- **Required:** The difference between a *primitive* (`int`, `double`, `bool`) and an *object/reference* in a language like Java, C#, or Python.
-- **Required:** Basic awareness that objects live on the **heap** and the heap is managed by a garbage collector (in managed languages).
-- **Helpful but not required:** A rough sense that memory access has a cost and that "pointer chasing" can be slow (we will explain).
-- **Helpful but not required:** The idea that a `double` is a 64-bit IEEE-754 floating-point number.
-
-You do **not** need to know:
-
-- How a garbage collector works internally (that's another topic).
-- The bit-level layout of IEEE-754 or how NaN is encoded (that's `middle.md` and `senior.md`).
-- How CPUs lay out address space or what 5-level paging is (that's `professional.md`).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Primitive / value type** | A value stored directly in its slot: `int`, `double`, `bool`, `char`. No heap object, no pointer. |
-| **Reference / object** | A value that lives on the heap; the slot holds a *pointer* to it. |
-| **Slot** | A fixed-size storage location — usually one machine word (8 bytes on 64-bit). A variable, an array element, or an object field. |
-| **Boxing** | Wrapping a primitive in a heap-allocated object so it can be referenced and treated like any other object. `int 5` → `Integer` object holding 5. |
-| **Unboxing** | The reverse: extracting the primitive value back out of the box. |
-| **Autoboxing** | The compiler doing boxing/unboxing automatically when you mix primitives and objects (Java, C#). |
-| **Heap allocation** | Reserving memory on the heap for a new object. Each box is one of these. |
-| **GC pressure** | The extra work the garbage collector does because of many short-lived allocations (like boxes). |
-| **Pointer chasing** | Following a pointer to read what it points at — a memory access that may miss the cache. |
-| **Cache miss** | When the CPU needs data that isn't in its fast cache and must fetch it from slower main memory. |
-| **Tag** | A few bits attached to a value that say what *kind* of value it is. |
-| **Pointer tagging** | Using the always-zero low bits of an aligned pointer to store a tag, so a slot can hold "small int" or "real pointer" without a separate field. |
-| **SMI** | "Small Integer." V8's name for a tagged small integer stored directly in a slot. |
-| **NaN-boxing** | Encoding integers, pointers, and special values inside the unused payload bits of a floating-point NaN, so every value is physically a `double`. |
-| **Immediate value** | A value stored directly in the slot with no heap object — the opposite of boxed. |
-| **Integer cache** | A pool of pre-made small `Integer` objects (Java caches −128..127) that autoboxing reuses to avoid allocating. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -147,39 +91,6 @@ You don't need the bit-level details yet — `middle.md` and `senior.md` cover t
 - **C#:** Putting an `int` into an `object` or a non-generic collection boxes it. Generics (`List<int>`) avoid it — a key difference from Java.
 - **Python:** *Everything* is an object, including the number `5`. CPython caches small integers (−5 to 256) so they aren't re-allocated.
 - **JavaScript:** Engines use SMIs (tagged small ints) or NaN-boxing under the hood, but you never see it — all numbers are conceptually doubles.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **A slot** | A single mailbox slot of fixed size. It can hold one thing. |
-| **Primitive in a slot** | Writing the number directly on a card and dropping the card in the slot. |
-| **Boxing** | The number is too "different" to file with the objects, so you put it in a little box, label the box, and file *the box* instead. Now everything in the cabinet is a box. |
-| **Unboxing** | Opening the box to read the number back. |
-| **The box has overhead** | The cardboard box is bigger than the slip of paper inside it. Storing a 1-gram coin in a 50-gram box. |
-| **GC pressure** | Every box you throw away has to be picked up later by the cleanup crew. Throw away a million boxes and the crew is overwhelmed. |
-| **Pointer chasing / cache miss** | The filing cabinet holds *address cards*; to read a value you must walk to whatever shelf the card points to. Walking across the warehouse for each one is slow. |
-| **Pointer tagging** | The address cards have an 8-aligned address, so the last digit is always 0. You agree: "if the last digit is 1, it's not an address — it's a small number written right here." Free information, no extra card. |
-| **NaN-boxing** | A check that's been voided ("NaN") can have anything scribbled in its memo line. You agree to write secret codes there — a small number, a locker key — knowing nobody treats a voided check as money. |
-| **Integer cache** | The post office keeps pre-made boxes for the numbers people ask for most (−128..127) and hands out the *same* box each time instead of making a new one. |
-
----
-
-## Mental Models
-
-### The "Box Behind a Pointer" Model
-
-Picture a primitive as a slip of paper with a number on it. To file it among objects, you put the slip in a cardboard box and file the box. The slot in your collection doesn't hold the slip — it holds a string leading to the box. To read the number you follow the string, open the box, read the slip. Every step is overhead: the box's bulk (header), the string (pointer), and the walk to find the box (cache miss). This is boxing, and it explains *every* performance complaint about boxed collections.
-
-### The "Free Bits" Model
-
-A pointer to an 8-byte-aligned object never uses its bottom three bits — they're always zero, because the address is a multiple of 8. Those three bits are *free real estate*. Tagging says: "let me write a tiny label there." Because the label rides along inside the slot, a tagged small integer needs no box, no allocation, no pointer chase. The price is that you sacrifice a little numeric range. Carry this picture: **alignment hands you free low bits; tagging spends them on a type label.**
-
-### The "Everything Is a Double" Model (preview)
-
-Imagine a runtime where *every* value — every integer, every pointer, every `true` — is physically a 64-bit `double`. Real numbers are stored as themselves. Everything else is smuggled inside the vast unused space of NaN bit patterns. The payoff: floating-point math, which dominates JavaScript and Lua, runs with zero unwrapping. The catch: pulling out a pointer requires masking off the NaN-marking bits first. This is NaN-boxing; `senior.md` draws the exact bits.
 
 ---
 
@@ -302,36 +213,6 @@ Go has no Java-style autoboxing, but putting a value into an empty interface (`i
 
 ---
 
-## Pros & Cons
-
-| Aspect | Pros | Cons |
-|--------|------|------|
-| **Boxing — simplicity** | Uniform: everything is a pointer, the rest of the runtime is simpler. | Slowest of the three strategies. |
-| **Boxing — memory** | — | A 4-byte int becomes a ~24-byte footprint (header + value + pointer). |
-| **Boxing — speed** | Fine when boxing is rare. | Allocation + GC + cache misses dominate tight numeric loops. |
-| **Boxing — caching** | Small-int caches (Java −128..127, Python −5..256) recover some cost and dedupe. | Caches create the `==`/`is` identity surprises. |
-| **Tagging — speed** | Small integers stay in the slot: no allocation, no pointer chase. | Loses 1+ bit of integer range; pointers need masking before use. |
-| **NaN-boxing — speed** | Native float math, every value in one word, no separate type field. | Intricate bit layout; interacts with CPU address-space and pointer-authentication details. |
-| **Developer experience** | Autoboxing makes code read cleanly (`list.add(5)`). | The hidden cost and the identity/NPE traps surprise newcomers. |
-
----
-
-## Use Cases
-
-Boxing (and its caches) is the right or unavoidable tool when:
-
-- **You're using a generic collection in Java.** `List<Integer>`, `Map<K, Long>` — boxing is mandatory because Java generics don't specialize over primitives.
-- **You need to treat a primitive polymorphically.** Pass an `int` where an `Object` is expected, store mixed types together.
-- **Convenience outweighs performance.** Glue code, configuration, small data — the boxing cost is irrelevant.
-
-Reach past boxing — to primitive arrays, C# generics, or tagging/NaN-boxing runtimes — when:
-
-- **You have a hot numeric loop.** Use `int[]`/`double[]` or C#'s `List<int>`/`Span<int>`. The difference is often several-fold.
-- **You're building a dynamic-language runtime.** Then *you* choose the representation — boxing vs SMI tagging vs NaN-boxing — and the choice shapes the whole VM's speed (the higher tiers explore this).
-- **Memory footprint matters at scale.** Millions of boxed integers waste gigabytes versus a primitive array.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Prefer primitive arrays in hot paths (Java)
@@ -417,156 +298,24 @@ int sum = IntStream.rangeClosed(1, 100).sum();  // IntStream, no boxing
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. Why can't an `ArrayList` in Java store a raw `int` directly? What does it store instead?
-2. Predict the output: `Integer a = 100, b = 100; System.out.println(a == b);` and the same with `200`. Explain the difference.
-3. Write a Java snippet that throws a `NullPointerException` from a line that looks like a plain integer assignment.
-4. In C#, does `List<int>` box its elements? Does putting an `int` into an `object` box it? Why the difference?
-5. In Python, why is `256 is 256` often `True` but `1000 is 1000` often `False`? Which operator should you use for value equality?
-6. Draw the memory difference between `int[5]` and `ArrayList<Integer>` of size 5. Which is cache-friendly, and why?
-7. A pointer to an 8-byte-aligned object always ends in three zero bits. How could a runtime use those bits, and what would it cost?
-8. One sentence each: what is boxing, what is pointer tagging, what is NaN-boxing?
+1. Choose one small, known input for **Boxing, Tagging & NaN-Boxing**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
----
+## Verify your work
 
-## Cheat Sheet
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
 
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│              BOXING / TAGGING / NaN-BOXING (JUNIOR)               │
-├──────────────────────────────────────────────────────────────────┤
-│ The problem: one 8-byte slot must hold a NUMBER or a POINTER,     │
-│ and you must tell which without a separate type field.            │
-├──────────────────────────────────────────────────────────────────┤
-│ BOXING      wrap primitive in a heap object; slot holds a pointer │
-│             + simple, uniform                                     │
-│             - allocation + GC + cache misses (pointer chasing)    │
-│ TAGGING     keep small int IN the slot; use free low bits as tag  │
-│             + no allocation; - loses 1+ bit of range              │
-│ NaN-BOXING  hide ints/ptrs/true/false/null inside double's NaN    │
-│             + native float math; - intricate bit layout           │
-├──────────────────────────────────────────────────────────────────┤
-│ Java        Integer/Long/Double box; int/long/double don't.       │
-│             Cache −128..127 → == surprises. Null unbox → NPE.      │
-│ C#          struct→object boxes; generics (List<int>) don't.      │
-│ Python      EVERYTHING is an object; small ints −5..256 cached.   │
-│ JS/Lua/Ruby SMI tagging or NaN-boxing under the hood.             │
-├──────────────────────────────────────────────────────────────────┤
-│ RULES OF THUMB                                                    │
-│  * compare boxed numbers with .equals / == value, never identity  │
-│  * never auto-unbox a value that might be null                    │
-│  * use int[] / List<int> / IntStream in hot numeric paths         │
-│  * int[] is contiguous & fast; ArrayList<Integer> chases pointers │
-└──────────────────────────────────────────────────────────────────┘
-```
+## Review questions
 
----
-
-## Summary
-
-- A **dynamically typed slot** (a variable, array element, or field) must hold either a primitive value or a reference, and the runtime must know which — without a separate type field.
-- **Boxing** solves this by making everything a pointer: a primitive is wrapped in a heap object so it can be referenced and treated polymorphically. **Unboxing** extracts it back.
-- Boxing is **slow** for three reasons: heap allocation, GC pressure, and cache misses from pointer chasing. The canonical lesson is `int[]` (contiguous, fast) versus `ArrayList<Integer>` (pointers to scattered boxes, slow).
-- **Java autoboxing** has famous traps: `Integer` identity `==` vs `.equals`, the **−128..127 Integer cache** (and the `Long` cache), and **NullPointerExceptions** when auto-unboxing a `null`.
-- **C#** boxes value types only when needed (`struct → object`); generics like `List<int>` and `Span<int>` avoid it — a key contrast with Java.
-- **Python** makes *everything* an object, caching small integers −5..256, which is why `is` sometimes "works" for numbers.
-- The cleverer alternatives keep values **in the slot**: **pointer tagging** spends an aligned pointer's free low bits on a type tag (V8 SMIs, Ruby Fixnum, OCaml ints), and **NaN-boxing** hides every value inside a double's spare NaN bits (SpiderMonkey, LuaJIT, JavaScriptCore).
-- A junior's #1 habit: when you see boxed numbers in a hot path or compared with `==`/`is`, **suspect a performance or correctness bug.**
-
----
-
-## What You Can Build
-
-- **A boxing-cost benchmark.** Sum a million numbers stored in an `int[]` versus an `ArrayList<Integer>`. Measure time and allocations. Chart the gap.
-- **An Integer-cache explorer.** Loop `i` from −200 to 200; for each, check whether `Integer.valueOf(i) == Integer.valueOf(i)`. Print where identity flips. Find the −128 and 127 boundaries empirically.
-- **A null-unbox fuzzer.** Write a program that auto-unboxes values from a map with missing keys, and demonstrate every place an NPE can hide.
-- **A Python small-int cache mapper.** Find experimentally the lowest and highest integers for which `n is n` (constructed two ways) holds. Confirm the −5..256 range.
-- **A "tag the pointer" toy.** In C, allocate 8-byte-aligned objects, confirm their addresses end in `000`, and store a 1-bit "is-small-int" tag in the low bit. Mask it off before dereferencing.
-
----
-
-## Further Reading
-
-- *Effective Java* — Joshua Bloch. Item 61 ("Prefer primitive types to boxed primitives") is the definitive practical treatment.
-- *Java Language Specification* — §5.1.7 (Boxing Conversion) and §5.1.8 (Unboxing Conversion).
-- *CLR via C#* — Jeffrey Richter. The chapter on boxing/unboxing in the .NET runtime.
-- *CPython internals* — the `Objects/longobject.c` small-integer cache (`_PyLong_GetSmall`), and "Inside the Python Virtual Machine."
-- *Crafting Interpreters* — Robert Nystrom. The "Optimization" chapter introduces NaN-boxing with clear diagrams.
-- *V8 blog* — "Pointer Compression" and the SMI representation posts.
-- *The fastutil and Eclipse Collections* documentation — primitive collections that avoid boxing in the JVM.
-
----
-
-## Related Topics
-
-- This folder, next levels: [`middle.md`](middle.md), [`senior.md`](senior.md), [`professional.md`](professional.md), [`interview.md`](interview.md), [`tasks.md`](tasks.md).
-- Sibling topics in this section: floating-point representation, integer representation, and memory layout live alongside this folder under `data-representation-and-numerics/`.
-- Cross-cutting context: garbage collection and heap allocation under `language-internals/`; cache behavior and pointer chasing under the CPU/memory topics.
-
----
-
-## Diagrams & Visual Aids
-
-### The Core Problem: One Slot, Two Meanings
-
-```text
-        a single 8-byte slot
-        ┌───────────────────────────┐
-        │ 0x000000000000002A         │
-        └───────────────────────────┘
-                    │
-        is this... the number 42?
-        ...or a pointer to address 0x2A?
-                    │
-        Without a tag, you cannot tell.
-        Boxing / tagging / NaN-boxing each answer this.
-```
-
-### Boxing: The Slot Holds a Pointer to a Box
-
-```text
-   your collection slot          the heap
-   ┌──────────────┐              ┌──────────────────────┐
-   │  pointer  ●──┼─────────────▶│ object header        │
-   └──────────────┘              │ int value: 42        │
-                                 └──────────────────────┘
-   read 42  =  follow pointer (cache miss) + skip header + read value
-```
-
-### `int[]` vs `ArrayList<Integer>`
-
-```text
-int[]  (values inline, contiguous):
-┌────┬────┬────┬────┬────┐
-│ 10 │ 20 │ 30 │ 40 │ 50 │   ← CPU streams this; cache-friendly
-└────┴────┴────┴────┴────┘
-
-ArrayList<Integer>  (pointers to scattered boxes):
-┌────┬────┬────┬────┬────┐
-│ ●  │ ●  │ ●  │ ●  │ ●  │
-└─┬──┴─┬──┴─┬──┴─┬──┴─┬──┘
-  ▼    ▼    ▼    ▼    ▼
-[10] [20] [30] [40] [50]      ← scattered; a cache miss per element
-```
-
-### The Three Strategies at a Glance
-
-```text
-BOXING        slot = pointer ──▶ [ box: value ]        (everything on heap)
-TAGGING       slot = value with tag bits               (small int stays inline)
-              ...01010  → low bits say "small int"
-NaN-BOXING    slot = a double; non-floats hidden in NaN payload
-              [ NaN marker | tag | 48-bit payload ]
-```
-
-### The Integer Cache (Java −128..127)
-
-```text
-Integer.valueOf(n):
-   n in −128..127 ?
-        │ yes               │ no
-        ▼                   ▼
-   return SHARED cached    allocate a NEW Integer
-   object (== is true)     object (== is false)
-```
+- What problem does Boxing, Tagging & NaN-Boxing solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

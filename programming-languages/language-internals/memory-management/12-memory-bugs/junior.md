@@ -1,45 +1,11 @@
-# Memory Bugs — Junior Level
+# Memory Bugs — Junior
 
-> **Topic:** Memory Bugs
-> **Focus:** What a "memory problem" actually is, why managed (GC'd) programs still leak, and how to recognize the symptoms before you can fix anything.
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **Memory Bugs** in one small example and prove the result?
 
-## Introduction
-
-Most engineers meet their first memory bug the same way: a service that "works fine" gets paged at 3 a.m. because it ran out of memory and the orchestrator killed it. It restarts, runs fine for another six hours, and dies again. Nothing in the code looks wrong. There's no crash, no stack trace pointing at a bad line — just a slow, relentless climb in memory until the operating system or the runtime gives up.
-
-This topic is the practical, day-to-day version of memory problems: **"my program uses more memory than it should, and I need to find out why."** It is deliberately separate from the *safety* topic (use-after-free, buffer overflows, the CVE-shaped violations). Those are about *corruption*. This topic is about *growth and waste* — the bugs you hit even in Java, Go, Python, C#, and JavaScript, where the garbage collector is supposed to handle memory for you.
-
-The single most important idea for a junior engineer to absorb: **a garbage collector frees memory you can no longer reach, not memory you no longer need.** If your code still holds a reference to an object — in a map, a list, a closure, a static field — the GC sees that object as *alive* and will never reclaim it. A "memory leak" in a managed language is almost always a *reference you forgot you were keeping*.
-
----
-
-## Prerequisites
-
-- **What the heap is.** The region of memory where objects/allocations live for as long as they're reachable. Contrast with the stack (function-local, automatically reclaimed on return).
-- **What a reference (or pointer) is.** A way for one object to "point at" another. As long as a chain of references leads from a live root to an object, that object is reachable.
-- **What garbage collection does at a high level.** Periodically, the runtime figures out which objects are still reachable from the program's roots (globals, stacks, registers) and reclaims the rest.
-- **Basic command-line comfort.** You'll watch a process's memory with tools like `top`, `htop`, `docker stats`, or your platform's task manager.
-
-You do *not* need to know GC algorithms in detail yet. You need to know that GC reclaims the **unreachable**, and that **reachable-but-useless** is the leak you create.
-
----
-
-## Glossary
-
-| Term | Meaning |
-|---|---|
-| **Heap** | Memory where dynamically allocated objects live. |
-| **Reachable** | An object the program can still get to by following references from a root. The GC keeps it. |
-| **Root** | A starting point for reachability: global variables, static fields, live stack frames, thread-locals. |
-| **Live set / live heap** | The total size of all currently-reachable objects. The "real" memory your program needs *right now*. |
-| **RSS (Resident Set Size)** | How much physical RAM the OS sees your process using. Includes heap, native allocations, code, etc. |
-| **Memory leak** | Memory that stays allocated but is no longer useful — in GC'd languages, an object that's still reachable but will never be used again. |
-| **OOM** | Out Of Memory. Either the runtime throws (`OutOfMemoryError`) or the OS kills the process (the Linux "OOM killer"). |
-| **Allocation rate / churn** | How fast your program creates new objects. High churn stresses the GC. |
-| **Eviction** | Deliberately removing entries from a cache or collection so it doesn't grow forever. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -90,36 +56,6 @@ New engineers blame the garbage collector. In nearly every real case, the GC is 
 > **"What is keeping this object alive?"**
 
 Find the reference chain back to a root, and you've found the leak.
-
----
-
-## Real-World Analogies
-
-- **The garbage collector is a janitor, not a mind reader.** The janitor throws out trash on the floor (unreachable). If you keep stacking boxes in your office and label them "important," the janitor will *never* touch them — even if you'll never open them again. A leak is a room full of boxes you forgot you were keeping.
-
-- **A subscription you forgot to cancel.** You sign up for a magazine (register a listener/callback). You move on with your life, but the magazines keep arriving and piling up because you never canceled (never unregistered). The pile grows forever. This is the "lapsed listener" leak.
-
-- **A guest list with no checkout.** A hotel that logs every guest who checks *in* but never records anyone checking *out* will eventually believe it's full when it's actually empty. An unbounded map that only ever `put`s and never `remove`s is exactly this.
-
-- **A water tank with a slow drip.** Fragmentation and slow leaks both look like a tank that never quite drains. The water level (RSS) creeps up over days even though usage seems steady.
-
----
-
-## Mental Models
-
-### The reachability graph
-
-Picture every object as a node and every reference as an arrow. The roots (globals, stacks, statics) are the entry points. The GC keeps any node you can reach by following arrows from a root; it deletes the rest.
-
-A leak is a node (or a whole subgraph) you can *still reach* but will *never use again*. The object is "alive" by the GC's definition and "dead" by your program's intent. Closing that gap — making unused objects actually unreachable — is the cure.
-
-### The rising-floor chart
-
-Sketch memory over time. With GC, you get a sawtooth: allocate up, GC down, repeat. Look only at the **bottom of the teeth** (the post-GC low points). If that floor is flat, you're healthy. If the floor trends upward, you're leaking. This one mental image — *watch the floor, not the peaks* — will save you hours.
-
-### Live-set vs. RSS as two thermometers
-
-Keep two numbers in your head: what the program *needs* (live set) and what the process *holds* (RSS). When they track together and stay flat, all is well. When the live set is flat but RSS keeps rising, you're looking at fragmentation or native memory, not a normal heap leak. When both rise, it's a classic reachable-object leak.
 
 ---
 
@@ -178,39 +114,6 @@ Run this every 30 seconds under steady load. If `HeapAlloc` keeps climbing and n
 
 ---
 
-## Pros & Cons
-
-This section reframes "pros and cons" as **the trade-offs of managed memory that make these bugs possible.**
-
-**What GC gives you (the pros):**
-
-- You don't manually `free`, so you mostly avoid use-after-free and double-free corruption.
-- Memory is reclaimed automatically when objects become unreachable.
-- It's far harder to crash with a dangling pointer.
-
-**What GC costs you (the cons that create leak bugs):**
-
-- **It's easy to leak by accident.** Keeping a reference is invisible and effortless; a single forgotten entry in a static map leaks.
-- **You lose the "this is freed now" signal.** In manual languages, `free` documents intent. With GC, intent and reachability drift apart silently.
-- **Diagnosis is indirect.** There's no line of code to blame; you have to reconstruct *why something is still reachable.*
-- **GC itself costs CPU and latency.** High allocation rates make the collector work harder, which can hurt performance even with no leak at all.
-
----
-
-## Use Cases
-
-You'll apply this junior-level knowledge whenever you:
-
-- Own a long-running service (API server, worker, daemon) that must run for days without restart.
-- Add a cache, a map, or a list that grows based on incoming data.
-- Register any kind of callback, listener, observer, or subscription.
-- Get an alert that a container's memory is climbing or it was OOM-killed.
-- Review a teammate's PR that introduces a `static`/global collection.
-
-The skill at this level is **recognition**: spotting the patterns that *tend* to leak before they reach production, and reading a memory-over-time graph correctly when they don't.
-
----
-
 ## Best Practices
 
 1. **Bound every collection that grows from external input.** If a map, list, or cache can grow with traffic, give it a maximum size, a TTL, or both. An unbounded cache is a leak with extra steps.
@@ -233,11 +136,24 @@ The skill at this level is **recognition**: spotting the patterns that *tend* to
 
 ---
 
-## Summary
+## Apply it
 
-- A **garbage collector frees the unreachable, not the unneeded.** Leaks in managed languages are **references you forgot you were keeping.**
-- The classic leak is an **unbounded collection** (static map, growing list, forgotten listener) that only ever grows.
-- Read memory health by watching the **post-GC floor over time**: a rising floor under steady load means a leak.
-- Distinguish **live set** (what you need) from **RSS** (what the process holds); they diverge in interesting and diagnostic ways.
-- The master question for every investigation is **"what is keeping this object alive?"** — follow the reference chain back to a root.
-- Prevent leaks by **bounding collections, pairing add/remove, and being wary of globals.** Recognition is the junior-level superpower; deeper diagnosis and systemic patterns come next.
+1. Choose one small, known input for **Memory Bugs**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
+
+## Verify your work
+
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
+
+## Review questions
+
+- What problem does Memory Bugs solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

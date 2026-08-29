@@ -1,8 +1,11 @@
 # Language Selection Criteria — Professional
 
-> **What?** Language selection as an *organizational* decision rather than a per-service one: who owns it, how it's governed, the politics, the economics, the paved-road platforms that make a choice stick, and the approval/sunset processes that keep a polyglot estate from becoming sprawl.
-> **How?** You're no longer choosing a language for a service — you're designing the *system that makes language choices* across dozens of teams, and you'll be judged on hiring cost, operational coherence, and how gracefully the org adds and removes languages over a decade.
+<!-- level-focus -->
+At professional level, focus on this question:
 
+> How should teams adopt and operate **Language Selection Criteria** with measurable outcomes and limited coordination?
+
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## 1. The altitude shift: from "which language" to "who decides, and how"
@@ -19,7 +22,7 @@ Three governance models, with their real tradeoffs:
 
 Mature orgs converge on the third. The blessed set is small (typically 2–4 languages), heavily supported, and the default for everything; going off-road is *allowed* but you carry your own water. This is the model at Google (a famously short list of "approved" languages — C++, Java, Go, Python, plus JS/TS for frontend), and it's the one worth building toward.
 
-> The free-for-all feels like empowerment and is actually a tax: every new language is a second build system, a second set of base images, a second observability integration, a second on-call body of knowledge, and a second hiring funnel. The N+1 language tax is real and compounding — see [`05-when-to-introduce-a-new-language`](../05-when-to-introduce-a-new-language/).
+> The free-for-all feels like empowerment and is actually a tax: every new language is a second build system, a second set of base images, a second observability integration, a second on-call body of knowledge, and a second hiring funnel. The N+1 language tax is real and compounding — see [`05-when-to-introduce-a-new-language`](../05-when-to-introduce-a-new-language/README.md).
 
 ---
 
@@ -78,7 +81,7 @@ A language that's a perfect technical fit but has a six-month time-to-hire in yo
 
 **Training and onboarding budget.** Standardizing on a language the org doesn't know means a real, fundable line: courses, mentorship, reduced velocity during ramp. A common rule of thumb is **3–6 months to genuine fluency** for an experienced engineer moving to a substantially different language (e.g., Java → Rust, or anything → a different concurrency model). Multiply by headcount and it's a seven-figure number, not a footnote.
 
-**Vendor and platform relationships.** Choosing C# leans you toward Microsoft's stack and licensing; choosing the JVM gives you Oracle-or-OpenJDK decisions; choosing a cloud-vendor-favored language (e.g., heavy AWS Lambda use shaping you toward Node/Python) creates soft lock-in. Support contracts, license costs, and the health of the steward (foundation vs single corporation) are org-level economic inputs. (See [`08-language-longevity-and-lock-in-risk`](../08-language-longevity-and-lock-in-risk/).)
+**Vendor and platform relationships.** Choosing C# leans you toward Microsoft's stack and licensing; choosing the JVM gives you Oracle-or-OpenJDK decisions; choosing a cloud-vendor-favored language (e.g., heavy AWS Lambda use shaping you toward Node/Python) creates soft lock-in. Support contracts, license costs, and the health of the steward (foundation vs single corporation) are org-level economic inputs. (See [`08-language-longevity-and-lock-in-risk`](../08-language-longevity-and-lock-in-risk/README.md).)
 
 **The maintenance tail.** Every blessed language is a permanent funded commitment: someone patches the runtime, upgrades across breaking versions, maintains the shared libraries, and answers the 3am page. Budget the platform-team headcount per blessed language. This is the line that turns "let's add Rust because it's better" into "are we willing to fund Rust *forever*."
 
@@ -104,7 +107,7 @@ Language debates are uniquely emotional because they touch identity — engineer
 
 **Make disagreement cheap and decisions durable.** Use a "disagree and commit" norm with a written record: anyone can argue, the owner decides, the decision is documented with the rejected alternatives and *why*. The losing side's arguments are captured (so they're heard) and the matter is closed (so it's not relitigated monthly). An ADR (from `middle.md`) is the instrument: it's not just a record, it's the thing that ends the argument.
 
-**Separate the technical claim from the tribal one.** "Rust is safer" (technical, testable) is a different statement from "we should be a Rust shop" (identity, strategic). Force advocates to make the *falsifiable* claim and back it with a pilot (see [`05-when-to-introduce-a-new-language`](../05-when-to-introduce-a-new-language/)). A turf war dressed as a benchmark debate is the most common pathology; naming it defuses it.
+**Separate the technical claim from the tribal one.** "Rust is safer" (technical, testable) is a different statement from "we should be a Rust shop" (identity, strategic). Force advocates to make the *falsifiable* claim and back it with a pilot (see [`05-when-to-introduce-a-new-language`](../05-when-to-introduce-a-new-language/README.md)). A turf war dressed as a benchmark debate is the most common pathology; naming it defuses it.
 
 **Give dissent a legitimate channel.** The exception process (next section) *is* the dissent channel. A team that strongly believes the blessed set is wrong for them can file an exception with evidence. This converts grievance into a proposal you can evaluate — far better than the alternative, where they comply sullenly and route around you in private.
 
@@ -152,14 +155,14 @@ Triggers that should start a sunset conversation:
 
 - **Hiring has dried up**: you can't staff or backfill it in a reasonable window.
 - **The bus factor is 1**: a single person holds the operational knowledge.
-- **The steward is failing**: the language/runtime is effectively unmaintained upstream (see [`08-language-longevity-and-lock-in-risk`](../08-language-longevity-and-lock-in-risk/)).
+- **The steward is failing**: the language/runtime is effectively unmaintained upstream (see [`08-language-longevity-and-lock-in-risk`](../08-language-longevity-and-lock-in-risk/README.md)).
 - **It never reached critical mass**: two services, no momentum, all cost and no leverage.
 
 The sunset playbook:
 
 1. **Freeze**: no *new* services in the language. (Often the highest-leverage, lowest-cost step — it stops the bleeding immediately.)
 2. **Inventory**: list every system in it, with owners and criticality.
-3. **Plan**: a funded migration timeline for the survivors, or an explicit, dated decision to let isolated ones run to end-of-life behind a stable boundary. (See [`06-migrating-between-languages`](../06-migrating-between-languages/).)
+3. **Plan**: a funded migration timeline for the survivors, or an explicit, dated decision to let isolated ones run to end-of-life behind a stable boundary. (See [`06-migrating-between-languages`](../06-migrating-between-languages/README.md).)
 4. **Deprecate the paved road**: stop investing in tooling/support, with notice.
 5. **Set a date**: an end-of-support date, communicated early. A deprecation with no date lives forever.
 
@@ -210,18 +213,24 @@ Two paragraphs more than most orgs ever write, and worth more than any benchmark
 
 ---
 
-## 12. What's next
+## Apply it
 
-| Topic | File |
-|---|---|
-| The foundational selection factors | `junior.md` |
-| The structured weighted-matrix method | `middle.md` |
-| Where criteria conflict and the hard tradeoffs live | `senior.md` |
-| Org-scale decision exercises and ADR drills | `tasks.md` |
-| Interview framing of org-level consolidation | `interview.md` |
-| The N+1 language tax and trial governance | [`05-when-to-introduce-a-new-language`](../05-when-to-introduce-a-new-language/) |
-| TCO, hiring, and Conway's law in depth | [`07-total-cost-of-ownership-and-team-skills`](../07-total-cost-of-ownership-and-team-skills/) |
+1. Define the user or business outcome that **Language Selection Criteria** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
----
+## Verify your work
 
-**Memorize this:** at org scale you're not choosing a language — you're building the *system that chooses languages*. Keep the blessed set small and pave its road so the right choice is the easy one; make decision rights explicit so the fight is about evidence, not authority; budget the real costs (hiring, training, the forever-maintenance tail); and govern adds *and* removals, because an org that can't sunset a language is one that's slowly paying tax on every mistake it ever made.
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
+
+## Review questions
+
+- Which measurable outcome justifies investing in Language Selection Criteria?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

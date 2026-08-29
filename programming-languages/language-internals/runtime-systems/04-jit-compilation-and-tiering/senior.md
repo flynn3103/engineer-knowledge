@@ -1,58 +1,11 @@
-# JIT Compilation & Tiering — Senior Level
+# JIT Compilation & Tiering — Senior
 
-> **Topic:** JIT Compilation & Tiering
-> **Focus:** The profile-guided optimizations that make a JIT beat AOT — aggressive inlining, speculative devirtualization, type specialization, escape analysis with scalar replacement, range-check elimination, and loop transforms — and how each depends on runtime information the AOT compiler never had.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **JIT Compilation & Tiering** under failure, load, and change?
 
-## Introduction
-
-> 🎓 At junior level you learned *that* a JIT compiles hot code. At middle level you learned *which tiers* it moves code through and *what* it profiles. At senior level you answer the question that justifies the entire machinery: **what specific optimizations does a JIT apply, and why can a runtime that observed your program produce code that a from-scratch AOT compiler provably cannot?**
-
-The standard intuition — "AOT had all the time, the JIT is rushed, so AOT must win" — is wrong, and understanding *why* is the heart of this level. An AOT compiler must produce code that is correct for **every** possible execution. It cannot assume `shape` is always a `Circle`, that a list only ever holds `String`, that a branch is taken 99.97% of the time, or that a method is never overridden — because at compile time *any* of those could be false at runtime, and code that is wrong in even one case is simply wrong. A JIT operates under a different contract: it can assume whatever it has *observed*, compile code that is correct *only under those assumptions*, and **install a guard plus an escape hatch** so that if an assumption is ever violated, it discards the specialized code and falls back to a safe path (deoptimization — its own topic). This changes everything. Optimizations that are unsound in general become sound *when guarded*, and the profile tells the JIT exactly which speculative bets are worth making.
-
-Above all else, the enabler is **inlining**. Almost every other optimization on this page only becomes possible *after* inlining has pulled a callee's body into the caller, exposing it to analysis. A JIT can inline aggressively and *speculatively* — inlining a virtual call's most likely target, guarded — because it has both the call-site type profile and the deopt safety net. Inlining is the keystone; remove it and the arch collapses.
-
-This page walks through each major optimization, always answering two questions: **what runtime information does it consume**, and **what makes it unsound for AOT but sound for a guarded JIT?** It then connects to the realities a senior engineer must manage: megamorphic sites that starve inlining, the cost model of speculation, and where the handoff to deoptimization sits.
-
----
-
-## Prerequisites
-
-- **Required:** The middle-level pipeline model — HotSpot tiers, V8 Ignition→...→TurboFan, inline caches and type feedback, OSR, background compilation.
-- **Required:** Comfort with the idea that a compiler works on an intermediate representation (IR) and applies optimization *passes*.
-- **Required:** Solid grasp of virtual dispatch / vtables, heap vs stack allocation, and what a bounds check is.
-- **Helpful:** Having read disassembly or IR dumps before (e.g., `-XX:+PrintAssembly`, `--print-opt-code`).
-- **Helpful:** Familiarity with classic AOT optimizations (constant folding, CSE, loop-invariant code motion) so you can see what the *profile* adds on top.
-
-You do **not** need (handled elsewhere):
-
-- The frame-reconstruction mechanics of deoptimization — its own topic; we use it as a black-box safety net.
-- Code-cache sizing, eviction, and production warmup engineering — `professional.md`.
-- Register allocation and instruction-scheduling internals — beyond this topic's scope.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Speculation** | Compiling code that is correct only under an assumption observed at runtime, protected by a guard that triggers deoptimization if violated. |
-| **Guard** | A cheap runtime check (a type test, a null test, a branch predicate) that protects a speculative assumption. On failure, control deoptimizes. |
-| **Inlining** | Replacing a call with the callee's body. The primary enabler — exposes the callee to all other optimizations in the caller's context. |
-| **Inlining budget** | The size/heat limit governing what the JIT will inline; large callees and cold callees are excluded. |
-| **Devirtualization** | Turning a virtual/dynamic dispatch into a direct call. *Speculative* devirtualization does so based on the observed receiver-type profile, guarded. |
-| **Monomorphic / bimorphic / polymorphic / megamorphic** | A call site's degree: one, two, a few, or too-many observed receiver types. Megamorphic sites cannot be speculatively devirtualized or inlined. |
-| **Type specialization** | Compiling a code path for the concrete types actually seen (e.g., int-only arithmetic, a specific array element type), guarded against other types. |
-| **Escape analysis** | Proving an object never escapes the method (or thread) that created it, enabling stack allocation or its elimination. |
-| **Scalar replacement** | The payoff of escape analysis: an unescaping object's fields are replaced by plain local variables (scalars) in registers, removing the allocation entirely. |
-| **Range-check / bounds-check elimination (RCE/BCE)** | Removing array bounds checks the compiler can prove are always in range, often using loop-induction-variable reasoning. |
-| **Loop-invariant code motion (LICM)** | Hoisting a computation that does not change across iterations out of the loop. |
-| **Loop unrolling** | Replicating the loop body N times to amortize loop overhead and expose instruction-level parallelism. |
-| **Uncommon trap** | HotSpot's name for a deoptimization point inserted where a speculative assumption is checked. |
-| **Profile pollution** | When unrepresentative early executions skew the profile, leading the JIT to specialize for the wrong case. |
-| **PIC (polymorphic inline cache)** | An inline cache that handles a small fixed set of types with inlined fast paths, one per observed type. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -123,28 +76,6 @@ The senior insight: these are "textbook" optimizations, but their *effectiveness
 ### 7. The cost model: when speculation pays
 
 Every speculative optimization installs a guard, and every guard can fail. The JIT is implicitly computing an expected value: `P(assumption holds) × (savings) − P(assumption fails) × (deopt + re-profile + re-compile cost)`. When the profile shows an assumption holds 99.99% of the time, the bet is overwhelmingly positive. When the profile is *mixed* (a branch is 55/45, a site is genuinely polymorphic), speculation is a bad bet — the guard fails too often, deopts churn, and the JIT either declines to specialize or, worse, enters a deopt loop. A senior engineer's job is often to make the profile *cleaner* — push a site toward monomorphism — so the JIT's bets become safe. **You cannot make the JIT smarter; you can make your program more predictable.**
-
----
-
-## Real-World Analogies
-
-**The surgeon who reviewed the chart (speculative devirtualization + the AOT contrast).** An AOT compiler is a field medic who must be ready for *any* patient walking in — no history, prepare for everything, move cautiously. A JIT is a surgeon who read this specific patient's chart: "99.99% chance it's appendicitis." They prep precisely for that, fast and direct — with a guard in place ("if I open up and it's not appendicitis, stop and reassess"). The chart is the runtime profile. The medic *cannot* be that fast because they *cannot* know; the surgeon can, because they *observed*.
-
-**Mise en place (escape analysis + scalar replacement).** A line cook who knows a sauce will be used and discarded within this one dish doesn't plate it, store it, or label it for the walk-in — they keep it in a bowl on the counter (a register) and use it immediately. Only ingredients that *escape* this dish (go to the fridge, to another station) get the full container-and-label treatment (heap allocation). Proving "this never leaves the counter" is escape analysis; skipping the container is scalar replacement.
-
-**Removing the bag-check you already did (bounds-check elimination).** If a guard checked your bag at the building entrance and you never left the secured floor, re-checking it at every interior door is pure waste. Prove you stayed inside the proven-safe region (the loop range) and all the interior checks can be removed, keeping just the one at the entrance.
-
----
-
-## Mental Models
-
-**Model 1 — Optimization is a tree rooted at inlining.** Draw inlining as the trunk. Devirtualization is what lets the trunk grow through virtual calls. Type specialization, escape analysis, BCE, and loop transforms are branches that can only grow once the trunk (inlined, flattened code) exists. Cut the trunk (megamorphic site → no inlining) and the whole tree dies. When diagnosing a slow hot path, *always check inlining first*.
-
-**Model 2 — Every JIT optimization is "assume + guard + escape hatch."** Internalize this triple. The assumption comes from the profile; the guard is a cheap check; the escape hatch is deoptimization. This single shape explains devirtualization, type specialization, null-check elision, branch speculation, and BCE. AOT lacks the escape hatch, so it cannot make the assumption.
-
-**Model 3 — The profile is a probability distribution, and the JIT is a bettor.** A monomorphic site is a near-certain bet — bet big (inline, specialize). A 50/50 branch is a coin flip — don't bet (don't speculate; emit balanced code). Megamorphic is "no favorite" — don't bet at all (generic dispatch). Your job as an engineer is to *sharpen the distribution* so the JIT can bet confidently.
-
-**Model 4 — Why JIT > AOT, in one line.** AOT must be correct for the union of all executions; a JIT must be correct only for the executions it observed, *plus a guarded fallback for the rest*. The gap between "all possible" and "actually observed" is precisely the optimization headroom the JIT exploits.
 
 ---
 
@@ -274,15 +205,6 @@ If `hot` is on a hot path but too large to inline, the caller cannot fold consta
 
 ---
 
-## Use Cases
-
-- **Throughput-critical JVM services** rely on C2's inlining + EA + BCE to reach near-native loop speeds (stream processing, serialization, JSON parsing hot loops).
-- **High-performance JavaScript** (game engines, spreadsheet calc, crypto in JS) depends on TurboFan's type specialization and inlining; keeping shapes monomorphic is the difference between fast and unusable.
-- **Numeric kernels** benefit most from BCE + loop unrolling + vectorization, which only fire after specialization makes the body uniform.
-- **Allocation-heavy idiomatic code** (lots of small temporary objects, iterators, boxing) is rescued by escape analysis — letting you write clean code that performs like hand-optimized code.
-
----
-
 ## Coding Patterns
 
 **Pattern 1 — Engineer monomorphism on hot sites.** The highest-leverage thing you can do for a JIT. Keep one concrete receiver type per hot virtual call; use `final` classes/methods where appropriate (a `final` method is trivially devirtualizable); avoid passing many subtypes through the same hot site.
@@ -325,23 +247,24 @@ If `hot` is on a hot path but too large to inline, the caller cannot fold consta
 
 ---
 
-## Summary
+## Apply it
 
-- A JIT beats AOT because it may assume what it *observed* and **guard** it with a deoptimization escape hatch; AOT must be correct for *all* executions and therefore cannot make those assumptions.
-- **Inlining is the keystone.** It flattens the call graph and exposes callees to every other optimization. Lose it (megamorphic sites) and the rest collapses.
-- **Speculative devirtualization** turns profiled virtual calls into inlined direct calls behind a type guard — the clearest demonstration of JIT-over-AOT.
-- **Type specialization** compiles narrow fast paths for the concrete types seen, guarded against the rest — essential for dynamic and type-erased code.
-- **Escape analysis + scalar replacement** delete non-escaping objects, turning fields into registers and removing allocation/GC cost — supercharged by inlining.
-- **Range-check elimination** removes provably-safe bounds checks; **loop transforms** (LICM, unrolling, vectorization) then hit a clean, uniform body hard.
-- Every optimization is **assume + guard + escape hatch**, and its profitability is a bet sized by the profile's sharpness. The senior lever is making your program *predictable* so the JIT's bets are safe.
-- The boundary where a guard fails hands off to **deoptimization** (its own topic); repeated failures are a deopt loop and a real performance bug.
+1. State the system invariant that **JIT Compilation & Tiering** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
----
+## Verify your work
 
-## Further Reading
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
 
-- HotSpot C2 documentation and the OpenJDK wiki on inlining, escape analysis (`-XX:+DoEscapeAnalysis`), and the `-XX:+PrintInlining` / `-XX:+PrintAssembly` (hsdis) tooling.
-- V8 TurboFan design docs and "An Introduction to Speculative Optimization in V8" for the assume-guard-deopt model in a dynamic language.
-- "Optimizing Java" (Evans, Gough, Newland) for practical inlining/EA/BCE diagnosis on the JVM.
-- Papers on partial escape analysis (Graal) for the state of the art in scalar replacement under branching.
-- The professional tier of this topic, which turns these optimizations into operational concerns: code-cache management, warmup strategy, and the engineering pressures that drove AOT alternatives.
+## Review questions
+
+- Which invariant must remain true when JIT Compilation & Tiering fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

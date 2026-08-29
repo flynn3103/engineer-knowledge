@@ -1,60 +1,11 @@
-# Effect & Error Execution Models — Middle Level
+# Effect & Error Execution Models — Middle
 
-> **Topic:** Effect & Error Execution Models
-> **Focus:** How a `throw` *physically* leaves a function. Stack unwinding, landing pads, `finally`/`defer` execution order, and why "zero-cost exceptions" cost nothing — until you throw.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **Effect & Error Execution Models** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-> Focus: **When you write `throw new RuntimeException()`, what does the machine actually do?** It does *not* "go to a catch." Catches don't have addresses the throw knows about. Something has to *find* the handler, *unwind* the intervening frames, and *run cleanup* on the way. This page is about that something.
-
-At the junior level, "the exception jumps up the stack to a catch" was a fine story. Now we crack it open. There is no GOTO from a `throw` to a `catch`; the throw site has no idea where the matching catch lives — it might be three frames up, in a different file, in a `main` you didn't write. The runtime has to **search** the call stack for a handler, **unwind** every frame between the throw and that handler (running each frame's cleanup — destructors, `finally` blocks, `defer`s), and finally **transfer control** into the handler with the exception object in hand.
-
-How that search-and-unwind is implemented is one of the more beautiful and under-appreciated pieces of language runtimes. The dominant modern technique is **table-driven, "zero-cost" exceptions**: the compiler emits, off to the side, **metadata tables** describing where every function's cleanup code and handlers live. On the **happy path**, these tables cost *nothing at runtime* — no instructions execute to "set up" a try block. The cost is paid only when an exception is actually thrown, at which point a runtime library walks the tables to unwind. This is why "zero-cost" is a half-truth: **zero cost when you don't throw, expensive when you do.**
-
-This page also covers the explicit-value side at its mechanical level: how Go's `panic`/`recover` actually walks deferred functions, how Rust's `?` *desugars* into a `match` and an early return, and how `finally`/`defer`/`ensure` are scheduled and ordered. Understanding this mechanism changes how you write code: you'll stop treating exceptions as "free try blocks," you'll understand why a hot loop should never throw, and you'll know exactly what runs (and in what order) when control leaves a function the hard way.
-
-> 🎓 **Why this matters at this level:** Two engineers can write the same `try/catch` and get wildly different performance because one throws on the hot path and one doesn't. You can't reason about that — or about resource cleanup ordering, or about why a destructor ran "spontaneously" — without knowing how unwinding works. This is the level where error handling stops being syntax and becomes mechanism.
-
----
-
-## Prerequisites
-
-- **Required:** Comfort with the junior page: the two families (exceptions vs error values), errors vs panics, what `finally`/`defer` are *for*.
-- **Required:** A working picture of the **call stack** and **stack frames** — return addresses, local variables living in a frame.
-- **Required:** Basic familiarity with at least one of: C++ RAII/destructors, Go `defer`, Java/Python `finally`.
-- **Helpful:** A vague idea of what a *function prologue/epilogue* is and that the compiler generates code you don't see.
-- **Helpful:** Knowing that the compiler can lay out code and emit side metadata (debug info, etc.).
-
-You do **not** yet need:
-
-- The DWARF/`.eh_frame` byte format details, two-phase SEH internals, or `setjmp`/`longjmp` mechanics (that's `senior.md`).
-- Algebraic effects, delimited continuations, or `call/cc` (that's `senior.md`/`professional.md`).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Throw site** | The exact instruction that raises the exception. |
-| **Handler / catch clause** | The code that catches and processes a thrown exception. |
-| **Stack unwinding** | Popping stack frames from the throw site up to the handler, running cleanup in each. |
-| **Landing pad** | Compiler-generated code in a function that runs during unwinding: it executes cleanups and/or dispatches to the matching catch. |
-| **Cleanup** | Code that must run as a frame is unwound: C++ destructors, Go `defer`s, `finally` blocks. |
-| **Two-phase unwinding** | The Itanium/SEH approach: *phase 1* searches for a handler without modifying the stack; *phase 2* actually unwinds and runs cleanup. |
-| **Zero-cost exceptions** | An implementation where the happy path executes no extra instructions; the cost is paid only on throw, via side tables. |
-| **Unwind tables (`.eh_frame`, LSDA)** | Read-only metadata the compiler emits describing how to unwind each frame and where its handlers/cleanups are. (Detailed in `senior.md`.) |
-| **`setjmp`/`longjmp`** | A C mechanism that saves and restores the machine state to jump non-locally — the *old* way to implement exceptions, with a happy-path cost. |
-| **Personality routine** | A per-language function the unwinder calls for each frame to ask "do you handle this exception, or do you have cleanup?" |
-| **RAII** | "Resource Acquisition Is Initialization": tie a resource's lifetime to an object so its destructor releases it, including during unwinding. |
-| **`defer` (Go)** | A statement that schedules a call to run when the surrounding function returns — including during a panic. |
-| **`panic` / `recover` (Go)** | Go's unwinding mechanism: `panic` runs deferred calls up the stack; `recover` stops it. |
-| **`?` operator (Rust)** | Sugar that, on `Err`/`None`, returns it from the current function; on `Ok`/`Some`, unwraps the value. |
-| **`panic = "abort"` vs `"unwind"`** | A Rust compile option: on `panic!`, either run destructors and unwind, or immediately terminate. |
-| **`noexcept`** | A C++ specifier promising a function won't throw; lets the compiler omit unwind machinery and call `std::terminate` if it lies. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -142,37 +93,6 @@ let x = match fallible() {
 There is **no unwinding** here — `?` is an ordinary early `return`, as cheap as any return. The `From::from` lets a function convert a lower-level error into its own error type automatically.
 
 Separately, Rust's `panic!` *does* unwind by default (running `Drop`s, exactly like C++ destructors), using the same table-driven Itanium machinery. But Rust lets you choose `panic = "abort"` in `Cargo.toml`, which makes `panic!` **immediately terminate** without unwinding — smaller binaries, no unwind tables, and a guarantee that destructors won't run during a panic. Libraries thus can't rely on catching panics for control flow.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Search for a handler** | A fire alarm goes off on floor 7. The building doesn't know in advance who's the fire warden — it pages up the floors until someone responds "I've got this." |
-| **Two-phase unwinding** | First, dispatch confirms a warden exists *before* evacuating (Phase 1). Only then does everyone actually file out, locking their offices on the way (Phase 2). |
-| **No handler → terminate with stack intact** | If no warden answers, you want the building left exactly as-is for investigators — don't shred the evidence by evacuating. |
-| **Landing pad** | The stairwell each floor must pass through — where you turn off your computer (cleanup) before continuing down. |
-| **Zero-cost tables** | The evacuation map posted on the wall: free to have, consulted only during an actual fire. |
-| **`setjmp`/`longjmp`** | Every employee re-recording their exact desk position every morning *just in case* there's a fire — a daily cost for a rare event. |
-| **LIFO cleanup** | You took off your coat, then your shoes; leaving, you put on shoes then coat — reverse order. |
-| **`noexcept`** | A sign on a room saying "no fire exits needed here — guaranteed nothing flammable." If it lies and catches fire, the whole building is condemned (`terminate`). |
-
----
-
-## Mental Models
-
-### The "Two Lists" Model of a Stack Frame
-
-Think of each active stack frame as carrying two precomputed lists (in the side tables, not in the running code): a **cleanup list** ("destroy these objects / run these `finally`s if you unwind through me") and a **handler list** ("I catch exceptions of these types"). The unwinder walks frames consulting these lists. The happy-path code never touches them — that's the "zero cost."
-
-### The "You Pay at the Toll Booth, Not the On-Ramp" Model
-
-`setjmp`/`longjmp` charges a toll at every on-ramp (every `try` entry). Table-driven exceptions charge nothing at on-ramps and a *big* toll only if you actually crash off the road (throw). Choose your road by how often you expect to crash: rare exceptions → table-driven wins big; frequent "exceptions" → you've mis-modeled your control flow.
-
-### The "Unwinder Is an Interpreter" Model
-
-The unwinder is effectively a tiny interpreter whose *program* is the unwind tables and whose *input* is the current stack. It single-steps up the frames, executing table-described actions (restore these registers, run this landing pad). Throwing is slow because you're invoking an interpreter, not executing a branch.
 
 ---
 
@@ -318,29 +238,6 @@ A `return` (or another `throw`) inside `finally` *replaces* the in-flight except
 
 ---
 
-## Pros & Cons
-
-| Mechanism | Pros | Cons |
-|-----------|------|------|
-| **Table-driven (zero-cost) exceptions** | No happy-path cost; clean code; carries stack trace. | Throwing is very expensive; larger binaries (unwind tables); hard to reason about non-local control. |
-| **`setjmp`/`longjmp` exceptions** | Cheap to throw; simple to implement; portable C. | Continuous happy-path cost at every `try`; doesn't run C++ destructors correctly; clobbers non-`volatile` locals. |
-| **`?` / error-value propagation** | Cheap (just a return); explicit; no unwinding; easy to follow. | Manual at every layer; verbose without sugar; can't skip many frames at once. |
-| **`panic = abort` (Rust)** | Smallest/fastest; no unwind tables; deterministic "fatal". | No cleanup on panic; can't recover at thread boundaries; `Drop` won't run. |
-| **`noexcept` / no-throw guarantees** | Enables optimizations; smaller code; documents intent. | A violated promise = instant `terminate`; constrains what the function may call. |
-
----
-
-## Use Cases
-
-- **Hot inner loops:** never throw inside them. The happy-path cost is zero, but a thrown exception in a tight loop can dominate runtime. Use error values or precondition checks.
-- **Library boundaries (C++):** mark functions `noexcept` where you can guarantee it; it unlocks move optimizations in standard containers and signals intent.
-- **Recoverable, frequent failures:** prefer `Result`/`error` (no unwinding). Parsing, validation, lookups.
-- **Truly exceptional, rare failures:** exceptions or `panic` are fine — the high throw cost is paid rarely and buys clean happy-path code.
-- **Embedded / size-constrained binaries (Rust):** `panic = "abort"` removes unwind tables and shrinks the binary; appropriate when a panic should just kill the process anyway.
-- **`recover` at goroutine/request boundaries (Go):** wrap a request handler so one panicking request doesn't take down the server — a legitimate use of the unwinding mechanism.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Recover only at a boundary, then convert to an error
@@ -414,24 +311,24 @@ Either add context (`throw new ServiceException("loading X", e)`) or don't catch
 
 ---
 
-## Summary
+## Apply it
 
-- A `throw` is a **search**, not a jump: the runtime must *find* a handler up the stack, *unwind* intervening frames running their cleanup, then transfer control.
-- Each frame's **cleanups and handlers** are precomputed by the compiler into **side tables**; the running happy-path code never touches them.
-- **Two-phase unwinding** searches for a handler first (stack intact, so an unhandled exception can `terminate` with full context), then unwinds and runs cleanup second.
-- **"Zero-cost" exceptions** cost nothing on the non-throwing path (table-driven) but make a throw *expensive*; the old **`setjmp`/`longjmp`** approach is the opposite — cheap throw, continuous happy-path cost, and it doesn't run C++/Go cleanup.
-- Cleanup during unwinding runs **LIFO**: C++ destructors, Go `defer`s, Java/Python `finally` — reverse of acquisition, which is what makes RAII correct.
-- **Go's `panic`/`recover`** is unwinding spelled with deferred functions; **Rust's `?`** is *not* unwinding at all — it desugars to an early `return`, while `panic!` uses the same Itanium unwinding (or `abort`, skipping cleanup).
-- Practical consequences: never throw in hot loops; keep cleanup non-throwing; use RAII; recover at boundaries; reserve the expensive mechanism for the genuinely exceptional.
+1. Find a real component where **Effect & Error Execution Models** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
----
+## Verify your work
 
-## Further Reading
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
 
-- *Itanium C++ ABI: Exception Handling* — the specification of two-phase unwinding and personality routines. https://itanium-cxx-abi.github.io/cxx-abi/abi-eh.html
-- *"Zero-cost exceptions aren't actually zero-cost"* — discussions and benchmarks on throw cost vs. happy-path cost.
-- *The Go Blog — "Defer, Panic, and Recover."* https://go.dev/blog/defer-panic-and-recover
-- *The Rustonomicon — "Unwinding"* and the `?`/`Try` desugaring. https://doc.rust-lang.org/nomicon/unwinding.html
-- *"Exception Handling in LLVM"* — how landing pads and the `invoke`/`landingpad` IR work. https://llvm.org/docs/ExceptionHandling.html
-- *C++ Core Guidelines* — sections on exceptions, `noexcept`, and RAII.
-- Herb Sutter, *"Exceptional C++"* and the GotW series on exception safety and destructor rules.
+## Review questions
+
+- Which boundary is most affected by Effect & Error Execution Models?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

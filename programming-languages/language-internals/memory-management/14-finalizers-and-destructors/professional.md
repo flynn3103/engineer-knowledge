@@ -1,16 +1,11 @@
-# Finalizers & Destructors — Professional Level
+# Finalizers & Destructors — Professional
 
-> **Topic:** Finalizers & Destructors
-> **Focus:** Production-grade resource cleanup — the two-tier explicit-close + finalizer-backstop pattern, the incidents that justify it, and how to implement it correctly in Rust, C++, Go, Java, and Python.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Finalizers & Destructors** with measurable outcomes and limited coordination?
 
-## Introduction
-
-In production, the failure mode of getting teardown wrong is not "memory grows." It is "the service stops accepting connections at 3 a.m. because every file descriptor, every connection-pool slot, and every advisory lock is held by an object the GC has not gotten around to collecting." Heap memory is abundant and elastic; OS handles are scarce and hard-capped. A finalizer reclaims memory eventually, which masks the leak of the *real* scarce resource until the limit hits.
-
-This section is about the pattern that production code actually uses: **deterministic close as the contract, a finalizer as an alarm.** We'll implement it correctly in each major runtime and walk through the incidents that make it non-negotiable.
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -195,34 +190,6 @@ Usage is `with Resource(p) as r:`. `__del__` is a guarded safety net, never the 
 
 ---
 
-## War Stories
-
-- **"4 GB free, zero file descriptors."** A service wrapped each upload in an object that closed its temp file *in `__del__` / a finalizer only*. Under bursty load the GC didn't run often enough; `EMFILE` ("too many open files") hit while the heap was nearly empty. Fix: deterministic `with`/`close`, finalizer demoted to a logging backstop. Lesson: handle limits bite long before memory pressure triggers the GC.
-
-- **The single finalizer thread (Java).** A legacy class did slow network I/O inside `finalize()`. Under load the lone finalizer thread couldn't drain its queue; finalizable objects piled up, retaining everything they referenced, and the heap grew until OOM — a *memory* leak caused by a *finalizer-throughput* bottleneck. Fix: removed I/O from finalization, moved to `Cleaner`, made cleanup O(1).
-
-- **The cleaner that captured `this`.** A team migrated to `Cleaner` but registered a lambda closing over the outer object to "reach its handle." The object was now reachable via the cleaner forever; native memory grew without bound and the cleanup never ran. Fix: extracted a static `State` holding only the raw handle.
-
-- **Resurrection double-free.** A Go `SetFinalizer` re-registered the object inside its own finalizer to "retry" cleanup, then a code path also called the explicit `Close()`. The native buffer was freed twice → heap corruption. Fix: idempotent close guarded by an atomic flag; no resurrection.
-
-- **Lock released in a finalizer.** An advisory DB lock was released only when the holder object was finalized. Two requests deadlocked because the GC hadn't collected the first holder. Locks are *never* Tier 2.
-
----
-
-## Pros & Cons
-
-**Two-tier pattern**
-
-- Pros: deterministic release for scarce handles; native memory still reclaimed if a close is forgotten; leaks become visible log lines; idempotency prevents double-free; works uniformly across runtimes.
-- Cons: more code per resource type; requires discipline to keep the backstop's captured state detached; the backstop's non-determinism means it must not be relied upon for correctness — only for footprint and observability.
-
-**Finalizer-only (anti-pattern)**
-
-- Pros: less code, no caller discipline needed.
-- Cons: exhausts OS limits, deadlocks on locks, undefined timing, thread-stall cascades, resurrection, swallowed exceptions. Acceptable *only* for pure off-heap memory with no hard limit and no correctness coupling.
-
----
-
 ## Best Practices
 
 1. **Tier 1 is the contract; Tier 2 is the alarm.** Every scarce resource gets deterministic `close`/`Dispose`/`defer`/`with`/RAII. The finalizer only logs-and-frees-native.
@@ -244,6 +211,24 @@ Usage is `with Resource(p) as r:`. `__del__` is a guarded safety net, never the 
 
 ---
 
-## Summary
+## Apply it
 
-Production resource management is the two-tier pattern: a deterministic `close`/`Dispose`/`defer`/RAII contract that releases scarce handles at a known point, plus a finalizer backstop whose only jobs are freeing native memory and logging that a close was missed. The backstop must be idempotent with the explicit path, must keep its captured state detached from the host object, and must do no I/O. The war stories all reduce to one mistake — trusting a non-deterministic finalizer with a scarce, correctness-critical resource — and the fix is always the same: promote release to Tier 1 and demote the finalizer to an alarm.
+1. Define the user or business outcome that **Finalizers & Destructors** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
+
+## Verify your work
+
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
+
+## Review questions
+
+- Which measurable outcome justifies investing in Finalizers & Destructors?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

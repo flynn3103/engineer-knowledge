@@ -1,41 +1,11 @@
-# Manual Memory Management — Senior Level
+# Manual Memory Management — Senior
 
-> **Topic:** Manual Memory Management
-> **Focus:** Design trade-offs across C, C++ (RAII), and Rust (compile-time ownership); the patterns that make manual memory tractable at scale.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Manual Memory Management** under failure, load, and change?
 
-## Introduction
-
-A senior engineer's job is rarely "call `free` correctly." It is to choose a *memory architecture* that makes whole classes of bugs impossible — or at least cheap to detect — and to understand why three major systems languages made radically different bets to get there.
-
-C says: *you prove correctness in your head.* C++ says: *bind every resource's lifetime to a scope, and let destructors run automatically (RAII).* Rust says: *the compiler proves your ownership and aliasing are sound before the program runs, or it doesn't compile.* These are three points on a single design axis — *where do we move the proof obligation: runtime, scope, or compiler?* Understanding that axis lets you reason about any memory-management decision, including ones in languages not on this list.
-
-This tier is about design: ownership trees, arenas, pools, handles, and the move semantics that make all of it ergonomic.
-
----
-
-## Prerequisites
-
-- Allocator internals and ownership conventions (middle tier).
-- Working knowledge of C++ (constructors/destructors, references) and at least reading-level Rust.
-- Familiarity with the failure taxonomy: use-after-free, double-free, leak, overflow, uninitialized read, mismatched/invalid free.
-
----
-
-## Glossary
-
-| Term | Meaning |
-|------|---------|
-| **RAII** | Resource Acquisition Is Initialization — bind a resource's lifetime to an object's lifetime so the destructor releases it. |
-| **Smart pointer** | An object that owns a heap allocation and frees it in its destructor (`unique_ptr`, `shared_ptr`). |
-| **Move semantics** | Transferring ownership of a resource out of one object into another, leaving the source empty. |
-| **Rule of Three/Five/Zero** | C++ guidance on which special member functions a resource-owning class must define. |
-| **Arena / region allocator** | Allocate many objects from a bump pointer; free them all at once by resetting the arena. |
-| **Pool allocator** | Pre-allocate a slab of fixed-size slots; allocation is a free-list pop. |
-| **Generational index / handle** | An index plus a generation counter used instead of a raw pointer, so stale references are detectable. |
-| **Borrow** | A temporary, non-owning reference (Rust: checked at compile time). |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -111,14 +81,6 @@ The trade: a steep learning curve and the occasional fight with the borrow check
 | Escape hatch | n/a | n/a | `unsafe` blocks | JNI/cgo |
 
 The throughline: **the cost of safety doesn't vanish; it moves.** C pushes it to the programmer's discipline and to runtime crashes. C++ moves it to scopes and convention. Rust moves it to compile time. GC languages move it to runtime overhead and pause latency. A senior engineer chooses based on which cost the system can afford — a trading engine cannot afford GC pauses; a CRUD service cannot afford manual-memory CVEs.
-
----
-
-## Mental Models
-
-- **Move the proof.** Every memory model is an answer to "where does the safety proof live?" Name the location and the trade-offs follow.
-- **Ownership is a tree, not a graph.** Healthy designs form a tree: each node owns its children, parents outlive children, teardown is a post-order walk. Graphs (shared/cyclic ownership) are where `shared_ptr`/`Rc` and leaks live — minimize them.
-- **`unique_ptr` is a raw pointer with a conscience.** Same size, same speed, but it cannot forget to free and cannot be copied into a double-free.
 
 ---
 
@@ -208,30 +170,6 @@ Handles trade a pointer dereference for an index + validity check, buying you sa
 
 ---
 
-## Pros & Cons
-
-**Pros (of disciplined manual management)**
-
-- **RAII makes correct cleanup the default**, including on exceptions.
-- **Arenas/pools/handles** turn correctness *and* performance problems into structural wins.
-- **Zero-cost safety** is achievable (C++ `unique_ptr`, Rust borrow checking).
-
-**Cons**
-
-- **C++ has trap doors**: you can still bypass RAII, alias a `unique_ptr`'s raw pointer, or hit a `shared_ptr` cycle.
-- **Rust's discipline has a real learning cost** and can force awkward designs around shared/graph data.
-- **Custom allocators add complexity** and must be debugged with the same rigor as the bugs they prevent.
-
----
-
-## Use Cases
-
-- **C++ codebases**: standardize on RAII + `unique_ptr`, Rule of Zero, `make_unique`; ban raw `new`/`delete` in review.
-- **Rust services/systems**: lean on the borrow checker; isolate `unsafe` to small, audited modules.
-- **High-throughput systems**: arenas for per-request memory; pools for connection/object churn; handles for entity systems.
-
----
-
 ## Best Practices
 
 1. **Make ownership a type, not a comment.** Prefer `unique_ptr`/`Box` over raw pointers + documentation.
@@ -254,11 +192,24 @@ Handles trade a pointer dereference for an index + validity check, buying you sa
 
 ---
 
-## Summary
+## Apply it
 
-- Every memory model answers "**where does the safety proof live?**" — C: in your head; C++: in scopes via RAII; Rust: in the compiler; GC: at runtime.
-- **RAII** binds resource lifetime to object lifetime; with `unique_ptr` (default), `shared_ptr` (genuine sharing), and the **Rule of Zero**, modern C++ rarely writes `delete`.
-- **Move semantics** encode "ownership passed exactly once" and make exclusive ownership zero-cost.
-- **Rust** makes RAII mandatory and the borrow checker proves no use-after-free/double-free at compile time, with `unsafe` as the audited escape hatch.
-- **Arenas, pools, and generational handles** are the structural patterns that make manual memory both correct and fast at scale.
-- The professional tier covers the production reality: war stories, sanitizers, and where manual memory still wins decisively.
+1. State the system invariant that **Manual Memory Management** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
+
+## Verify your work
+
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
+
+## Review questions
+
+- Which invariant must remain true when Manual Memory Management fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

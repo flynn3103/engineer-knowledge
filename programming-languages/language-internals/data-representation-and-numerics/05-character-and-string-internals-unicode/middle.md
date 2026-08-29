@@ -1,53 +1,11 @@
-# Character & String Internals (Unicode) — Middle Level
+# Character & String Internals (Unicode) — Middle
 
-> **Topic:** Character & String Internals (Unicode)
-> **Focus:** The bits themselves. Exactly how UTF-8 packs a code point into 1–4 bytes, why UTF-16 needs surrogate pairs, what the reserved `D800–DFFF` range is, and why the BOM exists and causes trouble.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **Character & String Internals (Unicode)** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-> Focus: **Given a code point, what exact bytes appear in memory — and given bytes, how do you reconstruct the code point without a lookup table?**
-
-At the junior level you learned that a string is bytes plus an encoding, and that there are four layers. Now we open the encodings and look at the actual bits. This is not academic. The difference between a self-synchronizing encoding and a fragile one, the reason `0xD800–0xDFFF` can never be a real character, the reason a 4-byte file can contain three invisible bytes at the front that break your parser — all of these live at the bit level, and a middle engineer is expected to reason about them directly.
-
-We will cover three encodings — **UTF-8**, **UTF-16**, **UTF-32** — as concrete byte transformations. We will derive UTF-8's bit pattern from scratch so that you can decode a byte sequence by hand. We will see *why* UTF-16 cannot represent every code point in 16 bits and how surrogate pairs solve that by stealing a block of the code-point space. We will see the BOM (byte order mark) and the byte-order problem it was invented for. And we will confront the consequence that ties it all together: **code-unit indexing is not code-point indexing**, which is why `"😀".length === 2` and why so much string-manipulation code is quietly broken.
-
-> 🎓 **Why this matters for a middle engineer:** You will write parsers, serializers, protocol code, and validation logic that touch bytes. When a library hands you "invalid UTF-8," you need to know what that *means* — which byte, which rule it violated. When you debug a string that has a phantom character at the front, you need to recognize a BOM. When you reason about whether a substring operation is safe, you need to know where character boundaries fall. This is the layer where "it works" becomes "I know why it works."
-
-The next level (`senior.md`) builds on these bytes to cover normalization, case folding, and collation — the *semantic* operations on text. This page is about the *mechanical* representation.
-
----
-
-## Prerequisites
-
-- **Required:** The junior-level model: bytes → code units → code points → graphemes; what ASCII and Unicode are.
-- **Required:** Comfort with binary and hexadecimal; reading bit patterns like `1110xxxx`.
-- **Required:** Knowing that a code point is written `U+` then hex, range `U+0000`–`U+10FFFF`.
-- **Helpful:** Familiarity with bit masking and shifting (`&`, `|`, `<<`, `>>`).
-- **Helpful:** Awareness of endianness (covered fully in the sibling topic `04-endianness-and-byte-order`).
-
-You do **not** need: normalization, collation, or in-memory string storage internals (later levels).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Code unit** | The fixed-size unit an encoding processes: 8 bits (UTF-8), 16 bits (UTF-16), 32 bits (UTF-32). |
-| **Scalar value** | A Unicode code point that is *not* a surrogate — i.e. `U+0000`–`U+D7FF` or `U+E000`–`U+10FFFF`. The set of things UTF-8/16/32 may encode. |
-| **Surrogate code point** | The range `U+D800`–`U+DFFF`, permanently reserved, never a real character; used only as UTF-16 surrogate *code units*. |
-| **High / lead surrogate** | A UTF-16 code unit in `0xD800`–`0xDBFF`, the first half of a pair. |
-| **Low / trail surrogate** | A UTF-16 code unit in `0xDC00`–`0xDFFF`, the second half of a pair. |
-| **Surrogate pair** | A high + low surrogate encoding one code point in `U+10000`–`U+10FFFF`. |
-| **Continuation byte** | In UTF-8, any byte of the form `10xxxxxx`; the non-leading bytes of a multi-byte sequence. |
-| **Lead byte** | In UTF-8, the first byte of a sequence: `0xxxxxxx`, `110xxxxx`, `1110xxxx`, or `11110xxx`. |
-| **Overlong encoding** | An illegal UTF-8 sequence that uses more bytes than necessary for a code point (a security hazard). |
-| **BOM** | Byte Order Mark, `U+FEFF`. Optional prefix signaling encoding/endianness. |
-| **Self-synchronizing** | Property where you can find character boundaries from any position by inspecting bytes locally. |
-| **WTF-8** | "Wobbly" UTF-8, an extension that can hold unpaired surrogates, used internally by some systems (e.g. Rust's `OsString` on Windows). |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -125,28 +83,6 @@ UTF-32 stores each code point in a fixed 32 bits. Indexing is O(1) and there are
 | UTF-32 LE | `FF FE 00 00` |
 
 For UTF-16/32, the BOM solves a real problem: a 16-bit unit can be stored big-endian or little-endian, and `FE FF` vs `FF FE` tells the reader which. For **UTF-8 the BOM is pointless** — UTF-8 has no byte-order ambiguity (its units are single bytes) — yet Windows tools love to prepend `EF BB BF`. That phantom 3-byte prefix is a frequent bug: it makes a JSON file start with invisible bytes, breaks shell scripts whose first line must be `#!/bin/sh`, and shows up as a stray `﻿` character in the parsed string.
-
----
-
-## Real-World Analogies
-
-**The variable-length address.** UTF-8 is like a postal system where the first digit of an address tells you how many digits the whole address has. A street number starting with `0` is one digit; starting with `110` means "read two boxes total." You never get lost because the structure is encoded in the data itself.
-
-**The two-key safe (surrogate pairs).** A code point above `U+FFFF` is like a safe that needs two keys turned together. The "high" key alone (`0xD83D`) opens nothing — it is meaningless without its "low" partner (`0xDE00`). The reserved key-shapes (`D800–DFFF`) are manufactured *only* as safe keys, never as normal door keys, so there is no confusion.
-
-**The invisible price tag (BOM).** The UTF-8 BOM is like a price sticker someone left on the inside of a gift. The gift is fine, but every time you open the box you find this little sticker (`﻿`) you have to peel off, and if you forget, your recipe (script, JSON) chokes on it.
-
----
-
-## Mental Models
-
-**Model 1: The first byte is a length header.** In UTF-8, look at the high bits of the first byte: `0` → 1 byte, `110` → 2, `1110` → 3, `11110` → 4, `10` → "you are not at the start, back up." This is the entire decoding state machine in one sentence.
-
-**Model 2: Surrogates are an address-space hack.** Unicode permanently sacrificed 2048 code points (`D800–DFFF`) so that UTF-16 could address the astral planes with pairs. The cost is that those code points can never mean anything, and any text system must treat them as structural, not content.
-
-**Model 3: Endianness is a UTF-16/32 problem, not a UTF-8 problem.** Because UTF-8's code unit is one byte, there is no "which end first" question. The BOM matters only for the wide encodings. If you only ever use UTF-8, you can mostly forget endianness exists for text.
-
-**Model 4: "Index" usually means "code unit index."** When a language lets you write `s[5]` or `s.substring(2, 6)`, those numbers almost always count *code units* (UTF-16 units in Java/JS, bytes in Go/Rust), not code points and certainly not graphemes. Any arithmetic on string indices is arithmetic on the wrong layer unless you are sure the text is ASCII.
 
 ---
 
@@ -238,28 +174,6 @@ fmt.Printf("%U size=%d\n", r, size)     // U+FFFD size=1
 
 ---
 
-## Pros & Cons
-
-| Encoding | Width | Indexing | Endianness | ASCII-compatible | Typical use |
-|----------|-------|----------|------------|------------------|-------------|
-| **UTF-8** | 1–4 bytes | O(n) scan | none | yes | web, files, APIs, the default |
-| **UTF-16** | 2 or 4 bytes (surrogates) | O(n) for code points | yes (BOM/known) | no | Java/JS/.NET/Windows in-memory |
-| **UTF-32** | 4 bytes fixed | O(1) | yes | no | in-memory when O(1) indexing matters |
-
-**The recurring trade-off:** O(1) indexing requires fixed width (UTF-32), which wastes memory. Compactness requires variable width (UTF-8), which costs O(n) indexing. UTF-16 is the awkward middle that gets neither: it is variable-width *and* wastes 2 bytes on ASCII *and* has an endianness problem. Its only excuse is history — Java, JavaScript, and Windows committed to it in the early 1990s when Unicode still fit in 16 bits, before the astral planes existed.
-
----
-
-## Use Cases
-
-- **Protocol and file format design:** prefer UTF-8 on the wire; it sidesteps endianness and is ASCII-compatible for headers.
-- **Interop with Java/JS/Windows APIs:** know you are crossing into UTF-16 territory; expect surrogate pairs and `.length` quirks.
-- **Length-prefixed binary formats:** decide explicitly whether the prefix counts bytes or characters, and document it.
-- **Streaming decoders:** rely on UTF-8 self-synchronization to resume after a partial read without losing the whole stream.
-- **Robust truncation/splitting:** use the standard library's boundary-aware functions; never split on a raw byte index.
-
----
-
 ## Coding Patterns
 
 **Pattern 1: Length is a header, not a guess.** When parsing UTF-8 manually, read the lead byte, derive the length, then read exactly that many continuation bytes and validate each is `10xxxxxx`. Reject anything that breaks the pattern as invalid input — do not "best effort" guess.
@@ -302,14 +216,24 @@ fmt.Printf("%U size=%d\n", r, size)     // U+FFFD size=1
 
 ---
 
-## Summary
+## Apply it
 
-- **UTF-8** packs a code point into 1–4 bytes with a self-describing bit template; the first byte's high bits give the length, and you can decode by hand.
-- UTF-8 is **self-synchronizing** and ASCII-compatible — the reasons it won.
-- **UTF-16** cannot fit `U+10000`+ in one 16-bit unit, so it uses **surrogate pairs** drawn from the permanently reserved `U+D800`–`U+DFFF` block. This is why `"😀".length === 2`.
-- Surrogates are not **scalar values**; valid UTF-8 must never encode them; Rust's `char` excludes them by definition.
-- **UTF-32** is fixed-width and O(1)-indexable but 4× the size; rarely used outside memory.
-- The **BOM** disambiguates endianness for UTF-16/32 but is pointless and bug-prone for UTF-8.
-- **Code-unit indexing is not code-point indexing** — the root cause of broken substring, reverse, and length code.
+1. Find a real component where **Character & String Internals (Unicode)** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
-The next level, `senior.md`, leaves the byte layer and tackles *semantics*: normalization forms (NFC/NFD/NFKC/NFKD), case folding's locale traps, grapheme cluster segmentation, and collation.
+## Verify your work
+
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
+
+## Review questions
+
+- Which boundary is most affected by Character & String Internals (Unicode)?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

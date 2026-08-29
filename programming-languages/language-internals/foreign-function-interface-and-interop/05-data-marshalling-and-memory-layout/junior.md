@@ -1,66 +1,11 @@
-# Data Marshalling & Memory Layout — Junior Level
+# Data Marshalling & Memory Layout — Junior
 
-> **Topic:** Data Marshalling & Memory Layout
-> **Focus:** You can call a C function from your language. Now you have to hand it *data* — a string, a struct, an array — and get data back. Almost everything that can go wrong, goes wrong here.
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **Data Marshalling & Memory Layout** in one small example and prove the result?
 
-## Introduction
-
-> Focus: **What does it actually mean to pass *data* — not just a number — across the boundary between two languages?** And **why is a string the single most dangerous thing you will ever hand to a C function?**
-
-Calling a foreign function — a C function from Python, Java, Go, Rust, or C# — is the easy part. The runtime puts your arguments in registers, jumps to the function's address, and reads the return value. That works perfectly for `int`, `double`, and other simple numbers, because both sides agree on exactly what those bytes mean.
-
-The trouble starts the moment you pass something with *structure*: a string, an array, a struct, a pointer to a buffer. Now both sides have to agree on the **memory layout** of that data — where each byte lives, how long it is, who owns it, who is allowed to free it. Your language and C almost never agree out of the box. **Marshalling** (sometimes spelled "marshaling") is the work of translating data from your language's representation into the representation C expects, and back again.
-
-In one sentence: **marshalling is the diplomacy between two languages that store the same idea — "the word hello" — in completely different bytes.**
-
-> 🎓 **Why this matters for a junior:** The first FFI bug you hit will not be "the function didn't get called." It will be a crash, a garbled string, or a corrupted struct — a *data* bug. Roughly every memorable FFI war story is a marshalling story: a string that wasn't NUL-terminated, a struct whose fields didn't line up, a buffer the garbage collector moved out from under C, or memory freed by the wrong allocator. Learn the data rules and you avoid 90% of FFI pain.
-
-This page covers, at a junior level: what marshalling is and why it's needed, the three big impedance mismatches (**strings**, **structs**, **arrays/buffers**), the iron rule of **who allocates and who frees**, and the same hello-world-of-marshalling examples — passing a string and a struct to C — across Python, Java, Go, Rust, and C#. The next level (`middle.md`) goes deep on encodings, pinning, and ownership conventions; `senior.md` covers ABI-exact layout, GC interaction, and zero-copy; `professional.md` covers designing a marshalling layer for a real cross-language library.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** How to call *one* simple C function from your language — at least the "add two ints" hello-world of FFI. (That is the previous topic; this one assumes it.)
-- **Required:** What a pointer is: an address that points at some bytes in memory.
-- **Required:** What a `struct` / `class` / record is — a bundle of named fields.
-- **Required:** That strings are made of bytes, and that "characters" and "bytes" are not the same thing once you leave plain ASCII.
-- **Helpful but not required:** A vague sense that a program has a *stack* (local variables) and a *heap* (things you allocate).
-- **Helpful but not required:** Awareness that some languages (Java, Go, Python, C#) have a **garbage collector** that frees memory for you.
-
-You do **not** need to know:
-
-- The exact rules of struct alignment and padding (that's `middle.md` and `senior.md`).
-- How pinning works internally, or the details of a specific GC (that's `senior.md`).
-- ABI details like LP64 vs LLP64, calling conventions, or endianness of serialized formats (later levels).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **FFI** | Foreign Function Interface. The mechanism that lets code in one language call functions written in (or compiled to the ABI of) another — almost always C. |
-| **Marshalling** | Converting data from one language's in-memory representation to another's, so the foreign side can read it. "Unmarshalling" is the reverse. |
-| **ABI** | Application Binary Interface. The binary-level contract: how arguments are passed, how structs are laid out in memory, how big each type is. C defines the *lingua franca* ABI. |
-| **Memory layout** | The exact arrangement of bytes for a value: which field is at which offset, how big it is, where the padding goes. |
-| **NUL terminator** | The single zero byte (`'\0'`, value 0) that marks the end of a C string. C strings have **no length field**; the zero byte *is* the length. |
-| **`char*`** | A C string: a pointer to the first byte of a sequence of bytes ending in a NUL terminator. |
-| **Encoding** | The rule mapping characters to bytes: UTF-8, UTF-16, ASCII, Latin-1. "hello" is the same in all; "café" or "日本" differ wildly. |
-| **Owner** | Whoever is responsible for eventually **freeing** a piece of memory. Exactly one side should own each allocation. |
-| **Allocator** | The library that hands out and reclaims memory: C's `malloc`/`free`, Rust's allocator, the JVM heap, etc. Memory from one allocator must be freed by *that same* allocator. |
-| **GC (Garbage Collector)** | The runtime component (Java, Go, Python, C#) that automatically frees memory you stopped using — and may *move* objects around to compact the heap. |
-| **Pinning** | Telling the GC "do not move or free this object" for the duration of a native call, so a pointer you handed to C stays valid. |
-| **Opaque handle** | A pointer or token you pass back and forth but never look inside. C owns the real structure; you just hold the handle. |
-| **Out-parameter** | A pointer argument that the function *writes into*: you pass `&result`, the function fills it in. The C way of "returning" extra values. |
-| **Zero-copy** | Letting C read your buffer directly, with no copy. Fast but dangerous: the bytes must stay put and valid for the whole call. |
-| **Use-after-free** | Reading or writing memory after it was freed. A classic FFI crash when one side frees what the other still references. |
-| **Double-free** | Freeing the same memory twice — usually because both sides thought they owned it. Corrupts the allocator; crashes later, far from the cause. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -152,40 +97,6 @@ In Java, Go, Python, and C#, the GC may **move** an object in memory to compact 
 - If the only reference to an object lives in a C variable the GC can't see, the GC may *free* the object while C is still using it.
 
 The cure is **pinning** (and keeping a reference alive): tell the GC "hands off this object until the call returns." Each runtime has its own mechanism — `fixed`/`GCHandle` in C#, `GetPrimitiveArrayCritical` in Java, the "C must not retain Go pointers" rule in Go. You'll meet these in detail in `middle.md`. For now: **GC-managed memory is not safe to hand to C unless you pin it.**
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Marshalling** | Translating a document so a foreign office can read it. The *meaning* is the same; the *form* must change. |
-| **C string (NUL-terminated)** | A sentence with no length stated, ending only when you reach a period. If someone forgets the period, you keep reading the next sentence too. |
-| **Length-prefixed string** | A package labeled "12 items inside." You know exactly when to stop, no end-marker needed. |
-| **Encoding mismatch (mojibake)** | Reading a Japanese letter as if it were written in the Latin alphabet — you get gibberish, not an error. |
-| **Who frees the memory** | A borrowed book. Exactly one person must return it to the library. If both think the other will, it's lost (leak). If both return a copy, chaos (double-free). |
-| **Allocator mismatch** | Returning a library book to a *different* library. Their system rejects it and the shelving breaks. |
-| **Struct layout** | A form with fields in a fixed order. If the foreign office expects "name, then date" and you send "date, then name," every field is misread. |
-| **Pinning** | Putting a "DO NOT MOVE — work in progress" sticker on a crate in a warehouse that's being reorganized. |
-| **Opaque handle** | A coat-check ticket. You don't know how the coat is stored; you just hand back the ticket to get it. |
-| **Out-parameter** | Handing the clerk a blank envelope and saying "put the answer in here." |
-| **Use-after-free** | Trying to pick up a coat after the coat-check already gave it away. |
-
----
-
-## Mental Models
-
-### The Translation Desk
-
-Picture a desk between two offices, "Your Language" and "C." Anything passing the desk must be translated into a form the other office reads. Numbers cross instantly (both offices use the same number format). Strings, structs, and arrays get *re-typed onto a C form* by a clerk — that clerk is your marshalling code. The clerk's job: get the form's fields in the right order, attach the right end-marker to strings, and write down clearly **who keeps the original** so nobody throws it away twice.
-
-### The "Same Idea, Different Bytes" Model
-
-For any piece of data crossing the boundary, ask: *what bytes does my side store, and what bytes does C expect?* "hello" is `h e l l o` plus maybe a NUL, maybe a length, maybe UTF-16. If the two byte pictures differ, marshalling must reconcile them. Drawing the two byte layouts side by side is the fastest way to find a bug.
-
-### The Ownership Tag
-
-Imagine every pointer carries an invisible tag: *"allocated by C, freed by C"* or *"allocated by Rust, freed by Rust."* A crash happens when someone ignores the tag — frees C's memory with Rust's `drop`, or frees Rust's memory with C's `free`. Before you free anything across an FFI boundary, read its tag. If you can't tell what the tag says, you don't yet understand the API well enough to call it safely.
 
 ---
 
@@ -361,34 +272,6 @@ C#'s **marshaller** does a lot for you: `CharSet` controls the string encoding, 
 
 ---
 
-## Pros & Cons
-
-**Pros of marshalling data across FFI:**
-
-- Lets you reuse mature C libraries (image codecs, crypto, databases) from any language.
-- Numbers and simple data cross cheaply; performance can be near-native.
-- With care, large buffers can be passed *zero-copy* (no duplication).
-
-**Cons / costs:**
-
-- Strings and structs require explicit, error-prone conversion.
-- Memory ownership bugs (leaks, double-frees, use-after-free) are easy to introduce and hard to debug.
-- GC-managed languages add pinning and lifetime concerns.
-- Encoding mismatches silently corrupt text instead of erroring.
-- The boundary defeats your language's normal safety guarantees — Rust's borrow checker and Java's memory safety stop at the `extern "C"` line.
-
----
-
-## Use Cases
-
-- Calling a C image/audio/video codec and passing it a pixel buffer.
-- Wrapping a C database client (SQLite, libpq) where you pass query strings and read back rows.
-- Using a crypto library: hand it a byte buffer + length, get back a digest buffer.
-- Talking to an OS API that takes/returns C strings and structs (file paths, system info).
-- Hardware/driver SDKs that expose opaque handles and out-parameters.
-
----
-
 ## Coding Patterns
 
 ### Pattern: Make a C string, free it on the same side
@@ -486,125 +369,24 @@ Every acquire of a native view of a managed object must have a matching release.
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. Why can't you hand a Go `string` directly to a C function that calls `strlen`?
-2. What is mojibake, and which mismatch causes it?
-3. If a C library returns a `char*`, what two questions must you answer before doing anything with it?
-4. Why must `#[repr(C)]` be on every Rust struct that crosses the FFI boundary?
-5. What does "pinning" prevent, and in which languages do you need it?
-6. Why is freeing Rust-allocated memory with C's `free` dangerous?
+1. Choose one small, known input for **Data Marshalling & Memory Layout**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
-<details>
-<summary>Answers</summary>
+## Verify your work
 
-1. Go strings have a length and **no NUL terminator**; `strlen` walks until a zero byte and would read past the string's end. You must build a NUL-terminated copy (`C.CString`).
-2. Mojibake is garbled text from an **encoding mismatch** — e.g. UTF-16 bytes interpreted as UTF-8. It doesn't error; it just produces nonsense characters.
-3. (a) Do I own this — must I free it? (b) If so, with which free function (plain `free`, or a library-specific one)? If unclear, don't free it.
-4. Rust's default layout is unspecified; the compiler may reorder fields. `#[repr(C)]` forces the exact, predictable C layout so offsets match.
-5. Pinning prevents the GC from **moving** (and keeping a reference prevents it from **freeing**) an object while C holds a pointer to it. Needed in Java, Go, Python, and C#.
-6. It mixes allocators: C's `free` doesn't understand Rust's allocator's bookkeeping, corrupting the heap and typically crashing later.
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
 
-</details>
+## Review questions
 
----
-
-## Tricky Questions
-
-- **You pass `"hello\0world"` to a C `strlen`. What does it return, and why?** It returns 5 — C stops at the interior NUL byte, never seeing "world."
-- **A function returns a pointer and the docs say nothing about freeing. Do you free it?** No — leaking is recoverable; a double-free or freeing borrowed memory crashes. Leak, and go find out the real rule.
-- **Your struct works on your laptop but corrupts on a teammate's machine.** Suspect a layout/padding mismatch or a size difference in a field type (e.g. `long`), not the logic.
-- **Text is fine in tests but garbled for one user named "Łukasz."** Classic encoding bug — ASCII passed cleanly, the non-ASCII byte exposed the UTF-8/UTF-16 mismatch.
-
----
-
-## Cheat Sheet
-
-```text
-STRINGS
-  C string  = char*, NUL-terminated, NO length, encoding-by-convention
-  Go/Rust   = (ptr,len), UTF-8, NO NUL terminator  -> make a C copy first
-  Java      = UTF-16 internally -> encode to UTF-8 explicitly
-  Python    = str (decoded) vs bytes (raw) -> ctypes wants bytes
-  Always: know the encoding; convert explicitly; NUL-terminate for C.
-
-STRUCTS
-  Must match C layout EXACTLY.
-  Rust   #[repr(C)]
-  C#     [StructLayout(LayoutKind.Sequential)]
-  Python class P(ctypes.Structure): _fields_ = [...]
-  Go     mirror the C struct (cgo)
-
-OWNERSHIP (the iron rule)
-  Free with the SAME allocator that allocated.
-  Conventions: caller-allocates-callee-fills (safest)
-               callee-allocates -> use the PAIRED free function
-               callee-owns      -> do NOT free
-  Don't know? Don't free. Find out.
-
-GC LANGUAGES (Java/Go/Python/C#)
-  Pin buffers + keep a live reference for the whole native call.
-  GC may MOVE or FREE objects mid-call otherwise.
-
-OUT-PARAMS
-  Pass &result; the function writes into it. (byref / ref / &mut)
-
-OPAQUE HANDLES
-  Pass them, store them, never look inside.
-```
-
----
-
-## Summary
-
-Marshalling is the work of getting *data* — not just calls — safely across a language boundary. The three big mismatches are **strings** (NUL-terminated vs length-prefixed, UTF-8 vs UTF-16), **structs** (which must match C's byte layout exactly), and **arrays/buffers** (which must stay valid and unmoved during the call). Threaded through all of it is the **iron rule of ownership**: memory must be freed by the same allocator that allocated it, and exactly one side must own each allocation. In GC languages you must additionally **pin** buffers so the collector doesn't move or free them mid-call. Get the data rules right and FFI is reliable; get them wrong and you get garbled text, leaks, and crashes far from their cause.
-
----
-
-## What You Can Build
-
-- A small wrapper that calls a C string function (like `strlen` or a hashing routine) from your language, converting strings correctly.
-- A binding that passes a struct to C and reads back the filled-in fields, with the right layout attribute.
-- A "caller allocates, callee fills" buffer round-trip: hand C a buffer, let it write a message, read it back.
-- A tiny library binding (e.g. to SQLite or a C math library) where you practice ownership: who frees each returned pointer.
-
----
-
-## Further Reading
-
-- Your language's FFI documentation: Python `ctypes`, Go `cgo`, Rust `std::ffi`, .NET P/Invoke, Java JNI / the Foreign Function & Memory API.
-- The C standard library docs for `strlen`, `malloc`/`free`, and how `char*` strings work.
-- Tutorials on UTF-8 vs UTF-16 and why text encoding matters at boundaries.
-- The next files in this topic: `middle.md` (encodings, pinning, ownership conventions in depth) and `senior.md` (ABI-exact layout and GC interaction).
-
----
-
-## Related Topics
-
-Foreign function interface basics (calling the function before passing data); calling conventions and the C ABI; garbage collection and how collectors move objects; text encodings (UTF-8, UTF-16); memory management (stack, heap, allocators); the previous and following topics in this FFI section.
-
----
-
-## Diagrams & Visual Aids
-
-```text
-The same word, five byte layouts:
-
-  C      char*:    [ h ][ e ][ l ][ l ][ o ][\0]      NUL-terminated, no length
-  Go     string:   ptr -> [ h ][ e ][ l ][ l ][ o ]   + length=5, NO NUL
-  Rust   String:   ptr -> [ h ][ e ][ l ][ l ][ o ]   + len=5, cap, UTF-8, NO NUL
-  Java   String:   [00 68][00 65][00 6C][00 6C][00 6F] UTF-16 (2 bytes/char)
-  Python str/bytes: str is decoded; bytes is the raw char* shape
-
-Marshalling = producing the C shape from yours (and back).
-
-
-Ownership, drawn:
-
-  caller allocates ──▶ [ buffer ] ──▶ callee fills ──▶ caller frees   (safest)
-  callee allocates ──▶ returns ptr ──▶ caller frees with PAIRED fn
-  callee owns      ──▶ returns ptr ──▶ caller MUST NOT free
-
-  Allocator mismatch:
-     Rust alloc ──▶ ptr ──▶ C free()  ==  HEAP CORRUPTION (crash later)
-```
+- What problem does Data Marshalling & Memory Layout solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

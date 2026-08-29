@@ -1,20 +1,11 @@
-# The Big Picture (Compiler Architecture) — Professional Level
+# The Big Picture (Compiler Architecture) — Professional
 
-> **Topic:** The Big Picture (Compiler Architecture)
-> **Focus:** Architecting and operating real compiler pipelines — reuse decisions, build/run-time splits, diagnostics, and supply-chain trust.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **The Big Picture (Compiler Architecture)** with measurable outcomes and limited coordination?
 
-## Introduction
-
-At the professional tier the compiler pipeline is an engineering and product
-decision, not a textbook diagram. You decide whether to build a front end on top of
-an existing middle/back end or roll your own; whether optimization happens at build
-time, at run time, or both; how much to invest in diagnostics (a real adoption
-driver); and how to make the toolchain reproducible and trustworthy. These are the
-decisions that determine whether your language compiles fast, runs fast, ships to
-every platform, and can be trusted.
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## The Build-vs-Buy Decision for a New Language
@@ -116,28 +107,24 @@ the problem and proposes a fix.
 
 ---
 
-## War Stories
+## Apply it
 
-- **Rust on LLVM:** Rust got production-grade optimization and broad target support
-  essentially for free by lowering to LLVM IR — but inherited LLVM's slow compile
-  times, which drove years of work on incremental compilation, MIR-level
-  optimization, and a Cranelift debug backend.
-- **Go's own backend:** Go deliberately avoided LLVM to keep builds extremely fast and
-  integrate the compiler tightly with its goroutine stacks and GC — trading peak
-  codegen for compile speed and runtime cohesion.
-- **Reproducible builds in Debian:** stamping out nondeterminism across thousands of
-  packages required fixing timestamps, paths, and ordering throughout the toolchain —
-  proving how much hidden nondeterminism a compiler pipeline carries.
+1. Define the user or business outcome that **The Big Picture (Compiler Architecture)** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
----
+## Verify your work
 
-## Summary
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
 
-Professionally, the compiler pipeline is a set of engineering bets: reuse a mature
-middle/back end (LLVM, Cranelift) or build your own (Go, V8) based on targets,
-compile speed, and runtime integration; place the optimizer at build time, run time,
-or both per your deployment SLOs; treat diagnostics as a product by preserving spans
-and recovering from errors; and make the toolchain reproducible and trustworthy
-against supply-chain threats like Trusting Trust. The architecture diagram is the
-easy part — these decisions are what make a compiler fast, portable, friendly, and
-trusted in production.
+## Review questions
+
+- Which measurable outcome justifies investing in The Big Picture (Compiler Architecture)?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

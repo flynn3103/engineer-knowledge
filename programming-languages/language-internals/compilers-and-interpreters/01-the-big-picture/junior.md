@@ -1,69 +1,11 @@
-# The Big Picture (Compiler Architecture) — Junior Level
+# The Big Picture (Compiler Architecture) — Junior
 
-> **Topic:** The Big Picture (Compiler Architecture)
-> **Focus:** What actually happens between you typing `gcc hello.c` and an executable existing? The end-to-end pipeline, named.
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **The Big Picture (Compiler Architecture)** in one small example and prove the result?
 
-## Introduction
-
-> Focus: **What does a compiler actually do, step by step?** And **why is it built as a pipeline rather than one giant function?**
-
-A **compiler** is a program that reads source code in one language and produces equivalent code in another — usually machine code your CPU can run. You have used one a hundred times: `gcc`, `clang`, `javac`, `rustc`, `tsc`, `go build`. It feels like a black box: text goes in, an executable comes out. This page opens the box.
-
-The single most important idea is this: **a compiler is not one step. It is a pipeline of stages, each transforming the program into a slightly lower-level form.** Source text becomes a stream of words (tokens), the words become a tree (an AST), the tree gets checked for meaning (types, names), the tree becomes a simpler internal language (IR), the IR gets cleaned up and sped up (optimization), and finally the IR becomes machine instructions (code generation). An assembler and a linker turn those instructions into a runnable file.
-
-Each stage does one job and hands its output to the next. This is the same engineering instinct you already know from Unix pipes (`cat | grep | sort`) or from breaking a big function into small ones: small, testable stages beat one tangled monster.
-
-> 🎓 **Why this matters for a junior:** Once you can name the stages, compiler error messages stop being scary. "Syntax error" means the *parser* choked. "Undefined symbol" means the *linker* couldn't find something. "Type mismatch" means *semantic analysis* rejected your program. Knowing *which stage* complained tells you *what kind* of mistake you made — and that cuts your debugging time in half.
-
-This page covers: the names and order of the pipeline stages, what each stage's input and output look like, the big split into **front end / middle end / back end**, and the difference between a "compiler" and the whole "toolchain." It is the map for the rest of this section — every other topic (lexing, parsing, the AST, semantic analysis, IR, optimization, code generation, interpreters) is a zoom-in on one box of this map.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** How to compile and run a simple program in at least one language — you have typed `gcc file.c` or `javac File.java` or `go run main.go` at least once.
-- **Required:** What "source code" and "machine code / executable" are, roughly — that the CPU runs ones and zeros, not your text file.
-- **Required:** Comfort with the idea of a tree (a root with children), because the AST is a tree.
-- **Helpful but not required:** Some idea of what a function call or a variable is — used in examples.
-- **Helpful but not required:** Having seen a compiler error message and wondered what produced it.
-
-You do **not** need to know:
-
-- How to *write* a lexer or parser (those are later topics).
-- Assembly language (we will show a little, but you don't need to read it fluently).
-- Anything about register allocation, SSA form, or optimization passes (middle/senior material).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Compiler** | A program that translates source code into another (usually lower-level) language, ahead of running it. |
-| **Interpreter** | A program that executes source code directly, without producing a separate executable first. |
-| **Source code** | The text you write (`.c`, `.java`, `.go`, `.rs`). The input to a compiler. |
-| **Token** | A single meaningful "word" of the source: a keyword, identifier, number, operator, or punctuation. |
-| **Lexer (scanner / tokenizer)** | The stage that turns the raw character stream into a stream of tokens. |
-| **Parser** | The stage that turns the token stream into a tree structure following the language's grammar. |
-| **AST (Abstract Syntax Tree)** | The tree representing the program's structure: an `if` node with a condition child and a body child, etc. |
-| **Semantic analysis** | The stage that checks *meaning*: are names declared? do types match? It also builds the symbol table. |
-| **Symbol table** | A lookup table mapping names (variables, functions, types) to information about them (type, scope, location). |
-| **IR (Intermediate Representation)** | A simplified internal language the compiler uses between the front end and the back end. Not source, not machine code. |
-| **Optimization** | Transforming the IR into a faster or smaller equivalent program (constant folding, dead-code removal, inlining). |
-| **Code generation (codegen)** | The stage that turns IR into actual machine instructions (or assembly) for a specific CPU. |
-| **Assembler** | A tool that turns assembly text into binary object code. |
-| **Linker** | A tool that stitches multiple object files (and libraries) into one executable, resolving references between them. |
-| **Front end** | The language-specific part: lexer + parser + semantic analysis. Depends on the *source language*. |
-| **Middle end** | The IR + optimization part. Independent of both the source language and the target CPU. |
-| **Back end** | The target-specific part: code generation for a particular CPU/OS. Depends on the *target*. |
-| **Toolchain** | The whole set of tools — preprocessor, compiler, assembler, linker — orchestrated to go from source to executable. |
-| **Driver** | The single command (`gcc`, `clang`) that you invoke; it runs the other tools in order behind the scenes. |
-| **Pass** | One traversal of the program by the compiler. A "multi-pass" compiler makes several. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -164,42 +106,6 @@ The "compiler" is really just step 2. The **toolchain** is all four working toge
 
 ---
 
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **The pipeline** | A factory assembly line: raw material in one end, finished product out the other, transformed at each station. |
-| **Lexer** | Splitting a sentence into individual words, ignoring the spaces. |
-| **Parser** | Diagramming the sentence: subject, verb, object — building the grammatical tree. |
-| **Semantic analysis** | A proofreader checking that the sentence makes *sense*, not just that it's grammatical ("colorless green ideas" parses but means nothing). |
-| **IR** | Translating any human language into a neutral "interlingua" before translating into the target language. |
-| **Front / middle / back end** | A translation agency: one expert per source language, one neutral middle stage, one expert per target language. |
-| **M × N problem** | Instead of teaching every translator every language pair, everyone learns one shared pivot language. |
-| **Optimization** | An editor tightening prose: removing redundant sentences, simplifying phrasing, without changing the meaning. |
-| **Code generation** | A printer turning the finished manuscript into a physical book for a specific paper size. |
-| **Linker** | A bookbinder assembling separately printed chapters into one bound book, fixing up the cross-references. |
-| **Driver** | The general contractor who hires the plumber, electrician, and painter and makes sure they work in order. |
-| **Interpreter** | A live human interpreter translating speech sentence-by-sentence, in real time, with nothing written down. |
-| **JIT** | A live interpreter who, noticing you keep saying the same phrase, writes down a fast canned translation for it. |
-
----
-
-## Mental Models
-
-### The Assembly-Line Model
-
-Hold this picture above all others: an **assembly line** where the program rides down the belt and each station lowers it one level. Source → tokens → tree → checked tree → IR → machine code. You never skip a station, and each station only needs to understand its own input and output, not the whole journey. When you hit a compiler error, ask: *which station rejected the part?* That tells you what's wrong.
-
-### The "Funnel and Fan-Out" Model (for the M × N split)
-
-Many source languages **funnel down** into one IR; that one IR **fans out** to many target CPUs. The IR is the narrow neck of an hourglass — the "narrow waist." Everything above the waist is language-specific; everything below is target-specific; the waist itself is neutral. Adding a language widens the top; adding a CPU widens the bottom; neither touches the other.
-
-### The "Lowering" Model
-
-Every stage **lowers** the program: it expresses the same meaning in a more detailed, more machine-like, less human-like form. Source is the most human form; machine code is the most machine form. "Lowering" is the verb compiler engineers use, and once you internalize it, the whole pipeline is just "lower, lower, lower, until it's machine code." Optimization is the one stage that stays at the same level — it rewrites IR into better IR.
-
----
-
 ## Code Examples
 
 You can *watch* the pipeline happen with command-line flags. None of this requires writing a compiler — just running one and asking it to stop early or dump an intermediate form. Try these yourself.
@@ -285,38 +191,6 @@ java Hello              # the JVM interprets, then JIT-compiles hot code
 ```
 
 `javac` is an **ahead-of-time** compiler that targets **bytecode** (a portable IR), not your CPU. The `java` command runs a virtual machine that interprets the bytecode and **JIT-compiles** the hot parts to machine code at runtime. Two different architectures, side by side.
-
----
-
-## Pros & Cons
-
-This compares the *pipeline architecture itself* — building a compiler as separate stages with a shared IR — against the imaginary alternative of one giant translate-everything-at-once function.
-
-| Aspect | Pros | Cons |
-|--------|------|------|
-| **Reuse** | One IR lets M languages share N back ends (M + N work, not M × N). LLVM's whole reason to exist. | The IR must be carefully designed to serve every language and every target — a hard, slow design problem. |
-| **Testability** | Each stage has clear input/output and can be tested in isolation. | More moving parts; more interfaces to define and keep stable. |
-| **Maintainability** | A bug is localizable to one stage. Add a language by adding a front end only. | Indirection: data passes through several representations, each needing memory and conversion code. |
-| **Optimization** | Optimizing the IR once benefits all languages and all targets. | Multi-pass design is slower to compile than single-pass. |
-| **Portability** | A new CPU needs only a new back end. | The IR can leak target assumptions if you're not careful (pointer size, endianness). |
-| **Error reporting** | Each stage knows what kind of error it found, giving precise messages. | Errors found late (in the back end) are far from the source the user wrote; mapping back is extra work. |
-| **Compile speed** | — | The funnel adds overhead vs a hypothetical direct path; this is why fast compilers (Go) keep passes minimal. |
-
----
-
-## Use Cases
-
-Understanding the pipeline architecture matters whenever you:
-
-- **Read compiler errors** and want to know *which stage* failed (syntax = parser, type = semantic analysis, undefined symbol = linker).
-- **Choose a language or runtime** and need to reason about AOT vs JIT vs interpreted trade-offs (startup time, peak speed, portability).
-- **Use compiler flags** like `-S`, `-emit-llvm`, `-O2`, `-c` and want to know what each one stops at or turns on.
-- **Cross-compile** — build on your laptop (the *host*) for a Raspberry Pi or microcontroller (the *target*). This is only possible because the back end is a swappable stage.
-- **Debug a slow build** — knowing it's the linker, not the compiler, that's slow changes how you fix it.
-- **Write any kind of "language" tool** — a linter, a formatter, a config-file parser, a template engine. They all reuse front-end ideas (lex, parse, build a tree).
-- **Pick a tooling ecosystem** — knowing that Clang, Rust, and Swift share LLVM explains why they share so many flags and behaviors.
-
-It is *not* something you need to master to write everyday application code — but the moment a build breaks in a confusing way, this map is what tells you where to look.
 
 ---
 
@@ -413,215 +287,24 @@ Each `.c` file is a **translation unit**, compiled in isolation. The **linker** 
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. List the pipeline stages in order, from source text to executable. For each, say what its input is and what its output is.
-2. Which stage catches each of these? (a) a missing semicolon, (b) using an undeclared variable, (c) calling a function whose body is never linked in, (d) a typo in an `#include` path.
-3. Run `gcc -S hello.c` and `clang -S -emit-llvm hello.c`. What is in each output file, and which stage produced it?
-4. Explain the M × N problem in one sentence, and how a shared IR turns it into M + N.
-5. What is the difference between the "compiler" and the "toolchain"? Name the four tools a typical C toolchain runs.
-6. Is `javac` an ahead-of-time or just-in-time compiler? What does it target? What runs its output?
-7. Classify each as compiler, interpreter, JIT, or transpiler: `gcc`, classic CPython, the JVM, TypeScript's `tsc`, `rustc`, V8.
-8. Why can an x86 executable not run on an ARM machine, while a `.class` file can run on both?
-9. Run `gcc -v hello.c`. List the actual sub-tools the driver invoked.
-10. What is a "pass," and what is the trade-off between a single-pass and a multi-pass compiler?
+1. Choose one small, known input for **The Big Picture (Compiler Architecture)**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
----
+## Verify your work
 
-## Cheat Sheet
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
 
-```text
-┌──────────────────────────────────────────────────────────────────────┐
-│                 THE COMPILER PIPELINE                                │
-├──────────────────────────────────────────────────────────────────────┤
-│ source text                                                          │
-│   → LEXER        → tokens                                            │
-│   → PARSER       → AST (tree)                                        │
-│   → SEMANTIC     → checked AST + symbol table (names, types)        │
-│   → IR GEN       → intermediate representation                       │
-│   → OPTIMIZER    → better IR                                         │
-│   → CODEGEN      → assembly / machine code                          │
-│   → ASSEMBLER    → object file (.o)                                  │
-│   → LINKER       → executable                                        │
-├──────────────────────────────────────────────────────────────────────┤
-│ THREE STAGES (the key split):                                        │
-│   FRONT END   lex+parse+semantic   depends on SOURCE LANGUAGE        │
-│   MIDDLE END  IR + optimization    depends on NEITHER                │
-│   BACK END    code generation      depends on TARGET CPU            │
-├──────────────────────────────────────────────────────────────────────┤
-│ M×N → M+N : funnel M languages into 1 IR, fan out to N targets       │
-│   (this is LLVM's whole thesis)                                      │
-├──────────────────────────────────────────────────────────────────────┤
-│ ARCHITECTURES:                                                       │
-│   Compiler     translate all, ahead of time   (gcc, rustc, go)      │
-│   Interpreter  execute directly, no exe       (classic Python)      │
-│   JIT          interpret, then compile hot     (JVM, V8, .NET)      │
-│   Transpiler   compile to another HLL          (tsc, Babel)         │
-├──────────────────────────────────────────────────────────────────────┤
-│ COMPILER ≠ TOOLCHAIN                                                  │
-│   driver (gcc/clang) runs:  cpp → cc1 → as → ld                     │
-├──────────────────────────────────────────────────────────────────────┤
-│ FLAGS TO WATCH THE PIPELINE:                                         │
-│   gcc -E      stop after preprocess                                 │
-│   gcc -S      stop after codegen (emit assembly)                    │
-│   clang -S -emit-llvm   dump LLVM IR (the narrow waist)             │
-│   gcc -c      stop after assemble (emit .o)                         │
-│   gcc -v      show the tools the driver runs                        │
-└──────────────────────────────────────────────────────────────────────┘
-```
+## Review questions
 
----
-
-## Summary
-
-- A **compiler** is a **pipeline**, not a single step: source → tokens → AST → checked AST → IR → optimized IR → machine code → object file → executable.
-- Each stage **lowers** the program one level, transforming its *form* while preserving its *meaning*.
-- The pipeline groups into three parts: the **front end** (language-specific: lex, parse, semantic analysis), the **middle end** (IR + optimization, neutral), and the **back end** (target-specific: code generation).
-- This split solves the **M × N problem**: funnel M languages into one shared IR and fan that IR out to N targets — M + N pieces of work instead of M × N. This is LLVM's central idea, and why Clang, Rust, and Swift share back ends.
-- **Compiler, interpreter, JIT, and transpiler** are different architectures built on the same front-end ideas; they differ in what they do with the parsed program.
-- A **single-pass** compiler is fast but limited; a **multi-pass** compiler walks the program several times and can optimize far more. Go deliberately keeps passes minimal for speed.
-- The **compiler** is one tool; the **toolchain** is the preprocessor + compiler + assembler + linker, orchestrated by a **driver** (`gcc`, `clang`).
-- You can *watch* every stage with flags: `-E`, `-S`, `-emit-llvm`, `-c`, `-v`.
-- A junior's superpower: when a build breaks, **name the failing stage first** — it tells you what kind of mistake you made.
-
----
-
-## What You Can Build
-
-- **A pipeline visualizer script.** Take one `.c` file and run `gcc -E`, `gcc -S`, `clang -S -emit-llvm`, `gcc -c`, `gcc` in turn, saving each intermediate. Open them side by side and trace one line of source down through every form.
-- **A "which stage failed?" diagnostic helper.** A shell script that runs each stage separately and prints "preprocessing/compiling/assembling/linking failed here" — your own pipeline bisector.
-- **A toolchain map.** Run `gcc -v` on a real program and draw the actual graph of tools invoked, with their inputs and outputs labeled.
-- **An IR explorer.** Write the same tiny function in C, then in Rust, dump the LLVM IR for both (`clang -emit-llvm`, `rustc --emit=llvm-ir`), and compare. See for yourself that they meet at the same representation.
-- **An AOT-vs-JIT-vs-interpreted benchmark.** Write a simple loop in C, Java, and Python. Time startup and time the hot loop. Explain the results in terms of architecture.
-- **A separate-compilation demo.** Split a program into three `.c` files, compile each to a `.o`, and link them. Change one file and watch only that one recompile — the foundation of `make`.
-
----
-
-## Further Reading
-
-- *Compilers: Principles, Techniques, and Tools* — Aho, Lam, Sethi, Ullman ("the Dragon Book"). The canonical introduction to the pipeline. Read Chapter 1.
-- *Crafting Interpreters* — Robert Nystrom. The most readable modern walkthrough of building a language end to end. Free online at https://craftinginterpreters.com/
-- *Engineering a Compiler* — Cooper & Torczon. A clearer, more modern alternative to the Dragon Book.
-- *The LLVM Compiler Infrastructure* — https://llvm.org/ — read "The Architecture of Open Source Applications: LLVM" by Chris Lattner for the front/middle/back-end thesis in the author's own words.
-- *GCC Internals* — https://gcc.gnu.org/onlinedocs/gccint/ — for GENERIC/GIMPLE/RTL.
-- *Reflections on Trusting Trust* — Ken Thompson, 1984. The classic on bootstrapping and compiler trust. Short and mind-bending.
-- *A Tour of the JVM* and the V8 blog (https://v8.dev/blog) for real JIT architectures.
-
----
-
-## Related Topics
-
-- This folder, next levels: [`middle.md`](middle.md), [`senior.md`](senior.md), [`professional.md`](professional.md), [`interview.md`](interview.md), [`tasks.md`](tasks.md).
-- The rest of this section zooms into one box of the pipeline each — the lexer turns text into tokens; the parser builds the AST; semantic analysis does name resolution and type checking with the symbol table; IR topics cover the intermediate representation; optimization covers the middle-end passes; code generation covers the back end; the interpreter and runtime topics cover executing the result. Read this page first; it is the map for all of them.
-
----
-
-## Diagrams & Visual Aids
-
-### The Full Pipeline
-
-```text
-   ┌─────────────┐
-   │ source.c    │   "x = a + 2;"
-   └──────┬──────┘
-          │  LEXER (scanner)
-          ▼
-   ┌─────────────┐
-   │  tokens     │   IDENT(x) EQ IDENT(a) PLUS NUM(2) SEMI
-   └──────┬──────┘
-          │  PARSER
-          ▼
-   ┌─────────────┐
-   │   AST       │      (=)
-   │             │     /   \
-   │             │   x     (+)
-   │             │        /   \
-   │             │      a       2
-   └──────┬──────┘
-          │  SEMANTIC ANALYSIS (names declared? types match?)
-          ▼
-   ┌─────────────┐
-   │ checked AST │   + symbol table { x: int, a: int }
-   └──────┬──────┘
-          │  IR GENERATION
-          ▼
-   ┌─────────────┐
-   │     IR      │   t1 = a + 2 ;  x = t1
-   └──────┬──────┘
-          │  OPTIMIZATION
-          ▼
-   ┌─────────────┐
-   │ better IR   │
-   └──────┬──────┘
-          │  CODE GENERATION
-          ▼
-   ┌─────────────┐
-   │  assembly   │   mov eax,[a]; add eax,2; mov [x],eax
-   └──────┬──────┘
-          │  ASSEMBLER + LINKER
-          ▼
-   ┌─────────────┐
-   │ executable  │
-   └─────────────┘
-```
-
-### The Front / Middle / Back-End Split
-
-```text
-   C  ─┐                                          ┌─► x86
-   C++─┤                                          ├─► ARM
-   Rust┤── FRONT ENDS ──►  [ SHARED IR ]  ──► ────┤─► RISC-V
-   Swift┤  (one per lang)   (the waist)   BACK ENDS├─► WASM
-   ...─┘                                          └─► ...
-
-   └─ language-specific ─┘ └─ neutral ─┘ └─ target-specific ─┘
-        FRONT END           MIDDLE END        BACK END
-```
-
-### The M × N → M + N Hourglass
-
-```text
-   many languages
-   ╲   ╲   │   ╱   ╱      (M front ends funnel down)
-    ╲   ╲  │  ╱   ╱
-     ╲   ╲ │ ╱   ╱
-      ═════╪═════           ◄── THE NARROW WAIST: one shared IR
-     ╱   ╱ │ ╲   ╲
-    ╱   ╱  │  ╲   ╲
-   ╱   ╱   │   ╲   ╲      (N back ends fan out)
-   many targets
-
-   Without the waist:  M × N  compilers.
-   With the waist:     M + N  pieces (M fronts + N backs).
-```
-
-### The Toolchain Behind `gcc hello.c`
-
-```text
-   you type:   gcc hello.c -o hello
-                 │
-   ┌─────────────▼──────────────────────────────────────────┐
-   │  DRIVER (gcc) — orchestrates, doesn't translate itself  │
-   └───┬─────────┬──────────┬────────────────┬───────────────┘
-       │         │          │                │
-       ▼         ▼          ▼                ▼
-    ┌──────┐ ┌──────┐   ┌──────┐         ┌──────┐
-    │ cpp  │→│ cc1  │ → │  as  │  ────►  │  ld  │ ──► hello
-    │preproc│ │compile│  │assemble│        │link │     (exe)
-    └──────┘ └──────┘   └──────┘         └──────┘
-     .i       .s          .o          + libraries
-```
-
-### Compiler vs Interpreter vs JIT
-
-```text
-   COMPILER (AOT):   source ─► [compile once] ─► machine code ─► run, run, run
-                              (before running)
-
-   INTERPRETER:      source ─► [parse] ─► walk & execute each statement, every run
-                              (no machine code emitted)
-
-   JIT:              source ─► [parse] ─► interpret... spot "hot" code...
-                              ─► [compile hot code] ─► run hot code as machine code
-                              (compile WHILE running)
-```
+- What problem does The Big Picture (Compiler Architecture) solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

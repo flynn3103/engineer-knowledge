@@ -1,83 +1,11 @@
-# Effect & Error Execution Models — Junior Level
+# Effect & Error Execution Models — Junior
 
-> **Topic:** Effect & Error Execution Models
-> **Focus:** A function does not only return a value. It can fail, throw, panic, or reach out and touch the world. How does a language *run* code that does more than compute?
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **Effect & Error Execution Models** in one small example and prove the result?
 
-## Introduction
-
-> Focus: **What is the difference between "this function returned 7" and "this function failed"?** And **how does the machine actually carry that difference around?**
-
-Most code you write in your first months has a comforting shape: you call a function, it computes something, it gives you a value back. `add(2, 3)` returns `5`. `length("hello")` returns `5`. The call goes in, the answer comes out, nothing else happens.
-
-But real programs are full of computations that do **more than return a value**:
-
-- `openFile("/etc/passwd")` might **fail** — the file may not exist.
-- `parseInt("banana")` cannot produce a number — it has to signal **"there is no answer."**
-- `divide(10, 0)` is **undefined** — what should it even return?
-- `print("hi")` doesn't really "return" anything useful; its whole point is the **side effect** of putting text on the screen.
-- `random()` gives a different answer every time — its result depends on something **outside** the function.
-
-These are all examples of what this topic calls **effects and errors**. An *error* is "this computation could not produce its normal result." An *effect* is "this computation does something to the world, or depends on the world, beyond computing a return value." A language has to **decide how to model these** — and, more deeply, how to *execute* code that has them. When `openFile` fails, where does the program go next? Who finds out? What gets cleaned up on the way?
-
-This is the heart of the topic. Different languages made very different choices:
-
-- **C, C++, Java, Python, JavaScript** use **exceptions**: a failing call can `throw`, and execution **jumps** out of the current function, up the call stack, until someone `catch`es it.
-- **Go** uses **error values**: failure is just a normal return value (`result, err := doThing()`), and you check it with an `if`.
-- **Rust** uses **`Result<T, E>`**: a function that can fail returns a value that is *either* a success *or* an error, and the type system forces you to handle both.
-- **Haskell** uses types like **`Maybe`** and **`Either`**: failure is a value, and special sequencing rules let you chain fallible steps cleanly.
-
-In one sentence: **this topic is about how a language represents and runs "computation that might not just hand you back a value" — both failure and side effects — as a real execution mechanism, not just a syntax detail.**
-
-> 🎓 **Why this matters for a junior:** Error handling is not a footnote you bolt on at the end. It *is* the control flow of real software. A program that ignores errors is a program that corrupts data and crashes in production. Learning how your language models failure — and the discipline each model demands — is one of the highest-leverage skills you can build early.
-
-This page covers the everyday surface: what a `throw`/`catch` actually does, what a panic is, why Go makes you write `if err != nil`, what `Result` and `?` mean in Rust, and why `finally`/`defer` exist. The deeper machinery — how stack unwinding *physically* works, "zero-cost" exceptions, algebraic effects — is the subject of `middle.md`, `senior.md`, and `professional.md`.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** How to write and call functions in at least one language (C, Java, Python, Go, JavaScript, or Rust).
-- **Required:** What "return a value" means and how a `return` statement works.
-- **Required:** Basic `if`/`else` and how a `for`/`while` loop runs.
-- **Helpful but not required:** A vague picture of the **call stack** — when `a()` calls `b()` calls `c()`, there's a stack of "who is waiting for whom."
-- **Helpful but not required:** What a *type* is (`int`, `string`, a struct/class), because some error models are built out of types.
-
-You do **not** need to know:
-
-- How the CPU actually unwinds the stack, or what `.eh_frame` tables are (that's `middle.md`/`senior.md`).
-- What a monad, an algebraic effect, or a continuation is (those are later levels).
-- Anything about async/await, threads, or cancellation yet.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Return value** | The normal result a function hands back to its caller. |
-| **Side effect** | Anything a function does *besides* returning a value: printing, writing a file, mutating a global, sending a network request, reading the clock. |
-| **Effect** | The general idea of "this computation interacts with the world or depends on it." Errors are one kind of effect; I/O is another. |
-| **Error** | A computation that could not produce its normal result. "File not found", "invalid input", "out of memory." |
-| **Exception** | A value (often an object) that is **thrown** to signal an error, interrupting normal flow and jumping up the call stack until **caught**. |
-| **Throw / Raise** | To start propagating an exception. `throw` (Java/C++/JS), `raise` (Python). |
-| **Catch / Except** | To stop a propagating exception and handle it. `catch` (Java/C++/JS), `except` (Python), `recover` (Go). |
-| **Call stack** | The chain of function calls currently in progress: `main` called `a` called `b`. Each entry is a **stack frame**. |
-| **Stack unwinding** | The act of "popping" stack frames one by one as an exception travels upward, running cleanup along the way. |
-| **Panic** | An unrecoverable-by-default error that aborts the current path. Go's `panic`, Rust's `panic!`. Usually means "a bug happened, not a normal failure." |
-| **Recover** | Go's mechanism to *stop* a panic from killing the program and turn it back into a normal value. |
-| **Error value** | An error represented as an ordinary return value you check, rather than something thrown. Go's `error`, Rust's `Result`. |
-| **`Result<T, E>`** | Rust's type for "either a success of type `T` or an error of type `E`." You must handle both. |
-| **`Option` / `Maybe`** | A type meaning "either a value, or nothing." Used for "this might not have an answer." |
-| **`Either`** | A type holding one of two things; by convention "left = error, right = success." |
-| **`finally` / `defer` / `ensure`** | Code guaranteed to run on the way out of a block, whether it left normally or via an error. Used for cleanup (closing files, releasing locks). |
-| **Checked exception** | (Java) An exception the compiler *forces* you to either catch or declare. |
-| **Unchecked exception** | An exception the compiler does not force you to handle (most exceptions in most languages). |
-| **Happy path** | The execution path where nothing fails. The "everything went fine" route. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -165,44 +93,6 @@ let data = read_config()?;   // if it failed, return the error now; else unwrap 
 ```
 
 Each model is trying to solve the same tension: **make failure impossible to forget, but don't make the happy path unreadable.** No model perfectly wins.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Return value** | You ask the cook for a sandwich; you get a sandwich. |
-| **Error value** | You ask the cook for a sandwich; he hands you a note: "out of bread." You read the note and decide what to do. |
-| **Exception (throw)** | You ask the cook for a sandwich; he sets off the fire alarm and everyone evacuates the building until a manager (catch) handles it. |
-| **Stack unwinding** | The fire alarm clears the kitchen, then the dining room, then the lobby — floor by floor — until someone with authority stops the evacuation. |
-| **Panic** | The building is structurally unsafe. Don't try to keep serving lunch — get out. |
-| **`finally` / `defer`** | No matter how you leave the kitchen (sandwich made, or fire alarm), you *always* turn off the stove on the way out. |
-| **Checked exception** | A rule that you cannot leave the kitchen without signing a form acknowledging "the oven might catch fire." |
-| **`Option` / `Maybe`** | A vending machine slot that is either holding a snack or visibly empty. You look before you reach in. |
-| **`Result` / `Either`** | A sealed envelope marked either "PAYMENT" or "REJECTION." You must open it and read which it is before acting. |
-| **Side effect** | The cook doesn't just make food — he also dirties dishes, makes noise, and uses up ingredients. That's effect, beyond the sandwich. |
-
----
-
-## Mental Models
-
-### The "Two Exits" Model
-
-Picture every function as a room with **two doors**: a green door labeled "success — here is your value" and a red door labeled "failure — something went wrong." In single-return languages you only see the green door, and the red door is hidden (it's the exception escaping). In Go and Rust the two doors are right next to each other and *both visible* — the function literally hands you something that says which door you came out of. Whenever you call a function, ask: **which doors does this function have, and am I handling both?**
-
-### The "Marker vs Alarm" Model
-
-There are exactly two ways to tell your caller "this failed":
-
-- **Leave a marker** (error value): put a flag in the return, let the caller find it. Quiet, local, easy to ignore if you're careless.
-- **Pull an alarm** (exception): force control to jump until someone responds. Loud, non-local, impossible to ignore but easy to lose track of where it goes.
-
-Languages are arguments about which default is healthier. Carry both pictures; you'll meet both in any career.
-
-### The "Cleanup Is a Promise" Model
-
-When you open a resource, imagine you've signed a contract that says *"I will close this no matter what."* The happy path is the easy half. The error path is where the contract gets broken by sloppy code. `finally`/`defer`/`Drop`/destructors are the language helping you keep the promise automatically, so you don't have to remember to close the file on all seventeen error paths.
 
 ---
 
@@ -386,27 +276,6 @@ main =
 
 ---
 
-## Pros & Cons
-
-| Model | Pros | Cons |
-|-------|------|------|
-| **Exceptions** | Happy path is clean; errors auto-propagate without manual plumbing; one handler can cover many call sites; carries a stack trace. | Failure is invisible at the call site — you can't tell which calls throw; non-local jumps are hard to follow; easy to leak resources without `finally`/RAII; throwing is slow. |
-| **Error values (Go)** | Failure is explicit and impossible to overlook; control flow is linear and easy to trace; cheap (just a return). | Verbose (`if err != nil` everywhere); easy to forget to check (Go won't force you); manual propagation. |
-| **`Result` + `?` (Rust)** | Explicit *and* concise; compiler forces handling; type signature documents what can fail; cheap. | More upfront type ceremony; `?` requires compatible error types; a learning curve for the `Result`/`Option` ecosystem. |
-| **`Maybe` / `Either` (functional)** | Failure is a value you can compose, map, and chain; totally explicit in the type; no hidden control flow. | Requires understanding monadic chaining to avoid pyramid-of-`case`; less familiar to imperative programmers. |
-
----
-
-## Use Cases
-
-- **Reach for exceptions** when failures are genuinely exceptional and you want the happy path uncluttered — a deep parsing routine, a script, application-level "this request failed, bubble it to the top" logic in Java/Python/C#.
-- **Reach for error values (Go style)** when you want every failure visible and reviewers to *see* error handling in the diff — systems software, network services, anything where silently swallowed errors are catastrophic.
-- **Reach for `Result` (Rust style)** when you want the compiler to *guarantee* you handled failures — safety-critical code, libraries with clear fallible operations.
-- **Reach for `Option`/`Maybe`** for "this might legitimately have no answer" (a lookup that may miss, a first-element of a possibly-empty list) where "error" is too strong a word.
-- **Reach for panic/abort** only for *bugs and broken invariants* — index out of range, "this should be impossible" branches, failed assertions.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Always pair acquisition with guaranteed cleanup
@@ -490,26 +359,24 @@ fn assert_sorted(v: &[i32]) {
 
 ---
 
-## Summary
+## Apply it
 
-- A function can do **more than return a value**: it can **fail** (an error) or **affect/depend on the world** (an effect). This topic is how a language *models and runs* that.
-- There are two great families: **exceptions** ("jump out" up the call stack until caught) and **error values** ("return a marker the caller checks").
-- **Exceptions** (C++, Java, Python, JS) keep the happy path clean but hide where failures come from and need `finally`/RAII to avoid leaks.
-- **Error values** make failure explicit: **Go** returns an `error` you check with `if err != nil`; **Rust** returns `Result<T, E>` and the compiler forces you to handle it (with `?` as concise sugar).
-- **Functional models** (Haskell's `Maybe`/`Either`) treat failure as an ordinary value you pattern-match and chain.
-- **Errors vs panics:** errors are *expected* failures you handle; **panics** (Go `panic`, Rust `panic!`) are for *bugs* and crash by default.
-- **Stack unwinding** is the mechanism behind exceptions: an uncaught throw pops stack frames upward, running cleanup, until a handler catches it.
-- **Cleanup must run on every exit path** — happy or error. `finally`, `defer`, `Drop`, and destructors exist precisely to keep that promise automatically.
-- The junior's #1 habit: **never silently ignore a failure, and always make sure cleanup runs even when things go wrong.**
+1. Choose one small, known input for **Effect & Error Execution Models**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
----
+## Verify your work
 
-## Further Reading
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
 
-- *Effective Java* — Joshua Bloch. Chapters on exceptions: when to use checked vs unchecked, fail-fast, and exception design.
-- *The Go Programming Language* — Donovan & Kernighan. Chapter 5 covers errors, `defer`, `panic`, and `recover` in idiomatic depth.
-- *The Rust Programming Language* ("the book") — Chapter 9, "Error Handling," covers `panic!`, `Result`, and `?`. https://doc.rust-lang.org/book/ch09-00-error-handling.html
-- *Go by Example: Errors / Panic / Defer / Recover* — short, runnable examples. https://gobyexample.com/errors
-- *Python Tutorial — Errors and Exceptions*. https://docs.python.org/3/tutorial/errors.html
-- *MDN — Control flow and error handling* (JavaScript `try/catch`, Promises). https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Control_flow_and_error_handling
-- *Learn You a Haskell for Great Good* — the chapters on `Maybe` and `Either` for a gentle intro to failure-as-value.
+## Review questions
+
+- What problem does Effect & Error Execution Models solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

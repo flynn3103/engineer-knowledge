@@ -1,48 +1,12 @@
-# Floating-Point (IEEE 754) — Senior Level
+# Floating-Point (IEEE 754) — Senior
 
-> **Topic:** Floating-Point (IEEE 754)
-> **Focus:** Below the language — fused multiply-add, x87 80-bit extended precision and `FLT_EVAL_METHOD`, the real cost of `-ffast-math`, deterministic FP across platforms, NaN payloads and signaling NaNs, decimal floating point, and the print/parse round-trip (Grisu/Ryū).
+<!-- level-focus -->
+At senior level, focus on this question:
 
+> Which system invariant is affected by **Floating-Point (IEEE 754)** under failure, load, and change?
+
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
-
-## Introduction
-
-> 🎓 At middle level you learned ULPs, cancellation, and how to compare floats correctly. At senior level you confront the gap between the *standard* and the *machine*: the same `a*b + c` may be computed with one rounding or two depending on whether the compiler emitted an FMA; the same expression may carry 64 bits of mantissa on SSE and 64 bits *of integer* — really 80-bit floats — on a 1999 x87 FPU; the same binary, recompiled with `-ffast-math`, may quietly stop being IEEE 754 at all. Your job at this level is to know exactly which guarantees survive each layer.
-
-IEEE 754 is a *correctly-rounded* specification: each of the basic operations (`+`, `−`, `×`, `÷`, `sqrt`, FMA) must return the exactly-rounded result as if computed with infinite precision and then rounded once. That is a strong, beautiful guarantee — and almost every way real systems violate "FP determinism" is a violation of *when* and *how many times* that rounding happens, not of the rounding itself. Extended precision evaluates intermediates wider than the destination. FMA rounds once instead of twice. Fast-math lets the compiler pretend FP is associative. Different `libm` implementations round transcendental functions (`sin`, `exp`) differently because the standard does *not* require those to be correctly rounded.
-
-This level is the reconciliation: the standard's promises, the hardware's reality, and the engineering discipline that gets you reproducible, correct numerics across compilers and CPUs. We will also cover the **print/parse round-trip** — the surprisingly deep problem of converting a binary64 to the shortest decimal string that reads back identically (Steele & White, Grisu, Ryū) — and **decimal floating point** (IEEE 754-2008), the format that actually exists for money.
-
-The next level (`professional.md`) takes all of this into production: the war stories (Patriot, Ariane 5, Vancouver), perf tuning, and debugging numerical drift in live systems.
-
----
-
-## Prerequisites
-
-- The [middle](middle.md) level: ULP, epsilon, rounding modes, cancellation, non-associativity, correct comparison.
-- Comfort reading x86-64 / ARM assembly: recognizing `mulsd`, `addsd`, `vfmadd231sd`, `fld`/`fmul` (x87).
-- Familiarity with at least one compiler's optimization flags (`-O2`, `-ffast-math`, `-mfma`, `/fp:`).
-- An idea of what a `libm` is and that `sin`/`cos`/`exp` are *library*, not hardware-mandated, on most platforms.
-
-## Glossary
-
-| Term | Meaning |
-|------|---------|
-| **Correctly rounded** | The result equals the infinitely-precise result rounded once to the destination format. Required for `+−×÷√` and FMA, *not* for transcendentals. |
-| **FMA (fused multiply-add)** | `a*b + c` computed with a **single** rounding of the full-width product-plus-sum. More accurate than separate `*` then `+`. |
-| **x87** | The legacy x86 floating-point stack unit. Computes internally in **80-bit extended precision** regardless of operand type. |
-| **Extended precision (binary80)** | 64-bit mantissa, 15-bit exponent, *explicit* leading bit. The x87 internal format. |
-| **`FLT_EVAL_METHOD`** | C macro stating how much precision intermediate results carry: 0 = to type, 1 = double, 2 = long double (x87). |
-| **`-ffast-math`** | GCC/Clang umbrella flag that relaxes IEEE compliance (assumes no NaN/Inf, allows reassociation, flushes subnormals, etc.). |
-| **Reassociation** | Compiler rewriting `(a+b)+c` as `a+(b+c)` — illegal under strict IEEE, allowed under fast-math. |
-| **FTZ / DAZ** | Flush-To-Zero (subnormal *results* → 0) and Denormals-Are-Zero (subnormal *inputs* → 0). MXCSR control bits. |
-| **Quiet NaN (qNaN)** | A NaN that propagates silently through arithmetic. Top mantissa bit = 1. |
-| **Signaling NaN (sNaN)** | A NaN that raises an invalid-operation exception when used. Top mantissa bit = 0 (with nonzero remaining payload). |
-| **NaN payload** | The remaining mantissa bits of a NaN — can carry diagnostic information; mostly unused in practice. |
-| **decimal64 / decimal128** | IEEE 754-2008 *decimal* floating-point formats (base 10), for exact decimal fractions. |
-| **Densely Packed Decimal (DPD) / BID** | Two encodings of decimal significands (IBM's DPD vs Intel's Binary Integer Decimal). |
-| **Shortest round-trip** | The shortest decimal string that parses back to the exact same binary float. |
-| **Grisu / Ryū** | Modern fast algorithms producing the shortest round-trippable decimal. Ryū (2018) is the current state of the art. |
 
 ## Core Concepts
 
@@ -131,33 +95,6 @@ The practical knobs: `%.17g` always round-trips a double (17 significant decimal
 The Quake III `0x5f3759df` trick computes `1/sqrt(x)` by reinterpreting the float bits as an integer, doing `i = 0x5f3759df - (i >> 1)`, reinterpreting back, and running one Newton-Raphson step. It works because **the exponent field of an IEEE 754 float is (almost) the base-2 logarithm of the number**, so an integer right-shift halves the log → square roots, and the subtraction implements the `-1/2` of the inverse-sqrt exponent plus a bias correction. The magic constant restores the bias and minimizes the linear approximation error.
 
 Its real lesson for a senior is not the constant — modern CPUs have `rsqrtss` that's faster and the trick is obsolete — but the **insight that a float's bit pattern, read as an integer, is a piecewise-linear approximation of its logarithm.** That same insight powers ULP comparison (middle level), `frexp`/`ldexp`, and fast `log2` estimates. The number `0x5f3759df` is a museum piece; the bit-pattern-as-log intuition is permanent.
-
-## Real-World Analogies
-
-| Concept | Analogy |
-|---------|---------|
-| FMA single rounding | Measuring a board once at full length vs cutting it, measuring the offcut separately, and adding — fewer roundings, less error. |
-| x87 80-bit intermediates | Doing arithmetic on a high-precision lab scale, then transcribing to a kitchen scale; the transcription is where the value "changes." |
-| Correctly rounded vs faithfully rounded | A GPS that's always exactly right (×÷√) vs one that's within a meter (`sin`/`exp`) — and different brands disagree by that meter. |
-| `-ffast-math` | Removing the speed limiter *and* the seatbelts: faster, until the one corner where you needed them. |
-| Quiet vs signaling NaN | A silent error that spreads through your spreadsheet (qNaN) vs an alarm that goes off the moment you touch the bad cell (sNaN). |
-| Decimal floating point | An abacus (base-10 beads) vs a binary ruler — the abacus represents `0.10` exactly. |
-| Shortest round-trip printing | Writing the *shortest* address that still gets the letter to the right house. |
-| Bit-pattern-as-log (fast invsqrt) | The Richter scale: the exponent of a number is already a logarithm, so halving it is a shift, not a divide. |
-
-## Mental Models
-
-### "Count the roundings"
-
-Every IEEE operation rounds exactly once. To reason about an expression's accuracy *and* its portability, count where the roundings happen. `a*b + c` is two roundings; `fma(a,b,c)` is one. The compiler may turn the former into the latter — so the *number of roundings is a compiler decision* unless you pin `FP_CONTRACT`. Determinism = controlling the rounding count and the rounding mode at every step.
-
-### "The standard is a contract with holes"
-
-IEEE 754 guarantees `+−×÷√`/FMA bit-for-bit. It guarantees NaN/Inf *behavior*. It does **not** guarantee transcendentals, does not forbid extended-precision intermediates (it permits them), and does not stop your compiler from reassociating under fast-math. Map every "FP gives different answers on machine X" complaint onto one of these holes; it's never magic.
-
-### "Float bits, read as an int, are a logarithm"
-
-A positive float `v = 2^e × 1.f`. Its bit pattern (exponent then fraction) read as an unsigned integer is approximately `(e + bias + f) × 2^52` — a *linear function of log2(v)*. This single fact explains ULP-distance comparison, fast inverse sqrt, `frexp`, and why incrementing a float's bit pattern by 1 moves to the next representable value (one ULP). Keep this isomorphism in your head; it unlocks a dozen tricks.
 
 ## Code Examples
 
@@ -292,15 +229,6 @@ func main() {
 | Bit-deterministic FP across nodes | Must vendor your own libm and disable FMA/reassoc — big effort |
 | Shortest round-trip printing (Ryū) | More complex than `%.17g`; historically slower (Ryū fixed that) |
 
-## Use Cases
-
-- **Accurate dot products / polynomial eval / Newton iteration** → FMA, error-free transforms (TwoSum/TwoProduct).
-- **Lockstep multiplayer games, blockchains, reproducible science** → deterministic FP (no FMA contraction, no fast-math, vendored math, or integers in the consensus path).
-- **DSP / audio / dense linear algebra hot loops** → FTZ/DAZ to avoid subnormal stalls, validated `-ffp-contract=fast`.
-- **Money, billing, tax** → decimal FP or scaled integers — *never* binary FP.
-- **Serialization / config / logging** → shortest round-trip printing so values reload identically.
-- **High-perf math kernels** → SLEEF/SVML vectorized transcendentals, accepting their ULP error budget.
-
 ## Coding Patterns
 
 ### 1. Error-free transforms (TwoSum / TwoProduct)
@@ -405,127 +333,26 @@ def tax(amount: Decimal, rate: Decimal) -> Decimal:
 - **Decimal FP rounding has *more* modes** (round-half-up, round-half-even, round-ceiling…) and you must pick one explicitly; the default differs by library.
 - **The shortest-round-trip string is not unique across formats:** a number printed shortest as a `double` may not be the shortest for the `float` that produced it.
 
-## Test Yourself
+---
 
-1. Find a pair `(a, b)` where `fma(a, b, c)` and `a*b + c` differ, and explain via rounding count.
-2. Compile a program at `-O2` and `-O2 -ffast-math`; show that a NaN check stops working under the latter. Inspect the assembly.
-3. On a 32-bit x86 target with `-mfpmath=387`, reproduce a case where `volatile double x = expr; double y = expr; x != y`.
-4. Use `fma(a, b, -(a*b))` to extract the exact rounding error of a product; verify `a*b == p + e` exactly.
-5. Show `Decimal('0.1') + Decimal('0.2') == Decimal('0.3')` is `True` while the binary version is `False`. Explain the significand encoding.
-6. Print `0.1` with your language's default printer and with `%.17g`. Explain why the defaults show `0.1`.
-7. Construct a quiet NaN with a custom payload and show whether your platform preserves the payload through `+`.
-8. Demonstrate that `min(NaN, 5.0)` differs between `fmin` (C) and a `<`-based min in your language.
+## Apply it
 
-## Cheat Sheet
+1. State the system invariant that **Floating-Point (IEEE 754)** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
-```text
-┌─────────────────────────────────────────────────────────────────────┐
-│              FLOATING-POINT — SENIOR CHEAT SHEET                    │
-├─────────────────────────────────────────────────────────────────────┤
-│ Correctly rounded (portable, bit-identical):  + - * / sqrt FMA rem │
-│ Faithfully rounded (NOT portable, ±1 ULP):    sin cos exp log pow  │
-│   → cross-platform FP drift usually = libm transcendentals         │
-├─────────────────────────────────────────────────────────────────────┤
-│ FMA: a*b+c with ONE rounding. More accurate, DIFFERENT bits.       │
-│   compiler may contract a*b+c → fma unless FP_CONTRACT OFF          │
-│   fma(a,b,-(a*b)) = exact error of a*b  (error-free transform)      │
-├─────────────────────────────────────────────────────────────────────┤
-│ x87 = 80-bit intermediates. FLT_EVAL_METHOD: 0=type 1=double 2=80b │
-│   "value changes when stored/printed" = double rounding on x87      │
-│   x86-64 default = SSE2 = method 0 = clean                          │
-├─────────────────────────────────────────────────────────────────────┤
-│ -ffast-math BREAKS: NaN/Inf checks, Kahan (reassoc→0), subnormals  │
-│   never global; quarantine to validated kernels                    │
-├─────────────────────────────────────────────────────────────────────┤
-│ NaN: exp=all-ones, frac≠0. qNaN top-frac=1 (silent),               │
-│      sNaN top-frac=0 (traps). NaN!=NaN. payloads unreliable.       │
-├─────────────────────────────────────────────────────────────────────┤
-│ MONEY → decimal64/128 or scaled integers. NEVER binary float.      │
-│ PRINT → shortest round-trip (Ryū/Grisu); %.17g = verbose but safe  │
-│ DETERMINISM → no FMA contract, no fast-math, SSE2, vendored libm   │
-└─────────────────────────────────────────────────────────────────────┘
-```
+## Verify your work
 
-## Summary
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
 
-- IEEE 754 mandates **correct rounding** for `+−×÷√`/FMA — these are bit-portable. It does **not** mandate it for transcendentals, which is why `sin`/`exp` differ across platforms and cause most cross-platform FP drift.
-- **FMA** rounds `a*b+c` once instead of twice: more accurate, but it *changes results*, and the compiler may insert it implicitly unless you set `FP_CONTRACT`/`-ffp-contract`.
-- **x87 extended precision** evaluates intermediates in 80 bits, making values depend on register allocation (`FLT_EVAL_METHOD`); modern x86-64 defaults to clean SSE2.
-- **`-ffast-math`** trades IEEE compliance for speed: it breaks NaN checks, deletes Kahan compensation via reassociation, and flushes subnormals — never apply it globally.
-- **Deterministic FP** across machines requires disabling FMA contraction and fast-math, forcing SSE2, and *vendoring your own* transcendentals — or keeping integers in the consensus path.
-- **NaN** comes in quiet (silent propagation) and signaling (traps) forms distinguished by the top fraction bit; payloads exist but aren't portable.
-- **Decimal floating point** (754-2008) and scaled integers are the correct tools for money; binary FP never is.
-- The **print/parse round-trip** (Grisu/Ryū for shortest output, Clinger/Eisel-Lemire for correct parsing) is why `0.1` prints as `0.1`; `%.17g` round-trips but verbosely.
-- The **fast inverse square root** is obsolete code but encodes a permanent insight: a float's bits, read as an integer, approximate its base-2 logarithm.
+## Review questions
 
-## Further Reading
-
-- IEEE 754-2019 standard — the authoritative source for formats, rounding, and special values.
-- Jean-Michel Muller et al., *Handbook of Floating-Point Arithmetic*, 2nd ed. — the comprehensive modern reference (FMA, error-free transforms, table maker's dilemma).
-- David Goldberg, *What Every Computer Scientist Should Know About Floating-Point Arithmetic* (with the Sun addendum on x87/extended precision).
-- Ulf Adams, *Ryū: Fast Float-to-String Conversion*, PLDI 2018.
-- Florian Loitsch, *Printing Floating-Point Numbers Quickly and Accurately with Integers* (Grisu), PLDI 2010.
-- Daniel Lemire, *Number Parsing at a Gigabyte per Second* (Eisel-Lemire), 2021.
-- Kahan, *Lecture Notes on the Status of IEEE 754* and *How Java's Floating-Point Hurts Everyone Everywhere*.
-- Intel/AMD architecture manuals on MXCSR, FTZ/DAZ, FMA, and `rsqrt` accuracy.
-
-## Related Topics
-
-- This folder: [`junior.md`](junior.md), [`middle.md`](middle.md), [`professional.md`](professional.md), [`interview.md`](interview.md), [`tasks.md`](tasks.md).
-- Sibling numerics topics: integer representation, fixed-point arithmetic, decimal/arbitrary-precision types, and number parsing/formatting in the parent section.
-
-## Diagrams & Visual Aids
-
-### Counting roundings: separate mul+add vs FMA
-
-```text
-   a*b + c   (separate)                 fma(a, b, c)
-   ────────────────────                 ────────────
-   t = round(a*b)   ← rounding #1       p = a*b      (full width, NOT rounded)
-   r = round(t+c)   ← rounding #2       r = round(p + c)  ← single rounding
-                                        ▲
-   two roundings → more error           one rounding → tighter, but DIFFERENT bits
-```
-
-### x87 double-rounding
-
-```text
-   exact a*b ─► round to 80 bits ─► round to 64 bits   (x87: TWO roundings)
-                     │                     │
-                can differ from ───────────┘
-   exact a*b ─► round to 64 bits directly              (SSE2: ONE rounding)
-
-   The two paths can yield different doubles → "it changes when I store it"
-```
-
-### NaN bit layout (binary64)
-
-```text
-   ┌─┬───────────────┬─┬─────────────────────────────────────────────┐
-   │S│ 111 1111 1111 │Q│            payload (50 bits)                 │
-   └─┴───────────────┴─┴─────────────────────────────────────────────┘
-      exponent all 1s  │
-                       └─ Q=1 quiet (silent)   Q=0 signaling (traps)
-   fraction must be nonzero (else it's Infinity, not NaN)
-```
-
-### Binary vs decimal floating point for 0.1
-
-```text
-   binary64(0.1)  = 0.1000000000000000055511151231257827...   (inexact)
-                    └ nearest dot on a base-2 grid ┘
-
-   decimal64(0.1) = significand 1 × 10^-1  = exactly 0.1
-                    └ base-10 grid hits 0.1 on the nose ┘
-```
-
-### The print/parse round-trip
-
-```text
-   double d ──[shortest-round-trip printer: Ryū/Grisu]──► "0.1"
-       ▲                                                    │
-       └──────[correct parser: Clinger/Eisel-Lemire]◄───────┘
-                must recover the EXACT same double d
-
-   %.17g also round-trips but prints "0.30000000000000004" (verbose, not shortest)
-```
+- Which invariant must remain true when Floating-Point (IEEE 754) fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

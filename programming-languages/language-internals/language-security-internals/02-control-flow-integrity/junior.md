@@ -1,67 +1,11 @@
-# Control-Flow Integrity — Junior Level
+# Control-Flow Integrity — Junior
 
-> **Topic:** Control-Flow Integrity
-> **Focus:** What "control flow" is, how a memory bug lets an attacker steal it, and the first wave of defenses (NX/DEP, stack canaries) that make stealing it harder.
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **Control-Flow Integrity** in one small example and prove the result?
 
-## Introduction
-
-> Focus: **What is "control flow," and what does it mean for an attacker to hijack it?**
-
-Every program is a sequence of decisions about *what to run next*. Run this instruction, then the next, then jump into a function, then return from it. That ordering — the path the CPU walks through your code — is the program's **control flow**. **Control-Flow Integrity (CFI)** is the family of defenses that make sure the CPU only ever follows paths the *programmer* intended, even when the program has a memory bug an attacker is trying to exploit.
-
-Here is the one-sentence version of the whole problem. In a language like C or C++, the addresses the CPU jumps to — the *return address* of a function, the *target* of a function-pointer call — live in ordinary memory, right next to ordinary data like buffers and arrays. If an attacker can corrupt that data (by overflowing a buffer, for example), they can also corrupt the *jump targets*. And once you control where the CPU jumps next, you control the program.
-
-CFI is the answer to: **"A memory bug let the attacker overwrite an address. How do we stop them from turning that into 'run my code'?"**
-
-> 🎓 **Why this matters for a junior:** You will spend most of your early career writing memory-safe code (Python, Go, Java, Rust, JavaScript) where these attacks mostly don't apply. But the systems *under* you — the OS kernel, the language runtime, the browser engine, `libc` — are written in C and C++, and they are the real targets. Understanding *why* your OS has features called "DEP," "stack canaries," and "CET" tells you what classes of bug are catastrophic and which are merely annoying. This is also the bedrock vocabulary for every security conversation you will ever have.
-
-This page covers: what control flow is, the historical attack (a stack buffer overflow rewriting a return address), the first defense (NX/DEP, which made injected code non-runnable), the attacker's response (reusing code that's *already* runnable — return-to-libc), and the first cheap guard you'll see everywhere (the **stack canary**). The next levels go deeper: `middle.md` covers ROP and forward-edge CFI, `senior.md` covers shadow stacks and hardware (CET, PAC, BTI), and `professional.md` covers the cat-and-mouse of CFI bypasses and deployment.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** What a function call is, and the vague idea that calling a function "remembers where to come back to."
-- **Required:** What a pointer is — a variable that holds a memory address.
-- **Required:** What an array or buffer is, and that writing past its end is a bug.
-- **Helpful but not required:** Any exposure to C or C++ — `char buf[64]`, `strcpy`, that kind of thing.
-- **Helpful but not required:** A rough mental picture that programs have memory split into *stack*, *heap*, and *code*.
-
-You do **not** need to know:
-
-- Assembly language (we'll show tiny snippets and explain every line).
-- How the CPU pipelines or caches instructions.
-- The exact byte layout of a stack frame (that's `middle.md`).
-- Anything about ROP gadget hunting, shadow stacks, or pointer authentication — those are later levels.
-
-> ⚠️ **A note on ethics and scope.** Everything here is **defensive and conceptual**. We explain *mechanisms* and *classes* of attack so you can reason about defenses. We do not show working exploits, payloads, or step-by-step instructions to compromise anything. The goal is to make you a better defender, not to hand anyone a weapon.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Control flow** | The order in which a program's instructions execute — including jumps, calls, and returns. |
-| **Indirect branch** | A jump or call whose target is read from memory or a register at runtime, not fixed in the instruction. Returns, function-pointer calls, and virtual calls are all indirect. |
-| **Return address** | The address the CPU jumps back to when a function finishes. Stored on the stack. The classic hijack target. |
-| **Stack** | The region of memory holding local variables, function arguments, and return addresses. Grows and shrinks as functions call and return. |
-| **Buffer overflow** | Writing more data into a buffer than it can hold, corrupting whatever sits next to it in memory. |
-| **Stack smashing** | A buffer overflow on the stack that overwrites the return address. |
-| **Shellcode** | Attacker-supplied machine code injected into the process, historically aiming to spawn a shell. |
-| **NX / DEP / W^X** | "No-eXecute" / "Data Execution Prevention" / "Write XOR eXecute." A rule: a memory page may be writable *or* executable, never both. Stops injected data from running as code. |
-| **Code reuse** | Instead of injecting new code, the attacker jumps into code *already present* (and already executable) in the program. Defeats NX. |
-| **Return-to-libc** | A code-reuse attack that redirects a return into an existing library function (like `system`). |
-| **Stack canary / cookie** | A secret value placed just before the return address. If an overflow corrupts the return address, it also corrupts the canary; the program checks the canary before returning and aborts if it changed. |
-| **CFI (Control-Flow Integrity)** | The umbrella term for defenses that restrict indirect branches to legitimate targets. |
-| **Forward edge** | An indirect call or jump *into* a function (function pointers, virtual calls). |
-| **Backward edge** | A return *out of* a function (the return address). |
-| **Undefined behavior (UB)** | In C/C++, behavior the standard does not define — like writing past a buffer. The compiler may do anything, and attackers exploit it. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -146,32 +90,6 @@ What canaries catch and miss is the start of every real security discussion:
 - **Miss:** overflows that *don't* cross the canary — e.g., a write to a function pointer *before* the canary, or an overflow that overwrites a local variable used as a target. Also miss: attacks that *read* the canary first (an info leak) and then write the correct value back. And miss: heap overflows, use-after-free, type confusion — none of those touch the stack canary at all.
 
 Canaries are a great example of the recurring CFI theme: a cheap, targeted defense that closes one door, after which attackers walk through the others.
-
----
-
-## Real-World Analogies
-
-**The return address as a "return-to" sticky note.** Imagine you're reading a book, get interrupted by a phone call, and stick a Post-it on the page so you know where to resume. The phone call is a function call; the Post-it is the return address. Now imagine a prankster can reach over and rewrite your Post-it while you're on the phone. When you hang up, you "return" to the *wrong page* — the page they chose. Stack smashing is rewriting that Post-it.
-
-**NX/DEP as "the kitchen and the dining room."** In a restaurant, the kitchen is where food is *made* (writable) and the dining room is where it's *served* (executable). NX says: you can cook in the kitchen or eat in the dining room, but you can't cook a meal and eat it in the same spot. Attacker-supplied data lands in the "kitchen" (writable stack) and can never be "served" (executed).
-
-**Return-to-libc as ordering off the existing menu.** NX stopped you from sneaking in your own dish. So instead, you place a clever order using only items *already on the menu* — combine the "knife," the "open door," and the "cash drawer" the restaurant already provides. You didn't bring anything in; you misused what was there. That's code reuse.
-
-**The stack canary as a wax seal on a letter.** A medieval letter was sealed with wax stamped with a secret crest. If the seal was broken or the crest was wrong, you knew it had been tampered with *before* you trusted the contents. The canary is that seal sitting in front of the return address: tampered seal → don't trust the return → abort.
-
-**CFI itself as a guest list at the door.** A bouncer with a guest list lets people in only if they're on the list. An indirect call is a doorway; CFI is the bouncer checking that the place you're about to jump to is on the list of *legitimate* targets for that doorway. Forward-edge CFI is the door bouncer; the shadow stack (later) is the coat-check ticket that proves you're leaving the way you came in.
-
----
-
-## Mental Models
-
-**Model 1: Control flow is data, and data can be corrupted.** The single most important idea on this page. Return addresses and function pointers are *just bytes in memory*. The CPU trusts them blindly. Any bug that lets an attacker write those bytes lets them redirect the program. CFI's job is to add a *check* between "read the target from memory" and "jump to it."
-
-**Model 2: Two edges, two problems.** Every defense targets either the **backward edge** (returns — protected by canaries and shadow stacks) or the **forward edge** (function-pointer and virtual calls — protected by forward-edge CFI like CFG and LLVM CFI). When you read about a defense, your first question should be: *backward edge or forward edge?*
-
-**Model 3: The arms race ladder.** Inject shellcode → NX kills it → reuse existing code (return-to-libc, ROP) → CFI/shadow stacks restrict reuse → attackers find data-only attacks. Each rung is a defense that closed the previous attack, prompting the next attack. CFI is a rung, not the end of the ladder.
-
-**Model 4: Defense in depth, not a silver bullet.** No single feature here stops everything. Canaries miss heap bugs; NX misses code reuse; CFI misses data-only attacks. Real systems stack *all* of them so an attacker has to defeat several at once. "What does this miss?" is always the right follow-up question.
 
 ---
 
@@ -283,43 +201,6 @@ The takeaway for a junior: **most CFI relevance is for C/C++ code.** When you ca
 
 ---
 
-## Pros & Cons
-
-**Stack canaries**
-
-| Pros | Cons |
-|------|------|
-| Extremely cheap (a load, a store, a compare per function). | Only protect the **backward edge** (return address), and only against *contiguous* stack overflows. |
-| On by default; you get them for free. | Defeated by info leaks (read the canary, then write it back) and by overflows that skip past it. |
-| Catch many real, accidental overflows early. | Do nothing for heap bugs, use-after-free, or forward-edge hijacks. |
-
-**NX / DEP / W^X**
-
-| Pros | Cons |
-|------|------|
-| Kills the entire class of injected-shellcode attacks. | Does nothing against code reuse (return-to-libc, ROP). |
-| Hardware-enforced; near-zero runtime cost. | Breaks JITs (which legitimately write-then-execute) unless they manage permissions carefully. |
-| Universally deployed. | Just one rung — necessary, not sufficient. |
-
-**Forward-edge CFI (preview of `middle.md`)**
-
-| Pros | Cons |
-|------|------|
-| Restricts function-pointer/virtual calls to legitimate targets. | Precision is limited; many valid targets can still be "in set." |
-| Catches a large fraction of code-reuse hijacks. | Doesn't stop data-only attacks. Has some performance/compatibility cost. |
-
----
-
-## Use Cases
-
-- **Operating-system kernels.** The kernel is the highest-value C target; Linux, Windows, and macOS all ship multiple CFI mechanisms.
-- **Browsers and language runtimes.** Chrome, Firefox, and the JVM/V8 native layers are huge C/C++ attack surfaces and lean heavily on CFI.
-- **`libc` and core system libraries.** Compiled with canaries and (increasingly) hardware CFI.
-- **Embedded and IoT firmware.** Often C, often network-facing, increasingly using ARM BTI/PAC (see `senior.md`).
-- **Any networked C/C++ service** that parses untrusted input — the exact place buffer overflows turn into remote code execution.
-
----
-
 ## Coding Patterns
 
 These are the day-one habits that *prevent the bug CFI is the backstop for*. CFI is a net; not falling is better.
@@ -391,48 +272,24 @@ memcpy(buffer, input, input_len);
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. What is the difference between a **direct** and an **indirect** branch, and why does CFI only care about the indirect kind?
-2. In one sentence, how does a stack buffer overflow turn into a control-flow hijack?
-3. What attack does **NX/DEP** stop, and what attack does it *fail* to stop?
-4. Where does the compiler place a **stack canary**, and why does its position matter?
-5. Name two situations a stack canary does **not** catch.
-6. Why is **return-to-libc** considered a "code-reuse" attack, and why doesn't NX prevent it?
-7. What's the difference between the **forward edge** and the **backward edge** of control flow?
-8. Why is this entire topic mostly relevant to **C/C++** code and not, say, Python?
+1. Choose one small, known input for **Control-Flow Integrity**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
-> Answers are woven through Core Concepts. If you can answer 1–5 cleanly, you're ready for `middle.md` (ROP and forward-edge CFI).
+## Verify your work
 
----
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
 
-## Cheat Sheet
+## Review questions
 
-| Concept | One-liner |
-|---------|-----------|
-| **Control flow** | The order instructions run; CFI keeps it on intended paths. |
-| **Indirect branch** | Jump/call/return whose target comes from corruptible memory. |
-| **Stack smashing** | Overflow a stack buffer to overwrite the return address. |
-| **NX / DEP / W^X** | Pages are writable or executable, never both. Kills injected shellcode. |
-| **Return-to-libc** | Reuse existing functions (e.g. `system`) — defeats NX. |
-| **Stack canary** | Secret tripwire before the return address; abort if it changes. |
-| **Forward edge** | Indirect calls (function pointers, virtual calls). |
-| **Backward edge** | Returns (the return address). |
-| **CFI** | Restrict indirect branches to legitimate targets. |
-| **Golden rule** | No single mitigation is enough; layer them. |
-
----
-
-## Summary
-
-Control flow is the path the CPU takes through your code, and the dangerous parts are the **indirect branches** — returns and function-pointer/virtual calls — whose targets are read from ordinary, corruptible memory. The original attack, **stack smashing**, overflows a stack buffer to overwrite the **return address** and redirect execution into injected **shellcode**. **NX/DEP/W^X** killed injected shellcode by making data non-executable, so attackers pivoted to **code reuse** (return-to-libc) — running the program's own functions against it, which NX can't stop. The cheap, ubiquitous guard you'll see everywhere is the **stack canary**: a secret tripwire placed before the return address that detects contiguous overflows before the corrupted return is used. None of these is complete on its own — canaries miss heap and forward-edge bugs, NX misses code reuse — so real systems layer them, which is exactly what **CFI** (the next levels) generalizes: checking that every indirect branch goes only where the programmer intended.
-
----
-
-## Further Reading
-
-- "Smashing the Stack for Fun and Profit" (Aleph One) — the foundational, historical description of the stack overflow. Read it as history.
-- Your compiler's docs for `-fstack-protector-strong`, `-fstack-protector-all`.
-- The `checksec` tool and its documentation — learn to read a binary's mitigations.
-- Microsoft's documentation on `/GS` (stack cookies) and DEP.
-- Continue to `middle.md` for ROP and forward-edge CFI.
+- What problem does Control-Flow Integrity solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

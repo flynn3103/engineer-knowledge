@@ -1,66 +1,11 @@
-# What Is a Type — Junior Level
+# What Is a Type — Junior
 
-> **Topic:** What Is a Type
-> **Focus:** What a type actually *is* — a set of values plus the operations you're allowed to do with them — and why naming that set is the cheapest bug-prevention tool you'll ever use.
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **What Is a Type** in one small example and prove the result?
 
-## Introduction
-
-> Focus: **What does it mean for a value to "have a type"?** And **why does writing the type down stop bugs before the program ever runs?**
-
-Every value in a program — the number `42`, the text `"hello"`, the truth value `true`, a list `[1, 2, 3]` — belongs to a **type**. The simplest, most useful definition a junior can carry around is this:
-
-> A **type is a set of values, together with the operations that are valid on those values.**
-
-`int` is the set of whole numbers your machine can represent, plus operations like `+`, `-`, `*`, `<`. `bool` is the two-element set `{true, false}`, plus `&&`, `||`, `!`. `string` is the set of all finite text values, plus `length`, concatenation, slicing. The type tells you two things at once: **which values are legal**, and **what you're allowed to do with them**. You can add two `int`s. You cannot meaningfully add a `bool` to a `string` — and a type system is the thing that catches you when you try.
-
-This is the highest-leverage idea in this entire topic: a type is a **promise** about a value. When a function says it returns a `User`, it promises you'll get a `User` and not a `null`, not a number, not an error string. When a parameter says it takes a `PositiveInt`, it promises the function never has to handle zero or negatives. Types let you say, *out loud and in code*, "this value is one of these and never any other," and a compiler or interpreter holds you to it.
-
-> 🎓 **Why this matters for a junior:** Most bugs you write in your first year are **type confusions** in disguise — passing a user ID where a username was expected, treating a string `"42"` as if it were the number `42`, calling a method on something that turned out to be `null`. A type system is a robot reviewer that catches a huge fraction of these *before you even run the code*. Learning to think in types is learning to make those mistakes impossible instead of merely unlikely.
-
-This page covers: what a type is (a set of values + operations), what a type system *does* for you (prevents whole classes of errors, documents intent, powers your editor's autocomplete), the difference between a value's type being known at **compile time** versus checked at **run time**, primitive types versus composite types, and the same ideas shown across Python, Java, TypeScript, Go, and Rust. Deeper levels go into the formal lenses (types as sets, types as propositions), static vs dynamic typing in detail, and how types connect to memory layout.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** How to write and run a simple program with variables and functions in at least one language (Python, Java, JavaScript/TypeScript, Go, or Rust).
-- **Required:** What a variable is and what "assigning a value to it" means.
-- **Required:** Calling a function and passing arguments.
-- **Helpful but not required:** A vague sense that `5` and `"5"` are different things even though they look similar.
-- **Helpful but not required:** Having seen at least one error message complaining about a type (`TypeError`, `cannot convert`, `expected X got Y`).
-
-You do **not** need to know:
-
-- The difference between static and dynamic typing in detail (the next level goes deep on this).
-- Anything formal: set theory, the Curry–Howard correspondence, kinds. Those are senior topics, introduced gently later.
-- How a compiler actually checks types internally.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Type** | A set of values together with the operations valid on those values. `int`, `string`, `bool`, `User`. |
-| **Value** | A concrete piece of data: `42`, `"hi"`, `true`, an object, a list. Every value has a type. |
-| **Type checking** | The process of verifying that operations are applied to compatible types — e.g. that you don't add a number to a function. |
-| **Type error** | A mistake the type system catches: applying an operation to a value whose type doesn't support it. |
-| **Primitive type** | A built-in, indivisible type: `int`, `float`, `bool`, `char`, `byte`. |
-| **Composite type** | A type built from other types: arrays, lists, structs/records, maps, tuples. |
-| **Static type** | The type known at **compile time**, attached to a variable or expression by the compiler. |
-| **Dynamic type** | The actual type of the **value** at **run time**, carried as a runtime tag. |
-| **Compile time** | When the program is being translated/checked, *before* it runs. |
-| **Run time** | When the program is actually executing. |
-| **Type annotation** | An explicit written type, like `x: int` or `String name`. |
-| **Type inference** | The compiler figuring out a type you didn't write down. |
-| **Contract** | The promise a type makes: "any value of this type supports these operations and obeys these rules." |
-| **Type safety** | The guarantee that operations are never applied to the wrong kind of value. |
-| **Strongly/weakly typed** | Vague terms for how strictly a language enforces type rules. Use with care (covered below). |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -133,42 +78,6 @@ A type system isn't just bookkeeping. It buys you four concrete things:
 ### 7. "Make Illegal States Unrepresentable"
 
 The most powerful idea you'll take from thinking in types: **design your types so that bad states can't even be expressed.** If an order can be `Pending`, `Shipped`, or `Cancelled`, don't model it as three booleans (`isPending`, `isShipped`, `isCancelled`) — that allows nonsense like "pending *and* shipped at once." Model it as a single type with exactly three possibilities. Now the impossible state literally cannot be constructed. The type does the work that validation code, tests, and code review would otherwise have to do — and it does it for free, forever.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Type** | A category of object, like "screw" or "bolt." Knowing the category tells you what fits and what you can do with it. |
-| **Set of values** | All the individual screws of that kind in the world. |
-| **Valid operations** | "You can screw it into a threaded hole." (You can't hammer it like a nail and expect it to work.) |
-| **Type error** | Trying to fit a metric bolt into an imperial nut — they don't match, and a good shop catches it before assembly. |
-| **Type as contract** | A power socket shape. A plug labeled "Type C" promises it fits a Type C socket. The shape *is* the guarantee. |
-| **Static type** | The label printed on the box: "contains: 4mm screws." Known before you open it. |
-| **Dynamic type** | What's actually inside when you open it at use-time. |
-| **Primitive type** | A raw material: a single screw, a single nail. |
-| **Composite type** | An assembled part: a hinge made of screws, a plate, and a pin. |
-| **Make illegal states unrepresentable** | A USB plug that only goes in the right way (eventually) — the shape forbids the wrong connection. |
-| **Type system** | The quality inspector who checks every part fits before the product ships. |
-
-The socket-and-plug analogy is worth keeping. Electrical standards exist so that a "Type G" plug *cannot* be jammed into a "Type A" socket — the physical shape is a type, and the mismatch is caught by geometry, not by trusting the person. A type system does exactly this for data.
-
----
-
-## Mental Models
-
-### The Bins Model
-
-Imagine every value in your program being dropped into a labeled bin: the `int` bin, the `string` bin, the `User` bin. The type *is* the bin's label. Operations are tools that only work on specific bins — the "add" tool works on the `int` bin, the "uppercase" tool works on the `string` bin. The type system is the rule "you may only use a tool on a bin it's built for." When you reach into the `string` bin with the "add 1" tool, the system stops your hand.
-
-### The Promise Model
-
-Every type annotation is a promise written into the code. `name: string` promises *I will only ever hold text here.* `getUser(): User` promises *I will hand you back a User.* A statically typed language checks all these promises before running. A dynamically typed language trusts you and only complains at run time if a promise turns out false. Either way, **the type is the promise**, and bugs are broken promises.
-
-### The "Cheapest Test" Model
-
-Think of a type as a tiny test that runs everywhere, for free, forever. A unit test checks one example. A type checks *every possible value* at *every call site* — and it's already written the moment you declare the type. `n: PositiveInt` is, in effect, a test that runs at every place a `PositiveInt` is used, asserting "this is positive," without you writing a single assertion. When senior engineers say "make illegal states unrepresentable," they mean: push as much checking as you can into types, because types are the cheapest tests you'll ever have.
 
 ---
 
@@ -288,38 +197,6 @@ The `Order` type makes the impossible *unrepresentable*: there's no way to const
 
 ---
 
-## Pros & Cons
-
-| Aspect | Pros | Cons |
-|--------|------|------|
-| **Bug prevention** | Whole classes of errors become impossible to write. Catches mismatches early. | Can't catch *logic* bugs — a wrong-but-well-typed program still compiles. |
-| **Documentation** | Signatures document intent and never go stale. | Verbose annotations can clutter simple code. |
-| **Tooling** | Powers autocomplete, refactoring, navigation. | Tooling quality varies by language. |
-| **Performance** | Lets the compiler pick efficient representations. | (For dynamic languages) runtime type tags cost memory and time. |
-| **Refactoring** | Change a type and the checker shows every place that must update. | Big type changes can ripple widely. |
-| **Learning curve** | Types teach you to think about your data precisely. | Strict type systems (Rust, Haskell) have a real learning cost up front. |
-| **Flexibility** | Strong contracts make large codebases manageable. | Sometimes you genuinely don't know the type yet; strictness can slow prototyping. |
-
----
-
-## Use Cases
-
-Thinking carefully about types pays off most when:
-
-- **You're modeling a domain.** Users, orders, money, dates — give each its own type instead of passing raw strings and ints around. The types become the spec.
-- **You're writing a function others will call.** Precise parameter and return types are the cheapest, truest documentation.
-- **You're working in a large or long-lived codebase.** Types are what let you refactor with confidence; the checker finds everything you broke.
-- **Correctness matters more than speed of first draft.** Payments, auth, anything where a wrong value is expensive.
-- **You want your editor to help you.** Good types unlock autocomplete and navigation across the whole codebase.
-
-Lighter typing (or just primitives) is fine when:
-
-- You're writing a quick throwaway script.
-- You're exploring and don't yet know the shape of your data.
-- The whole program fits on a screen and lives for an afternoon.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Name your domain types instead of using primitives
@@ -396,87 +273,24 @@ Prefer `func setAge(a PositiveInt)` over `func setAge(a int)` with a runtime `if
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. Define "type" in one sentence using the words *set* and *operations*.
-2. `42` and `"42"` — give the type of each, and explain why `42 + "1"` behaves differently than `42 + 1`.
-3. What's the difference between a value's type and a variable's type? Give an example where they differ.
-4. Name three things a type system does *for* you beyond catching errors.
-5. Why is `func charge(amount Cents)` better than `func charge(amount int)`?
-6. Rewrite an "order" modeled as `isPending`, `isShipped`, `isCancelled` (three booleans) so that impossible states can't be represented.
-7. In Python, does `def f(x: int)` stop you from calling `f("hi")` at run time? What tool would catch it?
-8. Give an example of a primitive type and a composite type, and explain what makes them different.
+1. Choose one small, known input for **What Is a Type**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
----
+## Verify your work
 
-## Cheat Sheet
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
 
-```text
-┌────────────────────────────────────────────────────────────────┐
-│                        WHAT IS A TYPE                          │
-├────────────────────────────────────────────────────────────────┤
-│  A TYPE = a SET of values + the OPERATIONS valid on them       │
-│                                                                │
-│    bool   = {true, false}   + && || ! ==                       │
-│    byte   = {0 .. 255}      + + - & <                          │
-│    int    = machine ints    + + - * / < ==                     │
-│    string = all text        + concat, length, slice           │
-├────────────────────────────────────────────────────────────────┤
-│  Four views of the same idea:                                  │
-│    1. set of values + operations   (pragmatic)                 │
-│    2. a label that classifies values into bins                 │
-│    3. a contract / promise about a value                       │
-│    4. the cheapest test you ever write                         │
-├────────────────────────────────────────────────────────────────┤
-│  A type system DOES:                                           │
-│    * prevents whole classes of errors                          │
-│    * documents intent (signatures never lie)                   │
-│    * powers autocomplete / refactor / navigation               │
-│    * enables efficient compiled code                           │
-├────────────────────────────────────────────────────────────────┤
-│  static type = attached to the NAME, known at compile time     │
-│  dynamic type = attached to the VALUE, the runtime tag         │
-├────────────────────────────────────────────────────────────────┤
-│  Primitive: int, float, bool, char, byte                       │
-│  Composite: list, struct, map, tuple  (built from others)      │
-├────────────────────────────────────────────────────────────────┤
-│  Golden rule: MAKE ILLEGAL STATES UNREPRESENTABLE              │
-└────────────────────────────────────────────────────────────────┘
-```
+## Review questions
 
----
-
-## Summary
-
-- A **type is a set of values together with the operations valid on those values.** That one definition carries you a long way.
-- The same idea has several faces: types **classify** values into bins, types are **contracts/promises** about values, and types are the **cheapest tests** you can write.
-- Every value has a type — even in languages where you don't write it down. `42` is an `int`; `"42"` is a `string`; they live in different bins and support different operations.
-- A type can be known at **compile time** (the static type, attached to a name) or carried at **run time** (the dynamic type, the value's tag). The next level explores this split in depth.
-- A **type system** prevents whole classes of errors, documents intent, powers your editor's tooling, and enables fast compiled code.
-- **Primitive** types (`int`, `bool`, `char`) are the building blocks; **composite** types (lists, structs, maps) are assembled from them.
-- The most valuable habit you can build: **make illegal states unrepresentable** — design types so that bad values simply cannot be constructed.
-- Common traps: confusing `"5"` with `5`, letting `null` slip past a type, over-using `string`/`any`, and assuming Python annotations are enforced (they need a checker).
-- A junior's #1 mindset shift: stop seeing types as red tape to satisfy the compiler, and start seeing them as the tool that makes bugs *impossible* instead of merely unlikely.
-
----
-
-## What You Can Build
-
-- **A "guess the type" quiz.** Print a series of values (`42`, `"42"`, `[1,2]`, `true`, `3.14`) and have a friend name the type and one valid operation for each.
-- **A typed domain model.** Take a small app idea (a to-do list, a contacts book) and define every entity with its own types — `TaskID`, `DueDate`, `Priority` enum — instead of raw strings and ints.
-- **A "make illegal states unrepresentable" refactor.** Find some code that uses multiple booleans for one concept and rewrite it as a single type with explicit states.
-- **A type-error gallery.** Deliberately write the same type error (adding a string to a number) in Python, Java, TypeScript, Go, and Rust, and compare *when* each catches it (run time vs compile time) and what the message says.
-- **A tiny validator-by-type.** Define a `PositiveInt` type (or wrapper) that can only be constructed from a positive number, and use it to remove runtime `if x < 0` checks from a small program.
-
----
-
-## Further Reading
-
-- *Types and Programming Languages* — Benjamin C. Pierce. The standard introduction; chapter 1 motivates "what a type is" beautifully.
-- *Programming with Types* — Vlad Riscutia. A practical, language-agnostic tour for working developers.
-- *Thinking with Types* (intro chapters) — Sandy Maguire. Approachable framing of types as a design tool.
-- *The TypeScript Handbook* — https://www.typescriptlang.org/docs/handbook/ — excellent on "types as a layer over values."
-- *mypy documentation* — https://mypy.readthedocs.io/ — how optional static typing works in Python.
-- *The Rust Book*, chapters 3 and 6 — https://doc.rust-lang.org/book/ — types, and enums for modeling states.
-- "Make Illegal States Unrepresentable" — Scott Wlaschin (F# for Fun and Profit). The clearest essay on the idea. https://fsharpforfunandprofit.com/posts/designing-with-types-making-illegal-states-unrepresentable/
-- *Effective Java* — Joshua Bloch. Many items are really about using types to make APIs hard to misuse.
+- What problem does What Is a Type solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

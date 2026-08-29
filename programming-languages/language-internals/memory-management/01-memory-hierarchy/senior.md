@@ -1,22 +1,11 @@
-# The Memory Hierarchy — Senior Level
+# The Memory Hierarchy — Senior
 
-> **Topic:** The Memory Hierarchy
-> **Focus:** Design trade-offs across the hierarchy — data layout (AoS vs SoA), NUMA, false sharing, the memory wall — and how language and runtime choices change the cost model.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **The Memory Hierarchy** under failure, load, and change?
 
-## Introduction
-
-A senior engineer doesn't just write cache-friendly loops; they choose *data layouts and concurrency structures* whose interaction with the hierarchy is favorable by construction. That means understanding why the gap between CPU and memory keeps widening (the memory wall), why the same struct laid out two ways differs 5× in a SIMD loop, why two threads writing different variables can collide, and why a malloc on the "wrong" NUMA node silently halves your bandwidth. The hierarchy stops being a tuning afterthought and becomes an input to design.
-
----
-
-## Prerequisites
-
-- Middle tier: cache anatomy, the three Cs, prefetching, TLB, latency vs bandwidth.
-- Working knowledge of at least two of C, Go, Java, Rust, and how each lays out aggregates in memory.
-- Basic cache-coherence intuition (MESI-style: lines have shared/exclusive/modified states across cores).
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -120,15 +109,6 @@ The headline: **managed, reference-heavy languages put a pointer indirection bet
 
 ---
 
-## Mental Models
-
-- **The memory wall makes locality the master variable.** Most "scaling" and "optimization" wins are really locality wins wearing a disguise.
-- **Coherence is line-granular; design data so independent writers don't share lines.** False sharing is a layout bug, not a logic bug.
-- **"RAM" is not uniform.** On NUMA, *which* DRAM matters as much as *how much*. First-touch decides placement.
-- **A pointer is a deferred cache miss.** Every indirection in a hot path is a potential serialized DRAM stall.
-
----
-
 ## Code Examples
 
 ### AoS vs SoA SIMD-friendliness (Go)
@@ -189,11 +169,24 @@ for (size_t i = 0; i < n; i++)
 
 ---
 
-## Summary
+## Apply it
 
-- The **memory wall** makes a DRAM miss cost hundreds of instructions, so **locality dominates** real performance and adding cores rarely fixes a memory-bound loop.
-- **Data layout (AoS vs SoA vs AoSoA)** is the highest-leverage tuning knob; match it to the hot loop and you unlock SIMD and full line utilization for **2–8×**.
-- **Pointer-linked structures are dependency chains of misses**; flattened, array-backed designs win in practice despite identical big-O.
-- **False sharing** is a line-granular coherence bug fixed by padding concurrently-written data.
-- **NUMA** makes RAM non-uniform; **first-touch** placement and parallel init keep accesses local, worth 30–50% on multi-socket hardware.
-- **Managed languages insert pointer indirection**; reach for primitive arrays, value types, and columnar buffers to bring hot data back into the cache.
+1. State the system invariant that **The Memory Hierarchy** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
+
+## Verify your work
+
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
+
+## Review questions
+
+- Which invariant must remain true when The Memory Hierarchy fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

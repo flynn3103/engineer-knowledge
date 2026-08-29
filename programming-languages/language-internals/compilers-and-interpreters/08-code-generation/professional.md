@@ -1,56 +1,11 @@
-# Code Generation — Professional Level
+# Code Generation — Professional
 
-> **Topic:** Code Generation
-> **Focus:** Table-driven back ends (LLVM TableGen target descriptions), JIT code generation and patching, position-independent code, machine-level peephole optimization, and DWARF debug-info generation — the engineering that makes a back end shippable.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Code Generation** with measurable outcomes and limited coordination?
 
-## Introduction
-
-> Focus: **What does it take to ship a real back end — and to debug it in production?** Algorithms are necessary but not sufficient. A production back end is mostly *engineering*: target descriptions you can maintain, JIT machinery that generates code while the program runs, and debug info that survives optimization.
-
-The senior page laid out the frameworks. This page is about the parts that don't appear in textbooks but consume most of a back-end engineer's time:
-
-- **Target description tables.** No serious back end hand-codes every instruction's encoding, latency, and selection pattern. LLVM uses **TableGen**: a declarative DSL describing registers, instructions, calling conventions, and scheduling models, from which the build generates C++. Adding an ISA extension is largely a TableGen exercise.
-- **JIT code generation.** A JIT is a code generator that runs *inside* the program, turning hot bytecode/IR into machine code at runtime, writing it into an executable **code cache**, and sometimes **patching** it in place (inline caches, deoptimization, on-stack replacement). The constraints — compile time *is* run time, code must be made executable safely, threads may be running the code you're patching — are unlike any ahead-of-time concern.
-- **Position-independent code (PIC).** Shared libraries and ASLR require code that runs at any load address, which changes how the back end emits address references (GOT/PLT, `rip`-relative addressing). (The dynamic-linking side of this is its own topic.)
-- **Machine-level peephole.** The last cleanup pass over real instructions: redundant moves, strength reductions, branch simplifications, target-specific idioms.
-- **DWARF debug info.** Keeping the mapping from optimized machine code back to source lines, variable locations (which move between registers and stack as live ranges split), and unwind tables — generated *by the back end* alongside the code.
-
-> 🎓 **Why this matters at this level:** When you own a back end, your job is bring-up (describe the target), runtime performance (the JIT), and debuggability (DWARF that doesn't lie about optimized code). A miscompile traced to a wrong TableGen encoding, a JIT crash from patching code another thread is executing, or a debugger showing the wrong variable value at `-O2` — these are professional-grade problems, and they live here.
-
----
-
-## Prerequisites
-
-- **Required:** The senior page — SelectionDAG/GlobalISel, SSA-based allocation, scheduling, ABI lowering, target differences.
-- **Required:** Comfort with object-file concepts: sections, symbols, relocations.
-- **Required:** A working model of dynamic linking and virtual memory (load addresses, page permissions).
-- **Helpful but not required:** Exposure to a JIT (HotSpot, V8, LLVM ORC/MCJIT, LuaJIT) or to writing TableGen.
-- **Helpful but not required:** Having read DWARF or used a debugger on optimized code and noticed `<optimized out>`.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **TableGen** | LLVM's declarative DSL describing targets (registers, instructions, encodings, patterns, scheduling, calling conventions); the build generates C++ from it. |
-| **MC layer** | LLVM's machine-code layer: assembling `MCInst`s into bytes, emitting object files, handling relocations and the integrated assembler. |
-| **Code cache** | The executable memory region a JIT writes generated code into. |
-| **Inline cache (IC)** | A JIT call-site optimization caching the resolved target of a dynamic dispatch, patched as types are observed. |
-| **OSR (On-Stack Replacement)** | Swapping a running function's frame from interpreted/unoptimized to optimized code (or back, "deopt") while it executes. |
-| **Deoptimization** | Falling back from optimized code to a safe (interpreter/unoptimized) version when a speculative assumption breaks. |
-| **PIC (Position-Independent Code)** | Code that executes correctly regardless of its load address. |
-| **GOT / PLT** | Global Offset Table / Procedure Linkage Table: indirection tables enabling PIC access to globals and functions. |
-| **`rip`-relative addressing** | x86-64 addressing relative to the instruction pointer, the basis of efficient PIC. |
-| **Relocation** | A placeholder in emitted code/data that the linker or loader fills with a final address. |
-| **Peephole optimization** | A late pass rewriting short windows of machine instructions into better equivalents. |
-| **DWARF** | The standard debug-info format: line tables, variable location lists, type info, and call-frame information (CFI) for unwinding. |
-| **CFI (Call Frame Information)** | DWARF data describing how to unwind the stack at each instruction (where the return address and saved registers are). |
-| **Location list** | DWARF data describing where a variable lives (which register or stack slot) *over each range of instructions*, since it moves. |
-| **W^X** | "Write XOR Execute": a memory page is writable or executable, never both at once — a JIT security constraint. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -117,39 +72,6 @@ DWARF is generated by the back end because only the back end knows the final cod
 ### 7. The Full Emit Path: From `MachineInstr` to Bytes
 
 The endgame: selected, allocated, scheduled `MachineInstr`s become bytes via the **MC layer**. It lowers each to an `MCInst`, the encoder produces the instruction bytes (using the TableGen-generated encoder), unresolved references become **relocations**, and the result is written into an object file (ELF/Mach-O/COFF) with its sections (`.text`, `.data`, `.rodata`), symbol table, and the DWARF sections. A JIT does the same in memory, then links and finalizes (resolves relocations against the running process) before flipping the page executable. This integrated-assembler path is why modern compilers don't shell out to a separate `as` — they emit object code directly, faster and with full control over relocations and debug info.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **TableGen** | A parts catalog with exact specs; the factory tooling is generated from the catalog, so adding a part means adding a catalog entry, not retooling by hand. |
-| **JIT compile-time-is-run-time** | A chef who must cook *and* invent the recipe while customers wait — elaborate recipes only pay off for popular dishes. |
-| **Tiered compilation** | Sketch fast in pencil first; only the keeper drawings get inked and painted. |
-| **Code cache / W^X** | A workshop where a bench is either a writing desk or a power-tool station, never both at once, for safety. |
-| **Patching live code** | Replacing a train's engine while it's moving, with passengers aboard — only safe at precise, agreed moments. |
-| **PIC / `rip`-relative** | Giving directions as "20 meters ahead of where you stand" instead of a fixed street address, so they work from anywhere. |
-| **GOT** | A receptionist's lookup sheet of room numbers filled in each morning; code asks the sheet instead of memorizing rooms. |
-| **Peephole** | A proofreader fixing "the the" and "go to and return" in already-typeset text. |
-| **DWARF location list** | A "where is this employee right now" log that changes by the hour (desk, meeting room, gone home). |
-| **CFI unwinding** | A breadcrumb trail for finding your way back up the call stack even when signposts (frame pointers) were removed. |
-
----
-
-## Mental Models
-
-### The "Generated, Not Written" Model
-
-A maintainable back end is *described*, not *coded*. Registers, encodings, patterns, schedules, calling conventions — all declarative tables from which the implementation is generated. When you think about supporting a new instruction or extension, think "what record do I add," not "what function do I write." This is the difference between a back end you can evolve and one that ossifies.
-
-### The "Run-Time Budget" Model for JITs
-
-For a JIT, hold a stopwatch in mind: every optimization must *earn its compile time*. The whole architecture — interpret first, profile, tier up only the hot 1% — is this stopwatch made structural. Cheap allocation (linear scan), minimal scheduling, and lazy compilation all fall out of "compiling costs the user latency right now."
-
-### The "Three Outputs" Model
-
-The back end emits *three* intertwined outputs, not one: the **machine code**, the **relocations** that finish it at link/load time, and the **debug/unwind info** that explains it. They must agree. A change to code layout that doesn't update DWARF produces a debugger that lies; a missing relocation produces a crash at load. Think of the back end as emitting a consistent triple, always.
 
 ---
 
@@ -260,30 +182,6 @@ The peephole pass deletes the self-move, strength-reduces `x+x` into a `lea`, an
 
 ---
 
-## Pros & Cons
-
-| Choice | Pros | Cons |
-|--------|------|------|
-| **TableGen target description** | Maintainable, consistent matcher/encoder/disassembler; easy ISA extension. | Steep DSL; a wrong encoding assembles but miscompiles; build-time generation. |
-| **JIT codegen** | Adapts to runtime behavior, profile-guided, can outperform AOT on dynamic languages. | Compile time hits latency; code-cache and security (W^X) burden; patching is concurrency-hard. |
-| **Tiered compilation** | Fast startup + high peak performance. | Complex; deopt/OSR machinery; multiple compilers to maintain. |
-| **PIC** | Shared libraries, ASLR, security. | Extra indirection (GOT) cost; more complex relocations. |
-| **Peephole** | Cheap, local, high-yield cleanup. | Local scope only; target-specific rules to maintain. |
-| **DWARF generation** | Debuggable, profilable, unwindable code even at `-O2`. | Large; hard to keep accurate under optimization; location lists are intricate. |
-| **Integrated assembler (MC)** | Fast, full control over relocations/debug info, no external `as`. | The back end owns encoding correctness — bugs are subtle. |
-
----
-
-## Use Cases
-
-- **Bringing up a new ISA or extension.** Mostly a TableGen exercise: describe registers, instructions, encodings, patterns, calling convention, scheduling model.
-- **Building or tuning a language runtime's JIT.** Choosing tiers, allocator (linear scan in the fast tier), code-cache policy, and patch-point design for ICs/OSR/deopt.
-- **Shipping shared libraries safely.** Ensuring PIC codegen and correct relocations; minimizing GOT/PLT overhead.
-- **Making optimized code debuggable.** Generating DWARF line tables, location lists, and CFI that survive `-O2` so production crashes are diagnosable.
-- **Diagnosing a miscompile.** Tracing a wrong result to a bad TableGen encoding, a missed peephole, a torn JIT patch, or a stale I-cache.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Describe the Target, Don't Hand-Code It
@@ -338,3 +236,27 @@ Each peephole rewrite must be provably semantics-preserving on the target (flags
 - **Peephole rules that ignore flags.** Rewriting an instruction that sets condition flags into one that doesn't (or vice versa) silently breaks a downstream branch. Flag liveness must be respected.
 - **Code-cache exhaustion.** A long-running JIT that never evicts cold code runs out of code-cache space and either stops optimizing (silent perf cliff) or crashes. Eviction policy is mandatory, not optional.
 - **Relocation type mismatches.** Emitting the wrong relocation kind (e.g. a 32-bit PC-relative where the displacement can exceed 2GB) produces link errors or runtime truncation — common when bringing up large-memory or large-code-model builds.
+
+---
+
+## Apply it
+
+1. Define the user or business outcome that **Code Generation** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
+
+## Verify your work
+
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
+
+## Review questions
+
+- Which measurable outcome justifies investing in Code Generation?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

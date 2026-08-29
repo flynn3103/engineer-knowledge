@@ -1,62 +1,11 @@
-# Calling Conventions — Middle Level
+# Calling Conventions — Middle
 
-> **Topic:** Calling Conventions
-> **Focus:** The four conventions you actually meet — SysV AMD64, Windows x64, AArch64 AAPCS64, and the x86 family (cdecl/stdcall/fastcall) — plus stack alignment, the red zone, shadow space, and who saves which registers.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **Calling Conventions** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-> Focus: **There is no single calling convention.** There are several, and they disagree on almost every detail — which registers carry arguments, how the stack is aligned, whether there's scratch space below the stack pointer, and who cleans up. To do FFI correctly you must know *which one* applies at each boundary.
-
-At the junior tier you learned the SysV AMD64 rules: integer arguments in `RDI`, `RSI`, `RDX`, `RCX`, `R8`, `R9`; floats in `XMM0`–`XMM7`; return in `RAX`/`XMM0`; caller cleanup. That convention rules Linux and macOS on 64-bit x86. But the same physical CPU runs *Windows* with a completely different convention, your phone runs *AArch64* with yet another, and 32-bit x86 has a whole zoo of historical conventions (`cdecl`, `stdcall`, `fastcall`, `thiscall`) that still leak into Win32 APIs you may have to call today.
-
-This is not academic. The Windows x64 convention passes its first integer argument in `RCX`, not `RDI`. It reserves 32 bytes of "shadow space" on the stack that SysV knows nothing about. SysV has a 128-byte "red zone" below the stack pointer that Windows forbids. AArch64 uses `X0`–`X7`. Call a function with the wrong convention and you don't get a tidy error — you get corrupted arguments, a misaligned stack that faults on the first SSE instruction, or a `RSP` that's off by 32 bytes for the rest of the program.
-
-In one sentence: **the calling convention is a per-platform contract, and "which platform" is the first question you must answer at any FFI boundary, before "which registers."**
-
-> 🎓 **Why this matters at the middle level:** You're now the person writing the FFI glue, the cross-platform build, or the inline assembly. The bugs you'll create — and have to debug — come precisely from convention mismatches: a stack misaligned by 8 that crashes `movaps`, a stdcall function called as cdecl that leaks 16 bytes of stack per call until you blow the frame, a Windows callback that clobbers the shadow space. This tier gives you the four conventions side by side and the rules that differ between them.
-
-This page covers: SysV AMD64 vs Windows x64 vs AArch64 AAPCS64 side by side; the full caller-saved/callee-saved register tables; 16-byte stack alignment and where it's measured; the SysV red zone; the Windows shadow/home space; and the x86 cleanup conventions (cdecl vs stdcall vs fastcall) and why they mattered for the Win32 API. Struct-by-value classification and variadics get their full treatment in `senior.md`.
-
----
-
-## Prerequisites
-
-- **Required:** The junior tier — argument registers, `RAX`/`XMM0` returns, caller cleanup, the call/ret mechanism.
-- **Required:** Comfort reading x86-64 disassembly (`mov`, `push`, `sub rsp`, `call`, `ret`).
-- **Helpful:** Having built or linked something cross-platform (a `.dll` and a `.so` of the same library).
-- **Helpful:** Awareness that SSE instructions like `movaps` require 16-byte-aligned memory operands.
-
-You do **not** yet need:
-
-- The SysV struct classification algorithm (INTEGER/SSE/MEMORY) — that's `senior.md`.
-- Variadic argument passing internals (the `AL` register rule) — `senior.md`.
-- `sret`/hidden-pointer struct returns in depth — `senior.md`.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **SysV AMD64 ABI** | The 64-bit x86 convention on Linux, macOS, BSD, and most Unix. |
-| **Windows x64 ABI** | Microsoft's 64-bit x86 convention. Different argument registers, shadow space, no red zone. |
-| **AAPCS64** | The "Procedure Call Standard for the Arm 64-bit Architecture" — the AArch64 convention. |
-| **cdecl** | 32-bit x86: arguments on the stack, **caller** cleans up. The C default. |
-| **stdcall** | 32-bit x86: arguments on the stack, **callee** cleans up (via `ret N`). The Win32 API convention. |
-| **fastcall** | 32-bit x86: first two integer args in `ECX`, `EDX`, rest on stack. |
-| **thiscall** | 32-bit x86 (MSVC): `this` pointer in `ECX`, rest like cdecl/stdcall. |
-| **vectorcall** | A modern Microsoft convention passing more vector arguments in `XMM`/`YMM` registers. |
-| **Shadow space / home space** | 32 bytes the **caller** reserves on the stack on Windows x64, even when args fit in registers. The callee may spill the four register args there. |
-| **Red zone** | 128 bytes **below** `RSP` that a SysV leaf function may use without adjusting `RSP`. Forbidden on Windows. |
-| **Stack alignment** | The rule that `RSP` is a 16-byte multiple *at the point of a `call`* on SysV and Windows x64; 16-byte for `SP` on AArch64. |
-| **Caller-saved (volatile)** | A register the callee may overwrite; the caller saves it if needed. |
-| **Callee-saved (non-volatile)** | A register the callee must restore before returning. |
-| **Leaf function** | A function that calls no other function. Can exploit the red zone and skip some bookkeeping. |
-| **`movaps` fault** | A general-protection fault raised when an aligned SSE move hits a non-16-byte-aligned address. The classic symptom of stack misalignment. |
-| **Stack slot** | An 8-byte (x86-64) region on the stack used for one spilled argument or saved register. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -168,34 +117,6 @@ Why this still bites you: if you declare a Win32 function as cdecl (caller clean
 
 ---
 
-## Real-World Analogies
-
-**Driving on different sides of the road.** SysV, Windows, and AArch64 are like the UK, the US, and Japan: the *task* (drive a car / call a function) is the same, but the rules differ in ways that cause head-on collisions if you assume the wrong one. "Which country am I in?" is the question you ask before "which lane?"
-
-**Hotel coat check vs self-storage.** Callee-saved registers are the hotel coat check: the establishment guarantees your coat comes back unchanged. Caller-saved are a public locker you didn't reserve — touch at your own risk, stash valuables yourself. The catch is that the *list of which is which* changes between hotels (SysV vs Windows), and `RSI`/`RDI` swap categories.
-
-**Reserved parking out front (shadow space).** On Windows, the caller must always leave 32 bytes of "reserved parking" right in front of the building for the callee, even if the callee never uses it. Forget to reserve it and the callee parks on top of your flower bed (your locals).
-
-**The basement scratch room (red zone).** SysV gives each function a 128-byte basement just below the stairs (below `RSP`) it can scribble in without telling anyone — but only because the building's rules promise nobody else enters it. Move to a Windows building with no such rule and the cleaning crew (an interrupt) walks right through it.
-
----
-
-## Mental Models
-
-### Model 1: "Which OS, which arch, then which registers"
-
-Make the lookup a fixed ritual: **OS → architecture → register table → alignment/shadow/red-zone rules.** Never reach for `RDI` reflexively; reach for it only after confirming you're on SysV.
-
-### Model 2: The stack pointer is a precise number, not a vague "top"
-
-Treat `RSP` as a value you must keep congruent to 0 mod 16 at every `call`. Walk the arithmetic: entry leaves it at 8 mod 16; each `push` subtracts 8; your `sub rsp, N` must land it back on 16 before the next `call`. Most hand-written-assembly crashes are this number being off by 8.
-
-### Model 3: Two cleanup philosophies
-
-"Whoever knows how many arguments there are should clean them up." Variadic functions force *caller* cleanup (only the caller knows the count) — which is exactly why `printf` is cdecl and why stdcall can't be variadic. This single principle explains the cdecl/stdcall split.
-
----
-
 ## Code Examples
 
 ### Same function, three conventions — argument loading
@@ -294,41 +215,6 @@ With the red zone, the compiler stores `tmp` at `[rsp-8]` without adjusting `RSP
 
 ---
 
-## Pros & Cons
-
-**Register-passing conventions (all modern ones):**
-
-- ✅ Fast: first several arguments never touch memory.
-- ✅ Standardized per platform: predictable for tools and FFI.
-- ❌ Limited register count forces stack spill for many-argument functions.
-
-**Windows shadow space:**
-
-- ✅ Gives the callee guaranteed spill slots; simplifies debugging (args have a home address).
-- ❌ Wastes 32 bytes per frame; an easy thing to forget in hand-written calls.
-
-**SysV red zone:**
-
-- ✅ Leaf functions skip prologue/epilogue stack adjustment — faster, smaller.
-- ❌ Fragile: invalid under interrupts on the same stack; a portability footgun.
-
-**stdcall (callee cleanup):**
-
-- ✅ Smaller call sites (cleanup encoded once in the callee).
-- ❌ Cannot support variadics; deadly if mismatched with cdecl.
-
----
-
-## Use Cases
-
-- **Cross-platform FFI bindings.** A library binding (Python, Go, Rust, .NET P/Invoke) must select the right convention per target OS — `RDI` on Linux, `RCX` on Windows, shadow space and all.
-- **Calling the Win32 API.** Every `WINAPI` function is stdcall on 32-bit and the unified x64 convention on 64-bit; your declarations must match.
-- **Writing or porting hand assembly / JITs.** A JIT emitting calls must reserve shadow space on Windows and keep 16-byte alignment everywhere.
-- **Kernel and embedded code.** `-mno-red-zone` is required where the same stack is reused by interrupts.
-- **Debugging "works on one OS, crashes on another."** Almost always a convention or alignment difference.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Select the convention per platform with attributes
@@ -406,126 +292,24 @@ They're scratch on SysV but callee-saved on Windows. Reuse them without saving a
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```text
-INTEGER ARG REGISTERS
-  SysV    : RDI RSI RDX RCX R8 R9         then stack
-  Win x64 : RCX RDX R8 R9                 then stack (after 32B shadow)
-  AArch64 : X0 X1 X2 X3 X4 X5 X6 X7       then stack
+1. Find a real component where **Calling Conventions** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
-FLOAT ARG REGISTERS
-  SysV    : XMM0..XMM7   (separate count from integers)
-  Win x64 : XMM0..XMM3   (paired by positional slot)
-  AArch64 : V0..V7       (separate count)
+## Verify your work
 
-RETURN
-  int  : RAX (SysV/Win) | X0 (AArch64)
-  float: XMM0           | V0
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
 
-STACK
-  16-byte aligned at every CALL (SysV, Win x64); SP 16-byte (AArch64)
-  after CALL pushes return addr, RSP is 16n+8 on entry
-  caller cleanup everywhere on 64-bit
+## Review questions
 
-WINDOWS-ONLY : 32-byte shadow/home space, reserved by caller
-SYSV-ONLY    : 128-byte red zone below RSP (NOT on Windows; -mno-red-zone)
-
-CALLEE-SAVED
-  SysV    : RBX RBP R12 R13 R14 R15
-  Win x64 : RBX RBP RDI RSI R12-R15  +  XMM6-XMM15
-  AArch64 : X19-X28 FP LR  +  V8-V15(low64)
-
-32-BIT x86 CLEANUP
-  cdecl   : caller cleanup (variadic-capable) — C default
-  stdcall : callee cleanup (ret N) — Win32 API
-  fastcall: ECX,EDX then stack, callee cleanup
-  thiscall: this in ECX (MSVC member fns)
-```
-
----
-
-## Summary
-
-There isn't one calling convention — there are several, and the FFI engineer's first job is to identify *which one* applies. The 64-bit landscape has three you must know: **SysV AMD64** (Linux/macOS: args in `RDI`/`RSI`/…, a 128-byte red zone, no shadow space), **Windows x64** (args in `RCX`/`RDX`/`R8`/`R9`, a mandatory 32-byte shadow space, no red zone, positional int/float pairing), and **AArch64 AAPCS64** (args in `X0`–`X7`). All three are caller-cleanup, all three require 16-byte stack alignment at the call, and all three differ on which registers the callee must preserve — notably `RSI`/`RDI` and `XMM6+` flip category between SysV and Windows.
-
-The 32-bit x86 conventions (**cdecl**, **stdcall**, **fastcall**, **thiscall**) still matter when calling legacy Win32 APIs, where the cleanup-side mismatch between cdecl and stdcall is a notorious source of slow stack corruption.
-
-The recurring failure modes — `movaps` faults from 8-byte misalignment, forgotten shadow space corrupting locals, an assumed-but-absent red zone, and cleanup mismatches — are all "looked at the wrong convention" bugs. Confirm OS and architecture, look up the table, and check `RSP & 15` and the argument registers in a debugger. The next tier dissects the hardest part: how *structs* are passed and returned, and how variadic functions work under the hood.
-
----
-
-## Further Reading
-
-- *System V AMD64 ABI* spec — §3.2 (stack), §3.2.3 (parameter passing), the red zone in §3.2.2.
-- Microsoft, "x64 calling convention" and "x64 stack usage" docs — shadow space, no red zone, register volatility.
-- Arm, *Procedure Call Standard for the Arm 64-bit Architecture (AAPCS64)*.
-- Agner Fog, *Calling Conventions for Different C++ Compilers and Operating Systems* — the cross-platform comparison tables.
-- GCC manual, `__attribute__((ms_abi))` / `((sysv_abi))` and `-mno-red-zone`.
-
----
-
-## Diagrams & Visual Aids
-
-### First integer argument by platform
-
-```text
-   f(a, ...)
-        │
-   SysV │──► RDI
-  Win64 │──► RCX
- AArch64│──► X0
-```
-
-### Windows x64 stack frame at a call
-
-```text
-   higher addresses
-     ┌──────────────────┐
-     │ 5th arg (if any) │
-     ├──────────────────┤
-     │ shadow slot R9   │  ◄┐
-     │ shadow slot R8   │   │ 32 bytes, reserved by CALLER
-     │ shadow slot RDX  │   │ even when args are in registers
-     │ shadow slot RCX  │  ◄┘
-     ├──────────────────┤
-     │  return address  │  ◄── pushed by CALL
-RSP ►├──────────────────┤
-     │  callee frame    │
-     └──────────────────┘
-   lower addresses
-```
-
-### SysV red zone
-
-```text
-        ┌──────────────────┐
-RSP ──► │  (top of stack)  │
-        ├──────────────────┤  ◄── RSP - 1
-        │                  │
-        │   RED ZONE       │  128 bytes a LEAF function may scribble in
-        │   (128 bytes)    │  WITHOUT moving RSP. Safe on SysV only.
-        │                  │
-        ├──────────────────┤  ◄── RSP - 128
-        │ (below: unsafe)  │
-        └──────────────────┘
-```
-
-### Alignment arithmetic across a call
-
-```text
-   at CALL site:        RSP ≡ 0  (mod 16)   ← required
-   CALL pushes 8:       RSP ≡ 8  (mod 16)   ← state on callee entry
-   push rbp (-8):       RSP ≡ 0  (mod 16)   ← realigned, safe for movaps
-   sub rsp, 8 instead:  RSP ≡ 8  (mod 16)   ← BUG: next aligned SSE faults
-```
-
-### cdecl vs stdcall cleanup (32-bit)
-
-```text
-   cdecl :  caller pushes args, CALLS, then 'add esp, N' to clean up
-   stdcall: caller pushes args, CALLS; callee does 'ret N' to clean up
-
-   MISMATCH (declare stdcall fn as cdecl):
-     both clean up the same N bytes → ESP drifts by N every call → crash
-```
+- Which boundary is most affected by Calling Conventions?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

@@ -1,57 +1,11 @@
-# Annotations & Decorators — Professional Level
+# Annotations & Decorators — Professional
 
-> **Topic:** Annotations & Decorators
-> **Focus:** Architectural decisions at scale — compile-time vs runtime as a system-wide strategy, the TC39 Stage-3 decorator transition, build-performance and startup budgets, debugging framework "magic," and the governance of declarative metadata across a large codebase.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Annotations & Decorators** with measurable outcomes and limited coordination?
 
-## Introduction
-
-> Focus: **At this level the question is no longer "how does a decorator work" but "what is our org's strategy for declarative metadata, and what does it cost us in build time, startup time, debuggability, and migration risk?"**
-
-A professional owns the consequences. Annotations and decorators are not features you sprinkle on code — they are an architectural commitment. Choosing Spring's runtime reflection vs Micronaut's compile-time generation sets your startup latency and native-image story for years. Adopting Lombok ties your build to compiler internals. Building a routing layer on TypeScript decorators bets on a feature that is *mid-transition* from a non-standard "experimental" design to the TC39 Stage-3 standard — a migration that can break every decorator you've written.
-
-This page covers the decisions and the failure modes that only show up at scale:
-
-- **Compile-time vs runtime as a platform strategy**, including cold-start economics (serverless), native images (GraalVM), and the industry shift from reflection to codegen.
-- **The TC39 Stage-3 decorator transition** — what changed from `experimentalDecorators`, why parameter decorators didn't make it, and how to manage a codebase straddling both.
-- **Build-performance engineering** for annotation processors — incremental processing, processor ordering, and keeping a monorepo's `javac`/`tsc` times sane.
-- **Debugging "action at a distance"** — the methodology for the production incident caused by an invisible annotation, a proxy that didn't apply, or a decorator stacking bug.
-- **Governance** — how to keep declarative metadata from becoming an undebuggable web of magic that no one understands.
-
-The recurring senior axis (compile vs runtime) is now a *line item in your latency and risk budget*. You're the one who signs off on it.
-
----
-
-## Prerequisites
-
-- **Required:** Senior-level understanding of APT rounds/codegen, Lombok AST mutation, Spring reflection scanning, and the `reflect-metadata` DI pipeline.
-- **Required:** Experience operating a real service: cold starts, startup time, build pipelines.
-- **Required:** Awareness that TypeScript decorators exist in two incompatible flavors.
-- **Helpful but not required:** Exposure to GraalVM native image, serverless cold-start tuning, or a monorepo build (Bazel/Gradle/Nx).
-
-You do **not** need:
-
-- To have personally shipped a TC39 decorator migration (but you should be able to plan one).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **TC39 Stage-3 decorators** | The standardized JS decorator proposal (now in TypeScript 5.0+ and shipping engines), distinct from the old experimental design. |
-| **`experimentalDecorators`** | The legacy TS flag enabling the pre-standard decorator semantics Angular/Nest still rely on. |
-| **Parameter decorators** | Decorators on constructor/method parameters; supported by the legacy design, **not** by Stage-3. |
-| **Native image** | An ahead-of-time-compiled binary (GraalVM) with no JIT and limited runtime reflection — hostile to reflection-heavy frameworks. |
-| **Cold start** | The latency to initialize a process from scratch (serverless), dominated by classpath scanning and reflection in classic frameworks. |
-| **Reachability metadata** | Config telling GraalVM which reflective/annotation accesses to keep, since it can't see them statically. |
-| **Incremental annotation processing** | Gradle/`javac` capability to reprocess only changed inputs, keeping builds fast. |
-| **Aggregating vs isolating processor** | Incremental-processing categories: isolating processors map one input to one output (fast); aggregating ones may read many inputs (slower to invalidate). |
-| **AOP proxy** | A generated wrapper (JDK dynamic proxy or CGLIB subclass) implementing `@Transactional`/`@Async`/`@Cacheable`. |
-| **Action at a distance** | Behavior caused by metadata/decorators not visible at the call site — the dominant debuggability cost. |
-| **Metadata governance** | Policies/lint/ownership ensuring declarative metadata stays discoverable and consistent. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -123,35 +77,6 @@ Unchecked, annotations metastasize into an unreadable web. Governance levers:
 - **Lint for misuse:** missing retention, decorator-stacking order (auth-before-cache), required TS metadata flags.
 - **Cap the "magic budget."** Prefer a small set of well-understood annotations over a bespoke one per feature.
 - **Make readers discoverable.** Anyone should be able to jump from `@Custom` to the code that consumes it.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Runtime vs compile-time strategy** | Stocking a store nightly (compile-time, slow prep, instant open) vs sourcing each item as a customer asks (runtime, no prep, slow checkout). |
-| **TC39 transition** | Changing a country's electrical plug standard while half the appliances are wired for the old one — adapters everywhere, careful migration. |
-| **Native-image reachability metadata** | A customs manifest: anything not declared in advance is refused entry, because inspectors can't improvise. |
-| **AOP proxy self-invocation** | A reception desk that screens visitors — but staff walking in through the back door are never screened. |
-| **Incremental processing** | Re-cooking only the dish a diner changed, not the whole banquet, when one order is amended. |
-| **Metadata governance** | A building-code registry: every plaque, sticker, and label is catalogued, so no mystery notes accumulate. |
-
----
-
-## Mental Models
-
-### The "Latency Budget Line Item" Model
-
-Treat your annotation strategy as an explicit entry in two budgets: **build time** (processors, codegen) and **startup time** (scanning, reflection, proxying). Every annotation either costs at build or at startup. A professional knows the number for their system and defends it.
-
-### The "Migration Blast Radius" Model
-
-Before adopting a decorator-based framework, ask: *if the decorator standard or the framework's flag changes, how many files break?* TC39's transition makes this concrete. Bound the blast radius by isolating decorator usage behind your own thin wrappers where feasible.
-
-### The "Reader-First Debugging" Model
-
-When metadata-driven behavior misfires, never start at the call site (the behavior isn't there). Start at the **reader**: did it run, could it see the metadata, did it apply. This inverts normal debugging and is the single highest-value habit for annotation-heavy systems.
 
 ---
 
@@ -257,30 +182,6 @@ The decorator centralizes a cross-cutting policy *and* tags the function with di
 
 ---
 
-## Pros & Cons
-
-| Aspect | Pros | Cons |
-|--------|------|------|
-| **Runtime-reflection platforms** | Fast dev loop, dynamic, mature ecosystem. | Cold-start cost; native-image hostile; runtime-discovered errors. |
-| **Compile-time platforms** | Instant startup; native-image ready; build-time errors. | Slower builds; steeper learning curve; codegen unfamiliarity. |
-| **TS decorators (legacy)** | Enables rich DI (parameter decorators, design types). | Non-standard; tied to `experimentalDecorators`; migration risk. |
-| **TS decorators (Stage-3)** | Standardized, future-proof, engine-supported. | No parameter decorators; no design-metadata; breaks existing DI patterns. |
-| **AOP proxies** | Declarative transactions/caching/retry with no boilerplate. | Self-invocation and `final` traps; invisible failures; proxy overhead. |
-| **Heavy declarative metadata** | Concise, intention-revealing code. | Action at a distance; debuggability and onboarding cost; magic sprawl. |
-
----
-
-## Use Cases
-
-- **Serverless / cold-start-sensitive services:** prefer compile-time DI (Micronaut/Quarkus/Dagger) to slash init latency.
-- **Native-image deployments:** annotation strategy must avoid or pre-compute runtime reflection.
-- **Long-lived monoliths:** runtime reflection's startup cost amortizes; developer velocity may win.
-- **Large TS monorepos:** segregate legacy-decorator (Angular/Nest) packages from Stage-3 packages; lint the flags.
-- **High-throughput request paths:** avoid per-request reflection; generate or cache aggressively.
-- **Regulated/auditable systems:** use annotations/decorators as governance hooks (auth, audit, feature flags) with cataloguing.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Pick the processing time per workload, not per org
@@ -327,3 +228,27 @@ Doc-comment the consumer, add a test asserting the reader acts, and keep a centr
 - **Generated-source drift.** Committing generated sources causes merge conflicts and stale outputs; always regenerate in the build.
 - **Cache poisoning by non-deterministic processors.** A processor whose output varies (timestamps, map ordering) breaks build caches and reproducibility.
 - **`reflect-metadata` global collisions.** Multiple polyfill versions or bundlers stripping the import cause intermittent, environment-specific DI failures.
+
+---
+
+## Apply it
+
+1. Define the user or business outcome that **Annotations & Decorators** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
+
+## Verify your work
+
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
+
+## Review questions
+
+- Which measurable outcome justifies investing in Annotations & Decorators?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

@@ -1,36 +1,11 @@
 # Production Debugging — Junior
 
-> **Topic:** [Production Debugging](../README.md)
-> **Focus:** `net/http/pprof`, basic CPU/memory profiling, reading logs effectively, and the first mental model for approaching a live, misbehaving service instead of guessing.
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **Production Debugging** in one small example and prove the result?
 
-## Introduction
-
-Debugging a program on your laptop with a debugger attached is one skill. Debugging a live service — where you can't pause execution, can't attach `dlv` casually, and every second of downtime matters — is a different one, built on a different toolkit: profiling endpoints, structured logs, and metrics. This page covers the entry point: `net/http/pprof`, reading a CPU/memory profile, and a basic systematic approach.
-
----
-
-## Prerequisites
-
-- Comfortable with goroutines, the Go runtime basics, and structured error handling.
-- Familiarity with running an HTTP server (see [HTTP and APIs](../05-http-and-apis/junior.md)).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **`pprof`** | Go's built-in profiling format and tooling for CPU, memory, goroutine, and block profiles. |
-| **`net/http/pprof`** | A package that, when imported, exposes live profiling endpoints on an HTTP server. |
-| **CPU profile** | A sampled record of which functions were executing on-CPU during a time window. |
-| **Heap profile** | A snapshot of current memory allocations, by call site. |
-| **Goroutine profile** | A snapshot of every currently running goroutine and its stack trace. |
-| **Flame graph** | A visualization of a profile where stack depth is height and time/samples is width — wide bars are where time is spent. |
-| **Structured logging** | Logging as key-value pairs (JSON) rather than free-text strings, making logs machine-parseable and queryable. |
-| **P99 latency** | The 99th percentile response time — 1% of requests are slower than this value. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -125,27 +100,6 @@ go tool pprof cpu.pprof
 
 ---
 
-## Pros & Cons
-
-| | Pros | Cons |
-|---|---|---|
-| **`net/http/pprof`** | Zero external dependencies, built into the standard library | Must be secured (internal-only port), never exposed publicly |
-| **Structured logging (`slog`)** | Queryable, machine-parseable, standard library | Slightly more verbose than a free-text `Printf` |
-| **Goroutine profile** | Instantly shows every goroutine's exact state | Can be a very large dump on a service with many goroutines — needs grouping by stack to be useful |
-
----
-
-## Use Cases
-
-| Symptom | First tool |
-|---|---|
-| High CPU usage, unclear why | CPU profile (`/debug/pprof/profile`) |
-| Memory growing over time | Heap profile (`/debug/pprof/heap`), sampled at intervals |
-| Goroutine count climbing | Goroutine profile (`/debug/pprof/goroutine?debug=2`) |
-| "Something failed for this user" | Structured logs, filtered by request/user/trace ID |
-
----
-
 ## Best Practices
 
 1. Import `net/http/pprof` in every service, exposed only on an internal/localhost-only port.
@@ -173,46 +127,24 @@ go tool pprof cpu.pprof
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```bash
-import _ "net/http/pprof"           # register profiling endpoints
-go tool pprof <url>/debug/pprof/profile?seconds=30   # CPU
-go tool pprof <url>/debug/pprof/heap                 # memory
-curl <url>/debug/pprof/goroutine?debug=2             # all goroutines
-(pprof) top10 / web                 # inside the pprof interactive shell
-```
+1. Choose one small, known input for **Production Debugging**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
----
+## Verify your work
 
-## Summary
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
 
-- `net/http/pprof` gives free, built-in CPU/heap/goroutine profiling — expose it only internally.
-- CPU profiles show where time goes; heap profiles show where memory goes; goroutine profiles show what every goroutine is doing right now.
-- Structured logging (`log/slog`) with a consistent request/trace ID makes logs actually queryable during an incident.
-- Systematic debugging (symptom → timing → data → hypothesis) beats guessing, even under time pressure.
+## Review questions
 
----
-
-## Further Reading
-
-- The Go Blog — *Profiling Go Programs*: <https://go.dev/blog/pprof>
-- `net/http/pprof` docs: <https://pkg.go.dev/net/http/pprof>
-- `log/slog` docs: <https://pkg.go.dev/log/slog>
-
----
-
-## Related Topics
-
-- [Goroutines and Concurrency](../01-goroutines-and-concurrency/junior.md) — what the goroutine profile is showing you.
-- [Go Runtime](../02-go-runtime/junior.md) — what a CPU/heap profile is measuring under the hood.
-
----
-
-## Check your understanding
-
-1. Explain Production Debugging — Junior Level in your own words and name the problem it solves.
-2. How would you apply the ideas around Introduction, Prerequisites, Glossary in a realistic engineering change?
-3. What failure mode or misuse should you look for, and what evidence would reveal it?
-4. What small example would prove that you can apply Production Debugging — Junior Level correctly?
-5. What observable result would convince you that the approach improved the system?
+- What problem does Production Debugging solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

@@ -1,65 +1,11 @@
-# Semantic Analysis — Middle Level
+# Semantic Analysis — Middle
 
-> **Topic:** Semantic Analysis
-> **Focus:** Build a real scoped symbol table and a recursive, bottom-up type checker — and produce diagnostics a human can act on.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **Semantic Analysis** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-> Focus: **From "a stack of dictionaries" to a working analyzer — the data structures, the walk, and the diagnostics.**
-
-At the junior level you learned the *what*: semantic analysis is the phase after parsing that proves a program *means* something. Name resolution connects each use to a declaration; type checking proves the types fit; the output is a decorated AST. You saw a scope stack sketched in pseudo-Python and the idea that two passes handle forward references.
-
-The middle level is where you turn those sketches into something that would survive contact with a real grammar. The difference between the junior `ScopeStack` and a production symbol table is the difference between a toy and a tool — and almost all of that difference lives in the boring details: *what* you store per symbol (not just a type — a kind, a source location, a mutability flag, a "used yet?" bit), *how* you represent a scope (a stack while walking, but a persistent tree if you want IDE features), *when* you insert a name into the current scope (this single decision determines whether `let x = x` is legal), and *how* you keep walking after the first error instead of crashing.
-
-This page builds three things properly. First, a real symbol table: scoped, with rich symbol records, and with an honest answer to "hash map vs. chained list of scopes." Second, a recursive type checker that walks the AST bottom-up, computes a type for every expression, and checks assignability, call arity, and condition types — emitting an `ErrorType` sentinel instead of throwing so one mistake doesn't cascade into ten. Third, the diagnostics machinery: every check produces a message with a source span, and the analyzer *recovers* and continues. Along the way you will meet the checks beyond names and types — definite assignment, reachability, `break`/`return` context — and you will see why most real compilers split semantic analysis into multiple passes even for a single file.
-
-By the end you should be able to read a tree-walking analyzer for a small language and know exactly where each rule is enforced, why the order of operations matters, and how the typed AST it produces feeds the next phase.
-
----
-
-## Prerequisites
-
-Before reading this page you should be comfortable with:
-
-- Everything in the junior page: declarations vs. uses, lexical scope, shadowing, the "stack of dictionaries" symbol table, bottom-up typing, the decorated AST, and why forward references need two passes.
-- Recursion over a tree. The whole phase is one big recursive walk; if recursion is shaky, the code will be hard to follow.
-- A hash map / dictionary and its `O(1)` average lookup, plus the idea of hashing strings.
-- Reading code in at least two of: Python, Java, C, Go. Examples appear in pseudo-Python and a couple of real languages.
-- The **visitor pattern** in concept — one handler per node kind. If you have never used it, the junior page's "Coding Patterns" section is enough.
-
-You do **not** need:
-
-- Type inference algorithms (Hindley–Milner, constraint solving). That is the type-systems material and the senior/professional pages here. This page does *checking*, where types are mostly written down.
-- Borrow checking, overload resolution, or attribute grammars — those are senior/professional topics.
-- Any IR or code generation knowledge. We only produce the decorated AST that codegen will later consume.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Symbol** | One entry in the symbol table: a name plus everything known about it (kind, type, declaration site, flags). |
-| **Symbol kind** | What the name *is*: variable, parameter, function, type, field, constant, module. Drives which rules apply. |
-| **Scope** | A region of visibility. While walking, scopes form a stack; conceptually they form a tree. |
-| **Scope tree** | The nesting of scopes as a tree (global → function → block → block). Persistent symbol tables keep the whole tree. |
-| **Enter / exit scope** | Pushing a fresh scope on the way into a block; popping it on the way out. |
-| **Insert / lookup** | Adding a symbol to the current scope; searching innermost-to-outermost for a name. |
-| **Binding** | The link from a use to the symbol it resolves to. Stored on the AST node by name resolution. |
-| **Bottom-up typing** | Computing a node's type from its children's types; the spine of a type checker. |
-| **Assignability / subtyping** | Whether a value of type `A` may flow into a slot of type `B` (`A <: B`). Directional, not symmetric. |
-| **Arity** | The number of arguments a function/operator takes. "Call arity check" = right number of args. |
-| **Definite assignment** | A rule that a local must be provably assigned before it is read (Java, C#). |
-| **Reachability** | Whether control flow can actually reach a statement; unreachable code may be an error or warning. |
-| **ErrorType** | A sentinel type assigned to an expression that already failed, so it doesn't trigger more errors. |
-| **Diagnostic** | A structured error/warning: severity, message, and a source span (file, line, column range). |
-| **Span** | The source range a diagnostic or node covers, used to draw the caret under the offending code. |
-| **Error recovery** | Continuing analysis after an error to report as many real problems as possible in one run. |
-| **Pass** | One complete walk over the AST. Declaration collection and body checking are typically separate passes. |
-| **Typed AST / decorated AST** | The AST after analysis, annotated with resolved bindings and computed types. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -201,32 +147,6 @@ Diagnostic {
 ```
 
 The analyzer **collects** diagnostics into a list and **keeps walking**. It does not throw on the first error. Recovery rules: assign `ErrorType` to broken expressions; treat an undefined name as a fresh symbol of `ErrorType` so later uses don't re-error; skip a malformed statement and continue with the next. The goal: one compile run surfaces *all* the user's real mistakes, not just the first.
-
----
-
-## Real-World Analogies
-
-| Analogy | Maps to |
-|---|---|
-| A building directory updated as you walk floor to floor | The scope stack: each floor adds its own tenant list |
-| A receptionist who checks the current floor's list, then the lobby's | `lookup` searching innermost scope then outward |
-| A library card catalog where one card holds title, author, shelf, and "checked out?" | The rich symbol record, not just a type |
-| A customs form: each box must match the declared category | Assignability — the value must fit the slot's type |
-| A spell-checker that flags every misspelling, not just the first | Error recovery: collect all diagnostics, don't stop at one |
-| A "you are here" map kept after you leave a room | The persistent scope tree vs. the destructive stack |
-| Filling in a tax form bottom-up, totals derived from line items | Bottom-up typing: parents computed from children |
-
----
-
-## Mental Models
-
-**Model 1 — "The walk carries state."** A semantic analyzer is a recursive tree walk that carries mutable state: the current scope, the current function's return type, whether you're inside a loop, the diagnostics list. Every node handler reads and updates this state. Get the *order* of reads/writes right (resolve initializer before declaring; enter scope before walking children) and most bugs vanish.
-
-**Model 2 — "Two questions, two artifacts."** Name resolution answers "what does this refer to?" and writes a *binding* onto each name node. Type checking answers "what type is this?" and writes a *type* onto each expression node. The decorated AST is just the original tree plus these two annotations everywhere.
-
-**Model 3 — "ErrorType is a quarantine."** Once an expression is sick, mark it `ErrorType` and let it move through the rest of the checker without infecting the diagnostics. The first real error gets reported; everything downstream stays silent. This single sentinel is what makes a checker pleasant rather than infuriating.
-
-**Model 4 — "Collect, then check."** For any scope that allows forward references, split the work: pass one inserts names, pass two checks bodies. Mentally tag each scope as "ordered" (locals: declare-before-use) or "unordered" (file/class top level: collect first).
 
 ---
 
@@ -512,29 +432,6 @@ The span (`ColStart..ColEnd`) is what lets you draw the caret. Every AST node mu
 
 ---
 
-## Pros & Cons
-
-| Aspect | Pros | Cons |
-|---|---|---|
-| Hash-per-scope symbol table | Easy to get correct; natural tree; trivial shadowing | Lookup is `O(depth)` probes; rebuilt per compile |
-| Chained single table | `O(1)` lookup; classic, fast for deep nesting | Scope-exit bookkeeping (markers) is error-prone |
-| Multi-pass analysis | Handles forward refs and mutual recursion cleanly | More walks; must keep partial state consistent between passes |
-| ErrorType sentinel | Stops cascading errors; one walk reports everything | Must remember to short-circuit in *every* rule |
-| Rich symbol records | Powers mutability, unused, "declared here" notes | More memory per symbol; more to keep in sync |
-| Decorate-don't-rebuild AST | Cheap; original shape preserved for messages | Mutable AST nodes; ordering of annotations matters |
-
----
-
-## Use Cases
-
-- **A tree-walking interpreter's front end.** Resolve names and check types before evaluation so runtime never hits "undefined variable."
-- **A transpiler** (e.g., a small language → JavaScript). The decorated AST tells the emitter the type of every expression.
-- **A linter** for an existing language: the same symbol table powers "unused variable," "shadowed name," "assigned but never read."
-- **An IDE language service.** Persistent scope tree + bindings drive go-to-definition, find-references, and rename.
-- **A configuration / DSL validator.** Even a non-Turing-complete DSL benefits from name resolution and type checking before it's used.
-
----
-
 ## Coding Patterns
 
 - **Visitor with carried context.** One handler per node kind; thread the current scope, return type, and loop-depth through the walk (as fields or an explicit context object).
@@ -616,206 +513,24 @@ The span (`ColStart..ColEnd`) is what lets you draw the caret. Every AST node mu
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. Why must you resolve a `let`'s initializer *before* inserting its name, but insert a function's name *before* checking its body?
-2. Give the symbol record fields you'd need to (a) reject assignment to a constant and (b) emit "unused variable." Which field is set where?
-3. Contrast hash-per-scope and the chained single-table symbol table on lookup cost and scope-exit cost.
-4. What is the `ErrorType` sentinel for, and what breaks if one type rule forgets to short-circuit on it?
-5. Why is `assignable(from, to)` directional? Give a pair that is legal one way and illegal the other.
-6. Explain, with a 4-line program, why forward references at file scope require two passes.
-7. In Java's definite-assignment check, why does a variable assigned only in an `if` (no `else`) count as *not* assigned afterward?
+1. Find a real component where **Semantic Analysis** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
-<details>
-<summary>Answers</summary>
+## Verify your work
 
-1. So the right-hand `x` in `let x = x` binds to the *outer* `x` (the new binding isn't in scope inside its own initializer). Functions are the exception so that recursion and self-reference inside the body resolve.
-2. Need `mutable` (to reject const assignment) and `used` (for the warning). `mutable` is set at declaration from `let` vs `const`; `used` is set to `True` inside `lookup`, and the warning fires at `exit_scope` for symbols still `used == False`.
-3. Hash-per-scope: lookup is `O(depth)` probes, scope exit is `O(1)` (drop the map). Chained: lookup is `O(1)` (top of the name's stack), scope exit is `O(decls in scope)` (pop everything since the marker).
-4. It quarantines an already-failed expression so later rules emit no secondary errors. If one rule forgets to short-circuit, it applies its normal check to an `ErrorType` operand and re-reports — the cascade of bogus errors returns.
-5. Because flow has a direction: a value of `from` must fit a slot of `to`. `assignable("int","float")` is true (widening) but `assignable("float","int")` is false (narrowing).
-6. `main()` calling `helper()` where `helper` is defined below `main`: a single top-to-bottom pass sees `helper` undefined at `main`'s call. Pass one collects `helper`'s signature first; pass two then resolves the call.
-7. Definite assignment requires the variable be set on *every* path to the read. The `else`-less `if` leaves a path (condition false) where it's never assigned, so the intersection of branch-assigned sets excludes it.
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
 
-</details>
+## Review questions
 
----
-
-## Tricky Questions
-
-**Q1.** Your checker reports five "type mismatch" errors for a program with a single undefined variable. What's the design flaw and the fix?
-**A.** No `ErrorType` quarantine. The undefined name produced a null/unknown type that propagated into every enclosing expression, each of which re-reported. Bind the undefined name to an `ErrorType` symbol and short-circuit every type rule when an operand is `ErrorType`.
-
-**Q2.** A user writes `const PI = 3.14; PI = 3.15;` and your analyzer accepts it. Where is the bug?
-**A.** Either the symbol record didn't store `mutable`, or the `Assign` handler didn't consult it. The fix is to set `mutable = False` for `const` declarations and reject assignment when `target.binding.mutable` is false.
-
-**Q3.** Why can you put `let x = 1` then `let x = 2` in two *nested* blocks but not in one block?
-**A.** Shadowing in a nested block creates a new symbol in a new scope; the redeclaration check looks only at the *current* scope, finds no conflict, and the inner `x` simply hides the outer one. In a single block both go in the same scope's map, where the second insert collides.
-
-**Q4.** You move type checking before name resolution to "save a pass." What goes wrong?
-**A.** A `Name` node's type comes from its resolved symbol. Without resolution first, the checker has no binding to read a type from. Resolution must run first (or the two must be interleaved so each name is resolved before it's typed).
-
-**Q5.** The analyzer crashes (not "reports an error") on `print(zog)` where `zog` is undefined. What happened and how do you make it merely an error?
-**A.** The `Name` handler returned `None` for the binding, and the type checker dereferenced it. Recovery: bind undefined names to a synthetic `ErrorType` symbol so the checker always has *something* to read, turning a crash into a clean diagnostic.
-
-**Q6.** Java accepts `int x; if (c) x = 1; else x = 2; use(x);` but rejects the same code without the `else`. Both are well-scoped. Why the difference?
-**A.** Definite assignment is a control-flow property, not a scoping one. With both branches assigning `x`, every path to the use sets it (intersection includes `x`). Drop the `else` and there's a path where `x` is unset, so the use is rejected.
-
----
-
-## Cheat Sheet
-
-```text
-SEMANTIC ANALYSIS — MIDDLE
-
-SYMBOL RECORD (store more than a type)
-  name | kind(var/func/param/type/const) | type | decl_span | mutable | used
-
-SCOPE
-  while walking: a STACK  (enter=push, exit=pop)
-  if you keep it: a TREE   (parent links; exit moves `current` up)
-  lookup: innermost -> outermost (this IS shadowing)
-  redeclaration check: CURRENT scope only
-
-TABLE REPRESENTATION
-  hash-per-scope : lookup O(depth), exit O(1)      <- default
-  chained 1-table: lookup O(1),     exit O(decls)
-
-THE WALK (order matters)
-  Let:   resolve initializer  THEN  insert name
-  Func:  insert name          THEN  check body   (recursion)
-  Block: enter -> children -> exit (try/finally)
-
-MULTI-PASS (forward refs at file/class scope)
-  pass1 collect signatures  ->  pass2 check bodies
-
-TYPE CHECK (bottom-up)
-  leaves know their type; parents derive from children
-  FIRST LINE of every rule: if operand is ErrorType -> return ErrorType
-  assignable(from,to): DIRECTIONAL (int<:float ok; float->int no)
-  decorate: node.type = ... ; node.binding = ...
-
-OTHER CHECKS
-  break/continue: track loop-depth
-  return value:   track current return type
-  const assign:   symbol.mutable
-  definite assign: needs control flow (intersect over branches)
-  unused/shadow:  warn at exit_scope
-
-DIAGNOSTICS
-  {severity, message, span, notes[]}; collect in a list; DON'T throw
-  recover: ErrorType, synthetic symbols, skip-and-continue
-```
-
----
-
-## Summary
-
-- A production symbol table stores a **rich symbol record** per name (kind, type, declaration span, mutability, used-flag), not just a type — because the language's rules are keyed on those fields.
-- While walking, scopes are a **stack**; if you need them afterward (tooling, multi-pass), keep a parent-linked **scope tree**. Lookup searches innermost-to-outermost, which *is* shadowing.
-- **Hash-per-scope** is the easy, correct default (lookup `O(depth)`, exit `O(1)`); the **chained single table** trades trickier scope-exit bookkeeping for `O(1)` lookup.
-- The walk's **order of operations** encodes language rules: resolve a `let`'s initializer before declaring its name; declare a function before checking its body.
-- **Forward references** at file/class scope require two passes: collect signatures, then check bodies.
-- Type checking is **bottom-up**, decorating each expression node with its type. The **`ErrorType` sentinel**, short-circuited in every rule, is what stops one mistake from cascading.
-- **Assignability is directional** (widening/subtyping), distinct from equality, and centralized in one function.
-- Beyond names and types, the analyzer checks **`break`/`return` context, const-correctness, reachability, and definite assignment** — the last needing real control-flow reasoning.
-- **Diagnostics are structured** (severity, message, span, notes), collected rather than thrown, with **recovery** so one run reports all the user's real errors. The result is the **typed AST** the next phase consumes.
-
----
-
-## What You Can Build
-
-- **A scoped name resolver** with a parent-linked scope tree that reports undefined variables, redeclarations, illegal shadowing, and unused/used warnings.
-- **A bottom-up type checker** for `int`/`string`/`bool`/functions that checks arithmetic, conditions, call arity, argument types, assignability, and const assignment — using an `ErrorType` sentinel for clean recovery.
-- **A two-pass front end** that collects top-level function and type signatures first, so calls to later-defined functions and mutually recursive types resolve.
-- **A diagnostics engine** that renders `file:line:col` with a caret span and "declared here" notes, collecting all errors in one run.
-- **A definite-assignment checker** that intersects branch-assigned variable sets across `if`/`else` to flag possibly-unassigned reads.
-- **A small linter** reusing the symbol table to flag unused and shadowed names in an existing toy language.
-
----
-
-## Further Reading
-
-- *Crafting Interpreters* — Robert Nystrom. "Resolving and Binding" builds exactly this resolver; the type-related chapters extend it. https://craftinginterpreters.com/
-- *Compilers: Principles, Techniques, and Tools* (the Dragon Book) — Aho, Lam, Sethi, Ullman. The symbol-table chapter covers the chained single-table design in detail.
-- *Engineering a Compiler* — Cooper & Torczon. Strong, implementation-focused treatment of scopes and symbol tables.
-- *Modern Compiler Implementation in Java/ML/C* — Andrew Appel. The semantic-analysis and symbol-table chapters.
-- *The Java Language Specification*, the "Definite Assignment" chapter — the canonical, surprisingly precise definition of that one check.
-- Your favorite compiler's diagnostics: read them as a specification of the semantic rules and try to predict their triggers.
-
----
-
-## Related Topics
-
-- The previous phase, **parsing**, produces the AST (with spans) that this analyzer walks and decorates.
-- The deeper theory behind type *checking* — inference, subtyping, soundness — lives in the **type-systems** material; this page is its practical front line.
-- The next phase, **intermediate-representation generation**, consumes the typed/decorated AST produced here.
-- **Control-flow analysis** underlies definite assignment and reachability and is developed further at the senior level.
-- **Linters and static analyzers** are essentially this symbol-table-plus-rules machinery without code generation.
-
----
-
-## Diagrams & Visual Aids
-
-### The resolve-then-declare ordering
-
-```text
-   Let  x  =  x + 1
-        │      │
-        │      └─ (1) RESOLVE initializer first
-        │          the `x` here looks up the OUTER x
-        │
-        └─ (2) THEN insert the new `x` into current scope
-
-   Functions invert this:
-   Func f { ... f() ... }
-        │             │
-        └ (1) insert f └ (2) check body (f() now resolves -> recursion)
-```
-
-### Scope stack vs. scope tree
-
-```text
-WHILE WALKING (stack)            KEPT AROUND (tree, parent links)
-  current ─► [ block B ]            global
-            [ foo      ]              └─ foo ──┬─ block A   (popped, but kept)
-            [ global   ]                       └─ block B   (current)
-  exit B: current = B.parent
-```
-
-### Bottom-up typing with ErrorType quarantine
-
-```text
-            (Add)  cannot add int and string  -> ErrorType   [REPORTED ONCE]
-           /     \
-     (Name a)   (Name zog)  <- undefined -> ErrorType         [reported earlier]
-     type=int   type=<error>
-
-   parent sees an ErrorType operand -> returns ErrorType, EMITS NOTHING
-   so the program's single real error is the undefined `zog`, not a cascade
-```
-
-### Definite assignment over branches
-
-```text
-   int x;                       assigned = {}
-   if (c) { x = 1; }            then-branch assigns: {x}
-   else   { x = 2; }            else-branch assigns: {x}
-   use(x);                      after = then ∩ else = {x}  -> OK
-
-   Drop the else:
-   if (c) { x = 1; }            then: {x} ; implicit-else: {}
-   use(x);                      after = {x} ∩ {} = {}      -> ERROR
-```
-
-### Diagnostic anatomy
-
-```text
-demo.lang : 3 : 9   error   cannot add `int` and `string`
-   │        │   │     │        │
-   file     │   col   severity message
-            line                            note: `a` declared at demo.lang:1
-                                            note: `b` declared at demo.lang:2
-    let c = a + b;
-            ^^^^^      <- caret spans ColStart..ColEnd
-```
+- Which boundary is most affected by Semantic Analysis?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

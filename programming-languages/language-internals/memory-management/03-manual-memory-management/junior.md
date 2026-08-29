@@ -1,49 +1,11 @@
-# Manual Memory Management — Junior Level
+# Manual Memory Management — Junior
 
-> **Topic:** Manual Memory Management
-> **Focus:** What it means to allocate and free memory by hand, the `malloc`/`free` contract, and the everyday bugs it creates.
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **Manual Memory Management** in one small example and prove the result?
 
-## Introduction
-
-In a language like Python, Java, or Go, you create an object and forget about it. Some runtime machinery — a **garbage collector** — figures out when nobody is using it anymore and reclaims the memory. You never think about it.
-
-In **manual memory management**, *you* are the garbage collector. When you need memory on the heap, you ask for it explicitly. When you are done, you must give it back explicitly. If you forget to give it back, your program slowly bloats. If you give it back and keep using it anyway, your program corrupts itself or crashes — sometimes minutes later, far from the actual mistake.
-
-This is the model used by **C** and, with safer tooling on top, by **C++** and **Rust**. It is also how the operating systems, databases, browsers, and game engines you use every day are built. Understanding it is not optional knowledge for a serious engineer — it is the foundation everything else is built on.
-
-This page introduces the mechanics and vocabulary. The trade-offs, disciplines, and production tooling come in later tiers.
-
----
-
-## Prerequisites
-
-You should be comfortable with:
-
-- **What a pointer is** — a variable that holds a memory address rather than a value.
-- **The stack vs. the heap** — local variables live on the *stack* and are cleaned up automatically when a function returns; the *heap* is a large pool of memory you manage by hand.
-- **Basic C syntax** — function calls, pointers (`*`, `&`), and `struct`.
-
-If "the stack cleans up automatically but the heap does not" is new to you, re-read that sentence until it sticks. It is the single most important idea on this page.
-
----
-
-## Glossary
-
-| Term | Meaning |
-|------|---------|
-| **Heap** | A large region of memory you allocate from and return to manually. |
-| **Allocate** | Reserve a block of heap memory for your use (`malloc`). |
-| **Free / deallocate** | Return a block to the allocator so it can be reused (`free`). |
-| **Pointer** | A variable holding a memory address. |
-| **Dangling pointer** | A pointer to memory that has already been freed. |
-| **Memory leak** | Allocated memory that is never freed and never reused. |
-| **Use-after-free** | Reading or writing memory after it has been freed. |
-| **Double-free** | Calling `free` twice on the same block. |
-| **Undefined behavior (UB)** | A program state the language spec makes no promises about — anything can happen. |
-| **Allocator** | The library code behind `malloc`/`free` that hands out and tracks heap blocks. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -90,22 +52,6 @@ Skipping the check means that on failure you dereference `NULL`, which crashes (
 ### "Freed" does not mean "erased"
 
 A crucial mental shift: `free(p)` does **not** clear the memory or change `p`. The bytes are still there, and `p` still points at them. You have simply told the allocator *"I'm done; you may give this region to someone else."* The pointer is now a **dangling pointer** — a loaded gun pointing at memory that may belong to another part of your program at any moment.
-
----
-
-## Real-World Analogies
-
-**The library book.** `malloc` is borrowing a book. `free` is returning it. A **leak** is keeping the book forever — eventually the library runs out of copies for everyone else. A **use-after-free** is taking notes in a book *after* you returned it and someone else checked it out: you are now scribbling in a stranger's book. A **double-free** is returning the same book to the desk twice — the librarian's records are now corrupt.
-
-**The hotel room.** Checking in is `malloc`; checking out is `free`. After checkout, the room is cleaned and given to a new guest. If you walk back in with your old key (a dangling pointer) and rearrange the furniture, you are vandalizing someone else's stay — and they have no idea why their things keep moving.
-
----
-
-## Mental Models
-
-- **Every `malloc` needs exactly one `free`.** Picture a balance sheet. Allocations on one side, frees on the other. They must match — no more, no less.
-- **A pointer is a claim ticket, not the coat.** Copying a pointer copies the ticket, not the coat. Two tickets to one coat means two people might try to free it.
-- **`free` is a promise, not an eraser.** It says "I'm done," it does not wipe anything. *You* must stop using the pointer.
 
 ---
 
@@ -165,33 +111,6 @@ Note the careful pattern: **never write `buf = realloc(buf, ...)` directly.** If
 
 ---
 
-## Pros & Cons
-
-**Pros**
-
-- **Predictable** — memory is reclaimed exactly when you say, with no surprise pauses.
-- **Lean** — no garbage collector overhead; tiny memory footprint.
-- **Total control** — essential for operating systems, drivers, and embedded chips with kilobytes of RAM.
-
-**Cons**
-
-- **Error-prone** — the bugs are easy to write, hard to find, and often catastrophic.
-- **Mental overhead** — you must track ownership of every block in your head.
-- **Late, confusing failures** — a mistake here often crashes somewhere else entirely.
-
----
-
-## Use Cases
-
-You are doing manual memory management whenever you work in:
-
-- **C** — the default, fully manual.
-- **C++** — manual underneath, but with safety tools layered on top (covered in later tiers).
-- **Rust** — the compiler checks your ownership at compile time.
-- **Embedded / kernel / real-time systems** — where a garbage collector is unacceptable.
-
----
-
 ## Best Practices
 
 1. **Always check `malloc`'s return for `NULL`** before using the pointer.
@@ -215,12 +134,24 @@ You are doing manual memory management whenever you work in:
 
 ---
 
-## Summary
+## Apply it
 
-- The heap is yours to manage by hand: `malloc` to take memory, `free` to give it back.
-- The contract is strict: **free each block exactly once, and never touch it afterward.**
-- `malloc` can fail (returns `NULL`) and hands back uninitialized bytes; `calloc` zeroes them; `realloc` resizes and may move the block.
-- The signature bugs — leaks, use-after-free, double-free, dangling pointers, buffer overflows, uninitialized reads — all come from breaking the contract, and they fail in confusing, delayed ways.
-- This model trades safety for control and predictability, which is why it powers the systems everything else runs on.
+1. Choose one small, known input for **Manual Memory Management**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
-The next tier digs into *how* the allocator works underneath and the deeper mechanics of each failure mode.
+## Verify your work
+
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
+
+## Review questions
+
+- What problem does Manual Memory Management solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

@@ -1,65 +1,11 @@
-# Semantic Analysis — Professional Level
+# Semantic Analysis — Professional
 
-> **Topic:** Semantic Analysis
-> **Focus:** Borrow checking, overload/trait resolution, generics, module/import resolution, query-driven incremental analysis, and the contract handed to the back end.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Semantic Analysis** with measurable outcomes and limited coordination?
 
-## Introduction
-
-> Focus: **The semantic checks that production languages actually ship — and the architecture that makes them fast, incremental, and trustworthy.**
-
-The senior level made the front end a disciplined pipeline: attribute flows, multi-pass ordering, CFG-based flow checks, exhaustiveness, and salvage-based recovery. That architecture is the skeleton of every serious compiler. The professional level fleshes it out with the checks that define *modern* languages — the ones that are genuinely hard, genuinely valuable, and genuinely the source of most of a compiler team's engineering time.
-
-Four bodies of work dominate. First, **resolution that disambiguates, not just looks up**: overload resolution (Java, C++, Swift) and trait/typeclass method resolution (Rust, Haskell, Go interfaces) where a single name `print` or `+` could mean many different declarations and semantic analysis must pick *the* one, by argument types, by specificity, by coherence rules — often interleaved with type inference rather than after it. Second, **generics**: typing a body once but checking every instantiation, enforcing bounds, handling variance, and deciding between monomorphization and a uniform representation. Third, **ownership and borrow checking as semantic analysis** — Rust's flagship contribution, where the type checker also proves a memory-safety property (no aliasing-plus-mutation, no use-after-move, no dangling reference) via a flow-sensitive analysis over lifetimes/regions. Fourth, **module and import resolution**: name resolution across compilation units, with visibility/access control, re-exports, glob imports, cyclic-import handling, and the separate-compilation contract.
-
-Underpinning all of it is an architectural shift the modern era forced: **incrementality**. A batch pipeline recomputes everything on every build; an IDE must re-analyze on every keystroke. The answer the industry converged on is **query-driven, demand-based analysis with memoized results** (Rust's `rustc` queries + Salsa, Roslyn's red-green trees, Swift's request-evaluator). Semantic analysis stops being "run these passes in order" and becomes "answer the question `type_of(node)`, memoizing and invalidating as the source changes."
-
-This page also closes the loop the whole topic has been building toward: precisely what semantic analysis *hands to* code generation — the decorated AST or typed IR, the binding and type information codegen relies on, the lowering decisions (where monomorphization happens, how method dispatch is resolved to a concrete target) made here so the back end can be dumb and fast.
-
----
-
-## Prerequisites
-
-Before reading this page you should be comfortable with:
-
-- All senior-level material: synthesized/inherited attributes, multi-pass pipelines with contracts, bidirectional checking, CFG/dataflow (definite assignment, reachability), exhaustiveness, and three-level error recovery.
-- Subtyping and variance at a working level (covariance, contravariance, invariance) and what a type parameter with a bound is.
-- The vocabulary of ownership/lifetimes at the user level — enough to have written or read Rust references, even if you've never built a checker for them.
-- Module systems in at least one language (Java packages, Rust crates/modules, Go packages, ML modules) including visibility modifiers.
-- Reading code in Rust, Java, Haskell, Go, and C++ at the level used in the examples.
-
-You do **not** need:
-
-- The full inference theory (unification, constraint solving, higher-rank/dependent types). That is the type-systems material; here we focus on how *checking and resolution* integrate it.
-- The internals of any specific compiler, though `rustc`, `roslyn`, `swiftc`, and GHC are referenced as exemplars.
-- Back-end/codegen detail beyond the handoff contract this page defines.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Overload resolution** | Choosing one declaration among several with the same name, by argument types/specificity. |
-| **Trait / typeclass resolution** | Finding the implementation of an interface method for a concrete type (Rust traits, Haskell classes, Go interfaces). |
-| **Coherence** | The guarantee that there is at most one chosen implementation for a given type/trait pair, globally. |
-| **Candidate set** | The implementations/overloads in scope that could apply before disambiguation. |
-| **Specificity / best match** | The ranking used to pick one candidate when several apply. |
-| **Monomorphization** | Generating a separate specialized copy of a generic for each concrete type argument. |
-| **Type erasure** | Compiling generics to one copy that ignores the type argument at runtime (Java, by default). |
-| **Variance** | How subtyping of a parameter relates to subtyping of the constructed type (co/contra/invariant). |
-| **Bound** | A constraint on a type parameter (`T: Ord`, `T extends Comparable`). |
-| **Ownership** | The rule that each value has one owner; the owner's scope end frees it. |
-| **Borrow** | A temporary reference: shared (`&`, many, read-only) or mutable (`&mut`, one, exclusive). |
-| **Lifetime / region** | The span of code over which a reference is valid; borrow checking proves references don't outlive their referent. |
-| **NLL** | Non-Lexical Lifetimes — borrow checking based on actual use ranges (a liveness/dataflow analysis), not lexical scopes. |
-| **Move** | Transfer of ownership; the source becomes invalid (use-after-move is an error). |
-| **Visibility / access control** | Which names a module exposes (`pub`, `public`, exported-by-capitalization in Go). |
-| **Re-export** | Exposing an imported name as part of your own module's interface. |
-| **Query-driven analysis** | Computing semantic facts on demand, memoized, with fine-grained invalidation. |
-| **Red-green trees** | Roslyn's immutable-syntax representation enabling incremental reuse. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -127,35 +73,6 @@ This is where the entire topic lands. After all analysis succeeds, semantic anal
 - Verified properties (exhaustiveness, definite assignment, borrow safety) are *assumed*, letting codegen omit runtime checks the front end already proved unnecessary.
 
 The contract is the same one stated since the junior page, now precise: **codegen trusts that the front end proved validity, and the decorated artifact carries every decision codegen needs so the back end can be a mechanical lowering.** The "decorate the AST; codegen consumes the typed AST" promise is fulfilled here.
-
----
-
-## Real-World Analogies
-
-| Analogy | Maps to |
-|---|---|
-| A hiring committee shortlisting then ranking candidates for one role | Overload resolution: candidate set then most-specific |
-| A specialty referral matched to a clinic that accepts your exact insurance | Trait resolution constrained by coherence/orphan rules |
-| A blueprint reused per building lot, each verified against the lot's zoning | Generics: check once, instantiate per use under bounds |
-| A library that lends a book to many readers OR one editor with the pen | Shared (`&`) vs. mutable (`&mut`) borrows: many readers XOR one writer |
-| A keycard that lists which doors you may open, regardless of which exist | Access control: resolvable vs. accessible |
-| A switchboard connecting calls across buildings using a directory of extensions | Cross-module import resolution |
-| A spreadsheet that recomputes only the cells affected by your edit | Query-driven incremental analysis |
-| A fully dimensioned, materials-listed shop drawing handed to the builder | The typed AST handed to codegen |
-
----
-
-## Mental Models
-
-**Model 1 — "Resolution is a search with a ranking, not a lookup."** Once names overload or come from traits, picking the right declaration is a filtered, ranked search (candidates → applicable → most specific) entangled with type inference. Stop thinking "map.get(name)"; think "constraint-satisfying best match."
-
-**Model 2 — "A generic is a contract; an instantiation is a proof obligation."** The declaration's bounds are a contract the body relies on; each use site must *prove* its concrete type discharges those bounds. Errors split cleanly: body errors (violating the contract internally) at the declaration, instantiation errors (failing to meet the bound) at the use.
-
-**Model 3 — "Borrow checking is a safety proof riding on the CFG."** It reuses the senior-level dataflow machinery (liveness, forward/backward analyses over the CFG) but the *fact* being computed is "is this access aliasing-safe / not-after-move / not-dangling?" Same engine, a memory-safety theorem as the output.
-
-**Model 4 — "Demand, don't push."** In a modern front end, you don't run passes; you answer queries. Every check is a pure function of memoized inputs, so an edit invalidates only what truly changed. Designing checks to be query-shaped (no hidden global mutation) is what makes incrementality possible.
-
-**Model 5 — "The typed artifact is a settled contract."** Everything ambiguous has been decided before codegen: which overload, which impl, which instantiation, which coercion. The back end inherits a world with no remaining semantic choices.
 
 ---
 
@@ -352,31 +269,6 @@ Everything codegen could possibly need to decide has been decided: the *exact* f
 
 ---
 
-## Pros & Cons
-
-| Aspect | Pros | Cons |
-|---|---|---|
-| Overloading / trait resolution | Expressive, ergonomic call sites; ad-hoc polymorphism | Resolution entangled with inference; ambiguity rules are intricate |
-| Coherence / orphan rules | Guarantees a single global impl; sound separate compilation | Restricts what users can implement; sometimes frustrating |
-| Monomorphization | Zero-cost generics; full optimization per instance | Code bloat; longer compiles |
-| Erasure | Small code; one copy | Loses type info at runtime; can't specialize |
-| Borrow checking | Memory safety without GC, proven at compile time | Steep learning curve; some safe programs rejected; complex implementation |
-| Query-driven analysis | Millisecond incremental rebuilds; powers IDEs | Demands pure, dependency-tracked design; harder to write |
-| Rich typed-IR handoff | Dumb, fast, trustworthy back end | Front end must materialize every decision; larger artifacts |
-
----
-
-## Use Cases
-
-- **A systems language with ownership** (Rust-like): borrow checking as the headline semantic feature, layered on type checking.
-- **A language with ad-hoc polymorphism** (operator overloading, traits, typeclasses): overload/trait resolution interleaved with inference.
-- **A generic-heavy library language**: bound checking, variance, and a chosen monomorphization/erasure/dictionary strategy.
-- **A language server / IDE** for any of the above: the whole front end restructured as memoized queries for keystroke-latency feedback.
-- **A build system integration**: emitting and consuming module interface artifacts for incremental and distributed compilation.
-- **A polyglot transpiler** that must resolve names, methods, and generics across modules before lowering to a target language.
-
----
-
 ## Coding Patterns
 
 - **Candidate-filter-rank.** Resolution = gather candidates, filter to applicable, rank by specificity, demand a unique best. Every overload/trait resolver has this shape.
@@ -459,216 +351,24 @@ Everything codegen could possibly need to decide has been decided: the *exact* f
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. Outline the three stages of overload resolution and give an example where multiple parameters produce a genuine ambiguity.
-2. Why must generic bound satisfaction be checked at each instantiation rather than once at the declaration? Where is the error reported, and what does it cite?
-3. State the central borrow-checking rule and explain how Non-Lexical Lifetimes let some previously-rejected programs compile.
-4. Why does the orphan rule exist, and how does it relate to coherence and separate compilation?
-5. Distinguish "resolvable" from "accessible." Give a program where a name exists but is inaccessible, and explain effective visibility along an access path.
-6. Why are cyclic module imports handled by a two-phase (interface-first) resolution, and how is that the same pattern as forward-reference handling within a file?
-7. Describe what a query-driven front end memoizes and invalidates, and why every check must be a pure function of its inputs.
-8. List four things the typed AST/IR must carry so that code generation never has to make a semantic decision.
+1. Define the user or business outcome that **Semantic Analysis** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
-<details>
-<summary>Answers</summary>
+## Verify your work
 
-1. (a) Collect all candidates with the name; (b) filter to *applicable* (arity + each arg assignable to the param); (c) pick the *most specific*. Ambiguity: `f(int, Object)` and `f(Object, int)` called with `f(int, int)` — each is better on one argument, neither dominates → error.
-2. The body is checked once against the bound's *contract*; each use supplies a *different* concrete type that must individually *satisfy* the bound. The error is reported at the **call site** and cites the **declaration's bound** (e.g., "`Point` does not satisfy `Ord` required by `max`").
-3. At any point a place may have many shared borrows XOR one mutable borrow, and no use-after-move/dangling. NLL ends a borrow at its *last use* (a liveness result) rather than its lexical scope end, so a later mutable borrow no longer overlaps an earlier shared borrow that's already dead.
-4. The orphan rule (you may impl a trait for a type only if you own the trait or the type) guarantees **coherence** (≤ one impl per `(trait, type)`) without whole-program analysis, so separately compiled crates can't add conflicting impls.
-5. Resolvable = the name exists in the target module; accessible = the referencing site is permitted to see it. A `private` field exists but errors on access from another module. Effective visibility is the *minimum* along the path: a `pub` item in a private module is private from outside.
-6. Module `A`↔`B` cycles can't be resolved by eager body-first resolution. Phase 1 declares all module *interfaces*; phase 2 resolves bodies against those interfaces — breaking the cycle. It's the same collect-then-check used for forward references, lifted from scopes to modules.
-7. It memoizes semantic-fact queries (`type_of`, `resolve`, `borrowck`, `is_exhaustive`) with their dependency sets, and on edit invalidates only queries whose inputs changed (transitively). Purity is required so a memoized result is a faithful function of its declared inputs; hidden mutation would make invalidation unsound.
-8. Resolved bindings (cross-module), concrete/instantiated types on every node, each call resolved to a specific target (overload/impl/monomorphization), and explicit coercion nodes — plus the assumption of verified properties (exhaustiveness, definite assignment, borrow safety).
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
 
-</details>
+## Review questions
 
----
-
-## Tricky Questions
-
-**Q1.** A teammate proposes resolving all overloads in a pass strictly *before* type inference "to keep phases clean." Where does this break?
-**A.** When choosing the overload depends on argument types *and* an argument's type depends on the chosen overload's expected parameter (e.g., an untyped lambda or numeric literal). The two are mutually dependent and must be solved together as a constraint problem; a strict before/after order rejects valid programs or picks wrong overloads. Modern checkers interleave resolution and inference in a fixpoint.
-
-**Q2.** Your generic `Stack<T>` is treated as covariant, and a user gets a runtime crash storing the wrong element type. What's the root cause and the fix?
-**A.** Covariance is unsound for a *mutable* container: covariance permits `Stack<Cat>` where `Stack<Animal>` is expected, then a `push(Dog)` corrupts it. The fix is to make `T` **invariant** for mutable containers (covariant only for read-only views). This is a soundness bug, not a style issue.
-
-**Q3.** Code compiled fine last year now fails to borrow-check after a refactor that only *moved a `println!`*. Is the borrow checker buggy?
-**A.** No. Borrow checking is flow-sensitive: moving a use changes the *liveness region* of a borrow. Moving a reference's last use later extends its borrow's region; if that now overlaps a mutable borrow, NLL correctly rejects it. The reverse (moving a use earlier) is exactly how you fix such errors.
-
-**Q4.** A library can't add `impl Display for Vec<T>` and gets an "orphan" error, even though it seems harmless. Why does the language forbid it?
-**A.** Both `Display` (std) and `Vec` (std) are foreign to the library. Allowing the impl would let *two* libraries each define `Display for Vec<T>` differently, and a program using both would have no coherent choice. The orphan rule forbids impls where neither the trait nor the type is local, preserving global coherence.
-
-**Q5.** An IDE shows a stale type for a symbol after an edit elsewhere. The compiler is correct in batch mode. What's wrong?
-**A.** The incremental dependency tracking is *unsound*: a query depended on the edited input but didn't record that dependency, so its memoized result wasn't invalidated. Either the query read a value it didn't declare as a dependency, or it performed hidden global mutation. Queries must be pure functions of their tracked inputs.
-
-**Q6.** Why is "the typed AST handed to codegen" the natural endpoint of this entire topic, from junior to professional?
-**A.** Every level added decisions the front end must settle so the back end needn't: junior resolved names and basic types; middle added the decorated AST; senior verified flow and exhaustiveness; professional resolved overloads, traits, generics, and ownership. The endpoint is an artifact where *no semantic ambiguity remains* — codegen is a mechanical lowering of a fully-decided program. That handoff is the reason semantic analysis exists as a phase.
-
----
-
-## Cheat Sheet
-
-```text
-SEMANTIC ANALYSIS — PROFESSIONAL
-
-RESOLUTION = SEARCH + RANK (not lookup)
-  candidates -> applicable (arity + assignable) -> most specific -> unique?
-  traits/typeclasses: search impls, constrained by COHERENCE (orphan rule)
-  resolution + inference are a FIXPOINT, often interleaved
-
-GENERICS
-  check body ONCE against bounds ; check each INSTANTIATION at the use site
-  bound error: reported at CALL, cites DECLARATION's bound
-  variance: produce->covariant, consume->contravariant, both/mutable->INVARIANT
-  representation: monomorphize | erase | dictionary-pass  (a semantic decision)
-
-BORROW / OWNERSHIP CHECKING (= dataflow on the CFG)
-  rule: many &shared  XOR  one &mut ; no use-after-move ; no dangling
-  NLL: a borrow lives over its USE region (liveness), not lexical scope
-  it's a MEMORY-SAFETY PROOF, same engine as definite assignment
-
-MODULES / VISIBILITY
-  resolve name  THEN  check visibility (resolvable != accessible)
-  effective visibility = MIN along the access path
-  cross-module: TWO-PHASE (interfaces first) -> breaks import cycles
-  emit/consume module interface artifacts -> separate compilation
-
-INCREMENTAL (query-driven)
-  type_of/resolve/borrowck/is_exhaustive = MEMOIZED queries + dep tracking
-  edit -> invalidate only dependents ; queries MUST be pure
-  rustc queries+Salsa | Roslyn red-green trees | Swift request-evaluator
-
-HANDOFF TO CODEGEN (the point of it all)
-  every Name -> resolved binding ; every expr -> concrete type
-  every call -> ONE target (overload/impl/monomorphized instance)
-  coercions EXPLICIT as nodes ; verified props (exhaustive/DA/borrow) assumed
-  => back end is a mechanical, choice-free lowering
-```
-
----
-
-## Summary
-
-- At professional scale, **resolution is disambiguation**: overload resolution (candidate set → applicable → most specific) and trait/typeclass resolution (impl search under **coherence**/orphan rules), and it is **interleaved with type inference** as a fixpoint, not a clean pass.
-- **Generics** are checked once against their **bounds** and re-checked at every **instantiation** (errors land at the use site, citing the declaration). **Variance** is a soundness obligation; the **monomorphization vs. erasure vs. dictionary-passing** choice is made during analysis because it shapes the typed artifact.
-- **Borrow/ownership checking is semantic analysis** — a flow-sensitive proof over the CFG (many shared XOR one mutable, no use-after-move, no dangling) using **Non-Lexical Lifetimes** (liveness), the senior-level dataflow machinery turned into a memory-safety theorem.
-- **Module and import resolution** adds visibility/access control (resolvable ≠ accessible; effective visibility is the minimum along the path), **two-phase interface-first** resolution that breaks cycles, and **module interface artifacts** that enable separate compilation.
-- Modern front ends are **query-driven and incremental**: every check is a pure, memoized function of tracked inputs, so an edit invalidates only what changed — the architecture behind responsive language servers.
-- The phase's purpose, made precise here, is the **handoff to code generation**: a typed, fully-resolved artifact where every name is bound, every expression typed, every call resolved to a concrete target, and every coercion explicit — so the back end is a mechanical, choice-free lowering. That handoff is why semantic analysis exists.
-
----
-
-## What You Can Build
-
-- **An overload resolver** with candidate/applicable/most-specific ranking and precise ambiguity diagnostics that list the competing candidates.
-- **A trait/impl registry** enforcing coherence via an orphan rule, resolving `x.method()` to a unique concrete target.
-- **A generic checker** that checks a body once against bounds and each call by substitution + bound satisfaction, with variance enforcement for containers.
-- **A miniature borrow checker** over a CFG with NLL: track live shared/mutable borrows and moved-out places, reporting overlap and use-after-move.
-- **A cross-module resolver** with import resolution, glob handling, visibility/access control, and two-phase interface-first resolution that detects and reports import cycles.
-- **A query engine** that memoizes `type_of`/`resolve` with dependency tracking and demonstrates keystroke-latency invalidation on an edit.
-- **A typed-IR emitter** that lowers a checked AST into a fully-resolved artifact (concrete targets, instantiated types, explicit coercions) ready for a trivial back end.
-
----
-
-## Further Reading
-
-- *The Rust Reference* and the *rustc dev guide* — the canonical description of trait resolution, coherence/orphan rules, monomorphization, and the borrow checker (Polonius/NLL).
-- Niko Matsakis et al. — the **NLL RFC (2094)** and Polonius notes: borrow checking reframed as dataflow.
-- *Types and Programming Languages* — Benjamin Pierce. Bounded quantification, variance, and the theory behind generics and subtyping.
-- *The Java Language Specification*, chapters on method invocation/overload resolution and on generics/erasure — exacting real-world rules.
-- Philip Wadler & Stephen Blott — *How to make ad-hoc polymorphism less ad hoc* (POPL 1989): the typeclass/dictionary-passing foundation.
-- Salsa documentation and the **rustc query system** chapter — the modern incremental/query-driven architecture.
-- Roslyn's design notes on **red-green trees** — incremental syntax/semantics for IDEs.
-- *Engineering a Compiler* — Cooper & Torczon. Linkage, separate compilation, and interprocedural concerns.
-
----
-
-## Related Topics
-
-- The previous phase, **parsing**, supplies the AST that the whole front end resolves, types, and decorates.
-- The deep theory of types — inference, subtyping, variance, parametric and ad-hoc polymorphism — lives in the **type-systems** material; this page integrates its *checking and resolution* side.
-- **Control-flow and dataflow analysis** underpins borrow checking, definite assignment, and reachability, and recurs in optimization.
-- The next phase, **intermediate-representation / code generation**, consumes the fully-resolved typed artifact this phase produces — the handoff this page makes precise.
-- **Runtime systems** handle the dynamic counterparts: dynamic dispatch tables, reflection on retained type info, and the memory management that ownership checking sometimes replaces.
-- **Linkers and build systems** consume the module interface artifacts semantic analysis emits to enable separate and incremental compilation.
-
----
-
-## Diagrams & Visual Aids
-
-### Overload resolution funnel
-
-```text
-   all `print` declarations in scope        <- candidates
-            │  filter: arity + each arg assignable to param
-            ▼
-   applicable overloads
-            │  rank: most specific (param-by-param subtyping)
-            ▼
-   unique best?  ── yes ──► chosen target (for codegen)
-            │
-            └── no (tie / none) ──► AMBIGUOUS / NO MATCH error
-```
-
-### Generics: one check, many instantiations
-
-```text
-   fn max<T: Ord>(a: T, b: T) -> T      <- checked ONCE against bound `Ord`
-        │                │
-   max(3,4)  T=int   max("a","b") T=String   max(p,p) T=Point
-   int: Ord  ✔        String: Ord ✔           Point: Ord ✘  -> ERROR at call,
-                                                              cites `T: Ord`
-```
-
-### Borrow checking with NLL
-
-```text
-   let r = &v[0];     ── shared borrow of v starts
-   ...                   (live while r may still be used)
-   v.push(4);         ── needs &mut v
-   println!("{}", r); ── r's LAST use  ── shared borrow ends HERE (NLL)
-
-   if push is BEFORE r's last use  -> overlap: &mut while &shared live -> ERROR
-   if push is AFTER  r's last use  -> no overlap -> OK
-```
-
-### Resolve then check visibility
-
-```text
-   path foo::bar::Baz
-        │  step 1: RESOLVE  (does Baz exist in foo::bar?)
-        ▼
-     found Baz
-        │  step 2: ACCESS   (is Baz visible from here?)
-        ▼
-   visible? ── yes ──► use it
-        │
-        └── no ──► "Baz is private to foo::bar"   (NOT "no such name")
-```
-
-### Query-driven invalidation
-
-```text
-   edit body of  fn g
-        │ invalidate  type_of(g-body), borrowck(g)
-        ▼
-   queries depending on g (callers' resolution)  -> re-check; most still valid
-   everything NOT depending on g                  -> cache hit, untouched
-   => milliseconds, not a full rebuild
-```
-
-### The endpoint: parser AST -> fully-resolved typed IR
-
-```text
-   Call(Name "max", [3, 4])                 (parser: ambiguous, untyped)
-            │  resolve overload/trait/generic ; infer types ; insert coercions
-            ▼
-   Call(target=max$int,                     (codegen input: every decision made)
-        result_ty=int, args=[3:int, 4:int],
-        coercions=[])
-            │  mechanical lowering
-            ▼
-   machine code / bytecode
-```
+- Which measurable outcome justifies investing in Semantic Analysis?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

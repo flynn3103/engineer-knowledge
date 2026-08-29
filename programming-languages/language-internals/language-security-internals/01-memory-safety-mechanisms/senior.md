@@ -1,62 +1,11 @@
-# Memory-Safety Mechanisms — Senior Level
+# Memory-Safety Mechanisms — Senior
 
-> **Topic:** Memory-Safety Mechanisms
-> **Focus:** How languages *design away* memory bugs — Rust's ownership/borrow checker and `unsafe` discipline, the GC-based guarantees of managed runtimes (and where they leak: `Unsafe`/cgo, data races), and Swift's ARC with its cycle problem.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Memory-Safety Mechanisms** under failure, load, and change?
 
-## Introduction
-
-> Focus: **How do you get memory safety from the language *design itself*** — so that whole bug classes are compile errors (Rust) or structurally impossible (managed runtimes) — **and exactly where each design's guarantee ends?**
-
-The junior level named the bug taxonomy; the middle level showed the tools that *detect* bugs after the fact. This level is about the more ambitious idea: **engineer the safety in by design**, so the bug can't exist (or is confined to a tiny audited surface). Three designs dominate, and a senior engineer must be able to reason about each one's *guarantee and its edge*:
-
-1. **Rust — ownership + borrowing, checked at compile time, zero runtime cost.** Rust's central rule, **aliasing XOR mutability** (you may have many shared `&T` readers *or* one exclusive `&mut T` writer, never both), plus **lifetimes** that tie every reference to the scope of the data it points at, make use-after-free, double-free, and data races into *compile errors*. The escape hatch is the `unsafe` block: a small, auditable region where *you* uphold the invariants the checker can't verify.
-
-2. **Managed runtimes (Java, Go, C#, JS) — GC + bounds checks.** Memory safety is a runtime property: the GC guarantees you never use freed memory (because you never free), and inserted bounds checks guarantee spatial safety. But this guarantee is **not absolute**: it has *intentional* escape hatches (`sun.misc.Unsafe`, Go's `unsafe`/cgo, `Span`/`stackalloc` in C#), and — critically — a **data race in some of these runtimes can break the safety guarantee itself**, not just produce a wrong answer.
-
-3. **Swift / Objective-C — Automatic Reference Counting (ARC).** Each object tracks how many strong references point at it; at zero, it's deterministically freed. Safe like GC, predictable unlike GC, but it cannot break **reference cycles** on its own, so it trades the UAF problem for a *leak* problem, managed with `weak`/`unowned` references.
-
-> 🎓 **Why this matters at senior level:** You will choose languages, set `unsafe`/cgo policy, review code that crosses these boundaries, and explain to stakeholders why "we use Go, so we're memory-safe" is *mostly* true but has named exceptions. The value here is precise knowledge of *where the guarantee holds and where it ends* — because every real system has a boundary (FFI, `unsafe`, a data race) where the safety net has a hole, and that's exactly where the severe bugs hide.
-
-This page covers Rust ownership/borrowing/lifetimes and the role of `unsafe`; the anatomy of managed-runtime safety and its leaks; ARC and cycles; and the through-line that **a safe language confines unsafety to a small, reviewable surface rather than eliminating it everywhere.** `professional.md` covers hardware enforcement (MTE, CHERI) and the industry migration.
-
----
-
-## Prerequisites
-
-- **Required (middle level):** sanitizers, redzones/quarantine/shadow memory, hardened allocators, and the spatial-cheap/temporal-expensive distinction.
-- **Required:** solid C/C++ pointer and lifetime mental model; you can spot a UAF and a dangling pointer by reading code.
-- **Helpful:** basic Rust syntax (`&`, `&mut`, `let`, `fn`), or willingness to read it as pseudocode.
-- **Helpful:** a working model of a tracing garbage collector (reachability, roots) — see GC topics elsewhere.
-- **Helpful:** familiarity with data races and happens-before (concurrency topics).
-
-You do **not** need: hardware tagging (MTE) or capability hardware (CHERI) — that's `professional.md`.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Ownership** | Rust's rule that each value has exactly one owner; when the owner goes out of scope, the value is dropped (freed) exactly once. |
-| **Move** | Transferring ownership. After a move, the source binding is invalid — using it is a compile error (prevents double-free / use-after-move). |
-| **Borrow** | Taking a reference (`&T` shared, `&mut T` exclusive) without taking ownership. The borrow checker constrains how long and how many. |
-| **Borrow checker** | The Rust compiler pass that enforces the borrowing rules statically, rejecting code that could create a dangling/aliased-mutable reference. |
-| **Aliasing XOR mutability** | The core invariant: at any time, either many `&T` (shared, read-only) **or** exactly one `&mut T` (exclusive, mutable) — never both. |
-| **Lifetime** | A compile-time region during which a reference is valid. The checker ensures a reference never outlives its referent (no dangling). |
-| **`unsafe`** | A Rust keyword marking a block/function where extra operations (raw-pointer deref, FFI, `union` access) are allowed; the programmer asserts the invariants. |
-| **Drop** | Rust's deterministic destructor; runs when an owner goes out of scope. The basis of RAII in Rust. |
-| **RAII** | "Resource Acquisition Is Initialization" — tie a resource's lifetime to an object's scope so cleanup is automatic and exactly-once. |
-| **Garbage collection (tracing)** | Periodically finding all reachable objects from roots and reclaiming the rest; guarantees no use of unreachable memory. |
-| **`sun.misc.Unsafe` / `jdk.internal.misc.Unsafe`** | JVM internal API for raw memory and off-heap access — an intentional, dangerous escape hatch from Java's safety. |
-| **cgo** | Go's C interop. Calling into C steps *outside* Go's memory-safety guarantees. |
-| **Go `unsafe.Pointer`** | Go's escape hatch for arbitrary pointer conversions and pointer arithmetic; bypasses the type and memory-safety guarantees. |
-| **ARC** | Automatic Reference Counting (Swift, ObjC): per-object strong-reference count; deallocates at zero, deterministically. |
-| **Strong / weak / unowned** | ARC reference kinds: strong keeps the object alive; `weak` doesn't (becomes nil on dealloc); `unowned` doesn't (assumes it outlives — UAF if not). |
-| **Retain cycle** | Two objects holding strong references to each other; their counts never reach zero → leak. Broken with `weak`/`unowned`. |
-| **Soundness** | A type-system/safety property: if the checker accepts the program, the guaranteed property actually holds. `unsafe` can *break* soundness if misused. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -146,32 +95,6 @@ Across all three designs, the senior insight is the same: **safety at scale come
 - Swift: unsafety re-enters only through `unowned` and `Unmanaged`/C interop.
 
 When you audit a "safe" system for memory bugs, you go straight to those surfaces. That's where the 70% statistic's survivors hide.
-
----
-
-## Real-World Analogies
-
-- **Ownership = a single deed to a house.** Exactly one person holds the deed (owner). When they leave town, the house is demolished (drop) — once. You can't sell (move) the house and still live in it; after you sell, your key stops working (use-after-move is a compile error).
-
-- **Borrowing = library lending rules.** Many people may *read* the same reference book at once (`&T`), but if someone is *editing* it (`&mut T`), nobody else may even read it until they're done. No editing-while-others-read means no surprises mid-read.
-
-- **Lifetimes = a visitor badge that expires with your host.** Your access badge (reference) is only valid while your host (the data) is in the building. The security desk (borrow checker) refuses to issue a badge that outlasts the host's stay.
-
-- **`unsafe` = a clearly-marked high-voltage room.** The rest of the building is safe by construction. There's one room, labeled and locked, where qualified electricians work under their own discipline. Confining the danger to that room is what keeps the building safe — not pretending electricity doesn't exist.
-
-- **ARC retain cycle = two people each holding the only door key the other needs to leave.** Neither can exit (count never zero). A `weak` reference is "I'll remember your name but won't hold your key," letting both leave.
-
----
-
-## Mental Models
-
-**Model 1: The safety guarantee is a contract with named exceptions.** "Rust is memory-safe" means *safe code is sound; `unsafe` is your responsibility.* "Go is memory-safe" means *race-free Go is safe; `unsafe`/cgo and races are excluded.* A senior states the exceptions out loud. The bugs live in the exceptions.
-
-**Model 2: Rust moves the cost from runtime to compile time.** GC and ARC pay at runtime (pauses, refcount traffic). Rust pays at *compile time* (the borrow checker rejects unsound programs) and at *author time* (you must structure ownership). The reward is safety with zero runtime overhead — the only mainstream design that gets *both* C-level performance and memory safety.
-
-**Model 3: Aliasing-XOR-mutability is the same rule that prevents data races.** Iterator invalidation, modify-while-borrowed, and data races are *all* "mutation while an alias exists." One rule, enforced statically, kills all of them. Recognizing this unifies "single-threaded UAF" and "data race" as one phenomenon.
-
-**Model 4: Deterministic (ARC/RAII) vs. amortized (GC) reclamation.** ARC and Rust drop free *immediately* at scope/zero-count — predictable, but ARC pays per-refcount and can cycle-leak; Rust pays nothing but needs static ownership. GC frees *later*, in batches — no per-op cost, no cycle problem, but pauses and higher footprint. The choice is a latency/throughput/predictability trade.
 
 ---
 
@@ -266,15 +189,6 @@ class Node {
 
 ---
 
-## Use Cases
-
-- **Systems software needing C-level performance *and* safety** (OS components, browsers, crypto, parsers, embedded with `no_std`) → **Rust**. Android, Windows, and the Linux kernel now ship Rust for exactly this.
-- **Application/server software where GC pauses are acceptable** → managed runtimes (Go, Java, C#). The default safe, productive choice.
-- **Apple-platform apps / latency-sensitive UI without GC pauses** → **Swift/ARC**.
-- **Auditing a "safe" codebase for memory bugs** → go straight to the `unsafe`/cgo/JNI boundary and to racy code; that's the residual attack surface.
-
----
-
 ## Coding Patterns
 
 ```text
@@ -340,113 +254,24 @@ SWIFT
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. State "aliasing XOR mutability" and explain why it prevents *both* iterator invalidation and data races.
-2. How does Rust make double-free and use-after-free *compile errors* rather than runtime bugs?
-3. What does `unsafe` actually unlock, and why doesn't it disable the borrow checker for surrounding code?
-4. Give the three ways a managed runtime's memory-safety guarantee can leak.
-5. Explain precisely how a data race can cause type confusion in Go.
-6. Why is ARC deterministic but unable to reclaim a retain cycle, and how do `weak`/`unowned` differ?
-7. Contrast deterministic (Rust drop / ARC) vs. amortized (GC) reclamation on cost, predictability, and cycles.
-8. As a senior, how do you phrase your system's memory-safety guarantee *with its exceptions*?
+1. State the system invariant that **Memory-Safety Mechanisms** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
----
+## Verify your work
 
-## Cheat Sheet
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
 
-```text
-RUST (compile-time, zero runtime cost)
-  ownership : one owner; drop runs ONCE at scope exit  -> no double-free
-  move      : source invalidated after move            -> no use-after-move
-  borrow    : &T many readers XOR &mut T one writer     -> no alias+mutate
-  lifetimes : reference <= referent lifetime            -> no dangling
-  unsafe    : small audited block; you uphold invariants; safe API wraps it
+## Review questions
 
-MANAGED GC (runtime: Java/Go/C#/JS)
-  spatial   : bounds checks (JIT-elided)
-  temporal  : tracing GC, no manual free
-  LEAKS via : (1) Unsafe/cgo/JNI/P-Invoke  (2) DATA RACES break safety
-              (3) runtime/JIT is C++ (engine CVEs)
-  Go gotcha : racy multi-word interface/slice -> torn value -> type confusion
-
-SWIFT ARC (deterministic refcount)
-  free at strong-count == 0, immediately
-  retain cycle -> LEAK; break with weak (safe, auto-nil) or unowned (UAF risk)
-
-SENIOR RULE: safety = confine + audit the unsafe surface, not eliminate it.
-             state the guarantee WITH its named exceptions.
-```
-
----
-
-## Summary
-
-Memory safety by *design* takes three shapes. **Rust** enforces it at compile time with **ownership** (one owner, drop-once → no double-free), **moves** (source invalidated → no use-after-move), **borrowing under aliasing-XOR-mutability** (no mutation while an alias exists → no UAF *and* no data races), and **lifetimes** (a reference can't outlive its data → no dangling) — all at **zero runtime cost**, with `unsafe` as a small, audited escape hatch wrapped behind safe APIs. **Managed runtimes** (Java, Go, C#, JS) enforce it at runtime with **bounds checks** + a **tracing GC**, which makes UAF/double-free impossible for ordinary code — but the guarantee **leaks** through explicit escape hatches (`Unsafe`/cgo/JNI), through the runtime's own C++ (JIT/GC CVEs), and crucially through **data races**, which in Go can tear a multi-word value into a mismatched type pointer and cause real corruption. **Swift ARC** gives deterministic, pause-free temporal safety via reference counting, at the cost of **retain cycles**, broken manually with `weak` (safe) or `unowned` (cheaper but UAF-risking).
-
-The unifying senior insight: **safety at scale comes from confining unsafety to a small, auditable surface** — `unsafe` blocks, the FFI/`cgo`/JNI boundary, racy code, `unowned` references — *not* from pretending unsafe operations don't exist. State your system's guarantee *with its named exceptions*, and audit exactly those exceptions, because that is where the surviving severe bugs live. `professional.md` continues into hardware-enforced safety and the industry migration.
-
----
-
-## What You Can Build
-
-- A Rust mini-library (e.g. a small arena or ring buffer) whose internals use `unsafe` but whose public API is fully safe, each `unsafe` block carrying a `// SAFETY:` proof, validated under Miri.
-- A demonstration harness showing Go's `-race` detector catching an interface-tearing race, with a writeup of why it's a *safety* (not just correctness) issue.
-- A Swift example app instrumented to show a retain cycle leaking in Instruments, then fixed with `weak`/`[weak self]`, with before/after memory graphs.
-
----
-
-## Further Reading
-
-- *The Rust Programming Language* — Ch. 4 (Ownership) & Ch. 10/19 (Lifetimes, `unsafe`). https://doc.rust-lang.org/book/
-- *The Rustonomicon* — the dark arts of `unsafe` Rust. https://doc.rust-lang.org/nomicon/
-- *RustBelt: Securing the Foundations of the Rust Programming Language* — Jung et al., POPL 2018 (a formal soundness proof for Rust incl. `unsafe`).
-- *The Go Memory Model* — https://go.dev/ref/mem (read the part on racy programs and safety).
-- *Java Language Specification — Threads and Locks (JMM)* and *Java Concurrency in Practice* — Goetz et al.
-- *Automatic Reference Counting* — The Swift Programming Language. https://docs.swift.org/swift-book/documentation/the-swift-programming-language/automaticreferencecounting/
-- *Secure by Design: Google's Perspective on Memory Safety* — on confining unsafety and migration outcomes.
-
----
-
-## Related Topics
-
-This is the senior tier of Memory-Safety Mechanisms. `professional.md` extends the story to **hardware-enforced** safety — ARM **MTE** (memory tagging) and **CHERI** capabilities, fat pointers — and to the **industry migration** (CISA/NSA guidance, Android's Rust adoption and its measured drop in memory bugs). `middle.md` covers the detection/mitigation tooling these designs still rely on at their boundaries; `interview.md` drills the borrow checker, GC-safety leaks, and ARC; `tasks.md` provides hands-on reasoning exercises. Adjacent roadmap areas — garbage-collection internals, the concurrency memory models (happens-before, data races), and FFI/interop — are covered in their own folders.
-
----
-
-## Diagrams & Visual Aids
-
-### Aliasing XOR Mutability
-
-```text
-            ALLOWED                          ALLOWED                  FORBIDDEN
-   ┌──────────────────────┐        ┌──────────────────────┐   ┌──────────────────────┐
-   │  &T  &T  &T   (read)  │   XOR  │   &mut T   (write)   │   │  &T  +  &mut T        │
-   │  many shared readers  │        │   one exclusive       │   │  reader WHILE writer  │
-   └──────────────────────┘        └──────────────────────┘   └──────────────────────┘
-                                                                  = compile error
-   This single rule prevents: iterator invalidation, modify-while-borrowed, data races.
-```
-
-### Where The Guarantee Ends (per design)
-
-```text
-  RUST            safe code ████████████████████  |  unsafe ▒▒  ← audit here
-  MANAGED GC      safe code ████████████████████  |  Unsafe/cgo/JNI ▒▒  + races ▒▒  + runtime C++ ▒▒
-  SWIFT ARC       safe code ████████████████████  |  unowned ▒  + Unmanaged/C ▒▒
-  C/C++           ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  ← unsafe everywhere (~70% CVEs)
-
-  ████ guaranteed safe      ▒▒ residual unsafe surface (where bugs survive)
-```
-
-### Reclamation Strategies
-
-```text
-                  WHEN freed        per-op cost   cycles    pauses
-  Rust drop       scope exit         none          n/a*     none
-  Swift ARC       count -> 0         retain/release leak!    none
-  Tracing GC      later, batched     none          handled   yes
-  C/C++ manual    you call free()    none          n/a       none (but UAF/double-free)
-
-  * Rust Rc<T> can cycle-leak too; plain ownership cannot.
-```
+- Which invariant must remain true when Memory-Safety Mechanisms fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

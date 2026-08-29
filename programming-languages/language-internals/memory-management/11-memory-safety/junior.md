@@ -1,46 +1,11 @@
-# Memory Safety — Junior Level
+# Memory Safety — Junior
 
-> **Topic:** Memory Safety
-> **Focus:** What "memory safety" actually means, the two pillars (spatial and temporal), and why a whole industry treats it as a top-priority problem.
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **Memory Safety** in one small example and prove the result?
 
-## Introduction
-
-**Memory safety** is the property that a program can only ever read or write memory that it is actually allowed to access, in a way that is consistent with the types and lifetimes the program declared. A memory-*safe* program cannot accidentally read past the end of an array, use a value after it has been freed, or interpret a chunk of bytes as the wrong type.
-
-This sounds like an obvious thing to want. The surprising part is that two of the most widely deployed languages in history — C and C++ — do **not** guarantee it. They hand the programmer raw pointers and trust them to never make a mistake. Decades of evidence show humans are not capable of that. Roughly **70% of the serious security vulnerabilities** at Microsoft, Google, the Chrome browser, and Android are caused by memory-safety bugs. That single statistic is why national security agencies (the US's CISA and NSA) now publicly urge companies to move to memory-safe languages.
-
-This junior tier builds the foundation: what the categories of violation are, what "spatial" and "temporal" safety mean, and how some languages prevent these bugs by construction.
-
----
-
-## Prerequisites
-
-You should be comfortable with:
-
-- **Variables and memory** — that a variable lives somewhere in RAM and has an address.
-- **Arrays** — a contiguous block of elements accessed by index.
-- **Pointers / references (at least conceptually)** — a value that *refers to* a memory location rather than holding the data directly.
-- **The stack and the heap** — where local variables live (stack) versus dynamically allocated memory (heap). If these are fuzzy, that is fine; we recap them as needed.
-
----
-
-## Glossary
-
-| Term | Meaning |
-| --- | --- |
-| **Memory safety** | Guarantee that every memory access is to valid, allocated, correctly-typed memory. |
-| **Spatial safety** | No access *outside the bounds* of an allocated object (no reading element 11 of a 10-element array). |
-| **Temporal safety** | No access to memory that is no longer valid (already freed, or out of scope). |
-| **Buffer overflow** | Writing or reading past the end of a buffer (an array/region of memory). |
-| **Use-after-free (UAF)** | Accessing memory through a pointer after that memory was returned to the allocator. |
-| **Dangling pointer** | A pointer that still points at an address whose object no longer exists. |
-| **Undefined behavior (UB)** | A program operation the language spec gives *no rules* for; the compiler may do anything. |
-| **Garbage collection (GC)** | Automatic reclamation of memory no longer reachable by the program. |
-| **Bounds check** | A runtime test that an index is within an array's valid range. |
-| **Memory-safe language** | A language whose normal (safe) code cannot produce memory-safety violations. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -80,34 +45,6 @@ Most languages you have used are memory-safe, and they achieve it with a small s
 - **Mandatory initialization (or default values).** Variables start with a defined value (e.g., zero), so uninitialized reads don't happen.
 
 There is a second, newer way to be safe — **Rust** — that achieves the same guarantees *without* a garbage collector, using compile-time ownership rules. You'll meet that idea properly in the middle and senior tiers; for now just know it exists.
-
----
-
-## Real-World Analogies
-
-- **Spatial safety = parking inside the lines.** Your car (object) has an assigned parking space (allocation). Spatial safety means you never let a wheel cross into the neighboring space. A buffer overflow is parking across two spaces and crushing your neighbor's bumper.
-
-- **Temporal safety = not using an expired hotel keycard.** You checked out (freed) the room. Your keycard (pointer) might still physically open the door for a while, but the room now belongs to someone else. Using it (use-after-free) means walking into a stranger's space — or finding the locks were changed and getting an error.
-
-- **Bounds checking = a turnstile that counts.** Instead of trusting everyone to stop at the right seat, a checker verifies your ticket number is within the valid range before letting you in. It costs a moment of time per entry, but nobody ends up in a seat that does not exist.
-
-- **Garbage collection = a janitor who only throws away trash nobody is holding.** The janitor (GC) walks the building and removes anything that no one can still reach. As long as you are holding onto something, it will never be thrown out from under you.
-
----
-
-## Mental Models
-
-**Model 1: Every access has two questions.**
-For any memory access, a safe language can answer "yes" to both:
-1. *Is this address inside the object I think I'm touching?* (spatial)
-2. *Does that object still exist right now?* (temporal)
-If a language cannot guarantee both answers, it is not memory-safe.
-
-**Model 2: Safety is about what the language *forbids*, not what you *intend*.**
-You always *intend* to stay in bounds. Memory safety is the language refusing to let you fail even when you make a mistake. C trusts your intent; safe languages verify it.
-
-**Model 3: A pointer is a claim, and the claim can go stale.**
-A pointer says "there is a valid object here." Freeing the object, or ending its scope, makes that claim false — but the pointer's bits don't change. Temporal bugs are stale claims that nobody noticed.
 
 ---
 
@@ -171,31 +108,6 @@ fmt.Println(x)     // prints 0, always
 
 ---
 
-## Pros & Cons
-
-**Pros of working in a memory-safe language:**
-
-- Whole categories of severe bugs simply cannot occur in normal code.
-- Crashes are *clean and diagnosable* (an exception with a stack trace) instead of silent corruption.
-- Less time spent debugging "it works on my machine but crashes in production" heisenbugs.
-- Smaller attack surface — most exploitable vulnerabilities are memory-safety bugs.
-
-**Cons / costs:**
-
-- **Runtime overhead.** Bounds checks cost a few instructions per access; GC costs CPU and memory. Usually small, occasionally significant.
-- **Less control.** You can't lay out memory byte-for-byte or hand-tune allocation the way C lets you.
-- **Not a silver bullet.** Safe languages still have logic bugs, can still crash (an exception is still a crash), can leak memory, and have escape hatches (`unsafe`, FFI) where the guarantees stop.
-
----
-
-## Use Cases
-
-- **Application and web backends** (Java, Go, C#, Python, JavaScript): memory safety is the default and you almost never think about it. This is the right choice for the vast majority of software.
-- **Anything exposed to untrusted input** (browsers, parsers, network servers): memory safety drastically reduces exploitable bugs. This is exactly where the industry is pushing hardest toward safe languages.
-- **Systems software where C/C++ used to be the only option** (OS components, drivers, embedded): Rust now offers memory safety *without* a garbage collector, which is why it's appearing in the Linux kernel, Android, and Windows components.
-
----
-
 ## Best Practices
 
 1. **Default to a memory-safe language.** Unless you have a hard reason (existing C/C++ codebase, no runtime allowed), pick a safe language. The burden of proof is on choosing the unsafe option.
@@ -216,10 +128,24 @@ fmt.Println(x)     // prints 0, always
 
 ---
 
-## Summary
+## Apply it
 
-- **Memory safety** = every access is to valid, allocated, correctly-typed memory.
-- It has two pillars: **spatial** (stay inside an object's bounds) and **temporal** (only access memory that's still alive).
-- The main violations — **buffer overflow, use-after-free, double-free, dangling pointers, uninitialized reads** — are not just bugs; they're the source of ~70% of severe security vulnerabilities, which is why agencies now push memory-safe languages.
-- Safe languages prevent these by construction: **no pointer arithmetic, runtime bounds checks, garbage collection, and mandatory initialization.** Rust achieves the same without GC via compile-time ownership.
-- "Memory-safe" does **not** mean bug-free: leaks, logic errors, and escape hatches (`unsafe`, FFI) still exist. Safety removes a dangerous *category* of bug — and that is enormously valuable.
+1. Choose one small, known input for **Memory Safety**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
+
+## Verify your work
+
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
+
+## Review questions
+
+- What problem does Memory Safety solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

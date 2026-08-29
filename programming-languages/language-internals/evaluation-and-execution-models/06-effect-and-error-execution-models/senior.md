@@ -1,59 +1,11 @@
-# Effect & Error Execution Models — Senior Level
+# Effect & Error Execution Models — Senior
 
-> **Topic:** Effect & Error Execution Models
-> **Focus:** The unwind tables themselves (DWARF CFI, `.eh_frame`, LSDA), Windows two-phase SEH, the real cost of stack traces, why checked exceptions failed, and the first glimpse of the unifying idea: effects, async errors, and exceptions are all *control-flow effects* — and continuations are their substrate.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Effect & Error Execution Models** under failure, load, and change?
 
-## Introduction
-
-> Focus: **What is physically in the binary that lets a runtime unwind a stack it has never seen before?** And **why do exceptions, generators, async/await, and dependency injection all turn out to be the same mechanism wearing different clothes?**
-
-At the middle level we said the compiler emits "side tables" that the unwinder reads. This page opens those tables. On the SysV/Linux/macOS world they're **DWARF Call Frame Information** in the `.eh_frame` section, plus a per-function **Language-Specific Data Area (LSDA)** describing call sites, cleanups, and catch type filters. On Windows, the mechanism is **Structured Exception Handling (SEH)** with its own two-phase model, `.pdata`/`.xdata` sections, and unwind codes. Understanding these answers practical senior questions: why throwing is slow, why `-fno-exceptions` shrinks binaries, why a missing/corrupt `.eh_frame` makes a crash undebuggable, and why "zero-cost" is precise about *which* cost is zero.
-
-This page also confronts two design-level realities a senior owns. First, **the cost of stack traces**: in Java and Python, the dominant cost of an exception is often not the unwind but the *capture* of the trace at construction time, which walks the entire stack. Second, **Java's checked-exception experiment**: a bold attempt to put failure into the type system that most subsequent languages declined to copy — and *why* they declined is a genuinely instructive story about the ergonomics of effect typing.
-
-Finally, this page plants the seed of the big unifying idea. Exceptions are a *non-local control-flow effect*: a computation that, instead of returning, *transfers control elsewhere*. So is a generator's `yield`. So is `await` suspending a coroutine. So is throwing. So is asking a dependency-injection context for a value. The modern realization — made concrete by **algebraic effects** and grounded in **delimited continuations** — is that *all* of these are the same primitive: **"pause this computation, hand its continuation to a handler, let the handler decide what to do."** `senior.md` introduces this lens; `professional.md` builds the full machine.
-
-> 🎓 **Why this matters at this level:** A senior is the person who explains *why* the build flag, *why* the latency spike on the error path, *why* the new language's `try`/effect system looks the way it does. That requires seeing through the surface syntax to the shared machinery: unwinding, continuations, and the handler-dispatch pattern that exceptions, async, and effects all instantiate.
-
----
-
-## Prerequisites
-
-- **Required:** The middle page: two-phase unwinding, landing pads, zero-cost vs `setjmp`/`longjmp`, `?` desugaring, `panic`/`recover`.
-- **Required:** Comfort reading assembly-adjacent concepts: stack pointer, frame pointer, return address, callee-saved registers.
-- **Required:** Familiarity with at least one async model (JS Promises, Rust `Future`, Go goroutines/contexts, Java `CompletableFuture`).
-- **Helpful:** Awareness of what a continuation-passing style (CPS) transform is, even vaguely.
-- **Helpful:** Some exposure to a functional language with monadic error handling (`Either`, `Result`, `IO`).
-
-You do **not** yet need:
-
-- The full operational semantics of effect handlers or a hand-built one-shot continuation runtime (that's `professional.md`).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **DWARF CFI** | Call Frame Information: a bytecode-like table that, for each PC, says how to restore the caller's registers and find the return address — i.e., how to unwind one frame. |
-| **`.eh_frame`** | The ELF section holding DWARF CFI used for exception unwinding (the unwinder's "how to pop a frame" data). |
-| **CFA** | Canonical Frame Address: a stable reference point in a frame from which saved registers are located. |
-| **LSDA** | Language-Specific Data Area: per-function table of call-site ranges, their landing pads, and the type filters a catch matches. |
-| **Personality routine** | Language runtime callback the unwinder invokes per frame; reads the LSDA to decide "handle, clean up, or keep going." |
-| **SEH** | Windows Structured Exception Handling: OS-level two-phase exception mechanism shared by hardware and software exceptions. |
-| **`.pdata` / `.xdata`** | Windows PE sections holding function tables and unwind codes for table-based unwinding (x64). |
-| **Vectored / frame-based handlers** | SEH handler registration kinds; modern x64 SEH is table-based, not the old linked-list `__try` chain of x86. |
-| **Stack trace capture** | Recording the chain of frames at the point an exception is created (Java `fillInStackTrace`, Python traceback). Often the dominant throw cost. |
-| **Checked exception** | (Java) an exception the compiler forces callers to catch or declare in the signature. |
-| **Effect (algebraic)** | An operation a computation can *perform* (raise, ask, yield, await) that suspends it and invokes a handler with its continuation. |
-| **Continuation** | "The rest of the computation" from a given point, reified as a value you can call. |
-| **Delimited continuation** | A continuation bounded by a marker (`prompt`/`reset`), capturing only up to that boundary — composable, unlike full `call/cc`. |
-| **One-shot vs multi-shot** | Whether a captured continuation may be resumed at most once (exceptions, async) or many times (generators-as-streams, backtracking). |
-| **Async error propagation** | How failure travels through futures/promises (rejection) rather than the synchronous call stack. |
-| **Cancellation** | A control-flow effect that asks an in-flight async computation to stop early. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -142,37 +94,6 @@ Step back and look at the family:
 | dependency injection | Suspend, ask the environment for a value, **resume** with the answer. |
 
 Every one is: *pause the current computation, capture "the rest of it" (its continuation), hand control to a handler, and possibly resume the continuation.* The reified "rest of the computation" is a **continuation**. **Algebraic effects** are the language feature that exposes this directly: you declare an *effect* (an operation), and a *handler* up the stack receives the operation **plus the continuation**, and decides whether to resume it (and with what), resume it many times, or not resume it (which is exactly an exception). `professional.md` builds this; here the takeaway is that **exceptions are the special case of effects where you never resume.**
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **DWARF CFI** | The fold-out structural blueprint of each floor: where the support beams (saved registers) are, so demolition (unwinding) can proceed safely floor by floor. |
-| **LSDA** | The per-floor sign listing "fire wardens here handle chemical fires only" and "shut these valves on the way out." |
-| **Personality routine** | The fire marshal who reads each floor's sign to decide whether this floor handles *this* kind of fire. |
-| **SEH first/second pass** | Same evacuation drill, Microsoft's building code: confirm a warden exists, then evacuate floor by floor. |
-| **Stack-trace capture cost** | Pausing the whole evacuation to photograph every floor on the way down — accurate record, but it's what actually slows you down. |
-| **Checked exceptions** | A regulation requiring every doorway to be labeled with which fires it can pass — well-intentioned, but soon every door is plastered with labels nobody reads. |
-| **Async rejection** | A message sent to whoever is *currently* waiting on your result, since the people who originally asked have long left the building. |
-| **Effect handler** | A concierge you can call from any floor: you describe what you need, hand them a "call me back here" card (the continuation), and they decide whether and how to resume you. |
-
----
-
-## Mental Models
-
-### The "Metadata Interpreter" Model
-
-The happy path is plain machine code with *zero* exception scaffolding. Alongside it lives a separate **program** — the CFI + LSDA — that only an *interpreter* (the unwinder + personality routine) ever runs, and only on throw. Throwing is "switch from executing your code to interpreting your unwind metadata." That framing makes both the zero-cost guarantee and the throw expense obvious.
-
-### The "Where Does the Failure Land?" Model
-
-For any failure, ask: *what stack is alive to receive it?* Synchronous throw → the call stack above. Async failure → whatever continuation is awaiting the result (the original stack is gone). Goroutine panic → nothing, unless `recover` is on *that* goroutine's stack. This single question predicts every async error-handling rule, including why unhandled rejections and uncaught goroutine panics are uniquely dangerous.
-
-### The "Resume Card" Model of Effects
-
-Imagine every suspendable operation hands a handler a **resume card** (the continuation). An exception is the card *torn up* (never resumed). `await` is the card *kept and called once* when data arrives (one-shot). A generator/backtracking search is a card the handler may call *many times* (multi-shot). The whole zoo of control features is "what does the handler do with the resume card?"
 
 ---
 
@@ -296,30 +217,6 @@ The `do`-notation/`>>=` short-circuits on the first `Left` — "railway-oriented
 
 ---
 
-## Pros & Cons
-
-| Dimension | Insight |
-|-----------|---------|
-| **DWARF/`.eh_frame` zero-cost** | Pro: no happy-path cost, debuggable backtraces. Con: large read-only tables; corrupt/missing CFI makes crashes unanalyzable; throw is slow. |
-| **`-fno-exceptions`** | Pro: smaller, deterministic, no unwind tables. Con: no `throw`; whole codebase + dependencies must avoid exceptions. |
-| **Stack-trace capture** | Pro: priceless for debugging. Con: dominant throw cost in JVM/Python; tempts unsafe optimizations (traceless throws). |
-| **Checked exceptions** | Pro: failure documented in the type. Con: poor composition with generics/lambdas, version-brittle signatures, encourages swallowing. |
-| **Async rejection model** | Pro: lets failure follow the data, not the stack. Con: unobserved failures vanish; debugging across suspension points loses the original stack. |
-| **Effects/continuations lens** | Pro: one mechanism unifies exceptions/async/generators/DI. Con: powerful but unfamiliar; multi-shot resumption interacts badly with imperative cleanup (see pitfalls). |
-
----
-
-## Use Cases
-
-- **Diagnosing throw-cost regressions:** when an "error path" tanks p99 latency, suspect exceptions used as control flow and stack-trace capture; switch hot paths to error values or traceless exceptions.
-- **Embedded/kernel/game C++:** adopt `-fno-exceptions` and an error-value discipline (`std::expected`, error codes) for size and determinism.
-- **API design across versions:** prefer value-based, convertible error types (`Result`/`error`) over checked exceptions to avoid signature-breakage and enable generic composition.
-- **Async service boundaries:** define exactly where rejections/`Future` failures are observed; guarantee no unhandled rejection and no unrecovered goroutine panic escapes a request.
-- **Building generators/coroutines/async runtimes:** recognize them as continuation capture; design with one-shot semantics unless you explicitly need multi-shot.
-- **Evaluating new languages (Koka, OCaml 5, effect libraries):** assess their effect/handler system as a generalization of the error and async models you already know.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Traceless exceptions for hot, expected throws
@@ -372,25 +269,24 @@ Thread a cancellation token/`Context`/`AbortSignal` explicitly and check it at s
 
 ---
 
-## Summary
+## Apply it
 
-- Unwinding is powered by **read-only metadata**: **DWARF CFI in `.eh_frame`** (how to pop each frame) plus the per-function **LSDA** (which cleanups/catches apply), interpreted by the unwinder and the **personality routine** only when a throw happens — the real meaning of "zero-cost."
-- **Windows SEH** is a parallel two-phase machine unifying hardware and software exceptions; modern x64 SEH is table-based (`.pdata`/`.xdata`), like DWARF, while old x86 SEH used a costly per-`try` linked list.
-- In **Java/Python the dominant throw cost is capturing the stack trace**, not unwinding — which is why traceless/preallocated exceptions exist and why the JVM sometimes elides traces entirely.
-- **Checked exceptions** were effect typing for errors that most languages declined to copy, failing on **composition** (generics/lambdas), **version-brittleness**, and **encouraging swallowing** — a critique that directly shaped Rust's `Result`/`?` and modern effect systems.
-- **Async failures ride a different channel** (promise rejection, `Future` error state) because the original call stack is gone; `await` reattaches the failure to the waiting continuation. **Cancellation** is the same non-local-transfer shape.
-- The unifying insight: exceptions, generators, `await`, and dependency injection are all **"suspend, hand the continuation to a handler, maybe resume."** **Exceptions are the special case where you never resume.** **Algebraic effects + delimited continuations** make this one mechanism explicit — the subject of `professional.md`.
+1. State the system invariant that **Effect & Error Execution Models** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
----
+## Verify your work
 
-## Further Reading
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
 
-- *DWARF Debugging Information Format* — the CFI/`.eh_frame` specification. https://dwarfstd.org/
-- *Itanium C++ ABI: Exception Handling* (LSDA, personality routines). https://itanium-cxx-abi.github.io/cxx-abi/abi-eh.html
-- Nico Brailovsky / Ian Lance Taylor, *"How exception handling works"* / *"Stack unwinding"* blog series — DWARF unwinding walkthroughs.
-- *Microsoft Docs — Structured Exception Handling* and *x64 exception handling* (`.pdata`/`.xdata`). https://learn.microsoft.com/en-us/cpp/cpp/structured-exception-handling-c-cpp
-- *"The exception model"* and `-XX:-OmitStackTraceInFastThrow` — JVM throw-cost and fast-throw optimization notes.
-- Scott Wlaschin, *"Railway Oriented Programming"* — `Result`/`Either` sequencing as a design pattern. https://fsharpforfunandprofit.com/rop/
-- *Anders Hejlsberg on why C# omitted checked exceptions* (interview) — the composition/versioning critique firsthand.
-- Daan Leijen, *"Algebraic Effects for Functional Programming"* (Koka) — the gateway paper to the effects lens. https://www.microsoft.com/en-us/research/publication/algebraic-effects-for-functional-programming/
-- *OCaml 5 Manual — Effect Handlers.* https://ocaml.org/manual/effects.html
+## Review questions
+
+- Which invariant must remain true when Effect & Error Execution Models fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

@@ -1,37 +1,12 @@
-# Stack vs Heap — Junior Level
-> **Topic:** Stack vs Heap
-> **Focus:** What the two memory regions are, how the call stack works, and why where a value lives matters.
+# Stack vs Heap — Junior
 
+<!-- level-focus -->
+At junior level, focus on this question:
+
+> How can I apply **Stack vs Heap** in one small example and prove the result?
+
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
-
-## Introduction
-
-When your program runs, it needs places to put data: the number you just read, the user object you fetched, the temporary string you are building. Two of those places have names you will hear constantly: the **stack** and the **heap**.
-
-They are not different kinds of hardware. Both live in the same RAM. The difference is *how the program organizes and reclaims* that RAM. The stack is a small, fast, automatically-managed scratchpad tied to function calls. The heap is a large, flexible pool you ask for explicitly (or that your language asks for on your behalf) and that outlives any single function.
-
-Understanding which one your data lives in explains a surprising number of real bugs and performance questions: why some allocations are "free," why a program crashes on deep recursion, why a pointer to a local variable is a landmine in C, and why "just make a new object" sometimes shows up in a profiler.
-
-## Prerequisites
-
-- You can read a function in at least one language (Go, C, Java, or Python).
-- You know what a **variable**, a **function call**, and a **return value** are.
-- You have heard the words **pointer** or **reference**, even if fuzzily.
-- You know that RAM is a big array of bytes, each with a numeric **address**.
-
-No assembly knowledge is required. We will introduce the few low-level terms you need as we go.
-
-## Glossary
-
-- **Stack:** A region of memory that grows and shrinks automatically as functions are called and return. Last-in, first-out (LIFO).
-- **Heap:** A region of memory for data whose lifetime is not tied to a single function call. Managed explicitly (C) or by a garbage collector (Go, Java, Python).
-- **Stack frame (activation record):** The slice of the stack belonging to one function call. Holds that call's parameters, local variables, return address, and saved registers.
-- **Stack pointer (SP):** A CPU register that points at the current top of the stack.
-- **Allocation:** Reserving memory to hold a value.
-- **Deallocation / freeing:** Releasing memory so it can be reused.
-- **Lifetime:** The span of time during which a piece of data is valid to use.
-- **Pointer / reference:** A value that holds the address of some other data, rather than the data itself.
-- **Local variable:** A variable declared inside a function, visible only there.
 
 ## Core Concepts
 
@@ -109,20 +84,6 @@ Beginners often think "small = stack, big = heap" or "primitive = stack, object 
 
 Hold on to that. Almost everything else follows from it.
 
-## Real-World Analogies
-
-**The whiteboard vs the filing cabinet.** The stack is a whiteboard next to your desk. When you start a task you write your scratch notes; when you finish, you wipe that section clean and the space is instantly reusable. The heap is a filing cabinet down the hall. You can store a folder there and it stays until someone explicitly throws it away — even after you have left the room. Fast scratch work goes on the whiteboard; anything that must outlive your current task goes in the cabinet.
-
-**A stack of cafeteria trays.** You can only take the top tray and only add to the top. That is LIFO. The most recently added tray is the first one removed — exactly how function frames behave.
-
-**Coat check.** The heap is a coat-check counter. You hand over your coat (data), get a ticket (a pointer), and walk away. The coat persists independently of where you go. You can pass the ticket to a friend. But if you lose the ticket and never reclaim the coat, it sits there forever — that is a **memory leak**.
-
-## Mental Models
-
-- **The stack is a tape measure.** Pull it out (call a function), push it back in (return). The number on the tape is the stack pointer. Nothing is ever "deleted"; the pointer just moves.
-- **A pointer is a home address, not the house.** Passing a pointer is like texting someone an address. Cheap to send. But if the house gets demolished (the data is freed or the frame popped) and you visit the address, you find rubble. That is a **dangling pointer**.
-- **The heap is shared; the stack is private.** Each thread has its *own* stack. The heap is shared across all threads, which is exactly why heap access sometimes needs locks and stack access never does.
-
 ## Code Examples
 
 ### Go — a value that escapes to the heap
@@ -184,23 +145,6 @@ print(nums)            # [1, 2, 3] — perfectly fine
 
 In Python you almost never think about stack vs heap directly: essentially every object lives on the heap, and variable names are just references to it. There is no `&x` footgun here.
 
-## Pros & Cons
-
-**Stack**
-
-- Pros: Extremely fast allocation (move a pointer); automatic cleanup on return; great cache locality; no fragmentation; thread-private, so no locking.
-- Cons: Limited size (often ~1–8 MB per thread); lifetime is tied to scope, so you cannot keep data past the function; deep recursion or huge locals can overflow it.
-
-**Heap**
-
-- Pros: Flexible, arbitrary lifetime; can hold large data; can be shared across functions and threads; size limited only by available memory.
-- Cons: Slower to allocate and free; needs bookkeeping (an allocator or GC); can fragment over time; bugs like leaks, use-after-free, and double-free live here.
-
-## Use Cases
-
-- **Stack:** loop counters, function parameters, small fixed-size structs, temporary values, anything whose life ends when the function returns.
-- **Heap:** objects returned to callers, data structures that grow at runtime (lists, maps, trees), anything shared between threads, anything too large to safely fit in a frame (e.g., a 10 MB buffer).
-
 ## Best Practices
 
 - **Prefer the stack when you can.** It is faster and self-cleaning. Many languages do this automatically; do not fight them by allocating on the heap "just in case."
@@ -216,10 +160,26 @@ In Python you almost never think about stack vs heap directly: essentially every
 - **Memory leak:** heap data that is never freed and never collected because something still (mistakenly) references it, or the pointer was lost. Memory usage grows until the process dies.
 - **"It works on my machine":** dangling-pointer code in C may *appear* to work because the reclaimed memory has not been overwritten yet. That is luck, not correctness.
 
-## Summary
+---
 
-- Both stack and heap live in RAM; the difference is **how memory is organized and reclaimed**.
-- The **stack** holds function call frames (parameters, locals, return address). It is LIFO, grows downward, and allocation is nearly free because it just moves a pointer. Cleanup happens automatically on return.
-- The **heap** holds data with arbitrary lifetime. It is flexible but slower, requires bookkeeping (a manual allocator or a garbage collector), and is where leaks and use-after-free bugs live.
-- The real distinction is **lifetime**: data confined to one call can live on the stack; data that must outlive its creating function must live on the heap.
-- In C you must manage this yourself, and returning a pointer to a local is a classic bug. Managed languages (Go, Java, Python) decide for you and prevent that whole class of mistakes.
+## Apply it
+
+1. Choose one small, known input for **Stack vs Heap**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
+
+## Verify your work
+
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
+
+## Review questions
+
+- What problem does Stack vs Heap solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

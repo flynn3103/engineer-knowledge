@@ -1,15 +1,11 @@
-# Memory Pressure & OOM — Senior Level
-> **Topic:** Memory Pressure & OOM
-> **Focus:** Designing services that degrade gracefully under memory pressure instead of crashing — backpressure, bounded resources, soft limits, and runtime cooperation.
+# Memory Pressure & OOM — Senior
 
----
+<!-- level-focus -->
+At senior level, focus on this question:
 
-## Introduction
+> Which system invariant is affected by **Memory Pressure & OOM** under failure, load, and change?
 
-The middle tier covered the mechanisms the kernel uses under pressure. Senior engineering is about *not being a passive victim of them*. A service that simply runs until the cgroup OOM-kills it has made a design choice — usually unintentionally — to convert memory pressure into the worst possible outcome: an abrupt, uncatchable death with in-flight requests dropped and no chance to shed load or restart cleanly.
-
-The senior goal is a service that, as memory tightens, slows down, sheds the least important work, signals upstream to back off, and stays *up* — rather than one that runs at full throttle into a wall. This requires understanding which of several distinct "out of memory" failures you're actually facing, designing limits as graduated rather than binary, and getting the language runtime to cooperate with the container instead of fighting it.
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -87,26 +83,6 @@ When the working set legitimately exceeds RAM, two escape hatches keep you alive
 
 ---
 
-## Pros & Cons
-
-**Soft-limit-driven degradation**
-- ✅ Converts abrupt kills into observable, manageable slowdowns; preserves in-flight work; keeps the service up.
-- ❌ Adds complexity and tuning; a mis-set soft limit can shed load you didn't need to, hurting throughput for no reason.
-
-**Bounded queues/caches + backpressure**
-- ✅ Removes the most common OOM cause (unbounded growth); makes memory usage predictable and capacity-plannable.
-- ❌ Backpressure propagates latency to clients; rejecting work needs upstream retry/queue handling or you just move the problem.
-
-**Runtime-aware limits (GOMEMLIMIT / MaxRAMPercentage)**
-- ✅ Lets the GC pre-empt the kernel; one image adapts to many container sizes.
-- ❌ Aggressive soft limits burn CPU on GC; wrong headroom math still ends in a cgroup kill from native memory.
-
-**Load shedding / admission control**
-- ✅ Protects the majority of traffic; degrades gracefully under overload.
-- ❌ Choosing *what* to shed is a product decision, not just a technical one; naive shedding can drop high-value requests.
-
----
-
 ## Best Practices
 
 - **Classify the failure before fixing it.** Exit 137 → cgroup kill, look at total RSS/native; `OutOfMemoryError` in logs → runtime heap limit, container had room. Never raise the heap in response to a cgroup kill without checking native memory first.
@@ -129,6 +105,24 @@ When the working set legitimately exceeds RAM, two escape hatches keep you alive
 
 ---
 
-## Summary
+## Apply it
 
-Senior-level memory engineering is the art of not being killed by the kernel. It starts with correctly classifying the failure — managed-heap OOM, native OOM, or cgroup OOM-kill — because the fixes diverge and the intuitive fix (more heap) often worsens a cgroup kill. It requires teaching the runtime the container's true limit with deliberate headroom (`MaxRAMPercentage`, `GOMEMLIMIT`) so the GC pre-empts the kernel. And it demands designing graduated soft limits that trigger graceful degradation — bounded queues and caches, backpressure, load shedding, admission control, circuit breakers, spill-to-disk, and reduced concurrency — so that as memory tightens the service slows and sheds rather than crashes. The recurring failure to recognize is the GC death spiral: a live working set that won't fit, which no GC tuning can fix and which only upstream bounding or shedding resolves. The hard limit is the line you architect never to reach.
+1. State the system invariant that **Memory Pressure & OOM** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
+
+## Verify your work
+
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
+
+## Review questions
+
+- Which invariant must remain true when Memory Pressure & OOM fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

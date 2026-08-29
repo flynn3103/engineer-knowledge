@@ -1,8 +1,11 @@
 # Interop & Polyglot Architectures — Junior
 
-> **What?** *Polyglot* means a single system is built from more than one programming language. *Interop* is the set of techniques that let those languages — and the components written in them — actually talk to each other. A modern product is rarely one language; it's a Python data layer, a Go API, and a TypeScript frontend, all cooperating.
-> **How?** The cheapest, most common way to make languages cooperate is to *not* make them share memory at all — you put each one behind a network boundary and let them exchange messages (usually JSON over HTTP). At that boundary, the language inside each box stops mattering. The cost is real but easy to miss: every language you add is another toolchain your team now owns forever.
+<!-- level-focus -->
+At junior level, focus on this question:
 
+> How can I apply **Interop & Polyglot Architectures** in one small example and prove the result?
+
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## 1. What "polyglot" actually means
@@ -27,7 +30,7 @@ Three general-purpose languages, plus SQL, plus HTML/CSS, in one product. That's
 
 ## 2. Why this happens: right tool for the job
 
-The driving idea is **"the right tool for the job, per component."** Each part of a system has a different shape, and languages have different strengths (you saw this in [`01-language-selection-criteria`](../01-language-selection-criteria/)):
+The driving idea is **"the right tool for the job, per component."** Each part of a system has a different shape, and languages have different strengths (you saw this in [`01-language-selection-criteria`](../01-language-selection-criteria/README.md)):
 
 | The component | The natural language | Why |
 |---|---|---|
@@ -145,17 +148,24 @@ None of these is a disaster. Together they're the **polyglot tax** — a steady 
 
 ---
 
-## 9. What's next
+## Apply it
 
-| Topic | File |
-|---|---|
-| The actual interop *mechanisms* — gRPC, message queues, FFI, shared schemas — and their tradeoffs | [`middle.md`](middle.md) |
-| The deep costs: cross-language debugging, observability, the FFI vs network spectrum, runtime-level polyglot | [`senior.md`](senior.md) |
-| Polyglot as an org decision: governance, platform teams, hiring, WASM | [`professional.md`](professional.md) |
-| Interview questions on interop and polyglot | [`interview.md`](interview.md) |
-| Design exercises: choose boundaries, design a contract, cost a new language | [`tasks.md`](tasks.md) |
-| When to *introduce* a new language at all | [`../05-when-to-introduce-a-new-language/`](../05-when-to-introduce-a-new-language/) |
+1. Choose one small, known input for **Interop & Polyglot Architectures**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
----
+## Verify your work
 
-**Memorize this:** polyglot is normal and often correct — but languages don't cooperate for free. The cheapest way to make them cooperate is to keep them in separate processes talking over the network, where the only shared thing is the message shape. And every language you add is a permanent tax on your team's toolchains, debugging, hiring, and on-call — a tax that's invisible on day one and obvious on day four hundred.
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
+
+## Review questions
+
+- What problem does Interop & Polyglot Architectures solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

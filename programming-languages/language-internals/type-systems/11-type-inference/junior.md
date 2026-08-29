@@ -1,60 +1,11 @@
-# Type Inference — Junior Level
+# Type Inference — Junior
 
-> **Topic:** Type Inference
-> **Focus:** The compiler figuring out the types you didn't write — what `var`, `auto`, `:=`, and `<>` actually do, and where they stop helping.
+<!-- level-focus -->
+At junior level, focus on this question:
 
----
+> How can I apply **Type Inference** in one small example and prove the result?
 
-## Introduction
-
-> Focus: **What does it mean for a compiler to "know" a type you never typed?** And **why does it work for `var x = 5` but fail for an empty list?**
-
-When you write `var name = "Bakhodir";` in Java, or `auto n = 42;` in C++, or `count := 0` in Go, you did not write a type — and yet the program is fully, statically typed. The compiler **inferred** the type: it looked at the value on the right-hand side (`"Bakhodir"` is a `String`, `42` is an `int`, `0` is an `int`) and silently gave the variable that type, exactly as if you had written it out.
-
-**Type inference** is the compiler deducing types you left out. It is *not* dynamic typing. In Python or JavaScript, types are checked at runtime and a variable can hold anything over its life. In an inferred language, the type is decided **at compile time** and is then completely fixed — `count := 0` makes `count` an `int` forever; `count = "hello"` is a compile error. You got the safety of static typing without the keystrokes.
-
-In one sentence: **type inference is the compiler reading the same clues you would read, and filling in the type so you don't have to.**
-
-> 🎓 **Why this matters for a junior:** Modern languages lean on inference everywhere — `var`, `auto`, `:=`, the diamond `<>`. If you treat it as magic, you will be baffled the first time it infers a type you didn't want, or refuses to infer anything and demands an annotation. Understanding the *simple rule* the compiler follows ("look at the value, take its type") turns the magic into something you can predict and steer.
-
-This page covers: what inference is (and isn't), the everyday inference in C++ `auto`, Java `var` and `<>`, C# `var`, Go `:=`, and Rust function bodies, why a `String` literal makes inference easy and an empty container makes it hard, and the single most useful junior habit — knowing *when* the compiler can figure it out and when you have to tell it.
-
----
-
-## Prerequisites
-
-What you should know before reading this:
-
-- **Required:** What a *type* is — `int`, `String`, `bool`, a list, a struct/class.
-- **Required:** The difference between a *declaration* (`int x;`) and an *initialization* (`int x = 5;`).
-- **Required:** Basic experience writing variables and calling functions in at least one statically typed language (Java, C#, C++, Go, Rust, or TypeScript).
-- **Helpful but not required:** A sense that some languages check types at compile time (Java, Go) and some at runtime (Python, JavaScript).
-- **Helpful but not required:** Having seen a confusing compiler error that mentioned a type you never wrote.
-
-You do **not** need to know:
-
-- Hindley-Milner or "Algorithm W" (that's `middle.md` and `senior.md`).
-- Unification, constraints, or the occurs-check (later levels).
-- Generics deeply, or higher-kinded types, or bidirectional checking.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Type inference** | The compiler deducing the type of a value or variable you did not write explicitly. |
-| **Type annotation** | A type you *do* write explicitly: `int x`, `let x: i32`, `name: string`. The opposite of leaving it to inference. |
-| **Static typing** | Types are fixed and checked at compile time. Inference is a feature *of* static typing, not an alternative to it. |
-| **Dynamic typing** | Types are checked at runtime; a variable can hold different types over time (Python, JavaScript). **Not** the same as inference. |
-| **Inferred type** | The type the compiler assigned to something you left blank. |
-| **Initializer** | The expression on the right of `=`. Most local inference reads the initializer to decide the type. |
-| **`var` / `auto` / `:=`** | The keywords/operators that say "infer the type of this local from its initializer" (Java/C#, C++, Go). |
-| **Diamond `<>`** | Java's `new ArrayList<>()` — infer the generic type arguments from the variable's declared type. |
-| **Local inference** | Inference limited to a small scope (one statement, one function body). Requires you to annotate signatures and boundaries. |
-| **Literal** | A value written directly in code: `42`, `"hi"`, `true`, `3.14`. The compiler knows the type of a literal immediately. |
-| **Return type** | The type a function gives back. Some languages infer it; many require you to write it. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -125,36 +76,6 @@ Languages vary on whether a function's *return* type can be inferred:
 - **Java/C#:** no — methods always declare their return type.
 
 The reason mainstream languages *require* return annotations even when they could infer them is **readability and error quality**: a written return type documents the function and localizes errors to that function instead of letting a mistake ripple out to every caller.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Type inference** | A tailor who measures you by eye instead of asking your size. The suit still has an exact size — they just didn't make you say it. |
-| **Annotation** | You telling the tailor "I'm a 40 regular." Sometimes faster, sometimes necessary when they can't see you. |
-| **Inferring from a literal** | Guessing someone's age from a birthday cake with "30" on it. Easy — the clue is right there. |
-| **Empty-list failure** | Being handed an empty gift box and asked what was in it. Nothing to go on. |
-| **Local vs. global inference** | A local cashier knows the price of *this* item; a full audit can deduce the whole store's pricing. Two very different scopes. |
-| **Boundary annotations** | Labels on the *outside* of shipping crates. The contents (the function body) are figured out on arrival, but the crate must be labeled to move between warehouses. |
-| **Wrong inferred type** | The tailor measuring you in a thick coat and cutting the suit too big. The clue was misleading, so the guess was off. |
-
----
-
-## Mental Models
-
-### The "Fill in the Blank" Model
-
-Picture every variable declaration as a fill-in-the-blank sentence: `___ x = 5;`. Inference is the compiler writing `int` in the blank for you. The value is the only thing that determines what goes in the blank. If two different things could go in the blank — or *nothing* could (the empty list) — the compiler can't fill it, and it asks you to.
-
-### The "Annotate the Edges, Infer the Insides" Model
-
-Draw a box around a function. The **walls** of the box — parameters and return type — must be labeled by you in most mainstream languages. The **inside** of the box — local variables — the compiler labels for free. When inference "fails," it's almost always because you left a wall unlabeled or gave the inside nothing to read. This single picture explains 90% of junior inference confusion.
-
-### The "It's Still There, Just Invisible" Model
-
-When you write `var x = 5`, mentally replace it with `int x = 5`. The `int` didn't disappear — it's still in the compiled program, in the IDE tooltip, in the type checker. Inference is *invisible* typing, not *absent* typing. Carry this and you'll never mistake `var` for "dynamic" or "untyped."
 
 ---
 
@@ -280,37 +201,6 @@ The pattern is always the same: **inference failed because you withheld the only
 
 ---
 
-## Pros & Cons
-
-| Aspect | Pros | Cons |
-|--------|------|------|
-| **Verbosity** | Far less typing; no repeating obvious types like `Map<String, List<Integer>> m = new HashMap<String, List<Integer>>()`. | The reader loses an explicit type they sometimes wanted to see. |
-| **Safety** | Identical to writing the type — fully static, fully checked. | None for safety; inferred code is exactly as safe. |
-| **Readability** | Cleaner code when the type is obvious from the value (`var users = repo.findAll();`). | Worse when the type is *not* obvious (`var x = process();` — `x` is what?). |
-| **Refactoring** | Change the initializer's type and the variable follows automatically. | The variable *silently* changes type — sometimes you wanted a compile error instead. |
-| **Learning** | One rule ("read the value") covers the common cases. | The failure modes (empty containers, ambiguous numerics) confuse beginners. |
-| **Tooling** | IDEs show the inferred type on hover; you lose nothing. | Without an IDE (code review, diffs, terminals) the type is invisible. |
-
----
-
-## Use Cases
-
-Local inference (`var`/`auto`/`:=`) is the right call when:
-
-- **The type is obvious from the right-hand side.** `var user = new User();`, `count := len(items)`. Repeating `User`/`int` adds nothing.
-- **The type is long and noisy.** `var iterator = map.entrySet().iterator();` is far kinder than spelling out `Iterator<Map.Entry<String, List<Integer>>>`.
-- **Inside loops over known collections.** `for (auto& item : items)` — the element type is clear from `items`.
-- **Chained/fluent calls where the type is an implementation detail** you don't want to name.
-
-Prefer an explicit annotation when:
-
-- **The type is *not* obvious from the call.** `var result = compute();` — write the type so the reader knows what `result` is.
-- **You're at a boundary** — public method signatures, fields, return types. These are documentation; spell them out.
-- **You want a specific type, not the inferred default.** `var x = 0;` gives `int`; if you wanted `long`, annotate.
-- **Inference fails** (empty containers, ambiguous numeric literals). You have no choice.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Infer when the right-hand side names the type
@@ -385,61 +275,24 @@ fn parse_line(line: &str) -> Option<i32> {   // edges: annotated
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│                  TYPE INFERENCE — JUNIOR                          │
-├──────────────────────────────────────────────────────────────────┤
-│ What it is:  compiler deduces a type you didn't write            │
-│ What it is NOT:  dynamic typing. The type is FIXED, compile-time │
-├──────────────────────────────────────────────────────────────────┤
-│ The simple rule:  look at the value on the right, take its type  │
-│   count := 0        → int                                        │
-│   name  := "Ada"    → string                                     │
-│   pi    := 3.14     → float64 / double                           │
-├──────────────────────────────────────────────────────────────────┤
-│ Local-inference keywords                                         │
-│   Go      x := value                                             │
-│   Java    var x = value;     +  diamond  new ArrayList<>()       │
-│   C#      var x = value;                                         │
-│   C++     auto x = value;                                        │
-│   Rust    let x = value;     (also infers from later usage)      │
-├──────────────────────────────────────────────────────────────────┤
-│ Rule of thumb:  annotate the EDGES, infer the INSIDES            │
-│   edges  = params, return types, public fields → write them      │
-│   insides = local variables → let the compiler infer             │
-├──────────────────────────────────────────────────────────────────┤
-│ When inference FAILS, you withheld a clue:                       │
-│   empty container        → annotate element type                 │
-│   no initializer         → add one (or write the type)           │
-│   ambiguous numeric      → use 0L / 0i64 or annotate             │
-├──────────────────────────────────────────────────────────────────┤
-│ Style:  use var/auto when the type is OBVIOUS from the line;     │
-│         write the type when it is NOT.                           │
-└──────────────────────────────────────────────────────────────────┘
-```
+1. Choose one small, known input for **Type Inference**.
+2. Predict the output or observable behavior.
+3. Run the smallest example or probe that exercises the concept.
+4. Change one input to trigger a failure or boundary case.
+5. Explain the evidence using the guide's vocabulary.
 
----
+## Verify your work
 
-## Summary
+- Record the exact input, command or code path, and output.
+- Repeat the probe and confirm the result is consistent.
+- Show one expected success and one expected failure.
+- Resolve any difference between the prediction and the evidence.
 
-- **Type inference is the compiler deducing the types you left out** — and it is a feature *of* static typing, not a move toward dynamic typing. `var x = 5` is exactly `int x = 5` with the word `int` hidden.
-- For everyday locals, the compiler follows a rule you can follow too: **read the initializer, take its type.** `0` → `int`, `"x"` → `string`, `3.14` → `float64`.
-- Inference needs **clues**. A literal is a great clue; an **empty container** is no clue at all, which is why `new ArrayList<>()` and `Vec::new()` can fail and ask you to annotate.
-- The mainstream tools — Go `:=`, Java `var` and the diamond `<>`, C# `var`, C++ `auto`, Rust `let` — all do **local** inference: they work inside a scope but require you to **annotate the edges** (function parameters and return types).
-- Rust goes a little further by inferring from **later usage**, not just the initializer — a hint of the more powerful engines covered in the next levels.
-- The pro is less noise; the con is hidden types. The discipline: **infer when the type is obvious from the line, annotate when it is not, and annotate every public boundary.**
-- When inference fails, the message ("type annotations needed") means *you* withheld information. Find the empty container or ambiguous literal and supply it.
+## Review questions
 
----
-
-## Further Reading
-
-- *The Java Language Specification* — section on Local Variable Type Inference (`var`, JEP 286). https://openjdk.org/jeps/286
-- *Style Guidelines for Local Variable Type Inference in Java* — Stuart Marks, the official `var` style guide. https://openjdk.org/projects/amber/guides/lvti-style-guide
-- *The Rust Programming Language* — Chapter 3, "Data Types," and the inference notes. https://doc.rust-lang.org/book/
-- *cppreference: `auto` specifier* — https://en.cppreference.com/w/cpp/language/auto
-- *Effective Go* — the section on short variable declarations (`:=`). https://go.dev/doc/effective_go
-- *C# language reference: Implicitly typed local variables (`var`)* — Microsoft Docs.
-- *A Tour of Go* — the "Variables" and "Short variable declarations" pages. https://go.dev/tour/
+- What problem does Type Inference solve in the example?
+- Which input changes the observed result, and why?
+- What is the smallest useful success check?
+- Which beginner mistake would your evidence catch?

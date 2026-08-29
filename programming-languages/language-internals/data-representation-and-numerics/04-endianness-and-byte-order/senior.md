@@ -1,56 +1,11 @@
-# Endianness & Byte Order — Senior Level
+# Endianness & Byte Order — Senior
 
-> **Topic:** Endianness & Byte Order
-> **Focus:** The hardware and compiler reality — `bswap`/`REV`/`MOVBE`, SIMD bulk swapping, compile-time detection, bi-endian architectures — and designing serialization that is endianness-robust by construction.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Endianness & Byte Order** under failure, load, and change?
 
-## Introduction
-
-> Focus: **What the CPU and compiler actually do when you swap bytes — and how to make endianness a non-issue at the API boundary so callers never get it wrong.**
-
-By now you can read a multi-byte value out of a buffer without invoking undefined behavior. The senior concern shifts from *correctness in the small* to **performance, portability, and API design in the large**:
-
-- How does a byte swap compile? When is it free (folded into a load via `MOVBE`), when is it one `BSWAP`/`REV`, and when does it become a SIMD `PSHUFB` over a whole array?
-- How do you detect endianness at **compile time** so the conversion is zero-cost on the native-order host and a single instruction on the other?
-- What does a **bi-endian** CPU (ARM, PowerPC, MIPS) actually switch, and what doesn't switch (the cache, the I/O)?
-- How do you design a serialization format and its accessor API so that a future engineer *cannot* introduce an endianness bug?
-
-The throughline: **endianness should be invisible at every boundary except one — the serialization layer — and there it should be explicit, total, and tested.** A senior engineer's job is to build that layer so well that application code never touches a byte order again.
-
-> 🎓 **Why this matters at the senior level:** You will own the serialization codec, the wire protocol, or the on-disk format that a hundred other engineers depend on. If your accessors are correct and your format pins byte order unambiguously, endianness bugs disappear from the whole codebase. If they don't, you'll be debugging "the number is wrong on the ARM build" tickets forever. This is leverage.
-
----
-
-## Prerequisites
-
-- **Required:** Middle tier — the three traps, `memcpy`/shift-and-OR idioms, `htonl` vs `bswap`, float-via-integer.
-- **Required:** Comfort reading basic x86/ARM assembly mnemonics (you don't have to write it).
-- **Required:** Understanding of compiler optimization levels and intrinsics.
-- **Helpful:** Familiarity with SIMD concepts (vector registers, shuffles).
-- **Helpful:** Having designed or maintained a binary protocol or file format.
-
-You do **not** need: cache-coherence-protocol depth or large-distributed-format governance — that's `professional.md`.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **`BSWAP`** | x86 instruction reversing the bytes of a 32/64-bit register in one op. |
-| **`MOVBE`** | x86 instruction that loads/stores while byte-swapping — a *free* swap fused with memory access. |
-| **`REV` / `REV16`** | ARM instructions to reverse bytes of a 32-bit word / within each halfword. |
-| **`PSHUFB` / `vpshufb`** | x86 SSSE3/AVX byte-shuffle; reorders 16/32 bytes per instruction — used for bulk array swaps. |
-| **`__builtin_bswap32/64`** | GCC/Clang intrinsic → `BSWAP`/`REV`. |
-| **`std::byteswap`** | C++23 `<bit>` standard byte swap. |
-| **`std::endian`** | C++20 `<bit>` enum: `std::endian::native`, `little`, `big` — compile-time endianness query. |
-| **`__BYTE_ORDER__`** | GCC/Clang predefined macro: `__ORDER_LITTLE_ENDIAN__` or `__ORDER_BIG_ENDIAN__`. |
-| **Bi-endian** | A CPU that can run in either byte order, selectable by a mode bit (ARM, PowerPC, MIPS, SPARC v9). |
-| **`SETEND` / `E`-bit** | ARM mechanism to switch data endianness at runtime (`SETEND BE`/`LE`). |
-| **Native byte order** | The order the executing CPU/ABI uses for memory scalars. |
-| **Constexpr serialization** | Computing serialized bytes at compile time — possible because shift-and-OR is constant-foldable. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -153,36 +108,6 @@ UTF-8 is byte-order-free — its great virtue. But two traps persist at the seni
 
 - **UTF-16 surrogate pairs** are each a 16-bit code unit, so each unit is endian-sensitive; a wrong byte order corrupts the whole stream, not just one character.
 - **A "UTF-8 BOM" (`EF BB BF`) is not a byte-order mark** — UTF-8 has no order — it's just a signature some tools emit. It can break parsers (shebangs, JSON) that don't expect leading bytes. Strip it deliberately.
-
----
-
-## Real-World Analogies
-
-**The customs checkpoint.** Your serialization layer is the only customs checkpoint at the border. Everything entering (deserialize) or leaving (serialize) the country passes through it and gets its paperwork (byte order) normalized. Inside the country (your process), nobody checks passports. Build one excellent checkpoint and the interior is carefree — that's the whole design philosophy.
-
-**The free escalator (`MOVBE`).** A plain swap is taking the stairs (an extra `bswap`). `MOVBE` is an escalator that moves you *and* reorients you in the same motion — you arrive byte-swapped having spent no extra effort, because the reordering rode on the trip you were already taking.
-
-**The assembly line shuffle (SIMD).** Swapping one integer is reversing four cards by hand. `PSHUFB` is a machine that reverses four stacks of cards simultaneously in one pull of a lever — and AVX2 pulls the lever on eight stacks. Bulk work demands the machine, not the hand.
-
----
-
-## Mental Models
-
-### Model 1: "Convert at the boundary; the boundary is one well-built layer"
-
-Endianness conversion belongs in exactly one architectural layer — the serializer/deserializer. Everything inside is native; everything outside is the format's pinned order. Your job is to make that layer airtight so the rest of the system never touches byte order.
-
-### Model 2: "Compile-time, not runtime"
-
-A fixed-target build knows its endianness at compile time. Encode conversions so the compiler folds the no-op branch away (`std::endian::native`, `__BYTE_ORDER__`). Runtime detection is a code smell unless you genuinely target multiple orders from one binary.
-
-### Model 3: "The swap is (almost) free; correctness is the only cost"
-
-On modern hardware a swap is one instruction, often fused into the load (`MOVBE`) or vectorized (`PSHUFB`). So there's no performance argument for skipping conversion. The only thing skipping it buys you is bugs. Always convert.
-
-### Model 4: "Make wrong code impossible, not just unwritten"
-
-A senior format design doesn't *document* "use big-endian"; it *prevents* anything else — private buffer, sanctioned accessors, fixed-width schema types, a magic number that fails loudly on a wrong-endian read. Design the bug out.
 
 ---
 
@@ -294,40 +219,6 @@ The byte order lives *only* in the marshal/unmarshal pair; the struct fields are
 
 ---
 
-## Pros & Cons
-
-### Compile-time conversion (`std::endian`, `__BYTE_ORDER__`)
-
-| Pros | Cons |
-|------|------|
-| Zero runtime cost; dead branch eliminated. | Requires knowing the target at build time (fine for almost all targets). |
-| Composes into `constexpr` serialization. | Macro path is non-portable across exotic compilers (use C++20 `std::endian`). |
-
-### SIMD bulk swap
-
-| Pros | Cons |
-|------|------|
-| 8–16× faster for large arrays. | Architecture-specific intrinsics; needs a scalar fallback. |
-| Often auto-vectorized at `-O3` for simple loops. | Overkill for small/occasional swaps. |
-
-### Bi-endian runtime mode (`SETEND`)
-
-| Pros | Cons |
-|------|------|
-| Lets one core consume foreign-order data natively. | Brittle, AArch64 removed it, hard to reason about — prefer explicit `REV`/conversion. |
-
----
-
-## Use Cases
-
-- **High-throughput codecs** — image/video decoders, columnar/analytics engines (Parquet, Arrow), packet capture — where bulk SIMD swapping matters.
-- **Cross-platform binary formats** — you ship one format consumed by LE and (occasionally) BE machines.
-- **Embedded/networking firmware** — may run on big-endian or bi-endian cores; conversions must be explicit, not mode-dependent.
-- **Protocol stacks** — `MOVBE`/`REV` make per-field conversion negligible; the API design is what matters.
-- **Memory-mapped on-disk formats** — where you want the stored order to match host for zero-copy reads (a deliberate trade-off; see professional tier).
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: One codec layer, native everywhere else
@@ -375,40 +266,24 @@ Put a known magic at offset 0 of every format. A wrong-endian or wrong-format re
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```text
-HOW A SWAP COMPILES (-O2):
-  __builtin_bswap32 / std::byteswap / portable shift-mask  -> x86 BSWAP, ARM REV
-  be32toh(load) on Haswell+        -> single MOVBE (free swap fused with load)
-  bulk array swap                  -> PSHUFB (SSSE3, 4x) / vpshufb (AVX2, 8x)
+1. State the system invariant that **Endianness & Byte Order** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
-COMPILE-TIME DETECTION:
-  C:   #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-  C++: if constexpr (std::endian::native == std::endian::little)   // <bit>, C++20
-  -> dead branch eliminated: identity on native host, one swap on the other
+## Verify your work
 
-BI-ENDIAN (ARM/PPC/MIPS/SPARCv9): mode bit flips DATA order, not instructions.
-  ARM SETEND (AArch32 only); AArch64 uses REV. Most run LE today (ppc64le, ARM64 LE).
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
 
-WHY BE IS NETWORK ORDER: 1970s-80s machines (68k, SPARC, PPC, mainframes) were BE.
+## Review questions
 
-ROBUST FORMAT DESIGN:
-  1 pin order in spec   2 private buffer + sanctioned read_be/write_be accessors
-  3 fixed-width schema types  4 magic number at offset 0  5 golden-byte CI tests
-
-FLOATS: serialize via integer bit pattern (bit_cast/memcpy), then swap the integer.
-```
-
----
-
-## Summary
-
-- A byte swap is **one instruction** (`BSWAP`/`REV`), often **free** when fused into a load (`MOVBE`), and **8–16× batched** via SIMD (`PSHUFB`/`vpshufb`) for large arrays — so there is no performance excuse to skip conversion.
-- **Detect endianness at compile time** (`std::endian::native`, `__BYTE_ORDER__`) so conversion folds to identity-or-single-swap with no runtime branch.
-- **Bi-endian** CPUs (ARM, PPC, MIPS, SPARC v9) switch *data* byte order via a mode bit, not the instruction stream; almost all run little-endian today. Don't rely on the mode — convert explicitly.
-- **Network byte order is big-endian** for historical reasons (the dominant 1970s–80s machines were BE); x86's later dominance is why LE-host/BE-wire friction is permanent.
-- Design formats to make wrong code **impossible**: pin one order in the spec, hide the raw buffer behind sanctioned accessors, use fixed-width schema types, add a magic number, and test against golden bytes — ideally on a big-endian path.
-- Confine all byte-order logic to **one serialization layer**; everything inside is native.
-
-The next tier (`professional.md`) covers the production failures: GUID/UUID byte-order confusion across systems, GPT vs MBR partition layout, network-protocol corruption postmortems, mmap'd zero-copy formats as a deliberate endianness lock, and governing byte order across a fleet of heterogeneous services.
+- Which invariant must remain true when Endianness & Byte Order fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

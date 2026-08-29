@@ -1,60 +1,11 @@
-# What Metaprogramming Is — Middle Level
+# What Metaprogramming Is — Middle
 
-> **Topic:** What Metaprogramming Is
-> **Focus:** A working taxonomy of the whole field — the techniques, the stages they run at, and the language spectrum from "no metaprogramming on purpose" (Go) to "code is data" (Lisp). How to classify any piece of magic you encounter.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **What Metaprogramming Is** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-> Focus: **How do all the metaprogramming techniques fit together?** And **why do different languages place metaprogramming at wildly different points on a spectrum?**
-
-At the junior level, metaprogramming was "code about code," organized by one axis: *when does the meta level run?* That axis is still the spine of everything here. Now we build the full **taxonomy** — a map you can drop any unfamiliar feature onto — and we look at *why* languages disagree so violently about how much metaprogramming to allow.
-
-The disagreement is real and intentional. **Go** ships with essentially two metaprogramming features (`go generate` for build-time codegen and the `reflect` package for runtime introspection) and *deliberately no macros*, because its designers prized readability and tooling over expressive power. **Rust** pushes nearly all of its metaprogramming to *compile time* via a sophisticated macro system, so the costs are paid by the compiler, not by the running program. **Python** is the opposite extreme: almost everything is mutable and inspectable at runtime — classes are objects, you can rewrite methods on the fly, metaclasses control how classes are built, and `eval`/`exec` run strings as code. **Lisp** is a category of its own: code *is* data, so metaprogramming is not a bolted-on feature but the native idiom. **C++** does compile-time computation through templates and `constexpr`. **Java** splits the difference: annotation processors and reflection at runtime, with a strong type system underneath. **C** has only the textual preprocessor.
-
-Understanding *why* a language made its choice — what it was optimizing for — is more valuable than memorizing each API. This page gives you the taxonomy and the spectrum so that the next time you read "this framework uses reflection" or "this crate is a proc-macro," you immediately know the stage, the cost, the failure mode, and roughly how to debug it.
-
-> 🧭 **Why this matters at the middle level:** You are now reading and modifying frameworks, not just using them. You will encounter annotation processors, derive macros, reflection-heavy startup code, and generated stubs. The taxonomy turns "I don't know what this is" into "this is reflective, runtime, introspective — so it's slow but flexible, and I debug it by inspecting objects at startup."
-
----
-
-## Prerequisites
-
-- **Required:** Comfort with the junior-level idea that metaprogramming is "code about code," split by *when the meta level runs*.
-- **Required:** You've used at least one framework that "does magic" (a web framework, an ORM, a test runner, a serializer).
-- **Required:** A rough mental model of the build pipeline: source → parse → (type-check / compile) → executable → run.
-- **Helpful:** You've written a Python decorator, a Java annotation, or used `#[derive]` in Rust.
-- **Helpful:** You know what an AST (abstract syntax tree) is, even loosely.
-
-You do **not** need:
-
-- To implement a macro system or a reflection runtime — those are later topics.
-- Type theory or compiler internals beyond "there's a parsing/compiling phase before running."
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Meta level / object level** | The code doing the operating (meta) vs. the code being operated on (object/base). |
-| **Stage** | The phase at which meta-code runs: read-time, compile-time, link-time, load-time, or runtime. |
-| **Multi-stage programming** | Explicitly structuring a program so some computation runs at an earlier stage to produce code for a later stage. |
-| **Reflection** | Runtime introspection (and sometimes intercession) of a program's own structure. |
-| **Macro** | A compile-time construct expanded into other code. *Textual* (C preprocessor) or *syntactic/hygienic* (Lisp, Rust). |
-| **Annotation processor (APT)** | A build-time plugin (Java) that reads annotations and generates code or checks. |
-| **Metaclass** | The class of a class; controls class creation (Python `type`, Ruby singleton classes). |
-| **Dynamic proxy** | A runtime-generated stand-in object that intercepts method calls. |
-| **Template metaprogramming (TMP)** | C++ technique of computing with types and values at compile time via templates. |
-| **`constexpr` / `comptime`** | Language features (C++ `constexpr`, Zig `comptime`) that run ordinary-looking code at compile time. |
-| **Quoting / quasiquotation** | Treating code as a data value; quasiquotation lets you splice computed pieces into quoted code. |
-| **Hygiene** | A macro property guaranteeing introduced names can't accidentally capture or be captured by the user's names. |
-| **Homoiconicity** | Code and data share one representation (Lisp). |
-| **Monkeypatching** | Replacing or adding methods/functions on existing types at runtime. |
-| **Generated code** | Source emitted by a tool; usually marked "DO NOT EDIT" and regenerable. |
-| **Introspection / intercession** | Observe vs. modify the program's structure at runtime. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -138,59 +89,6 @@ A practical rule: introspection scales to large teams; intercession needs strict
 ### 7. Self-Modifying Code: Mostly History
 
 Classic **self-modifying code** literally rewrote its own machine instructions in memory — to save space, to patch jumps, to implement early JITs. On modern hardware this is hostile to instruction caches, branch predictors, and security hardening (`W^X`: memory is writable *or* executable, not both). Today, "self-modifying" in practice means *runtime metaprogramming* (a program reshaping its own objects/classes), and genuine instruction rewriting is confined to JIT compilers and a few specialized runtimes that take great care. Know the term and its history; don't reach for the literal version.
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **The taxonomy** | A field guide: birds (runtime/reflective), reptiles (compile-time/generative) — same kingdom, different families. |
-| **Stages** | A construction project: blueprints (compile-time) vs. on-site decisions when the truck arrives (runtime). Earlier decisions are cheaper to make but know less. |
-| **The language spectrum** | Cars on a dial from "automatic, no clutch, can't stall" (Go) to "manual race car, total control, easy to wreck" (Lisp/Python). |
-| **Quoting** | Putting a sentence in quotation marks: you're *mentioning* the words, not *using* them. |
-| **Quasiquotation** | A mostly-fixed template with `____` blanks you fill in. |
-| **Introspection** | Reading the spec sheet of a machine. |
-| **Intercession** | Opening the machine and swapping parts while it runs. |
-| **Multi-stage programming** | A factory that first builds a custom jig, then uses the jig to stamp parts fast. |
-| **Go's restraint** | A kitchen that bans clever shortcuts so any cook can read any recipe. |
-| **Python's openness** | A kitchen where you can redefine "boil" mid-service — fast for experts, chaos for newcomers. |
-
----
-
-## Mental Models
-
-### The "Drop It on the Map" Model
-
-Keep two axes in your head and you can place any feature:
-
-```text
-                  GENERATIVE (makes code)
-                          ▲
-         macros, codegen, │  proxies (gen at runtime),
-         templates,       │  derive at runtime
-         #[derive]        │
-   COMPILE ◄──────────────┼──────────────► RUNTIME
-         constexpr,       │  reflection,
-         APT              │  metaclasses,
-                          │  monkeypatching, eval
-                          ▼
-                  REFLECTIVE (inspects/alters existing)
-```
-
-A derive macro sits top-left (generative, compile-time). Reflection sits bottom-right (reflective, runtime). Dynamic proxies sit top-right (generate a stand-in, at runtime). Once placed, the feature's cost and risk are predictable.
-
-### The "Earliness Dial" Model
-
-Imagine a dial from "do it as early as possible" to "do it as late as possible." Turning it earlier buys speed and safety but blinds you to runtime reality. Turning it later buys adaptability but costs performance and moves failures into production. Every language picked a default position on this dial, and every individual feature in your codebase sits somewhere on it. Designing well = choosing the *earliest* stage that still has the information you need.
-
-### The "Who Reads the Label?" Model
-
-Annotations are labels; they do nothing alone. For any `@Annotation`, find *the reader*: an annotation processor (build-time), a reflection scan at startup (runtime), or a proxy factory. The annotation tells you *what is meant*; the reader tells you *when and how it acts*. Confusing the label with the behavior is the most common middle-level mistake.
-
-### The "Language's Bargain" Model
-
-Whenever a language's metaprogramming surprises you, ask *what was it optimizing for?* Go's lack of macros is not an oversight — it bought predictable, greppable, tool-friendly code. Python's mutability is not sloppiness — it bought framework expressiveness. Reading a language's metaprogramming choices as deliberate bargains makes them learnable instead of arbitrary.
 
 ---
 
@@ -332,34 +230,6 @@ The backquote builds a code *template*; the commas splice in the actual argument
 
 ---
 
-## Pros & Cons
-
-| Aspect | Pros | Cons |
-|--------|------|------|
-| **Build-time techniques** (macros, codegen, templates, APT) | Zero runtime cost; errors caught early; output is real, shippable code. | Slower builds; opaque compiler errors pointing at generated code; can balloon compile times (C++ TMP). |
-| **Runtime techniques** (reflection, metaclasses, proxies, eval) | Adapt to real data/config/plugins; enable extremely flexible frameworks. | Slow per-call; failures hit production; defeat IDE navigation. |
-| **Generative** | Removes boilerplate wholesale. | Generated code is still code you ship and must understand. |
-| **Reflective** | Write-once logic that works across many types. | Loses static guarantees; type errors surface at runtime. |
-| **Minimal-MP languages** (Go) | Predictable, greppable, tool-friendly; easy onboarding. | More boilerplate; some patterns are verbose. |
-| **Maximal-MP languages** (Python, Lisp) | Spectacular expressiveness and DSLs. | "Spooky action," steep ramp for newcomers, harder static analysis. |
-
----
-
-## Use Cases
-
-Classify the job, then pick the stage:
-
-- **Schema → glue code** (gRPC, ORM, OpenAPI): build-time **code generation**. Visible, debuggable, zero runtime cost.
-- **"Do X to every type" without writing per-type code** (serialize, compare, hash): **derive macros** (Rust), **annotation processors** (Java), or runtime **reflection** (Go, Python) depending on the language's bargain.
-- **Cross-cutting concerns** (logging, transactions, auth, caching) applied uniformly: **annotations + dynamic proxies** (Java/Spring) or **decorators** (Python).
-- **Framework that adapts to user-defined types at runtime** (DI containers, test runners, validators): runtime **reflection / introspection**.
-- **Domain-specific languages** embedded in the host language: **macros** (Lisp, Rust) or runtime object tricks (Python).
-- **Performance-critical compile-time computation** (lookup tables, dimension-checked math): **templates / `constexpr` / `comptime`**.
-
-Avoid metaprogramming when explicit code is read more than written and a function or generated-but-checked-in file would be clearer.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Place every feature on the 2×2 map
@@ -410,125 +280,24 @@ Reflection at startup/config time is fine. Reflection on every request is a perf
 
 ---
 
-## Cheat Sheet
+## Apply it
 
-```text
-┌──────────────────────────────────────────────────────────────────────┐
-│             METAPROGRAMMING TAXONOMY (middle)                          │
-├──────────────────────────────────────────────────────────────────────┤
-│ TWO AXES:                                                              │
-│   stage:  compile/build-time  ──────────►  runtime                    │
-│   kind:   generative (makes code)   /   reflective (inspects/alters)   │
-├──────────────────────────────────────────────────────────────────────┤
-│ TECHNIQUE                    STAGE          KIND                       │
-│  reflection/introspection    runtime        reflective                │
-│  intercession/monkeypatch    runtime        reflective                │
-│  decorators                  runtime        both                      │
-│  metaclasses                 runtime(class) both                      │
-│  dynamic proxies             runtime        both                      │
-│  eval / exec                 runtime        generative                │
-│  code generation             build          generative                │
-│  textual macros (C pp)       pre-compile    generative                │
-│  syntactic/hygienic macros   compile        generative                │
-│  templates / TMP             compile        generative                │
-│  constexpr / comptime        compile        generative                │
-├──────────────────────────────────────────────────────────────────────┤
-│ LANGUAGE SPECTRUM (minimal → maximal):                                 │
-│  Go(reflect+go generate, NO macros) · C(text pp) · Java(refl+APT+proxy)│
-│  · C++(templates+constexpr) · Rust(hygienic macros, compile-time)      │
-│  · Python(everything at runtime) · Lisp(code IS data)                  │
-├──────────────────────────────────────────────────────────────────────┤
-│ RULES: prefer earliest stage that has the info you need;               │
-│        annotation ≠ behavior (find the reader);                        │
-│        cache runtime reflection; check in generated code.              │
-└──────────────────────────────────────────────────────────────────────┘
-```
+1. Find a real component where **What Metaprogramming Is** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
----
+## Verify your work
 
-## Summary
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
 
-- The whole field reduces to a **taxonomy** placeable on two axes: **stage** (compile/build-time → runtime) and **kind** (generative → reflective). Drop any feature on that map and its cost, risk, and debug strategy follow.
-- **Annotations are data, not behavior.** Power comes from the *reader* — an annotation processor (build) or a reflection scan (runtime). The retention/stage of an annotation declares which.
-- Stages are finer than "compile vs run": read-time → macro-expand → type-check → compile → link → load → runtime. Metaprogramming can hook any link, governed by the **earliness/knowledge trade-off**.
-- The **language spectrum** — Go (deliberately minimal: `reflect` + `go generate`, no macros), C (textual preprocessor), Java (reflection + APT + proxies), C++ (templates + `constexpr`), Rust (compile-time hygienic macros), Python (maximal runtime flexibility), Lisp (code is data) — reflects deliberate bargains, not accidents. Read each as "what was it optimizing for?"
-- **Quoting/quasiquotation** is the bridge from code to manipulable data; every macro system has it.
-- **Introspection** (observe) scales; **intercession** (modify at runtime) is powerful but needs discipline.
-- **Multi-stage programming** is the explicit, type-checked version of "do work earlier to make later work fast"; **self-modifying code** in the literal instruction-rewriting sense is mostly history, confined to JITs.
-- Design rule: **choose the earliest stage that still has the information you need.** It's the cheapest and safest place to do the work.
+## Review questions
 
----
-
-## Diagrams & Visual Aids
-
-### The 2×2 Map
-
-```text
-              GENERATIVE (produces code)
-                       ▲
-  macros, codegen,     │     dynamic proxies,
-  templates, TMP,      │     decorators (gen wrapper),
-  #[derive], constexpr │     derive-at-runtime
-                       │
-   COMPILE/BUILD ◄─────┼─────► RUNTIME
-                       │
-  annotation processor │     reflection / introspection,
-  (consume @ + emit)   │     metaclasses, monkeypatch,
-                       │     eval / exec
-                       ▼
-              REFLECTIVE (inspects/alters existing)
-```
-
-### The Stage Chain
-
-```text
- read-time → macro-expand → type-check → compile → link → load → runtime
-   C pp         Lisp/Rust      C++ TMP                      class    reflection
-                macros         constexpr                    loaders  eval, proxies,
-                                                                     metaclasses
- ◄── earlier: cheaper at runtime, safer, knows LESS about the real world
-     later: costs runtime, fails in prod, knows MORE (real data/config) ──►
-```
-
-### The Language Spectrum
-
-```text
- minimal ◄──────────────────────────────────────────────► maximal
-   Go         C          Java         C++        Rust      Python      Lisp
-   │          │          │            │           │          │          │
- reflect    text       reflection   templates   hygienic   runtime    code IS
- + go       pre-       + APT        + constexpr  macros     everything data
- generate   processor  + proxies    (compile)    (compile)  (runtime)  (native)
- NO macros  (tokens)
-   ▲                                                                    ▲
-   readability & tooling                                  expressiveness & DSLs
-   were the priority                                      were the priority
-```
-
-### Annotation → Reader (two possible readers)
-
-```text
-            @Annotation on your code
-                   │
-        ┌──────────┴───────────┐
-        ▼                      ▼
-  build-time reader       runtime reader
-  (annotation processor)  (reflection scan)
-        │                      │
-        ▼                      ▼
-   generates code          acts at startup
-   (gone by runtime)       / per call
-```
-
-### Stage vs Knowledge Trade-off
-
-```text
-  EARLY stage                              LATE stage
-  ───────────                              ──────────
-  + zero runtime cost                      + adapts to real data/config/plugins
-  + errors caught before ship              − pays cost on every call
-  − blind to runtime reality               − fails in production
-        │                                        │
-        └─────── choose the EARLIEST stage ──────┘
-                 that still has the info you need
-```
+- Which boundary is most affected by What Metaprogramming Is?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

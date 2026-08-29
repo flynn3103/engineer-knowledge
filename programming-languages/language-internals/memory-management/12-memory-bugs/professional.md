@@ -1,39 +1,11 @@
-# Memory Bugs — Professional Level
+# Memory Bugs — Professional
 
-> **Topic:** Memory Bugs
-> **Focus:** Production incident debugging under pressure — war stories, the discipline of bisecting a leak in a live system, capturing artifacts safely from constrained containers, and building leak resistance into CI and observability.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Memory Bugs** with measurable outcomes and limited coordination?
 
-## Introduction
-
-Everything before this tier assumed you could reproduce the bug, capture an artifact, and read it at leisure. Production rarely grants that. The professional-level reality is: the leak only manifests under real traffic, the container is memory-limited so a heap dump might kill it, you have one good capture before the next restart, the OOM killer leaves no stack trace, and the dashboard shows a slope measured in hours. The skill is **debugging a memory bug in a live system without making it worse**, under a clock, with partial information.
-
-This tier is about *operational* memory debugging: a repeatable incident playbook, the judgment to choose the safe capture method, the technique of **bisecting a leak** across deploys and feature flags, and — crucially — building the system so future leaks announce themselves in CI and on dashboards instead of at 3 a.m. The war stories here are the three you'll meet repeatedly: the slow reachable-object leak, the fragmentation-driven RSS creep, and the goroutine/thread leak.
-
----
-
-## Prerequisites
-
-- Senior-level model: the four-cause taxonomy (retention / fragmentation / off-heap / churn), ownership and lifetime design, dominator analysis.
-- Operational fluency: reading dashboards, GC logs, container limits, and orchestrator (Kubernetes/Nomad) OOM behavior.
-- The ability to safely manipulate a live service: scale replicas, drain traffic, capture artifacts, toggle flags.
-
----
-
-## Glossary
-
-| Term | Meaning |
-|---|---|
-| **OOM killer** | The Linux kernel mechanism that kills a process when the system/cgroup exceeds its memory limit. Leaves a kernel log line, not an app stack trace. |
-| **cgroup limit** | The hard memory cap a container runs under; hitting it triggers the OOM killer regardless of runtime health. |
-| **Working set** | The memory actively used over a window; orchestrators often evict/kill based on this, not just RSS. |
-| **Leak bisection** | Narrowing a leak's introduction to a specific deploy, commit, or feature flag by comparing memory slopes across versions/configs. |
-| **Heap-growth assertion** | A test that fails if memory after N iterations exceeds a baseline — a leak caught in CI. |
-| **Canary** | A small fraction of traffic routed to a new version to observe behavior (including memory slope) before full rollout. |
-| **`-XX:+HeapDumpOnOutOfMemoryError`** | JVM flag to auto-capture a heap dump at the moment of OOM — the artifact you wish you'd had. |
-| **Burn rate** | How fast you're consuming a budget; here, MB/hour of memory growth, which sets your time-to-OOM. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## The Incident Playbook
@@ -53,56 +25,6 @@ When the page fires for "memory climbing / pod OOM-killed," run this sequence:
 6. **Mitigate now, fix properly later.** Immediate mitigations: scheduled restart / rolling recycle to cap growth, raise limit, disable the offending flag, bound the offending cache via config. These stop the bleeding. The real fix (break the reference, copy the slice, cancel the goroutine) ships after.
 
 7. **Write it up and add a guard.** Every memory incident should leave behind a heap-growth test, a dashboard panel, or an alert that would have caught it earlier. A leak that recurs is a process failure, not a code failure.
-
----
-
-## War Stories
-
-### War story 1 — The classic slow leak (the unbounded cache)
-
-**Symptom:** A JSON API runs clean for ~7 hours, then pods get OOM-killed in a rolling wave during peak. No app errors, no stack trace — just kernel OOM lines. Restarts reset the clock.
-
-**Investigation:** The memory dashboard shows a textbook rising post-GC floor: every minor GC reclaims slightly less, the baseline creeps up ~120 MB/hour. That's retention. We drained one replica, captured a heap dump to a mounted volume (the live pods were too close to the cgroup limit to dump safely), and opened it in MAT. The Leak Suspects report immediately flagged one `ConcurrentHashMap` with a retained size of 1.4 GB. Path-to-GC-root: a `static` field on a `MetricsRegistry`. The map was keyed by *full request URL including query string* — effectively unbounded cardinality. Every unique URL added an entry that never expired.
-
-**Fix:** Bounded the map to an LRU with a 50k cap and normalized the key to the route template (`/users/{id}`) instead of the raw URL. **Mitigation while the fix shipped:** a 6-hourly rolling restart kept pods under the limit. **Guard added:** a heap-growth integration test that fires 100k distinct request paths and asserts heap growth stays under a threshold.
-
-**Lesson:** The bug wasn't "a cache" — it was *unbounded key cardinality*. The most dangerous leaks are caches that look bounded until you realize the key space isn't.
-
-### War story 2 — Fragmentation-driven RSS creep (the clean heap dump)
-
-**Symptom:** A long-running JVM data service slowly climbed from 4 GB to 11 GB RSS over a week, then got OOM-killed. We heap-dumped it — and the *live heap was a flat 3.5 GB.* The dump was clean. Hours wasted re-reading it.
-
-**Investigation:** The RSS-vs-live 2×2 was screaming: heap flat, RSS rising → *not a reachable-object leak.* We enabled Native Memory Tracking and ran `pmap`. The gap wasn't off-heap allocations either — `jcmd VM.native_memory` showed the heap region itself *committed* far more than it *used.* It was **fragmentation plus the collector not returning committed memory to the OS.** The workload allocated a mix of small and very large objects; the large-object space fragmented, and the collector held committed pages it couldn't compact.
-
-**Fix:** Switched to a collector configuration that compacts and proactively uncommits idle memory (and tuned the large-object handling). RSS stabilized around the live set.
-
-**Lesson:** A clean heap dump is *evidence*, not failure. If the live set is flat and RSS climbs, the heap analyzer is the wrong tool *by construction*. Trust the 2×2 and pivot to native/fragmentation analysis instead of re-staring at the dump.
-
-### War story 3 — The goroutine leak (the invisible accumulation)
-
-**Symptom:** A Go API gateway's memory crept up steadily under load. Heap profile (`inuse_space`) showed nothing dramatic — no single huge holder. Yet RSS climbed and eventually OOM'd.
-
-**Investigation:** The tell was a metric we'd wired in early: `runtime.NumGoroutine()`. It climbed in perfect lockstep with memory, into the hundreds of thousands. We hit `/debug/pprof/goroutine?debug=2` and saw tens of thousands of goroutines all parked at the same line: a `select` reading from a channel that an upstream timeout path never closed. Each inbound request that timed out spawned a goroutine that blocked *forever* waiting on a response that would never come, each pinning its request context and buffers.
-
-**Fix:** Added `context` cancellation and a `select { case <-ch: case <-ctx.Done(): }` so the goroutine exits when the request is cancelled. Goroutine count flattened; memory followed.
-
-**Lesson:** Goroutine/thread leaks hide from heap profilers because the retained memory is spread thinly across thousands of small stacks and contexts. **Goroutine/thread count is a first-class leak SLI** — without that metric, this leak is nearly invisible.
-
----
-
-## Mental Models
-
-### The clock model
-
-Under an active incident, every decision is governed by *time-to-OOM = headroom / burn-rate*. A 50 MB/hour leak with 4 GB headroom gives you 80 hours — investigate live, calmly. A 2 GB/hour leak with 500 MB headroom gives you 15 minutes — drain a replica and capture *now*, mitigate, investigate after. Reading the slope first prevents both panic and complacency.
-
-### Evidence-before-restart
-
-The default ops instinct — "just restart it" — destroys the one heap dump that would solve the case in five minutes. The professional reflex is *capture, then restart.* Build the system so a crash auto-captures (`HeapDumpOnOutOfMemoryError`, core dumps, retained pprof) — because the OOM that wakes you will not wait for you to attach a profiler.
-
-### Bisection over inspection
-
-When an artifact doesn't immediately name the cause, *don't read harder — narrow harder.* Memory slope is a measurable function of version and config. Bisect across deploys (when did the slope start?) and across flags (does the slope follow the toggle on a canary?). This converts an open-ended object-graph hunt into a binary search over your release timeline.
 
 ---
 
@@ -170,31 +92,6 @@ git log --oneline v1.41..v1.42 -- '**/cache*' '**/registry*' '**/*listener*'
 
 ---
 
-## Pros & Cons
-
-**Scheduled restart / pod recycling as mitigation**
-- Pro: instantly caps growth; buys time; trivial to deploy.
-- Con: masks the real bug; raises restart noise; hides slow leaks for months if treated as a fix. Use as a tourniquet, never a cure.
-
-**Always-on production profilers (continuous profiling)**
-- Pro: the artifact already exists when the incident hits; no scramble to attach tools.
-- Con: overhead and storage cost; must be sampled cheaply enough to run safely under load.
-
-**Auto-heap-dump on OOM**
-- Pro: captures the exact moment of failure — the most valuable artifact, for free.
-- Con: a multi-GB dump write can slow shutdown and needs durable, mounted storage to survive the pod's death.
-
----
-
-## Use Cases
-
-- **On-call triage of an OOM-killed pod** with no app stack trace → playbook steps 1–4: stabilize, read slope, classify, capture from a drained replica.
-- **A slope that appeared "sometime last sprint"** → bisect across deploys and flags rather than open-ended graph hunting.
-- **A clean heap dump on a climbing-RSS service** → pivot to native/fragmentation analysis; don't re-read the dump.
-- **Recurring memory incidents** → invest in heap-growth CI tests, goroutine-count SLIs, and dashboard deploy markers so the *next* one is caught pre-production.
-
----
-
 ## Coding Patterns
 
 - **Auto-capture-on-failure:** wire `HeapDumpOnOutOfMemoryError` / core dumps / retained pprof so a crash yields evidence without human intervention.
@@ -229,10 +126,24 @@ git log --oneline v1.41..v1.42 -- '**/cache*' '**/registry*' '**/*listener*'
 
 ---
 
-## Summary
+## Apply it
 
-- Production memory debugging is **operational**: the leak only shows under real traffic, the container is constrained, the OOM killer leaves no app trace, and you're on a clock. The playbook is **stabilize-without-losing-evidence → read the slope → classify → capture safely → bisect → mitigate → guard.**
-- The three recurring war stories — **the unbounded-cache slow leak, the fragmentation-driven clean-dump RSS creep, and the invisible goroutine/thread leak** — teach the same meta-lessons: caches fail on *key cardinality*, a *clean dump is evidence not failure*, and *goroutine/thread count is a first-class leak SLI.*
-- **Capture before you restart**, and set the safety-net flags (`HeapDumpOnOutOfMemoryError`, GC logs, NMT, pprof) *before* the incident — you can't add them mid-OOM.
-- **Bisect across deploys and feature flags** when an artifact is ambiguous; memory slope is a measurable function of version and config.
-- Treat restarts/limits/flag-toggles as **tourniquets, not cures**, and leave every incident with a **heap-growth CI test, a leak SLI, or an alert** so the system catches the next leak before the pager does.
+1. Define the user or business outcome that **Memory Bugs** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
+
+## Verify your work
+
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
+
+## Review questions
+
+- Which measurable outcome justifies investing in Memory Bugs?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

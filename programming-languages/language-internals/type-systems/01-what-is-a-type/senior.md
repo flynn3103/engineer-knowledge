@@ -1,66 +1,11 @@
-# What Is a Type — Senior Level
+# What Is a Type — Senior
 
-> **Topic:** What Is a Type
-> **Focus:** The formal lenses on "type" — types-as-sets (and where it breaks), the Curry–Howard correspondence (types as propositions, programs as proofs), types as interfaces/capabilities — and why "untyped" really means "uni-typed."
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **What Is a Type** under failure, load, and change?
 
-## Introduction
-
-> Focus: **What is a type, formally?** Not "a set of values plus operations" as a slogan, but as the object that several rigorous theories each capture from a different angle — and why no single lens is the whole picture.
-
-The pragmatic definition — *a set of values together with the operations valid on them* — is the right starting point and survives a lot of pressure. But a senior engineer should know **where it leaks**, **what the alternative formalizations buy you**, and **why "a type is just a set" is both the most intuitive and the most misleading thing you can say.**
-
-This page presents four lenses, each illuminating something the others hide:
-
-1. **Types as sets.** Intuitive, the basis of subtyping-as-subset and union/intersection types — but it breaks on recursive types, function types, and the "set of all sets" paradox.
-2. **Types as propositions, programs as proofs** — the **Curry–Howard correspondence**. A type is a *logical proposition*; a value of that type is a *proof* of it. This is not a metaphor; it is a precise structural isomorphism, and it underlies proof assistants, dependent types, and a deep view of what a well-typed program *means*.
-3. **Types as interfaces/capabilities.** A type is the *set of operations you may perform* — it describes what you can *do*, not what something *is*. This is the view behind interfaces, type classes, traits, and structural typing.
-4. **"Untyped" as uni-typed.** A so-called untyped language isn't free of types; it has exactly *one* type (the universal type of "values"), with every operation defending itself at run time.
-
-The throughline: **a type is whatever a particular theory needs it to be to make "well-typed programs don't go wrong" provable.** Different theories make different trade-offs, and a senior chooses the lens that fits the problem.
-
-> 🎓 **Why this matters at this level:** The lens you adopt changes the systems you can design and the bugs you can eliminate. Sets give you union/intersection types and subtyping. Curry–Howard gives you "make illegal states unrepresentable" taken to its logical extreme — types that encode invariants a checker can *prove*. The interface lens gives you decoupling and polymorphism. Knowing all of them lets you reach for the right one rather than forcing every problem into "set of values."
-
----
-
-## Prerequisites
-
-- **Required:** The middle-level framework — static vs dynamic type, type checking as proof vs test, inference, erasure, soundness ("well-typed programs don't go wrong").
-- **Required:** Comfort with generics/parametric polymorphism, subtyping, and at least one of: ML/Haskell-style sum types, Rust traits, or Java/TS interfaces.
-- **Required:** Basic logic (implication, conjunction, disjunction, quantifiers) at the level of "I can read `A ∧ B → C`."
-- **Helpful but not required:** Having seen `Either`/`Result`, `Option`/`Maybe`, and pattern matching.
-- **Helpful but not required:** Awareness that some languages (Idris, Agda, Coq/Lean) let types depend on values.
-
-You do **not** need:
-
-- A formal proof-theory background; Curry–Howard is presented operationally, with the slogan made concrete, not via sequent calculus.
-- Category theory.
-- The professional-level material on representation, monomorphization, and runtime type representation.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Types-as-sets** | Viewing a type as the set of its values; subtyping as subset, union/intersection as set operations. |
-| **Curry–Howard correspondence** | The isomorphism: types ≅ propositions, programs ≅ proofs, evaluation ≅ proof simplification. |
-| **Proposition** | A logical statement that may be true or false; under Curry–Howard, a type. |
-| **Inhabited type** | A type that has at least one value; corresponds to a *provable* proposition. |
-| **Uninhabited type** | A type with no values (e.g. `Void`, `Never`); corresponds to `False`. |
-| **Sum type** | A "this OR that" type (tagged union); corresponds to logical OR. |
-| **Product type** | A "this AND that" type (struct/tuple); corresponds to logical AND. |
-| **Function type `A → B`** | "Given an `A`, produces a `B`"; corresponds to implication `A ⇒ B`. |
-| **Interface / capability view** | A type as the *set of operations* permitted, not the set of values. |
-| **Structural typing** | Type compatibility by shape/operations rather than name. |
-| **Nominal typing** | Type compatibility by declared name/identity. |
-| **Uni-typed** | Having exactly one type; the precise sense in which "untyped" languages are typed. |
-| **Recursive type** | A type defined in terms of itself (`List = Nil | Cons(T, List)`). |
-| **Variance** | How subtyping of components relates to subtyping of containers (covariant/contravariant). |
-| **Dependent type** | A type that depends on a *value* (`Vec<n>` for length `n`). |
-| **Type former / connective** | A constructor that builds types from types (`→`, `×`, `+`, `∀`). |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -149,42 +94,6 @@ No single lens is "the truth." A type is the object that:
 - and exists to make **soundness** provable.
 
 The pragmatic "set of values + operations" is the set lens and the interface lens fused. Curry–Howard explains *why* well-typed programs are meaningful (they're proofs). The uni-typed observation explains what "no types" really costs. A senior reaches for whichever lens makes the current design decision clearest — unions and subtyping (sets), invariants and evidence (Curry–Howard), decoupling and polymorphism (interfaces).
-
----
-
-## Real-World Analogies
-
-| Concept | Real-world thing |
-|---------|------------------|
-| **Type as set** | A guest list: a type is exactly the set of people allowed in. Subtype = a subset of the list (VIPs ⊆ guests). |
-| **Where sets break (recursive)** | A definition like "a committee is a person or a pair of committees" — circular; you can't just enumerate it. |
-| **Set of all sets paradox** | A directory that must list every directory including itself — and a directory of "directories not listing themselves" can't consistently exist. |
-| **Curry–Howard: type as proposition** | A *contract clause* ("if you deliver A and B, I owe you C"). A signed, fulfilled contract (a value) is *proof* the clause was honored. |
-| **Value as proof** | A *receipt*. Possessing a valid receipt is evidence the transaction (the proposition) actually happened. |
-| **Uninhabited type (Void)** | A receipt for a transaction that can never occur — none can exist, so holding one would be absurd. |
-| **Type as interface/capability** | A *driver's license*. It doesn't say who you are inside; it certifies a capability ("permitted to drive"). |
-| **Structural typing** | Hiring by skills demonstrated, not by job title on the résumé — "can you do the work?" not "what were you called?" |
-| **Uni-typed / "untyped"** | A warehouse where every box is labeled only "STUFF," and a worker must open and inspect each box at use-time to know what's inside. |
-
----
-
-## Mental Models
-
-### The "Evidence" Model (Curry–Howard)
-
-Stop reading `x: T` as "x is in the set T" and start reading it as "**x is evidence that T holds.**" A `User` value is evidence a user exists; a `Sorted<List>` value is evidence the list is sorted; a `Proof<A=B>` value is evidence two things are equal. Designing types becomes designing *what you must prove to construct a value* — and the constructor becomes the proof. This single reframing is the most powerful tool a senior gets from this topic.
-
-### The "Four Questions" Model
-
-For any type, you can ask four different questions, each a lens: *(1) Which values are in it?* (set) *(2) What proposition does it assert?* (Curry–Howard) *(3) What can I do with it?* (interface) *(4) How many static types does my language have — and is this one of many, or the only one?* (uni-typed). Different design problems are clarified by different questions. Train yourself to notice which question you're actually asking.
-
-### The "Inhabitation = Provability" Model
-
-A type is **inhabited** (has a value) iff its corresponding proposition is **provable**. `() ` (unit / `True`) is trivially inhabited. `Void` / `Never` (`False`) has no inhabitants — and the only way to "produce" one is via code that can never actually run (`absurd`, `unreachable!`, `match` on an empty type). When you find yourself writing a function `(A) -> Never`, you're writing a proof of `¬A` — a claim that `A` leads to contradiction. The compiler verifying it is the compiler checking your proof.
-
-### The "Set Intuition, Domain-Theory Reality" Model
-
-Keep the set picture for subtyping and unions, but flag it as a *lossy approximation*. The moment you write a recursive type, a function type, or a type-of-types, switch models: types are *least fixed points* of operators on a lattice (domain theory), not naive sets. Holding both — set intuition for the easy 90%, domain-theory awareness for the hard 10% — is what separates "I learned types-as-sets once" from understanding.
 
 ---
 
@@ -312,26 +221,6 @@ Harper's point made concrete: this is a statically typed program over a single u
 
 ---
 
-## Pros & Cons
-
-| Lens | What it buys you | Where it misleads |
-|------|------------------|-------------------|
-| **Types-as-sets** | Clean account of subtyping (subset), unions, intersections, top/bottom types. | Breaks on function types, recursive types, type-of-types (Russell). Not a sound foundation. |
-| **Curry–Howard** | Types-as-evidence; "make illegal states unrepresentable" as *proof*; foundation of dependent types and proof assistants. | The full correspondence requires totality; mainstream languages with `null`/exceptions/loops are "inconsistent logics." |
-| **Interface/capability** | Decoupling, polymorphism, structural typing, dependency inversion. | Says nothing about values/representation; can permit structurally-compatible-but-semantically-wrong matches. |
-| **Uni-typed view** | Dissolves the static/dynamic war; explains the runtime cost of "untyped." | A reframing, not a tool you code with directly; can feel like sophistry until it clicks. |
-
----
-
-## Use Cases
-
-- **Reach for the set lens** when designing union/intersection types, modeling subtype hierarchies, or reasoning about `top`/`bottom`/exhaustiveness.
-- **Reach for Curry–Howard** when you want a type to *carry a guarantee* — non-emptiness, sortedness, validated input, bounded indices — and when evaluating proof-assistant or dependently typed approaches (smart contracts, crypto, safety-critical kernels).
-- **Reach for the interface lens** when decoupling modules, designing plugin systems, writing generic algorithms over capabilities, or choosing between nominal and structural typing.
-- **Reach for the uni-typed framing** when explaining to a team *why* a dynamic language's flexibility isn't free, or when designing a `Dynamic`/`Any` interop layer inside a static language.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1: Encode invariants as constructible-only-when-valid types
@@ -384,76 +273,24 @@ Use **nominal** typing when identity/intent matters (a `Meters` must not be conf
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. State subtyping in set terms. Why is `S <: T` "the values of S are a subset of T's," and how does Liskov substitution follow?
-2. Give three concrete places "a type is just a set" breaks, and say what goes wrong in each.
-3. Under Curry–Howard, what proposition does the function type `A → B` correspond to? What about the product `(A, B)` and the sum `Either A B`?
-4. Why is `Void`/`Never` the type corresponding to `False`? What does a function of type `A → Void` prove?
-5. Explain "make illegal states unrepresentable" as an instance of Curry–Howard. What is the proof, and what is the theorem?
-6. In what precise sense is an "untyped" language uni-typed? What does it pay, and when, in place of compile-time checking?
-7. Why does a language with non-termination correspond to an *inconsistent* logic, and what does that mean for "the type proves the invariant"?
-8. Contrast the set lens and the interface lens on the *same* type `Reader`. What does each say, and why are they dual?
+1. State the system invariant that **What Is a Type** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
----
+## Verify your work
 
-## Cheat Sheet
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
 
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│                   FOUR LENSES ON "WHAT IS A TYPE"               │
-├──────────────────────────────────────────────────────────────────┤
-│ 1. TYPES AS SETS                                                 │
-│    type = set of its values                                      │
-│    subtype = subset (S<:T ⟺ S ⊆ T) → Liskov                     │
-│    union = ∪,  intersection = ∩,  Never = ∅,  Any = universe     │
-│    BREAKS ON: function types, recursive types, Type:Type (Russell)│
-├──────────────────────────────────────────────────────────────────┤
-│ 2. CURRY–HOWARD: types ≅ propositions, programs ≅ proofs         │
-│    A∧B = (A,B) product     A∨B = Either A B sum                  │
-│    A⇒B = A→B function      True = ()        False = Void/Never   │
-│    ¬A  = A→Void            modus ponens = function application    │
-│    inhabited type ⟺ provable proposition                         │
-│    "make illegal states unrepresentable" = construction-as-proof  │
-│    (needs TOTALITY; null/loops/exceptions ⇒ inconsistent logic)  │
-├──────────────────────────────────────────────────────────────────┤
-│ 3. TYPES AS INTERFACES / CAPABILITIES                            │
-│    type = the SET OF OPERATIONS you may perform                  │
-│    interfaces / traits / type classes / structural typing        │
-│    "what can I DO with it" not "what IS it"  (dual of set lens)  │
-├──────────────────────────────────────────────────────────────────┤
-│ 4. "UNTYPED" = UNI-TYPED                                         │
-│    one universal type; every op does a runtime TAG CHECK         │
-│    dynamic lang = static lang w/ a single recursive type +       │
-│                   tag-checking projections (Harper)              │
-├──────────────────────────────────────────────────────────────────┤
-│ pragmatic def "values + operations" = lens 1 (values) ∧ lens 3   │
-│   (operations).  Curry–Howard explains WHY well-typed = meaningful│
-└──────────────────────────────────────────────────────────────────┘
-```
+## Review questions
 
----
-
-## Summary
-
-- The pragmatic "set of values + operations" is the right starting point but is really **two lenses fused** (values = the set lens, operations = the interface lens), and it omits the deeper logical meaning.
-- **Types-as-sets** elegantly explains subtyping (subset), unions, intersections, and top/bottom types — but **breaks** on function types (cardinality), recursive types (need fixed points / domain theory), and a type-of-all-types (**Russell's paradox**; hence universe hierarchies). Great intuition, unsound foundation.
-- The **Curry–Howard correspondence** is a precise isomorphism: **types are propositions, values are proofs.** Products are AND, sums are OR, functions are implication, `Void`/`Never` is `False`, `A → Void` is `¬A`, and *constructing a value is proving a theorem*. This is the formal heart of "make illegal states unrepresentable."
-- The **interface/capability lens** defines a type by *what you can do* with it (operations), powering interfaces, traits, type classes, and structural typing — the dual of the set lens.
-- **"Untyped" really means uni-typed:** one universal type with a runtime tag check at every operation. A dynamic language is a static language over a single recursive type with tag-checking projections.
-- No lens is the whole truth. A senior **chooses the lens** that clarifies the problem: sets for subtyping/unions, Curry–Howard for invariants-as-evidence, interfaces for decoupling, uni-typed for understanding the cost of dynamism.
-- The Curry–Howard "proof" guarantees hold only in a **total, sound** fragment; `null`, exceptions, non-termination, and `unsafe` make a language's logic inconsistent — so "the type proves it" is exactly as strong as the language's soundness.
-
----
-
-## Further Reading
-
-- *Types and Programming Languages* — Benjamin C. Pierce. The bridge from pragmatic to formal; subtyping, recursive types, and references.
-- *Software Foundations* (Pierce et al.) — https://softwarefoundations.cis.upenn.edu/ — learn Curry–Howard by doing, in Coq.
-- "Propositions as Types" — Philip Wadler. The single best accessible essay on Curry–Howard; also a recorded talk. https://homepages.inf.ed.ac.uk/wadler/papers/propositions-as-types/propositions-as-types.pdf
-- "Dynamic Languages are Static Languages" — Robert Harper. The uni-typed argument, stated sharply. https://existentialtype.wordpress.com/2011/03/19/dynamic-languages-are-static-languages/
-- *Practical Foundations for Programming Languages* — Robert Harper. Rigorous, modern, covers the uni-typed view formally.
-- *Type Theory and Formal Proof* — Nederpelt & Geuvers. Curry–Howard and dependent types from the logic side.
-- *The Little Typer* — Friedman & Christiansen. A gentle, Socratic introduction to dependent types and types-as-evidence.
-- "Designing with Types" series — Scott Wlaschin. The engineering face of Curry–Howard for everyday code. https://fsharpforfunandprofit.com/series/designing-with-types/
-- Russell's paradox and universe hierarchies — see the Agda/Idris/Lean documentation on `Type : Type` and stratification.
+- Which invariant must remain true when What Is a Type fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?

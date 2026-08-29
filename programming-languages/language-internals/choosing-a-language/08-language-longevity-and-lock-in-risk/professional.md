@@ -1,8 +1,11 @@
 # Language Longevity & Lock-In Risk — Professional
 
-> **What?** Longevity and lock-in as an *organizational risk-management* problem: making a defensible decade-long technology bet, betting on ecosystems rather than individual languages, managing vendor-controlled-language risk at portfolio scale, building exit optionality into the architecture, navigating the legacy end-game when a bet finally ages out, and — the part that decides whether any of this happens — communicating longevity risk to leadership in their language.
-> **How?** Stop thinking "which language" and start thinking "which *bet*, hedged how, governed by whom, communicated to whom." Treat language longevity like any other long-horizon corporate risk: name it, quantify its cost, decide deliberately how much to hedge, and write the decision down so the org can be held to it across the years it will actually play out.
+<!-- level-focus -->
+At professional level, focus on this question:
 
+> How should teams adopt and operate **Language Longevity & Lock-In Risk** with measurable outcomes and limited coordination?
+
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## 1. A defensible decade-long bet
@@ -28,7 +31,7 @@ The single most leverage-rich professional move: **hedge at the ecosystem level.
 | **JavaScript / browser** | JS, TypeScript, anything compiling to JS/WASM | The browser is the most durable runtime there is; the language layer is swappable |
 | **WASM** (emerging) | Rust, Go, C/C++, many more | A portable compilation target that decouples language from deployment platform |
 
-The strategic insight: **a bet on the JVM is far safer than a bet on any one JVM language.** When a team frets that "Scala adoption is declining," the org-level answer is reassuring — the JVM investment (libraries, ops tooling, monitoring, the hiring pool) is preserved, and the migration is *within the ecosystem* (the cheapest kind, per [`06-migrating-between-languages`](../06-migrating-between-languages/)). The professional structures bets so that the *replaceable* unit (the language) is small and the *durable* unit (the ecosystem) is large.
+The strategic insight: **a bet on the JVM is far safer than a bet on any one JVM language.** When a team frets that "Scala adoption is declining," the org-level answer is reassuring — the JVM investment (libraries, ops tooling, monitoring, the hiring pool) is preserved, and the migration is *within the ecosystem* (the cheapest kind, per [`06-migrating-between-languages`](../06-migrating-between-languages/README.md)). The professional structures bets so that the *replaceable* unit (the language) is small and the *durable* unit (the ecosystem) is large.
 
 ---
 
@@ -106,7 +109,7 @@ The professional's final synthesis — the org's *total* lock-in is the entangle
 
 The first two were dissected in [`middle.md`](middle.md) and [`senior.md`](senior.md). The third — **skills lock-in** — is the one orgs forget and it's often the stickiest. A 200-person engineering org that has spent a decade hiring, training, and promoting around one language has its *careers, interview pipelines, internal libraries, and tacit knowledge* fused to that language. Even if the code were free to migrate, the *organization* isn't: retraining 200 people and rebuilding the hiring pipeline is a multi-year cultural project, not a technical one.
 
-This is why the org-level bet must be made with the whole product in view (and why this topic is the sibling of [`07-total-cost-of-ownership-and-team-skills`](../07-total-cost-of-ownership-and-team-skills/)): you are committing not just code but *people and a hiring strategy* to a multi-year future. The strategic value of a widely-adopted language compounds here too — a deep, durable talent pool means the *skills* layer of your lock-in stays liquid, which keeps every other layer's exit cost lower.
+This is why the org-level bet must be made with the whole product in view (and why this topic is the sibling of [`07-total-cost-of-ownership-and-team-skills`](../07-total-cost-of-ownership-and-team-skills/README.md)): you are committing not just code but *people and a hiring strategy* to a multi-year future. The strategic value of a widely-adopted language compounds here too — a deep, durable talent pool means the *skills* layer of your lock-in stays liquid, which keeps every other layer's exit cost lower.
 
 ---
 
@@ -136,15 +139,24 @@ This is why the org-level bet must be made with the whole product in view (and w
 
 ---
 
-## 10. What's next
+## Apply it
 
-| Topic | File |
-|---|---|
-| Build org-level scorecards, lock-in maps, escape-hatch designs | [`tasks.md`](tasks.md) |
-| Staff-level interview framing of longevity and lock-in | [`interview.md`](interview.md) |
-| The cost side this bet commits you to | [`07-total-cost-of-ownership-and-team-skills`](../07-total-cost-of-ownership-and-team-skills/) |
-| When a new language *is* worth the longevity risk | [`05-when-to-introduce-a-new-language`](../05-when-to-introduce-a-new-language/) |
+1. Define the user or business outcome that **Language Longevity & Lock-In Risk** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
----
+## Verify your work
 
-**Memorize this:** a language choice is a defensible decade-long *bet*, best hedged at the *ecosystem* level so the replaceable unit stays small. Manage vendor risk by naming it and preferring languages de-risked by broad external adoption; build *bounded, deliberate* exit optionality into core systems; plan the legacy end-game *before* the talent pool collapses; and pitch all of it to leadership as dollars, months, and risk — with "boring, widely-adopted" framed as the de-risking strategy it is. Total lock-in is language × platform × *skills* — and the skills layer is the one orgs forget.
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
+
+## Review questions
+
+- Which measurable outcome justifies investing in Language Longevity & Lock-In Risk?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

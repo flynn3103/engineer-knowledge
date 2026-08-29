@@ -1,51 +1,11 @@
-# Dependent & Refinement Types — Professional Level
+# Dependent & Refinement Types — Professional
 
-> **Topic:** Dependent & Refinement Types
-> **Focus:** When verification actually pays — the economics of proof, the gradient from everyday types to full proofs, building and maintaining verified systems in production, and where mainstream languages are heading.
+<!-- level-focus -->
+At professional level, focus on this question:
 
----
+> How should teams adopt and operate **Dependent & Refinement Types** with measurable outcomes and limited coordination?
 
-## Introduction
-
-> Focus: **Verification is a tool with a price tag. This tier is about reading the price tag correctly — when the math works out, how to ship and maintain proofs, and how the ideas reach the 99% of teams who'll never write Agda.**
-
-By now you understand the machinery: Pi/Sigma, SMT discharge vs. interactive proof, totality, the TCB. The professional question is different and harder: **given a real system with a budget and a deadline, where on the spectrum from "ordinary types" to "full machine-checked proof" should you sit — and why do almost all teams correctly sit near the cheap end?**
-
-The honest answer is that full dependent-type verification is *expensive* — measured in person-years for kernels and compilers — and that cost is justified only when a bug's expected cost is extreme: a verified C compiler underpinning aerospace toolchains, a crypto library shipping in a billion browsers, a microkernel running a fighter jet's mission computer. For a CRUD backend, the same effort buys far more reliability spent on tests, types-you-already-have, fuzzing, and observability. **The skill is calibration**, not enthusiasm: knowing the gradient, pricing each rung, and picking the rung that fits the blast radius.
-
-At the same time, the *ideas* are democratizing. You don't need Coq to "make illegal states unrepresentable"; you can do a weak version with TypeScript branded types, Rust const generics and the type-state pattern, or a sliver of refinement via newtypes and smart constructors. Liquid Haskell can be dropped onto an existing Haskell module to catch a bounds bug without rewriting the world. Dafny can verify one gnarly algorithm without your whole service becoming a proof. The professional move is to **harvest the cheap 80% of the benefit** — encode invariants in ordinary types, refine at boundaries, reach for a verifier on the one component where it pays — rather than chase the expensive 100%.
-
-> 🎓 **Why this matters at the professional level:** Your job is allocation of scarce engineering effort against risk. Verification is one line item among many (tests, fuzzing, types, reviews, runtime checks, observability). Knowing its *unit cost* and *unit benefit* — and how both vary with the system — is what lets you make the call credibly when a stakeholder asks "should we formally verify this?" The defensible answer is usually "no, here's why," and occasionally "yes, here's exactly which part and what it'll cost."
-
----
-
-## Prerequisites
-
-- **Required:** Senior tier — Curry–Howard, totality, TCB, the automation spectrum.
-- **Required:** Experience making engineering trade-offs under budget and risk.
-- **Helpful:** Exposure to a verified or refinement-typed codebase (Liquid Haskell, Dafny, F\*) even at tutorial scale.
-- **Helpful:** Familiarity with how mainstream type systems already encode invariants (sum types, newtypes, Rust ownership, TS literal/template types).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Assurance level** | How strong a correctness guarantee a system needs (tests → fuzzing → refinement → full proof). |
-| **Blast radius** | The scope of damage a single defect can cause; drives how much assurance is warranted. |
-| **Verification gradient** | The continuum from ordinary types to refinement types to full machine-checked proofs. |
-| **Proof burden** | Human effort (person-time, expertise) to produce and maintain proofs. |
-| **Proof maintenance** | Cost of keeping proofs valid as code/specs change; proofs are brittle under refactoring. |
-| **Specification gap** | The risk that a (proved-correct) implementation meets a *wrong* spec. |
-| **Branded / nominal type** | A mainstream trick (TS, newtypes) to make a value's invariant part of its identity. |
-| **Type-state** | Encoding an object's protocol state in its type so illegal transitions don't compile (Rust). |
-| **Const generics** | Rust's value-level type parameters (`[T; N]`), a sliver of dependent typing. |
-| **Smart constructor** | The only sanctioned way to build a refined value, establishing its invariant. |
-| **Gradual verification** | Mixing verified and unverified components with explicit, audited boundaries. |
-| **Extraction TCB** | The extractor + downstream compiler that turn verified code into a runnable binary; part of real trust. |
-| **DO-178C / CC EAL7** | Safety/security certification regimes that credit formal methods as evidence. |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -120,32 +80,6 @@ The frontier is **gradual** verification leaking into ordinary languages, so the
 - **Lean 4 doubling as a real programming language**, narrowing the gap between "proof assistant" and "language you'd ship."
 
 The realistic trajectory is not "everyone writes Agda" but "everyday languages absorb the high-leverage, low-cost rungs (illegal-states-unrepresentable, branded types, const generics, surgical SMT), while full proof stays a specialist tool for catastrophic-blast-radius code." A professional bets on that gradient: invest heavily in the cheap rungs now, watch the expensive rungs get cheaper, and deploy them surgically when the economics flip.
-
----
-
-## Real-World Analogies
-
-**Insurance underwriting.** You don't buy the maximum policy on everything; you price the premium against the asset's value and the loss probability. Full verification is a very expensive policy — rational only for very valuable, very exposed assets (kernels, crypto). For a bicycle (internal tool), the premium exceeds the bike.
-
-**Aircraft inspection tiers.** A paper plane gets a glance; a commercial jet gets exhaustive, certified inspection (and formal methods credit under DO-178C). The inspection rigor matches the consequence of failure. Mismatch either way is malpractice: under-inspecting the jet, or over-inspecting the paper plane.
-
-**Structural engineering vs. a garden shed.** You hire a structural engineer with stamped calculations for a skyscraper, not for a shed. The shed gets "follow good practice" (rungs 2–3); the skyscraper gets full analysis (rung 5). Same physics, wildly different process, because the blast radius differs by orders of magnitude.
-
-**Seatbelts vs. roll cages.** Seatbelts (illegal-states-unrepresentable, branded types) are cheap, universal, and capture most of the benefit. Roll cages and fire suppression (full proof) go in race cars (crypto, kernels). Putting a roll cage in every commuter car is the mistake teams make when they "verify everything."
-
----
-
-## Mental Models
-
-**1. Verification is a line item, not a virtue.** It competes with tests, fuzzing, reviews, and observability for the same risk-reduction budget. Spend where the marginal risk reduction per hour is highest — which is usually *not* full proof.
-
-**2. Climb the gradient until marginal benefit drops below marginal cost — then stop.** For most systems that's rung 2–3. Stopping early isn't cutting corners; it's correct allocation.
-
-**3. Blast radius sets the ceiling.** A bug that can crash a kernel fleet or leak a billion users' keys justifies almost any cost. A bug that mildly annoys five internal users justifies almost none. Size the radius first.
-
-**4. The spec is the weakest link.** No proof can save you from proving the wrong thing. As assurance goes up, *spec engineering* becomes the dominant risk and cost — budget for it explicitly.
-
-**5. Harvest the cheap ideas everywhere; deploy the expensive ones surgically.** Make-illegal-states-unrepresentable belongs in every codebase. A full Coq proof belongs in approximately none of them — and the few where it belongs, you know exactly which component and why.
 
 ---
 
@@ -249,39 +183,6 @@ One method, fully specified and machine-verified — the surgical pattern AWS us
 
 ---
 
-## Pros & Cons
-
-### Pros (of verification *as an option to deploy judiciously*)
-
-| Benefit | Why it matters |
-|---------|----------------|
-| **Catastrophic-bug elimination** | Where blast radius is huge (crypto, kernels), it's the only sufficient assurance. |
-| **Cheap rungs are nearly free** | Illegal-states-unrepresentable and branded types pay continuously at ~no cost. |
-| **Surgical applicability** | Refinement/Dafny target one risky module without a rewrite. |
-| **Certification credit** | DO-178C / Common Criteria reward formal evidence. |
-| **Forces spec clarity** | Even attempting verification surfaces under-specified behavior. |
-
-### Cons
-
-| Cost | Why it hurts |
-|------|--------------|
-| **Proof cost is enormous at the top** | Person-years for kernels/compilers; rarely justified. |
-| **Maintenance tax** | Brittle proofs reopen on refactor; standing CI and expertise cost. |
-| **Spec risk grows with assurance** | The thing you must get right (the spec) gets harder as proofs get deeper. |
-| **Talent scarcity** | Few engineers can build/maintain it; bus-factor risk. |
-| **Misallocation temptation** | Enthusiasts over-verify low-blast-radius code, wasting budget. |
-
----
-
-## Use Cases
-
-- **Yes, full proof:** verified compilers (CompCert), microkernels (seL4), crypto libraries (HACL\*, fiat-crypto), avionics/spacecraft control, foundational math (mathlib).
-- **Yes, surgical refinement:** parsers/codecs, allocators, index-heavy structures, crypto helpers, authorization logic (AWS Dafny/F\*).
-- **Yes, always, cheap rungs:** every serious codebase — sum types, newtypes/branded types, smart constructors, type-state, const generics.
-- **No:** typical CRUD backends, internal tools, UIs, prototypes — where tests + ordinary types + fuzzing + observability dominate the cost-benefit.
-
----
-
 ## Coding Patterns
 
 **1. Climb-then-stop.** Adopt rungs 2–3 everywhere by default; escalate to rung 4 only on identified high-risk modules; reserve rung 5 for catastrophic blast radius.
@@ -320,18 +221,24 @@ One method, fully specified and machine-verified — the surgical pattern AWS us
 
 ---
 
-## Summary
+## Apply it
 
-Dependent and refinement types are a *tool with a price tag*, and professional skill is reading that tag against **blast radius**. Verification pays only when the expected cost of avoided defects exceeds its cost — which is why full machine-checked proof is right for CompCert, seL4, and HACL\* and wrong for almost everything else, where the same effort buys more reliability through tests, fuzzing, ordinary types, and observability. Think of a **gradient**: rung 1 (types + tests), rung 2 (make illegal states unrepresentable — sum types, newtypes), rung 3 (branded/literal/template types, Rust const generics and type-state), rung 4 (surgical SMT refinement via Liquid Haskell/Dafny/F\* on one risky module), rung 5 (full proof assistants). **Most teams should climb to rung 2–3 and stop** — that captures most of the benefit at near-zero cost — and reach for rung 4 surgically and rung 5 only for catastrophic-blast-radius code. Verified systems carry a real **maintenance tax** (brittle proofs, proof CI, spec review, talent concentration), and the **specification is the dominant risk** as assurance rises — a proof against a wrong spec proves nothing useful. The mainstream is absorbing the cheap rungs (TS literal/template types, Rust const generics, gradual SMT), so the trajectory is "everyday languages get a little more dependent/refinement flavor, full proof stays specialist." The professional reflex: size the blast radius, climb only as far as it justifies, harvest the cheap ideas everywhere, deploy the expensive ones surgically, and never overclaim what a proof guarantees.
+1. Define the user or business outcome that **Dependent & Refinement Types** should improve.
+2. Assign one owner for code, contracts, operations, and incidents.
+3. Split delivery into reversible increments that produce evidence early.
+4. Publish responsibilities, escalation paths, and compatibility windows.
+5. Stop or expand only when the agreed measures support that decision.
 
----
+## Verify your work
 
-## Further Reading
+- Each increment has an owner, rollback path, and observable exit condition.
+- Adoption, reliability, delivery time, and coordination cost are measured.
+- Incident and migration exercises prove that responsibility is executable.
+- The old path is removed only after telemetry proves it is unused.
 
-- Leroy, *"Formal Verification of a Realistic Compiler"* (CompCert) — the economics and engineering of a flagship proof.
-- Klein et al., *"Comprehensive Formal Verification of an OS Microkernel"* (seL4) — cost, structure, maintenance.
-- Bhargavan et al., *Project Everest / HACL\*, miTLS* — verified crypto/TLS at production scale.
-- Amazon's automated-reasoning publications (Dafny, F\*, SAW) — verification inside a hyperscaler.
-- *Programming with Refinement Types* (Liquid Haskell book) — surgical, incremental verification.
-- The Dafny documentation and AWS Dafny case studies — rung-4 verification in practice.
-- Rust const generics and type-state pattern write-ups — the mainstream slivers.
+## Review questions
+
+- Which measurable outcome justifies investing in Dependent & Refinement Types?
+- Which team owns the full lifecycle and incident response?
+- What reversible increment produces the earliest useful evidence?
+- Which exit condition proves that migration or adoption is complete?

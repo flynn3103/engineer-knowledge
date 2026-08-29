@@ -1,63 +1,11 @@
-# Runtimes (Language Runtime Support) — Middle Level
+# Runtimes (Language Runtime Support) — Middle
 
-> **Topic:** Runtimes (Language Runtime Support)
-> **Focus:** The three pillars the compiler emits code against — the **allocator + GC**, the **scheduler** for green threads, and **growable stacks** — plus the startup sequence that wires them up before `main`.
+<!-- level-focus -->
+At middle level, focus on this question:
 
----
+> Where does **Runtimes (Language Runtime Support)** belong in a maintainable component, and which trade-off selects the design?
 
-## Introduction
-
-> Focus: **What contract does the compiler sign with the runtime?** For each high-level feature — heap allocation, a goroutine, a deep recursion — the compiler emits specific calls, checks, and metadata so the runtime can do its job. This page makes that contract concrete.
-
-At junior level, the runtime was "the support code that runs with your program." At middle level we open the box and look at the three services the compiler interacts with most, and exactly **what code the compiler emits** to cooperate with each:
-
-1. **Memory management** — the **allocator** (the compiler emits allocation calls) and the **garbage collector** (the compiler emits *write barriers* and arranges for the GC to find roots). The deep mechanics of the GC itself live in the memory-management section; here we focus on the *compiler's side of the bargain*.
-2. **The scheduler** — for languages with **green threads / goroutines / async tasks**, the runtime multiplexes many lightweight tasks onto few OS threads. The compiler emits the call to spawn a task and, crucially, **safepoint/preemption checks** so the scheduler can take control.
-3. **Stack management** — green threads need **growable stacks**. The compiler emits **stack-growth checks** in function prologues so the runtime can grow (or move) a stack when it's about to overflow.
-
-Around these three, the runtime **bootstraps** at startup: it initializes the heap, the GC, and the scheduler *before* your `main` runs, and runs static initializers along the way. Understanding the contract — what the compiler emits and what the runtime does in response — is the difference between treating the runtime as magic and being able to reason about its costs.
-
-This page stays at the level of *mechanism and cost*. `senior.md` adds the harder topics: write-barrier algorithms, safepoint mechanics, async-to-state-machine lowering, and runtime startup internals. The exact GC algorithms and stack-management internals are covered by the memory-management and runtime-systems sections respectively; here we always look from the compiler outward.
-
----
-
-## Prerequisites
-
-- **Required:** The junior tier of this topic — what a runtime is, fat vs thin, "the compiler emits calls."
-- **Required:** Comfort reading simple Go, Java, or C, and a basic idea of the **call stack** (frames pushed/popped on call/return).
-- **Required:** You know what a **heap** and a **stack** are and that allocation comes from the heap.
-- **Helpful:** A rough idea of what a **garbage collector** does (traces reachable objects, frees the rest).
-- **Helpful:** You've seen **threads** and know an OS thread is a relatively heavy resource.
-
-You do **not** need to know:
-
-- The internals of a specific GC algorithm (tri-color marking, generational collection) — memory-management section.
-- The exact assembly of a safepoint poll or write barrier — that's `senior.md`.
-- How `async/await` becomes a state machine — that's `senior.md`.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Allocator** | Runtime code that returns a block of heap memory. The compiler emits *calls* to it (e.g. `runtime.mallocgc` in Go, `operator new` / `malloc` in C++/C). |
-| **Write barrier** | A small piece of code the compiler emits around pointer writes so a concurrent GC can track changes to the object graph. |
-| **GC root** | A starting point for reachability: globals, stack slots holding pointers, registers. The runtime must enumerate these; the compiler emits metadata (stack maps) to help. |
-| **Stack map** | Compiler-generated metadata describing which stack slots/registers hold live pointers at a given point, so the GC knows what to trace. |
-| **Safepoint** | A point where a thread/goroutine can be safely paused so the runtime (GC or scheduler) can act. The compiler ensures safepoints exist and are reachable. |
-| **Safepoint poll / preemption check** | A tiny check the compiler inserts so a running task notices "the runtime wants me to stop" and yields. |
-| **Scheduler** | Runtime code that maps lightweight tasks (goroutines, green threads) onto OS threads. |
-| **M:N scheduling** | Mapping **M** lightweight tasks onto **N** OS threads (M ≫ N). Go's model. Contrast 1:1 (OS threads only) and N:1 (all on one OS thread). |
-| **Work stealing** | A scheduler technique: idle worker threads "steal" runnable tasks from busy workers' queues to balance load. |
-| **Goroutine / green thread / fiber** | A lightweight, runtime-managed unit of execution with its own (small, growable) stack. |
-| **Growable / segmented / contiguous stack** | A stack the runtime can enlarge when it nears overflow, either by chaining segments or by copying to a bigger contiguous block (Go uses copying). |
-| **Stack-growth check / morestack** | A check the compiler emits in a function prologue; if the stack would overflow, it calls the runtime to grow the stack (`runtime.morestack`). |
-| **Bootstrap** | The runtime's own startup: initialize heap, GC, scheduler, then run static initializers, then `main`. |
-| **Static initializer** | Code run during bootstrap to set up globals (C++ global ctors, Go package `init`, Java static blocks). |
-| **`.init_array`** | An ELF section listing functions to run at startup (before `main`); the linker collects static initializers here. |
-| **Escape analysis** | A compiler analysis deciding whether a value can live on the stack (cheap, no GC) or must be heap-allocated (a runtime call). |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -132,28 +80,6 @@ When the OS loads your binary, control goes to the runtime's entry, not `main`:
 5. **Exit** — after `main` returns, the runtime tears down and calls `exit`.
 
 A heavy static initializer (e.g. building a big lookup table, opening a connection) runs in step 3 and *delays* the start of your `main` — a real source of startup latency.
-
----
-
-## Real-World Analogies
-
-**The valet-parking garage (scheduler).** Customers (goroutines) hand their cars to valets (P's), who park them in lots (run queues). There are only a few valets (M's = OS threads), but they handle hundreds of cars by shuffling them efficiently. When one valet's lot is full and another's is empty, cars get redistributed (work stealing). The garage's *rule* that a valet may only move a car when it's safely in neutral (a safepoint) is the cooperation the building (compiler) enforces.
-
-**The expanding suitcase (growable stack).** Each traveler (goroutine) starts with a tiny carry-on (8 KB stack). When they buy too much, the airline (runtime) swaps them into a bigger bag and **moves everything over** (stack copy), updating the luggage tags (pointer fixup) so nothing is lost. The check "is your bag full?" happens at every gate (function prologue).
-
-**The library re-shelving crew (GC + write barrier).** Patrons keep moving books between shelves (mutating pointers). A crew is taking inventory of what's still in use. To avoid declaring a book lost just because a patron moved it mid-inventory, every patron must drop a sticky note whenever they move a book (the write barrier). The crew (GC) reads the notes and adjusts.
-
----
-
-## Mental Models
-
-**Model 1 — The per-call tax.** Every function call in a green-thread language pays a tiny tax: a stack-growth/preemption check in the prologue. It's invisible in your source but always there. Cheap concurrency is *funded* by this tax.
-
-**Model 2 — Compiler emits, runtime consumes.** Think of it as producer/consumer. The compiler *produces* allocation calls, write barriers, stack maps, safepoints, spawn calls. The runtime *consumes* them to provide GC, scheduling, and stack growth. They must agree on the protocol exactly — that's why a compiler and its runtime are a matched pair.
-
-**Model 3 — Three queues and a thief.** Picture the scheduler as P's each holding a queue of work, plus a global queue, plus the rule "if you're idle, steal half of someone's queue." That single image explains Go's load balancing.
-
-**Model 4 — Reachability needs a map.** The GC can only free what it can prove is garbage, and it can only prove reachability if it can read your stacks. The **stack map** is that reading glasses. No stack map, no precise GC.
 
 ---
 
@@ -275,41 +201,6 @@ Output order proves it: the table build and `init()` print *before* `main`. Heav
 
 ---
 
-## Pros & Cons
-
-### Pros
-
-| Benefit | Mechanism |
-|---------|-----------|
-| **Millions of cheap tasks** | Small growable stacks + M:N scheduler + work stealing. |
-| **No manual memory bugs** | Allocator + GC, with write barriers keeping a concurrent GC correct. |
-| **Good multicore utilization** | Work stealing balances load across P's without a central lock. |
-| **Stack-overflow safety + tiny stacks** | Prologue stack checks grow stacks on demand instead of pre-reserving megabytes. |
-| **Blocking syscalls don't freeze the world** | Runtime detaches M from P during blocking calls. |
-
-### Cons
-
-| Cost | Mechanism |
-|------|-----------|
-| **Per-call overhead** | Every function pays a prologue stack/preemption check. |
-| **Write-barrier cost** | Every heap pointer write may run extra instructions during GC phases. |
-| **GC pauses** | Even concurrent GCs need brief stop-the-world phases at safepoints. |
-| **Allocation pressure** | Escaping values become runtime allocations and feed the GC. |
-| **Startup latency** | Bootstrap + static initializers run before `main`. |
-| **Less timing control** | The scheduler and GC decide when things run/pause. |
-
----
-
-## Use Cases
-
-- **High-concurrency network servers:** the scheduler + cheap goroutines let one process handle hundreds of thousands of connections.
-- **Pipelines with many short tasks:** spawn a goroutine per item; work stealing balances them.
-- **Reducing GC pressure:** use escape analysis output (`-gcflags=-m`) to keep hot values on the stack and cut allocations.
-- **Diagnosing latency spikes:** correlate spikes with GC cycles (`GODEBUG=gctrace=1`) or scheduler stalls (`runtime/trace`).
-- **Tuning startup-sensitive programs:** move heavy work out of static initializers / `init` to shorten the pre-`main` window.
-
----
-
 ## Coding Patterns
 
 ### Pattern 1 — Keep hot allocations on the stack
@@ -409,79 +300,24 @@ func getTable() map[int]int {
 
 ---
 
-## Test Yourself
+## Apply it
 
-1. What three things does the compiler emit to cooperate with the memory manager?
-2. Why does a concurrent GC require the compiler to emit write barriers?
-3. In Go's G-M-P model, what are G, M, and P, and which one holds the run queue?
-4. What is work stealing, and what problem does it solve?
-5. What does a function prologue's stack-growth check do, and how does it also serve preemption?
-6. Why can a green-thread runtime support millions of tasks when a 1:1 thread model can't?
-7. What runs before `main`, and how can it hurt startup latency?
-8. Why was a `for {}` loop with no calls a scheduler problem before async preemption?
+1. Find a real component where **Runtimes (Language Runtime Support)** affects an interface or dependency.
+2. Write two plausible choices and the constraint that favors each one.
+3. Make the smallest reversible change at that boundary.
+4. Exercise the component alone, then exercise the integrated flow.
+5. Keep the decision note with the evidence that selected the option.
 
-> Answers: (1) Allocation calls, write barriers around pointer writes, and stack maps (plus reachable safepoints). (2) The GC scans the object graph while your code mutates it; without a barrier, a newly-created pointer could be missed and its target wrongly freed. (3) G = goroutine, M = OS thread, P = scheduling context/processor; the **P** owns the local run queue. (4) Idle P's steal half the goroutines from a busy P's queue; it balances load without a central scheduler bottleneck. (5) It checks whether the current frame would overflow the stack; if so it calls `morestack` to grow/copy the stack — and the same guard is reused to force a yield when preemption is requested. (6) Tiny growable stacks + M:N multiplexing onto few OS threads, versus one large fixed stack per OS thread. (7) The runtime bootstrap (heap/GC/scheduler init) and static initializers / `init` functions; heavy init delays `main`. (8) Cooperative preemption only happened at call safepoints; a loop with no calls reached no safepoint, so the scheduler could never take the P back.
+## Verify your work
 
----
+- A focused check proves the local behavior.
+- An integrated check proves callers and dependencies still agree.
+- Logs, traces, compiler output, or benchmarks expose the boundary.
+- Reverting the change restores the previous behavior without unrelated edits.
 
-## Cheat Sheet
+## Review questions
 
-```text
-COMPILER -> RUNTIME CONTRACT
-  memory:    allocation calls (mallocgc/newobject) + write barriers + stack maps
-  scheduler: spawn call (newproc) + safepoints + preemption checks
-  stacks:    prologue stack-growth check -> runtime.morestack (grow + copy + fixup)
-
-ESCAPE ANALYSIS: stack (free) vs heap (runtime alloc + future GC). Check: go build -gcflags=-m
-
-GO SCHEDULER (G-M-P), M:N:
-  G = goroutine (+ small growable stack, 8KB start)
-  M = OS thread
-  P = processor / scheduling context (owns local run queue), count = GOMAXPROCS
-  load balance via WORK STEALING (idle P steals half of a busy P's queue)
-  blocking syscall -> detach M from P so others keep running
-
-STACKS: tiny + growable -> millions of goroutines possible
-  growth = copy whole stack to bigger block + fix up pointers (needs stack maps)
-
-BOOTSTRAP (before main):
-  _start/rt0 -> runtime init (heap/GC/scheduler) -> static initializers (.init_array / init()) -> main
-
-GOTCHAS: tight no-call loop (pre-async-preempt), cgo pins M, interface boxing allocates,
-         heavy init delays main, GC pauses hit p99.
-```
-
----
-
-## Summary
-
-At middle level, the runtime stops being magic and becomes a **contract** the compiler signs. For **memory**, the compiler emits allocation calls (gated by escape analysis), **write barriers** so a concurrent GC stays correct, and **stack maps** so the GC can find live pointers as roots. For **concurrency**, it emits the spawn call and the **safepoints/preemption checks** that let the scheduler take control; the runtime then multiplexes lightweight tasks **M:N** onto OS threads, balancing load with **work stealing** (Go's G-M-P model). For **stacks**, the compiler emits a **prologue stack-growth check** so the runtime can keep each task's stack tiny and **grow (copy)** it on demand — the very thing that makes millions of goroutines affordable. All of this is wired up during **bootstrap**, which runs the heap/GC/scheduler initialization and **static initializers** *before* `main`.
-
-The recurring theme: cheap, safe high-level features are *funded* by small, pervasive obligations the compiler emits into your code. Reducing allocations, bounding goroutines, and keeping startup light are the practical levers that follow directly from understanding the contract. The next tier, `senior.md`, takes these mechanisms to their internals — write-barrier and safepoint implementation, and the big one: how the compiler lowers `async/await` into a poll-able **state machine**.
-
----
-
-## What You Can Build
-
-- **An escape-analysis report:** annotate a hot function with `-gcflags='-m -m'` and rewrite it to eliminate one heap allocation; verify with a benchmark and `-benchmem`.
-- **A goroutine cost meter:** spawn 1, 10k, 100k, and 1M goroutines; measure memory (`runtime.ReadMemStats`) and creation time; chart the per-goroutine cost.
-- **A GC-trace dashboard:** run a service with `GODEBUG=gctrace=1` and correlate GC cycles with request latency.
-- **A startup profiler:** time the gap between process start and the first line of `main`, then move work out of `init`/static initializers and re-measure.
-
----
-
-## Further Reading
-
-- The Go runtime source (`runtime` package): `proc.go` (scheduler), `malloc.go` (allocator), `stack.go` (stack growth), `mbarrier.go` (write barriers).
-- "Scheduling in Go" articles describing the G-M-P model and work stealing.
-- Go blog posts on asynchronous preemption (Go 1.14).
-- The memory-management section for GC algorithm internals; the runtime-systems section for stack management internals.
-
----
-
-## Related Topics
-
-- Runtimes (Language Runtime Support) — the hub for this topic.
-- The **memory-management** section: the allocator and GC algorithms whose calls/barriers the compiler emits.
-- The **runtime-systems** section: stack management and scheduler internals from the runtime's own perspective.
-- The **foreign-function-interface-and-interop** section: how blocking C calls interact with the scheduler.
+- Which boundary is most affected by Runtimes (Language Runtime Support)?
+- What constraint would make you choose the alternative design?
+- How would you isolate a local defect from an integration defect?
+- What evidence shows that the change remains maintainable?

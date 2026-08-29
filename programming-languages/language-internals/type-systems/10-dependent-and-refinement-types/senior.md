@@ -1,55 +1,11 @@
-# Dependent & Refinement Types — Senior Level
+# Dependent & Refinement Types — Senior
 
-> **Topic:** Dependent & Refinement Types
-> **Focus:** Curry–Howard taken all the way — programs *are* proofs; totality as the price of soundness; interactive proof in Coq/Lean/Agda vs. SMT-automated proof in Liquid Haskell/F\*; and how verified systems are actually built.
+<!-- level-focus -->
+At senior level, focus on this question:
 
----
+> Which system invariant is affected by **Dependent & Refinement Types** under failure, load, and change?
 
-## Introduction
-
-> Focus: **The deep idea that makes dependent types a foundation for mathematics and verified software: a type is a proposition, a program of that type is a proof, and the compiler is the proof-checker.**
-
-The middle tier showed you Pi and Sigma and the two checking regimes. This tier reveals *why* dependent types matter beyond clever vectors: they are a foundation for **machine-checked proof**. Under the **Curry–Howard correspondence**, propositions *are* types and proofs *are* programs. `A -> B` is the proposition "A implies B"; a function of that type is a constructive proof of the implication. Pi types are universal quantifiers (`∀`), Sigma types are existentials (`∃`), the empty type is falsehood, the unit type is truth. Run this all the way and a dependently typed language becomes a **proof assistant**: write a type that states a theorem, write a program (a "proof term") inhabiting it, and the type checker *verifies the theorem*. This is how Coq verifies the CompCert C compiler, how Isabelle/seL4 verifies an OS kernel, and how Lean's `mathlib` accumulates tens of thousands of machine-checked mathematical theorems.
-
-But Curry–Howard has a sharp edge: **the correspondence only holds if your language is total.** A non-terminating program can inhabit *any* type — a function `loop : A` that recurses forever "proves" `A` for every `A`, including `False`. If you could write that, your proof system would be inconsistent: you could prove anything. So proof assistants enforce **totality**: every function must be *total* (defined on all inputs) and *provably terminating*, and every pattern match must be *exhaustive*. **Totality checking is therefore not a nicety — it is what keeps the logic sound.** Understanding that is the difference between using these tools and *trusting* them.
-
-The other axis this tier sharpens is the **proof-automation spectrum.** At one end, *interactive proof* (Coq, Lean, Agda): you build proofs by hand, often with tactics, expressing arbitrarily deep theorems but paying in human effort. At the other, *SMT-automated refinement* (Liquid Haskell, F\*, Dafny): you state pre/postconditions and a solver discharges them, scaling to large codebases but only within decidable theories. Real verified systems live somewhere on this line, and choosing where is an architectural decision with multi-year consequences.
-
-> 🎓 **Why this matters at the senior level:** When someone says "we proved this code correct," you should immediately ask *three* questions: correct against *what* specification? Proved in *what* trusted base (what must you still trust)? And is the development *total*, or are there axioms/`admit`s/`assume`s holding it up? This tier equips you to interrogate verification claims instead of taking them on faith.
-
----
-
-## Prerequisites
-
-- **Required:** Middle tier — Pi/Sigma, indices, VC/SMT pipeline, definitional vs. propositional equality.
-- **Required:** Comfort with recursion, induction, and structural reasoning over data types.
-- **Required:** Basic logic — implication, quantifiers, what a "proof" is informally.
-- **Helpful:** Having read or written a non-trivial induction proof on paper.
-- **Helpful:** Exposure to a proof assistant's "goal/tactic" interaction (even a tutorial).
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|-----------|
-| **Curry–Howard correspondence** | Propositions ≅ types; proofs ≅ programs; proof normalization ≅ evaluation. |
-| **Proof term** | A program whose *type* is a proposition; the program *is* the proof. |
-| **Proof assistant** | A tool (Coq, Lean, Agda, Isabelle) for writing and machine-checking proofs. |
-| **Tactic** | A command that builds a proof term incrementally by transforming proof goals (Coq/Lean). |
-| **Totality** | A function being total: defined on all inputs **and** provably terminating, with exhaustive matching. |
-| **Termination checking** | Proving recursion is well-founded (a metric strictly decreases), e.g. structural recursion. |
-| **Coverage / exhaustiveness** | Every constructor pattern is handled; no missing cases. |
-| **Soundness (of a logic)** | You cannot prove a false proposition. Requires totality in CH-based systems. |
-| **`Type` / universe / `Prop`** | Types-of-types, stratified to avoid paradoxes; `Prop` is the universe of propositions. |
-| **Propositional equality (`x = y`)** | A type asserting equality, proved by `Refl` only when both sides reduce to the same value. |
-| **Trusted computing base (TCB)** | The code you must trust for the proof to mean anything (kernel of the checker, axioms, specs). |
-| **Axiom** | An assumed-true proposition with no proof; expands the TCB and can introduce unsoundness. |
-| **`admit` / `sorry` / `assume`** | Escape hatches that accept an unproved goal — convenient, dangerous, must be audited. |
-| **Extraction** | Compiling a verified development to runnable code (Coq → OCaml/C; F\* → C/Wasm). |
-| **Tactic vs. term mode** | Building a proof via tactic scripts vs. writing the proof term directly. |
-| **Refinement reflection** | Lifting function definitions into the logic so SMT can reason about them (Liquid Haskell). |
-
+Use the smallest realistic scenario that exposes the decision and its failure behavior.
 ---
 
 ## Core Concepts
@@ -139,32 +95,6 @@ The recurring lesson: verification cost is dominated not by the code but by the 
 
 ---
 
-## Real-World Analogies
-
-**Curry–Howard = a contract whose fulfillment *is* the deliverable.** A proposition is a contract ("for any order, produce a valid invoice"). A proof is a *machine* that fulfills it for every input. You don't separately "prove the machine works" — building a total machine of the right type *is* the proof. Run it backwards: the deliverable and the guarantee are the same artifact.
-
-**Totality = a referee who voids the game if a player can stall forever.** If one move lets a player loop indefinitely, the entire rulebook collapses (any outcome becomes "reachable"). The totality referee forbids non-terminating moves and incomplete rule coverage, precisely so that "winning" still means something.
-
-**TCB = the foundation you don't inspect because you trust the surveyor.** You verified the building's structure, but you trusted the surveyor's measurements and the physics textbook. Axioms are assumptions in that textbook; a wrong one quietly undermines everything above it, no matter how careful the visible work.
-
-**SMT vs. interactive = autopilot vs. hand-flying.** Autopilot (SMT) handles routine flight envelopes effortlessly and at scale, but disengages in conditions outside its model. Hand-flying (tactics) can handle anything, demands a trained pilot, and doesn't scale to a thousand simultaneous flights. Verified systems fly mostly on autopilot and hand-fly the edges.
-
----
-
-## Mental Models
-
-**1. To prove is to construct.** A proof is not an argument you narrate; it's a *value you build* of the proposition's type. "Can I prove P?" becomes "can I inhabit the type P?" — a programming question.
-
-**2. Falsehood is the empty type; soundness is its emptiness.** `False` has no constructors. The whole game is keeping it uninhabited. Non-termination and incomplete matches are the two doors through which an inhabitant of `False` could sneak in — totality bolts both.
-
-**3. Always ask "verified against what, trusting what?"** Every verification claim has a spec and a TCB. The proof connects code to spec *relative to* the TCB. Move the spec or shrink the TCB and the claim changes meaning.
-
-**4. Automation trades depth for scale.** Picture a dial from "all SMT" to "all tactics." Turning toward SMT buys you throughput on routine obligations and costs you the ability to express deep theorems; turning toward tactics is the reverse. There's no free lunch; there's a chosen point.
-
-**5. Erasure and extraction make proofs free *and* runnable.** The proof effort is compile-time; extraction yields ordinary OCaml/C/Wasm with no proof baggage. You ship fast code that happens to come with a theorem.
-
----
-
 ## Code Examples
 
 ### Example 1: A proof as a program (Idris/Agda flavor)
@@ -239,41 +169,6 @@ F\* sits in the middle of the spectrum: SMT does most of the work, and when it c
 
 ---
 
-## Pros & Cons
-
-### Pros
-
-| Benefit | Why it matters |
-|---------|----------------|
-| **Machine-checked truth** | Theorems and program correctness verified by a small trusted kernel. |
-| **One language for code + proof** | Curry–Howard unifies them; proofs live next to the code they justify. |
-| **Foundations for verified systems** | CompCert, seL4, HACL\* exist because of this. |
-| **Extraction to fast code** | Verified developments compile to OCaml/C/Wasm with no proof overhead. |
-| **Spectrum of automation** | Choose SMT scale or tactic depth (or hybrid) per obligation. |
-
-### Cons
-
-| Cost | Why it hurts |
-|------|--------------|
-| **Totality straitjacket** | General recursion/partiality must be encoded carefully; soundness demands it. |
-| **Proof engineering dominates cost** | Person-years for kernels; specs and proofs dwarf the code. |
-| **TCB and axioms are subtle** | A wrong axiom or stray `sorry` silently voids assurance. |
-| **Spec risk** | "Verified" only against the spec you wrote — which may be wrong. |
-| **Scarce expertise** | The people who can do this are few and expensive. |
-
----
-
-## Use Cases
-
-- **Verified compilers and toolchains** (CompCert; semantic preservation).
-- **Verified OS kernels / hypervisors** (seL4; full functional correctness).
-- **Verified cryptography** (HACL\*, EverCrypt, fiat-crypto; correctness + memory + side channels).
-- **Formalized mathematics** (Lean `mathlib`; the Liquid Tensor Experiment; four-color and Feit–Thompson in Coq).
-- **High-assurance cloud components** (AWS Dafny/F\* for crypto and authorization).
-- **Avionics / safety-critical control** where certification (DO-178C) rewards formal evidence.
-
----
-
 ## Coding Patterns
 
 **1. Spec → code → proof co-design.** Don't bolt proofs on; shape the code so the proofs are tractable from the start.
@@ -311,19 +206,24 @@ F\* sits in the middle of the spectrum: SMT does most of the work, and when it c
 
 ---
 
-## Summary
+## Apply it
 
-Run Curry–Howard to its conclusion and a dependently typed language becomes a **proof assistant**: propositions are types, proofs are programs, and the type checker verifies theorems. Equality is a type proved by `Refl` (definitional) or by **induction** (a total recursive program) when it isn't. The non-negotiable price is **totality** — every function must be total and provably terminating with exhaustive matching — because a single non-terminating term inhabits `False` and collapses the logic into inconsistency. Trust in any verified artifact reduces to its **trusted computing base**: the checker's kernel, the **axioms** assumed, the **specification** proved against, and any surviving `admit`/`sorry`/`assume`. Tools span an **automation spectrum** from interactive proof (Coq, Lean, Agda — unbounded power, high effort) to SMT-automated refinement (Liquid Haskell, F\*, Dafny — bounded power, high scale), with hybrids (F\*) covering both. This machinery is what makes **CompCert**, **seL4**, **HACL\***, and **mathlib** possible — and why verified software's cost is dominated by spec-and-proof engineering, justified only where a bug is catastrophic. The senior reflex: when told "it's verified," ask *against which spec, trusting what, and is it really total?*
+1. State the system invariant that **Dependent & Refinement Types** must protect.
+2. Mark ownership, state, and failure propagation at each boundary.
+3. Compare two designs under load, dependency failure, and future change.
+4. Define recovery and compatibility behavior before implementation.
+5. Test the riskiest assumption with a focused experiment.
 
----
+## Verify your work
 
-## Further Reading
+- The experiment supports the design with evidence, not preference.
+- Failure injection shows the blast radius and recovery path.
+- Compatibility checks cover old and new callers or data.
+- Operational signals reveal invariant violations and recovery progress.
 
-- *Software Foundations* (Pierce et al.) — Coq, proofs-as-programs, the canonical course.
-- *Certified Programming with Dependent Types* (Chlipala) — engineering large Coq proofs.
-- *Theorem Proving in Lean 4* — Curry–Howard and tactics in Lean.
-- *Programming Language Foundations in Agda* — totality and proofs in term mode.
-- Leroy, *"Formal Verification of a Realistic Compiler"* (CompCert) and the CSmith study.
-- Klein et al., *"seL4: Formal Verification of an OS Kernel."*
-- Zinzindohoué et al., *"HACL\*: A Verified Modern Cryptographic Library"* (F\*).
-- Vazou et al., *"Refinement Reflection"* (Liquid Haskell) — proving in an SMT setting.
+## Review questions
+
+- Which invariant must remain true when Dependent & Refinement Types fails?
+- Where should recovery responsibility live, and why?
+- Which assumption deserves an experiment before implementation?
+- How can the design evolve without changing every consumer at once?
