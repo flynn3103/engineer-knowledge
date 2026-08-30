@@ -399,12 +399,12 @@ You can add profiling to a service in any of the major languages, attach to a ru
 
 **Sibling diagnostic topics:**
 
-- [Metrics](../04-metrics/) — the signal that *alerts* you something is slow; the start of the click-path that ends in a flame graph.
-- [Tracing](../05-tracing/) — narrows the slowness to a span; the profile narrows it to a line. Profile-to-trace exemplars link the two.
-- [Logging](../02-logging/) — the per-event pillar where identity (`user_id`, `request_id`) belongs.
-- [Observability Engineering](../06-observability-engineering/) — how the four signals fit together end to end.
-- [Dynamic Instrumentation & eBPF](../13-dynamic-instrumentation-and-ebpf/) — the kernel tech behind language-agnostic, zero-instrumentation profiling (Task 10).
-- [Telemetry Cost & Sampling Strategy](../14-telemetry-cost-and-sampling-strategy/) — the overhead/storage budget that keeps continuous profiling affordable at fleet scale.
+- [Metrics](../04-metrics/README.md) — the signal that *alerts* you something is slow; the start of the click-path that ends in a flame graph.
+- [Tracing](../05-tracing/README.md) — narrows the slowness to a span; the profile narrows it to a line. Profile-to-trace exemplars link the two.
+- [Logging](../02-logging/README.md) — the per-event pillar where identity (`user_id`, `request_id`) belongs.
+- [Observability Engineering](../06-observability-engineering/README.md) — how the four signals fit together end to end.
+- [Dynamic Instrumentation & eBPF](../13-dynamic-instrumentation-and-ebpf/README.md) — the kernel tech behind language-agnostic, zero-instrumentation profiling (Task 10).
+- [Telemetry Cost & Sampling Strategy](../14-telemetry-cost-and-sampling-strategy/README.md) — the overhead/storage budget that keeps continuous profiling affordable at fleet scale.
 
 **Cross-roadmap links:**
 

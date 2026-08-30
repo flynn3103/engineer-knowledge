@@ -282,8 +282,8 @@ Interviewers probe this topic for release-risk thinking. Anchor every answer in 
 
 ## Related Topics
 
-- [Rollback & Roll-Forward](../07-rollback-and-roll-forward/) — flags as fastest revert; revert vs roll-forward; expand/contract
-- [Release Branching & Trains](../03-release-branching-and-trains/) — flags enable trunk-based release and decouple cadence from readiness
-- [Release Automation](../08-release-automation/) — flag/rollout changes inside the pipeline
-- [Supply-Chain Security](../09-supply-chain-security/) — trusting the artifact you progressively expose
-- [Artifact Signing & Provenance](../04-artifact-signing-and-provenance/) — provenance of the build behind the rollout
+- [Rollback & Roll-Forward](../07-rollback-and-roll-forward/README.md) — flags as fastest revert; revert vs roll-forward; expand/contract
+- [Release Branching & Trains](../03-release-branching-and-trains/README.md) — flags enable trunk-based release and decouple cadence from readiness
+- [Release Automation](../08-release-automation/README.md) — flag/rollout changes inside the pipeline
+- [Supply-Chain Security](../09-supply-chain-security/README.md) — trusting the artifact you progressively expose
+- [Artifact Signing & Provenance](../04-artifact-signing-and-provenance/README.md) — provenance of the build behind the rollout

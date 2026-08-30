@@ -4,7 +4,7 @@
 
 This roadmap is about **the security- and compliance-grade logging discipline that lives next to (but apart from) operational logging** — tamper-evident records of *who* did *what* to *which resource*, at *what time*, from *which origin*, with *what outcome*. Different consumers, different retention, different threat model.
 
-> Looking for *operational* logging (log levels, structured fields, sampling, correlation IDs)? See [Logging](../02-logging/).
+> Looking for *operational* logging (log levels, structured fields, sampling, correlation IDs)? See [Logging](../02-logging/README.md).
 >
 > Looking for the *system-design* angle (SIEM ingestion, immutable storage, WORM filesystems)? That belongs in the Security and System-Design tracks. This roadmap is the **language- and app-level** discipline that determines what is captured in the first place.
 

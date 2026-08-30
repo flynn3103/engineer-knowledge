@@ -23,7 +23,7 @@ Just as OTel semantic conventions let one metric query span the fleet, the **ppr
 
 ### 3. A profile store is a TSDB for flame graphs, and it has a cardinality bill
 
-A continuous profile store is *metrics for code paths*: time-indexed series keyed by profile-type + labels, stored columnarly (FrostDB, Pyroscope's store). It has the same cost structure as a metrics TSDB — **series count drives storage and RAM**, and an unbounded label (`pod`, raw `endpoint`) is the same cardinality bomb here as on a metric. The professional designs profile *labels* the way they design metric attributes: bounded, queryable, fail-closed. See [Telemetry Cost and Sampling Strategy](../14-telemetry-cost-and-sampling-strategy/).
+A continuous profile store is *metrics for code paths*: time-indexed series keyed by profile-type + labels, stored columnarly (FrostDB, Pyroscope's store). It has the same cost structure as a metrics TSDB — **series count drives storage and RAM**, and an unbounded label (`pod`, raw `endpoint`) is the same cardinality bomb here as on a metric. The professional designs profile *labels* the way they design metric attributes: bounded, queryable, fail-closed. See [Telemetry Cost and Sampling Strategy](../14-telemetry-cost-and-sampling-strategy/README.md).
 
 ### 4. The overhead budget becomes a fleet-wide SLO with a kill switch
 
@@ -102,7 +102,7 @@ The defining architectural choice at fleet scale: profile processes *externally*
 
 ## eBPF Whole-System Profiling in Depth
 
-This is the professional-tier capability that doesn't exist at junior/middle: profiling **any language, any runtime, even stripped C and the kernel, with zero instrumentation**, from a node-level agent. This is the kernel tech the [Dynamic Instrumentation & eBPF](../13-dynamic-instrumentation-and-ebpf/) roadmap covers in depth; here is the profiling-specific mechanics.
+This is the professional-tier capability that doesn't exist at junior/middle: profiling **any language, any runtime, even stripped C and the kernel, with zero instrumentation**, from a node-level agent. This is the kernel tech the [Dynamic Instrumentation & eBPF](../13-dynamic-instrumentation-and-ebpf/README.md) roadmap covers in depth; here is the profiling-specific mechanics.
 
 ### How the eBPF perf-event profiler samples stacks in-kernel
 
@@ -250,7 +250,7 @@ Columnar layout is the right call because profile data is *highly repetitive* (t
    LOGS     — volume-driven; often the most expensive to retain at full fidelity.
 ```
 
-The professional framing: profiling's *storage* cost is real but tamed by columnar storage, stack dedup, and downsampling, while its *compute* overhead stays at the sampling-profiler ~1–2%. Price it against the other signals deliberately — see [Telemetry Cost and Sampling Strategy](../14-telemetry-cost-and-sampling-strategy/) for the cross-signal budget. The right default is "profile everything, keep recent at high resolution, downsample the rest."
+The professional framing: profiling's *storage* cost is real but tamed by columnar storage, stack dedup, and downsampling, while its *compute* overhead stays at the sampling-profiler ~1–2%. Price it against the other signals deliberately — see [Telemetry Cost and Sampling Strategy](../14-telemetry-cost-and-sampling-strategy/README.md) for the cross-signal budget. The right default is "profile everything, keep recent at high resolution, downsample the rest."
 
 ---
 
@@ -345,7 +345,7 @@ A precise map of when each signal — and continuous vs point-in-time profiling 
 These are *complementary*, not competing:
 
 - **Continuous profiling** ([this roadmap](README.md)) *finds* the hot function in production, fleet-wide, with real data and concurrency. It answers "where is the time going right now, across everything?"
-- **Point-in-time profiling** ([Quality Engineering → Performance → Profiling](../../performance/01-profiling/)) *fixes* a known hot function — the developer reproduces it on a laptop/benchmark, iterates with a profiler, and optimizes. It answers "why is this specific function slow and how do I make it fast?"
+- **Point-in-time profiling** ([Quality Engineering → Performance → Profiling](../../performance/01-profiling/README.md)) *fixes* a known hot function — the developer reproduces it on a laptop/benchmark, iterates with a profiler, and optimizes. It answers "why is this specific function slow and how do I make it fast?"
 
 The workflow is: **continuous profiling (prod) finds it → point-in-time profiling (laptop) fixes it → continuous profiling (deploy gate) confirms the fix and guards against regression.** The `profiling-techniques` skill is the point-in-time-optimization counterpart; this roadmap is the always-on-discovery side.
 
@@ -587,7 +587,7 @@ You're the platform engineer. The org has ~400 services across Go, Java, Python,
 
 **Step 4 — standardize labels and format.** One **profile-label schema** (`service`, `version`, `environment`, `region`) matching the resource attributes on metrics/traces/logs, enforced by a **fail-closed allow-list** (no `pod`/`user_id`). One on-wire format: **pprof / OTLP profiles**, routed through the OTel Collector. The agent maps pod → service so agent profiles carry the same labels as SDK profiles.
 
-**Step 5 — build the storage tier and its budget.** Stand up **Parca/FrostDB (or Pyroscope)** columnar storage. Set retention: full resolution for ~2 weeks (incidents + deploy diffs live here), **downsample** older profiles, dedup symbols in a separate symbol store. Price the volume (volume math above) against the cross-signal budget — see [Telemetry Cost and Sampling Strategy](../14-telemetry-cost-and-sampling-strategy/).
+**Step 5 — build the storage tier and its budget.** Stand up **Parca/FrostDB (or Pyroscope)** columnar storage. Set retention: full resolution for ~2 weeks (incidents + deploy diffs live here), **downsample** older profiles, dedup symbols in a separate symbol store. Price the volume (volume math above) against the cross-signal budget — see [Telemetry Cost and Sampling Strategy](../14-telemetry-cost-and-sampling-strategy/README.md).
 
 **Step 6 — wire correlation.** Enable **span profiles** (SDK tags samples with `trace_id`/`span_id`) and ensure metrics carry **exemplars**, so the full descent metric → trace → profile → log is one click. Shared resource attributes across all four signals make the pivot work.
 

@@ -29,7 +29,7 @@ An E2E strategy answers three questions explicitly, in writing:
 
 **3. Owned by whom?** Every E2E test has a named owning team — the team that owns the *feature*, not a central QA group. Orphaned tests are how suites rot: nobody fixes their flake, so they get ignored, so the suite dies. Ownership is encoded (CODEOWNERS, tags) and enforced.
 
-This strategy lives in the same document as the broader [Test Strategy & the Pyramid](../01-test-strategy-and-the-pyramid/).
+This strategy lives in the same document as the broader [Test Strategy & the Pyramid](../01-test-strategy-and-the-pyramid/README.md).
 
 ---
 
@@ -77,7 +77,7 @@ After:   2 E2E tests (true user journeys)
 Result:  same confidence, a fraction of the cost, far better diagnosability
 ```
 
-This is the most reliable way to fight the ice-cream cone after it's already happened. See [Contract Testing](../05-contract-testing/) and the **api-testing** skill.
+This is the most reliable way to fight the ice-cream cone after it's already happened. See [Contract Testing](../05-contract-testing/README.md) and the **api-testing** skill.
 
 ---
 
@@ -89,9 +89,9 @@ At one team, "staging" works. At fifty teams, a single shared staging environmen
 
 - **Ephemeral per-PR environments.** Spin up an isolated stack (app + seeded DB + stubbed externals) per pull request, run E2E, tear down. Maximum isolation; higher infra cost; ideal for hermetic E2E.
 - **Namespaced shared environment.** One environment, but each run carves out a logical namespace (tenant, schema, data prefix) so runs don't collide.
-- **Pre-prod smoke.** A few read-only journeys against the real deployment to catch config/infra breakage that no lower environment can — bridges into [Testing in Production](../13-testing-in-production/).
+- **Pre-prod smoke.** A few read-only journeys against the real deployment to catch config/infra breakage that no lower environment can — bridges into [Testing in Production](../13-testing-in-production/README.md).
 
-**Data management is the harder half** (see [Test Data Management](../11-test-data-management/) and the **test-data-management** skill):
+**Data management is the harder half** (see [Test Data Management](../11-test-data-management/README.md) and the **test-data-management** skill):
 
 - **Seed deterministically** via API/fixtures/factories — never depend on whatever happens to be in a shared DB.
 - **Isolate per run/worker** with namespaced accounts and record prefixes.
@@ -149,7 +149,7 @@ Scaling E2E across many teams is an organizational design problem:
 
 - **Feature teams own their E2E tests.** Encode via CODEOWNERS and tags; a failing test pages its owning team, not a central QA queue.
 - **A platform/QE team owns the *harness*, not the tests.** They provide the runner, fixtures, ephemeral-env tooling, reporting/flake dashboards, and the trace pipeline — so feature teams write tests cheaply and consistently.
-- **Policy as code at the gate.** The [quality gate](../01-test-strategy-and-the-pyramid/) enforces: smoke subset must pass pre-merge; the E2E budget; the flake threshold; quarantine rules. Policy, not heroics, keeps the suite healthy.
+- **Policy as code at the gate.** The [quality gate](../01-test-strategy-and-the-pyramid/README.md) enforces: smoke subset must pass pre-merge; the E2E budget; the flake threshold; quarantine rules. Policy, not heroics, keeps the suite healthy.
 - **A shared selector contract.** Org-wide convention (`data-testid` on critical-journey interactive elements), lint-enforced, so tests across teams are stable by default.
 
 The throughline: **make the cheap, reliable path the default and the expensive, flaky path require justification.** Good org design means an engineer adding an E2E test has to pass a budget check, name an owner, and accept the carrying cost — so the suite stays small by construction.

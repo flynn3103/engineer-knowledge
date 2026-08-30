@@ -2,7 +2,7 @@
 
 > *"Monitoring tells you whether the system is working. Observability lets you ask why it isn't — including for failures you never imagined."*
 
-This roadmap is the **umbrella discipline** of the diagnostics section. It sits *above* [Logging](../02-logging/), [Metrics](../04-metrics/), [Tracing](../05-tracing/), and [Continuous Profiling](../12-continuous-profiling/) and asks the synthesis question they each answer in part: **can you understand your system's internal state from its outputs — and answer questions you did not anticipate when you wrote the code?**
+This roadmap is the **umbrella discipline** of the diagnostics section. It sits *above* [Logging](../02-logging/README.md), [Metrics](../04-metrics/README.md), [Tracing](../05-tracing/README.md), and [Continuous Profiling](../12-continuous-profiling/README.md) and asks the synthesis question they each answer in part: **can you understand your system's internal state from its outputs — and answer questions you did not anticipate when you wrote the code?**
 
 The other roadmaps teach you to *emit* one kind of signal. This one teaches you to *unify* them into a single capability: forming a hypothesis at 3 a.m., querying your telemetry, narrowing to the one affected customer, and confirming the fix — without shipping new instrumentation first.
 

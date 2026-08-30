@@ -234,7 +234,7 @@ slsa-verifier verify-image IMG@sha256:... \
 
 ## Related Topics
 
-- [Supply-Chain Security](../09-supply-chain-security/) — the broader chain signing is part of.
-- [Registries & Distribution](../05-registries-and-distribution/) — where signatures/attestations live.
-- [Release Automation](../08-release-automation/) — wiring sign/attest/verify into pipelines.
-- [Rollback & Roll-Forward](../07-rollback-and-roll-forward/) — verified rollback as break-glass.
+- [Supply-Chain Security](../09-supply-chain-security/README.md) — the broader chain signing is part of.
+- [Registries & Distribution](../05-registries-and-distribution/README.md) — where signatures/attestations live.
+- [Release Automation](../08-release-automation/README.md) — wiring sign/attest/verify into pipelines.
+- [Rollback & Roll-Forward](../07-rollback-and-roll-forward/README.md) — verified rollback as break-glass.

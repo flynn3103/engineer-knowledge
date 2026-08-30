@@ -2,11 +2,11 @@
 
 > *"What you can't measure, you can't improve — but what you measure badly, you'll optimise for the wrong thing."*
 
-This roadmap is about **emitting numeric signals from a running program** — counters, gauges, histograms, and the discipline of choosing what to measure. It's the second of the "three pillars of observability" alongside [Logging](../02-logging/) and [Tracing](../05-tracing/).
+This roadmap is about **emitting numeric signals from a running program** — counters, gauges, histograms, and the discipline of choosing what to measure. It's the second of the "three pillars of observability" alongside [Logging](../02-logging/README.md) and [Tracing](../05-tracing/README.md).
 
 > Looking for *system-level* observability (Prometheus stack, Grafana, alert design)? See [Backend → Observability](../../../Backend/backend/09-observability/02-metrics/).
 >
-> Looking for *profiling* (CPU / memory / lock contention)? See [Quality Engineering → Performance → Profiling](../../performance/01-profiling/).
+> Looking for *profiling* (CPU / memory / lock contention)? See [Quality Engineering → Performance → Profiling](../../performance/01-profiling/README.md).
 >
 > This section is the **language-level** discipline — what your code emits, not what your monitoring stack ingests.
 

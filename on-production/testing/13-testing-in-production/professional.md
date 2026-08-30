@@ -171,7 +171,7 @@ A leader must keep the practice in its proper place or it metastasizes into an e
    ╱─────────────────╲
 ```
 
-The anti-pattern to police: a team with a weak base ("our unit tests are flaky so we just canary everything") using prod testing to *avoid* writing cheaper tests. That inverts the economics — you're spending the most expensive, riskiest confidence on bugs a $0 unit test would have caught. The leader's rule: **push every check down to the cheapest layer that can hold it; reserve production for the residue that physically cannot be verified elsewhere** (real scale, real data, real deps, real concurrency, emergent behavior). A strong base is what *earns* a team the right to test in production. (See [test strategy and the pyramid](../01-test-strategy-and-the-pyramid/), [unit testing](../02-unit-testing/), [E2E](../04-end-to-end-testing/).)
+The anti-pattern to police: a team with a weak base ("our unit tests are flaky so we just canary everything") using prod testing to *avoid* writing cheaper tests. That inverts the economics — you're spending the most expensive, riskiest confidence on bugs a $0 unit test would have caught. The leader's rule: **push every check down to the cheapest layer that can hold it; reserve production for the residue that physically cannot be verified elsewhere** (real scale, real data, real deps, real concurrency, emergent behavior). A strong base is what *earns* a team the right to test in production. (See [test strategy and the pyramid](../01-test-strategy-and-the-pyramid/README.md), [unit testing](../02-unit-testing/README.md), [E2E](../04-end-to-end-testing/README.md).)
 
 ---
 

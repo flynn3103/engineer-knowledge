@@ -17,8 +17,8 @@ Flame graphs are the visualisation Brendan Gregg invented to make sampled stack 
 
 ## Related
 
-- **[CPU Profiling](../01-cpu-profiling/)** — the most common profile flame graphs visualise.
-- **[Allocation Profiling](../03-allocation-profiling/)** — same visualisation, different metric.
+- **[CPU Profiling](../01-cpu-profiling/README.md)** — the most common profile flame graphs visualise.
+- **[Allocation Profiling](../03-allocation-profiling/README.md)** — same visualisation, different metric.
 - **Brendan Gregg's reference** — `brendangregg.com/flamegraphs.html` (the canonical resource).
 
 ---

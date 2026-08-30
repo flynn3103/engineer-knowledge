@@ -18,7 +18,7 @@ Picture three rings around your code:
 
 1. **Unit** — one class, everything else faked. Milliseconds. No I/O.
 2. **Integration** — your code + a *real* dependency (a real DB, a real broker). Hundreds of milliseconds.
-3. **End-to-end** — the whole running system, clicked like a user would. Seconds to minutes. See [End-to-End Testing](../04-end-to-end-testing/).
+3. **End-to-end** — the whole running system, clicked like a user would. Seconds to minutes. See [End-to-End Testing](../04-end-to-end-testing/README.md).
 
 Integration sits in the middle. The defining trait is **real I/O across a boundary**: instead of a mock that *pretends* to be Postgres, you talk to an actual Postgres.
 

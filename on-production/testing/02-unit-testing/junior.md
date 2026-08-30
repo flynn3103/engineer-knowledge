@@ -31,7 +31,7 @@ The fastest way to recognize a *non*-unit test is to look for these:
 ❌ Sleeps, waits for a timer, or depends on thread scheduling
 ```
 
-Any of those make the test slow, flaky, or environment-dependent — the opposite of a unit test. (How to *replace* those dependencies in a test is the job of [test doubles](../10-test-doubles-mocks-fakes/), covered later.)
+Any of those make the test slow, flaky, or environment-dependent — the opposite of a unit test. (How to *replace* those dependencies in a test is the job of [test doubles](../10-test-doubles-mocks-fakes/README.md), covered later.)
 
 A useful first rule: **if a function takes inputs and returns outputs with no side effects, it is the easiest thing in the world to unit-test.** Pure functions are where you start.
 

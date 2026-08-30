@@ -40,7 +40,7 @@ Search ranking    High       Med     scoring math            unit + property-bas
 
 Likelihood and impact are coarse (High/Med/Low) on purpose — precision here is false. The output is *emphasis*: where to spend exhaustive coverage, where a thin smoke test suffices, where automation isn't worth it at all. Note two non-obvious moves: high-likelihood/low-impact areas (report layout) get *less* automation than instinct suggests, and low-likelihood/critical areas (payments) still get heavy coverage because the impact dominates.
 
-Property-based testing earns a place wherever logic is rich (pricing, search ranking, parsers) — it covers input space that example tests miss. (See [Property-Based Testing](../06-property-based-testing/).)
+Property-based testing earns a place wherever logic is rich (pricing, search ranking, parsers) — it covers input space that example tests miss. (See [Property-Based Testing](../06-property-based-testing/README.md).)
 
 ## Core Concept 3 -- The CI time budget is a hard constraint
 
@@ -106,13 +106,13 @@ For distributed systems, the strategic move is to **replace cross-service E2E wi
 - The **consumer** records its expectations of the provider (the requests it sends, the responses it needs) as a contract.
 - The **provider** is tested *in isolation* against that contract (provider verification).
 
-Each side runs as a fast small/medium test; together they guarantee the seam holds without ever booting both. This is what lets the honeycomb/diamond keep its "integrated" top thin. Reserve true multi-service E2E for a *handful* of smoke tests that prove the environment assembles at all. (Full treatment in [Contract Testing](../05-contract-testing/).)
+Each side runs as a fast small/medium test; together they guarantee the seam holds without ever booting both. This is what lets the honeycomb/diamond keep its "integrated" top thin. Reserve true multi-service E2E for a *handful* of smoke tests that prove the environment assembles at all. (Full treatment in [Contract Testing](../05-contract-testing/README.md).)
 
 ## Core Concept 7 -- Coverage is an input, risk is the driver
 
 Line/branch coverage is a *diagnostic*, not a *target*. Two failure modes of coverage-driven testing:
 
-1. **Goodhart's law.** When coverage becomes the goal, engineers write assertion-free tests that execute lines without checking behaviour — 90% coverage, near-zero confidence. (See [Mutation Testing](../07-mutation-testing/) for measuring whether tests actually assert anything.)
+1. **Goodhart's law.** When coverage becomes the goal, engineers write assertion-free tests that execute lines without checking behaviour — 90% coverage, near-zero confidence. (See [Mutation Testing](../07-mutation-testing/README.md) for measuring whether tests actually assert anything.)
 2. **Uniform coverage misallocates risk.** "80% everywhere" spends as much effort on trivial getters as on the pricing engine. Risk-based testing deliberately over-covers the dangerous parts and under-covers the trivial ones — which may *lower* a global coverage number while *raising* real safety.
 
 Use coverage to find *gaps* in code you've decided is risky ("the pricing engine is only 60% covered — that's a problem"), never as the strategy itself. Coverage lives in its own QE section precisely because it is a measurement, not a kind of test — see [Code Coverage](../../code-coverage/).
@@ -127,7 +127,7 @@ Effective cost of an E2E test = run_time × (1 + expected_reruns)
   costs on average ~12 s + 0.05 × 2 × 12 s ≈ 13.2 s  -- and worse, erodes trust.
 ```
 
-Budget a **flake rate ceiling** (e.g. < 1% per test, < 0.1% suite-level) and quarantine offenders rather than blanket-retrying. Track it. A rising flake rate is the leading indicator that the suite is drifting up the pyramid into the cone. (See [Flaky Tests & Reliability](../12-flaky-tests-and-reliability/).)
+Budget a **flake rate ceiling** (e.g. < 1% per test, < 0.1% suite-level) and quarantine offenders rather than blanket-retrying. Track it. A rising flake rate is the leading indicator that the suite is drifting up the pyramid into the cone. (See [Flaky Tests & Reliability](../12-flaky-tests-and-reliability/README.md).)
 
 ## Real-World Examples
 

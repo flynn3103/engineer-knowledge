@@ -35,7 +35,7 @@ One service's SLO is easy. Fifty teams' SLOs become theatre unless you standardi
 
 ### 6. Cost is a first-class design constraint
 
-Telemetry volume grows super-linearly with traffic and microservice count. Without governance — sampling, cardinality budgets, retention tiers, attribution back to teams — the bill becomes a crisis and the reflexive fix (turn down sampling) blinds you exactly when you scale. Cost governance is an observability-design problem, not just a finance one (cross-ref [telemetry-cost](../14-telemetry-cost-and-sampling-strategy/)).
+Telemetry volume grows super-linearly with traffic and microservice count. Without governance — sampling, cardinality budgets, retention tiers, attribution back to teams — the bill becomes a crisis and the reflexive fix (turn down sampling) blinds you exactly when you scale. Cost governance is an observability-design problem, not just a finance one (cross-ref [telemetry-cost](../14-telemetry-cost-and-sampling-strategy/README.md)).
 
 ### 7. Observability metrics get Goodharted
 
@@ -172,7 +172,7 @@ Tooling is necessary and insufficient. The cultural shifts:
 - **Debug in production, routinely.** Normalise exploring prod telemetry as a daily habit, not a panic move. Engineers who only open the observability tool during incidents never build the fluency to use it well *during* incidents.
 - **Watch the ones who instrument richly.** The teams that resolve incidents fast are the ones whose spans are wide and whose attributes match their domain. Make their patterns the paved road.
 - **Paved roads over mandates.** Ship shared SDK config, auto-instrumentation, golden dashboards, and SLO templates so the easy path is the rich-instrumentation path. Mandates without ergonomics produce checkbox compliance (level-2 theatre).
-- **Blameless incident culture.** Observability and blamelessness reinforce each other: people share what the data shows when they won't be punished for what it reveals (cross-ref [post-mortem-analysis](../10-post-mortem-analysis/)).
+- **Blameless incident culture.** Observability and blamelessness reinforce each other: people share what the data shows when they won't be punished for what it reveals (cross-ref [post-mortem-analysis](../10-post-mortem-analysis/README.md)).
 
 The adoption test is behavioural, not architectural: *do engineers reach for the observability tool to answer questions, including outside incidents?* If yes, you have a capability. If they only look at dashboards someone else built, you have shelfware.
 
@@ -192,7 +192,7 @@ One service's SLO is a senior topic; *fifty teams'* SLOs is a professional one. 
 
 ## Cost Governance
 
-Telemetry is frequently a top-three infrastructure cost and grows faster than traffic (more services × more spans × more attributes). Without governance, the reflex when the bill spikes is to slash sampling — which blinds you precisely as you scale. (Deep dive: [telemetry-cost](../14-telemetry-cost-and-sampling-strategy/).) The governance levers:
+Telemetry is frequently a top-three infrastructure cost and grows faster than traffic (more services × more spans × more attributes). Without governance, the reflex when the bill spikes is to slash sampling — which blinds you precisely as you scale. (Deep dive: [telemetry-cost](../14-telemetry-cost-and-sampling-strategy/README.md).) The governance levers:
 
 | Lever | What it does | Where |
 |---|---|---|
@@ -209,7 +209,7 @@ The professional stance: **make cost visible and attributable**, so the team gen
 
 ## On-Call & Incident Response
 
-Observability's payoff is realised in the incident. (Cross-ref [post-mortem-analysis](../10-post-mortem-analysis/); see the `monitoring-alerting` skill for alert design.)
+Observability's payoff is realised in the incident. (Cross-ref [post-mortem-analysis](../10-post-mortem-analysis/README.md); see the `monitoring-alerting` skill for alert design.)
 
 - **Good observability shrinks MTTR by collapsing the investigation loop.** An on-call engineer who can hypothesise → query wide events → narrow → confirm resolves in minutes; one who must add-log-and-redeploy is stuck for hours. The platform's ROI is mostly here.
 - **Alerts must be actionable.** Every page should mean "a human must act now" and link to the relevant SLO and a starting query/dashboard. Non-actionable pages are alert fatigue, and fatigue causes missed real incidents — the most dangerous failure mode of all.

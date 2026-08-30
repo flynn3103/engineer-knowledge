@@ -108,7 +108,7 @@ Be precise about *why* this practice exists — the bug classes that pre-prod te
 | **Real user behavior** | Users paste 10MB into a field "no one would" | Real users are adversarial and creative |
 | **Config / infra drift** | Prod's load balancer timeout differs from staging's | Environments are never identical |
 
-The strategic point for the pyramid: **push everything down that *can* go down.** Anything verifiable cheaply in a unit or integration test belongs there — fast, deterministic, no user risk. Reserve production for the residue in the table above: the confidence that is *physically impossible* to obtain elsewhere. Testing in production is the apex precisely because it's expensive and risky; spend it only on what nothing cheaper can buy. (See [test strategy and the pyramid](../01-test-strategy-and-the-pyramid/).)
+The strategic point for the pyramid: **push everything down that *can* go down.** Anything verifiable cheaply in a unit or integration test belongs there — fast, deterministic, no user risk. Reserve production for the residue in the table above: the confidence that is *physically impossible* to obtain elsewhere. Testing in production is the apex precisely because it's expensive and risky; spend it only on what nothing cheaper can buy. (See [test strategy and the pyramid](../01-test-strategy-and-the-pyramid/README.md).)
 
 ---
 
@@ -154,7 +154,7 @@ A naive canary ("error rate < 1%") produces both false promotions and false roll
 - **Compare distributions, not point values.** Use Mann-Whitney U / Kolmogorov-Smirnov on latency; the median and tail, not the mean (means hide tail regressions).
 - **Account for traffic mix.** A 1% canary may receive an unrepresentative slice (e.g., all from one region). Use consistent hashing on a stable key so the canary sample is representative.
 - **Set the bake time by the slowest signal.** Memory leaks and cache effects need tens of minutes; don't promote faster than your slowest failure mode manifests.
-- **Beware metric flakiness.** Canary analysis can be flaky for the same reasons tests are — see [flaky tests and reliability](../12-flaky-tests-and-reliability/). Require N consecutive bad windows, not one, before aborting.
+- **Beware metric flakiness.** Canary analysis can be flaky for the same reasons tests are — see [flaky tests and reliability](../12-flaky-tests-and-reliability/README.md). Require N consecutive bad windows, not one, before aborting.
 
 Netflix's **Kayenta** (automated canary analysis) encodes exactly this: weighted metric groups, statistical comparison, a pass/marginal/fail score. The takeaway: **canary analysis is itself a testing system and deserves testing-system rigor.**
 

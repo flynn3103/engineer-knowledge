@@ -27,7 +27,7 @@ Charity Majors' core argument (in *Observability Engineering*) is that "logs, me
 
 ### 4. High cardinality is the superpower, not the enemy
 
-In the [metrics](../04-metrics/) world, high-cardinality labels (like `user_id`) are *forbidden* because they explode the time-series database. In the *event* world, high cardinality is exactly what lets you find the **one affected customer** out of a million. The same data that kills a TSDB is the data that solves the 3 a.m. bug. The difference is the storage model: events are stored raw and queried, not pre-aggregated into fixed time series. (Cardinality's *cost* is real, though — see [telemetry-cost](../14-telemetry-cost-and-sampling-strategy/).)
+In the [metrics](../04-metrics/README.md) world, high-cardinality labels (like `user_id`) are *forbidden* because they explode the time-series database. In the *event* world, high cardinality is exactly what lets you find the **one affected customer** out of a million. The same data that kills a TSDB is the data that solves the 3 a.m. bug. The difference is the storage model: events are stored raw and queried, not pre-aggregated into fixed time series. (Cardinality's *cost* is real, though — see [telemetry-cost](../14-telemetry-cost-and-sampling-strategy/README.md).)
 
 ### 5. Correlation is the thing that turns three signals into observability
 
@@ -70,7 +70,7 @@ Observability **includes** monitoring — you still build dashboards and alerts 
 | **Traces** | A tree of spans for one request | "What path did this request take? Where was the time?" | High |
 | **Profiles** *(4th)* | Sampled CPU/memory by code location | "Which function is burning the CPU / leaking memory?" | High |
 
-These are real and useful — each sibling roadmap ([logging](../02-logging/), [metrics](../04-metrics/), [tracing](../05-tracing/), [continuous-profiling](../12-continuous-profiling/)) goes deep on one.
+These are real and useful — each sibling roadmap ([logging](../02-logging/README.md), [metrics](../04-metrics/README.md), [tracing](../05-tracing/README.md), [continuous-profiling](../12-continuous-profiling/README.md)) goes deep on one.
 
 ### Why "three pillars" is also a *critique*
 
@@ -245,10 +245,10 @@ Whether you emit it as a log, a span, or both, aim for *one rich event per reque
 | Starting a span | microseconds | Cheap on the hot path; cost is in *export*, not creation. |
 | Adding an attribute | negligible | More attributes = more dimensions to slice by — usually worth it. |
 | Putting `trace_id` in a log | one extra field | Essentially free; the highest value-per-byte change you can make. |
-| Storing wide events / traces | grows with volume × width | This is the real bill — see [telemetry-cost](../14-telemetry-cost-and-sampling-strategy/). |
+| Storing wide events / traces | grows with volume × width | This is the real bill — see [telemetry-cost](../14-telemetry-cost-and-sampling-strategy/README.md). |
 | High-cardinality **metric labels** | can melt a TSDB | High cardinality is fine in *events*, dangerous in *metrics*. Know the difference. |
 
-The headline for a junior: **emitting is cheap; storing everything forever is not.** That's why senior teams *sample* (keep a representative subset of traces) — covered at [`middle.md`](middle.md) and in depth at [telemetry-cost](../14-telemetry-cost-and-sampling-strategy/). For now, emit rich events; learning to control their cost comes next.
+The headline for a junior: **emitting is cheap; storing everything forever is not.** That's why senior teams *sample* (keep a representative subset of traces) — covered at [`middle.md`](middle.md) and in depth at [telemetry-cost](../14-telemetry-cost-and-sampling-strategy/README.md). For now, emit rich events; learning to control their cost comes next.
 
 ---
 
@@ -271,7 +271,7 @@ The headline for a junior: **emitting is cheap; storing everything forever is no
 - **Treating observability as "buy a tool."** A Datadog/Honeycomb subscription doesn't make you observable; *emitting rich, correlated, queryable events* does. The tool is the backend, not the discipline.
 - **Putting high-cardinality data in metric labels.** `user_id` as a Prometheus label is a classic TSDB-killer. The *same* field in an event is correct. Know which world you're in.
 - **One thin event per log statement.** Ten `log.info()` calls scattered through a handler give you ten disconnected fragments; one wide event at the end gives you a queryable record.
-- **Sampling away the errors.** Naïve random sampling can drop the rare failing traces you most need. (Tail-based sampling fixes this — [telemetry-cost](../14-telemetry-cost-and-sampling-strategy/).)
+- **Sampling away the errors.** Naïve random sampling can drop the rare failing traces you most need. (Tail-based sampling fixes this — [telemetry-cost](../14-telemetry-cost-and-sampling-strategy/README.md).)
 
 ---
 

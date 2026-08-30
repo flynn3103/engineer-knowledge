@@ -4,9 +4,9 @@
 
 This roadmap is about **controlling the volume and cost of logs, metrics, and traces while preserving the fidelity you actually need.** It is the discipline that keeps observability from quietly becoming the most expensive line item you own — and from failing at the only moment it has to work: the 3 a.m. question, when the one trace you needed was the one you sampled away.
 
-> Looking for *what* to emit (the four metric types, span design, structured logs)? See the sibling pillars: [Metrics](../04-metrics/), [Tracing](../05-tracing/), [Logging](../02-logging/).
+> Looking for *what* to emit (the four metric types, span design, structured logs)? See the sibling pillars: [Metrics](../04-metrics/README.md), [Tracing](../05-tracing/README.md), [Logging](../02-logging/README.md).
 >
-> Looking for the *strategy* of observability as a whole (what to instrument, SLOs, the build-vs-buy of a stack)? See [Observability Engineering](../06-observability-engineering/).
+> Looking for the *strategy* of observability as a whole (what to instrument, SLOs, the build-vs-buy of a stack)? See [Observability Engineering](../06-observability-engineering/README.md).
 >
 > This section is the **economics-and-throughput** discipline — how much of what you emit you actually keep, where you decide that, and how you stay statistically honest after throwing data away.
 

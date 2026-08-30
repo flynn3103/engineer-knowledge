@@ -102,7 +102,7 @@ Mitigations a senior puts in place:
 - **A documented breaking-change policy** so "is this breaking?" is decided by a rule, not a mood.
 - **API-diff tooling in CI** (next section) to catch under-classification of *structural* breaks.
 - **Contract tests / golden tests** to catch *behavioral* breaks that diffs miss.
-- **A canary/soak step** so a mis-classified patch is caught in staging before it floats to everyone — see [Feature Flags & Progressive Delivery](../06-feature-flags-and-progressive-delivery/).
+- **A canary/soak step** so a mis-classified patch is caught in staging before it floats to everyone — see [Feature Flags & Progressive Delivery](../06-feature-flags-and-progressive-delivery/README.md).
 
 ## Core Concept 5 — Automated SemVer Derivation from API Diffs
 
@@ -160,7 +160,7 @@ Field numbers are the real contract; field *names* matter for JSON mappings. Nev
 
 **Events.** An event schema is a contract with every current *and historical* consumer, because events may be replayed from a log. Treat additive-only as the default and use an explicit `schema_version` field or a new topic for breaking changes.
 
-The senior principle: **version the contract, version it explicitly, and prefer additive evolution so you rarely need a breaking bump at all.** A breaking wire change usually means running both versions in parallel during migration (see [Rollback & Roll-Forward](../07-rollback-and-roll-forward/)). The `api-versioning` skill covers the request/response side of this in depth.
+The senior principle: **version the contract, version it explicitly, and prefer additive evolution so you rarely need a breaking bump at all.** A breaking wire change usually means running both versions in parallel during migration (see [Rollback & Roll-Forward](../07-rollback-and-roll-forward/README.md)). The `api-versioning` skill covers the request/response side of this in depth.
 
 ## Core Concept 7 — Monorepo Versioning Strategies
 

@@ -21,18 +21,18 @@ flowchart LR
 | 01 | [Estimation](estimation/README.md) | Size a system from requirements before writing code. |
 | 02 | [Testing](testing/README.md) | Choose the test level that actually catches the failure. |
 | 03 | [Performance](performance/README.md) | Measure before optimizing, and protect the hot path from regression. |
-| 04 | [Deployment Infrastructure](deployment-infrastructure/README.md) | Ship a running instance safely across environments. *(planned)* |
+| 04 | [Infrastructure](infrastructure/README.md) | Ship a running instance safely across environments. |
 | 05 | [Release](release/README.md) | Turn a built artifact into a traceable, reversible delivery. |
-| 06 | [Monitoring](monitoring/README.md) | Know a system's health before a user reports it. *(planned)* |
-| 07 | [Observability](observability/README.md) | Answer questions about the system you didn't know to ask in advance. *(planned)* |
+| 06 | [Monitoring](monitoring/README.md) | Know a system's health before a user reports it. |
+| 07 | [Observability](observability/README.md) | Answer questions about the system you didn't know to ask in advance. |
 | 08 | [Diagnostics](diagnostics/README.md) | Reason about a running system you cannot step through with a debugger. |
-| 09 | [SRE & Reliability](sre-reliability/README.md) | Own an error budget and respond to incidents deliberately. *(planned)* |
-| 10 | [Chaos Engineering](chaos-engineering/README.md) | Rehearse failure before it happens for real. *(planned)* |
-| 11 | [Security at Scale](security-at-scale/README.md) | Defend a system whose attack surface grows with its traffic. *(planned)* |
-| 12 | [Data Privacy](data-privacy/README.md) | Handle user data under real legal and contractual obligations. *(planned)* |
-| 13 | [Cost Efficiency](cost-efficiency/README.md) | Treat spend as a first-class engineering constraint. *(planned)* |
+| 09 | [SRE & Reliability](sre-reliability/README.md) | Own an error budget and respond to incidents deliberately. |
+| 10 | [Chaos Engineering](chaos-engineering/README.md) | Rehearse failure before it happens for real. |
+| 11 | [Security at Scale](security-at-scale/README.md) | Defend a system whose attack surface grows with its traffic. |
+| 12 | [Data Privacy](data-privacy/README.md) | Handle user data under real legal and contractual obligations. |
+| 13 | [Cost Efficiency](cost-efficiency/README.md) | Treat spend as a first-class engineering constraint. |
 
-Sections marked *(planned)* have their topics scoped but not yet written; open the section for the current list.
+Every section contains a progressive four-level curriculum. Open a section to choose a topic and begin at the level that matches your current responsibility.
 
 ## Use this on a real system
 

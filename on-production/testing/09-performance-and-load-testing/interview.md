@@ -243,9 +243,9 @@ Performance-testing interviews reward precision about two things above all: the 
 
 ## Related Topics
 
-- [`../13-testing-in-production/`](../13-testing-in-production/) — what synthetic load can't prove.
-- [`../11-test-data-management/`](../11-test-data-management/) — realistic data at scale.
-- [`../01-test-strategy-and-the-pyramid/`](../01-test-strategy-and-the-pyramid/) — where performance tests fit.
-- [`../../performance/`](../../performance/) — profiling and fixing the bottleneck.
+- [`../13-testing-in-production/`](../13-testing-in-production/README.md) — what synthetic load can't prove.
+- [`../11-test-data-management/`](../11-test-data-management/README.md) — realistic data at scale.
+- [`../01-test-strategy-and-the-pyramid/`](../01-test-strategy-and-the-pyramid/README.md) — where performance tests fit.
+- [`../../performance/`](../../performance/README.md) — profiling and fixing the bottleneck.
 - [`../../engineering-metrics-and-dora/`](../../engineering-metrics-and-dora/) — SLOs and error budgets.
 - Skills: `system-design-estimation`, `monitoring-alerting`, `load-balancing`.

@@ -6,7 +6,7 @@ This roadmap is about **turning built artifacts into releasable, traceable, reve
 
 > Looking for *building the artifact* (compile, link, package, cache)? See [Build Source Code](../../Craftsmanship/build-source-code/README.md).
 >
-> Looking for *deploying the artifact* (containers, orchestration, rollout mechanics)? See [Deployment Infrastructure](../deployment-infrastructure/README.md).
+> Looking for *deploying the artifact* (containers, orchestration, rollout mechanics)? See [Infrastructure](../infrastructure/README.md).
 
 ---
 
@@ -17,7 +17,7 @@ Release engineering lives between the build and the deploy, and it is the part t
 | Roadmap | Question it answers |
 |---|---|
 | [Build Source Code](../../Craftsmanship/build-source-code/README.md) | Can I reproducibly turn my source into a runnable artifact? |
-| [Testing](../testing/) | Does my code work? |
+| [Testing](../testing/README.md) | Does my code work? |
 | **Release Engineering** (this) | Can I ship that artifact safely, traceably, and reversibly? |
 
 ---
@@ -26,15 +26,15 @@ Release engineering lives between the build and the deploy, and it is the part t
 
 | # | Topic | Focus |
 |---|---|---|
-| [01](01-versioning-and-semver/) | Versioning & SemVer | Semantic versioning, calver/datever, the breaking-change discipline, pre-release and build metadata |
-| [02](02-changelogs-and-release-notes/) | Changelogs & Release Notes | Keep a Changelog, conventional commits, automated generation; changelog vs release notes vs migration guide |
-| [03](03-release-branching-and-trains/) | Release Branching & Trains | Release branches vs trunk-based release tags, release candidates and promotion, release trains and cadence |
-| [04](04-artifact-signing-and-provenance/) | Artifact Signing & Provenance | Sigstore / cosign, SLSA levels, in-toto attestations, reproducible builds as a trust primitive |
-| [05](05-registries-and-distribution/) | Registries & Distribution | Container and package registries, immutability and retention, yank/deprecate semantics, mirrors and CDNs |
-| [06](06-feature-flags-and-progressive-delivery/) | Feature Flags & Progressive Delivery | Flags as a release control, canary and ring deployments, percentage rollouts, flag lifecycle and debt |
-| [07](07-rollback-and-roll-forward/) | Rollback & Roll-Forward | Binary rollback, flag kill-switches, roll-forward vs revert, hotfix policy, backward-compatible migrations |
-| [08](08-release-automation/) | Release Automation | `semantic-release`, changesets, `goreleaser`, release-please; the fully automated tag-to-publish pipeline |
-| [09](09-supply-chain-security/) | Supply-Chain Security | SBOMs, dependency provenance, pinning and lockfiles, signing verification at install, SLSA threat model |
+| [01](01-versioning-and-semver/README.md) | Versioning & SemVer | Semantic versioning, calver/datever, the breaking-change discipline, pre-release and build metadata |
+| [02](02-changelogs-and-release-notes/README.md) | Changelogs & Release Notes | Keep a Changelog, conventional commits, automated generation; changelog vs release notes vs migration guide |
+| [03](03-release-branching-and-trains/README.md) | Release Branching & Trains | Release branches vs trunk-based release tags, release candidates and promotion, release trains and cadence |
+| [04](04-artifact-signing-and-provenance/README.md) | Artifact Signing & Provenance | Sigstore / cosign, SLSA levels, in-toto attestations, reproducible builds as a trust primitive |
+| [05](05-registries-and-distribution/README.md) | Registries & Distribution | Container and package registries, immutability and retention, yank/deprecate semantics, mirrors and CDNs |
+| [06](06-feature-flags-and-progressive-delivery/README.md) | Feature Flags & Progressive Delivery | Flags as a release control, canary and ring deployments, percentage rollouts, flag lifecycle and debt |
+| [07](07-rollback-and-roll-forward/README.md) | Rollback & Roll-Forward | Binary rollback, flag kill-switches, roll-forward vs revert, hotfix policy, backward-compatible migrations |
+| [08](08-release-automation/README.md) | Release Automation | `semantic-release`, changesets, `goreleaser`, release-please; the fully automated tag-to-publish pipeline |
+| [09](09-supply-chain-security/README.md) | Supply-Chain Security | SBOMs, dependency provenance, pinning and lockfiles, signing verification at install, SLSA threat model |
 
 ---
 

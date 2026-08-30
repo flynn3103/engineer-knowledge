@@ -114,7 +114,7 @@ This gives you the best of both worlds: data that *looks* real and varies betwee
 Two rules keep seeded fakers safe:
 
 1. **Seed once, globally, in test setup** — so the whole run is reproducible.
-2. **Never assert on faked fields.** If a test checks `name == "Jane"`, don't let faker pick the name; pin it. Faker fills the *scenery* (the fields you don't assert on); your builder pins the *subject* (the fields you do). When a property-based approach is warranted instead, see [Property-Based Testing](../06-property-based-testing/).
+2. **Never assert on faked fields.** If a test checks `name == "Jane"`, don't let faker pick the name; pin it. Faker fills the *scenery* (the fields you don't assert on); your builder pins the *subject* (the fields you do). When a property-based approach is warranted instead, see [Property-Based Testing](../06-property-based-testing/README.md).
 
 ---
 
@@ -167,7 +167,7 @@ Seeding is populating an environment with data before tests run. Distinguish **l
 
 **Programmatic seeds vs SQL dumps.** Programmatic seeds (factories/builders called in code) stay valid as the schema evolves and express intent. SQL dumps are fast to load and exact, but rot the instant the schema changes and are opaque to read. Prefer programmatic seeds for test-case data; SQL dumps are acceptable only for large, stable reference data where load speed matters.
 
-**By test level**: unit tests need almost no seeding (build objects in memory). Integration and E2E tests need real reference data seeded plus per-test-case data built inside isolation (see [Integration Testing](../03-integration-testing/) and [End-to-End Testing](../04-end-to-end-testing/)).
+**By test level**: unit tests need almost no seeding (build objects in memory). Integration and E2E tests need real reference data seeded plus per-test-case data built inside isolation (see [Integration Testing](../03-integration-testing/README.md) and [End-to-End Testing](../04-end-to-end-testing/README.md)).
 
 ---
 

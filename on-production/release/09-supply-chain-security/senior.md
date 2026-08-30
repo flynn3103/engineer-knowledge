@@ -71,7 +71,7 @@ cosign verify-attestation \
   ghcr.io/yourco/api@sha256:<digest>
 ```
 
-The key senior insight is *what to assert in policy*, not how the crypto works (that's [topic 04](../04-artifact-signing-and-provenance/)): you want provenance that ties the artifact to an **expected source repo**, an **expected builder identity**, and ideally an **expected workflow** — so a build produced by anything *other* than your sanctioned pipeline fails verification, even if it's signed.
+The key senior insight is *what to assert in policy*, not how the crypto works (that's [topic 04](../04-artifact-signing-and-provenance/README.md)): you want provenance that ties the artifact to an **expected source repo**, an **expected builder identity**, and ideally an **expected workflow** — so a build produced by anything *other* than your sanctioned pipeline fails verification, even if it's signed.
 
 ---
 
@@ -79,7 +79,7 @@ The key senior insight is *what to assert in policy*, not how the crypto works (
 
 Provenance you generate but never check is decoration. The control is **verify-before-trust**, enforced as a *gate* that blocks anything failing verification:
 
-- **At deploy/admission.** A Kubernetes admission controller (Sigstore policy-controller, Kyverno, or OPA/Gatekeeper) rejects images that lack a valid signature *and* provenance from your expected identity. Mechanics in [topic 04](../04-artifact-signing-and-provenance/); the senior decision is *where the gate lives and what it asserts*.
+- **At deploy/admission.** A Kubernetes admission controller (Sigstore policy-controller, Kyverno, or OPA/Gatekeeper) rejects images that lack a valid signature *and* provenance from your expected identity. Mechanics in [topic 04](../04-artifact-signing-and-provenance/README.md); the senior decision is *where the gate lives and what it asserts*.
 - **At install (deps).** Verify package signatures/attestations before consuming. PyPI, npm, and others increasingly support signed attestations via **trusted publishing**.
 - **In CI, before promote.** A pipeline step that runs `cosign verify-attestation` and refuses to promote build → staging → prod unless provenance matches policy.
 
@@ -97,7 +97,7 @@ The design principle: **the gate must be on the critical path and fail closed.**
 
 ## Core Concept 5 — SLSA levels under real constraints
 
-**SLSA** grades build integrity. The mechanics of achieving each level via signing/provenance tooling live in [topic 04](../04-artifact-signing-and-provenance/); here's the senior decision framework — *what each level buys and what it costs*:
+**SLSA** grades build integrity. The mechanics of achieving each level via signing/provenance tooling live in [topic 04](../04-artifact-signing-and-provenance/README.md); here's the senior decision framework — *what each level buys and what it costs*:
 
 | Level | Roughly means | Buys you | Realistic cost |
 |-------|---------------|----------|----------------|
@@ -117,7 +117,7 @@ The build holds source, secrets, *and* signing keys at once — so hardening the
 - **Least privilege for the runner.** The build needs read on source and write on the artifact registry — rarely more. Scope tokens to exactly that. Don't hand the build broad cloud admin.
 - **Short-lived, identity-bound secrets (OIDC).** Replace long-lived publish tokens and cloud keys with OIDC: the runner exchanges a workflow identity for a short-lived credential at job time. There's no long-lived secret to steal, which is the direct countermeasure to the Codecov pattern. (See the `secrets-management` skill.)
 - **Pin your CI actions/steps by digest.** A third-party GitHub Action referenced by mutable tag (`@v4`) can be re-pointed at malicious code; pin by commit SHA. Your CI config is *also* a dependency graph.
-- **Isolate the signing key.** Signing should happen in the hardened build or a dedicated signer, with keys in an HSM/KMS or keyless (Fulcio/Sigstore). The build step should be able to *request* a signature, not exfiltrate a key. (Encryption and key-management fundamentals: the `encryption-basics` skill; mechanics in [topic 04](../04-artifact-signing-and-provenance/).)
+- **Isolate the signing key.** Signing should happen in the hardened build or a dedicated signer, with keys in an HSM/KMS or keyless (Fulcio/Sigstore). The build step should be able to *request* a signature, not exfiltrate a key. (Encryption and key-management fundamentals: the `encryption-basics` skill; mechanics in [topic 04](../04-artifact-signing-and-provenance/README.md).)
 - **Audit and monitor the pipeline.** Log who triggered what, with which inputs; alert on out-of-band builds (a release produced outside the sanctioned workflow should page someone).
 
 The throughline: treat the CI/CD system as **production infrastructure with production-grade access controls** — because in a supply-chain sense, it *is* production.

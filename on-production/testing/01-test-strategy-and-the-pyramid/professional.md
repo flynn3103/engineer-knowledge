@@ -60,7 +60,7 @@ Incident #4471 -- refund applied twice on retry
   Action: add unit test for idempotency; this is a strategy gap, not a fluke
 ```
 
-Aggregate these over a quarter and a pattern emerges: *"40% of escaped defects were catchable by a unit test we didn't write"* points at an under-invested base; *"most escapes are seam/integration bugs"* points at thin integration coverage or missing contracts; *"escapes are all in flows with no E2E"* points at an over-thin top. This loop is what converts the strategy from static to *self-correcting* — each escape either confirms the allocation or names the gap. It also catches the subtle case where a bug escaped *despite* a test at the right level — meaning the test was weak (a job for [Mutation Testing](../07-mutation-testing/)).
+Aggregate these over a quarter and a pattern emerges: *"40% of escaped defects were catchable by a unit test we didn't write"* points at an under-invested base; *"most escapes are seam/integration bugs"* points at thin integration coverage or missing contracts; *"escapes are all in flows with no E2E"* points at an over-thin top. This loop is what converts the strategy from static to *self-correcting* — each escape either confirms the allocation or names the gap. It also catches the subtle case where a bug escaped *despite* a test at the right level — meaning the test was weak (a job for [Mutation Testing](../07-mutation-testing/README.md)).
 
 ## Core Concept 5 -- Test ROI and the economics of confidence
 

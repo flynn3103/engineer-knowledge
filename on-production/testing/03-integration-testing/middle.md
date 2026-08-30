@@ -28,7 +28,7 @@ The naive instinct is "pick the fast one." But a fast test that doesn't reflect 
 
 - Testing pure business logic with no I/O → **mock** (it's a unit test).
 - Testing your repository's SQL, transactions, constraints → **Testcontainers** (real engine, nothing less).
-- Testing an external partner's API shape → **contract test**, not a live call (see [Contract Testing](../05-contract-testing/)).
+- Testing an external partner's API shape → **contract test**, not a live call (see [Contract Testing](../05-contract-testing/README.md)).
 
 For database code there's essentially no middle ground worth taking: it's the real engine or it's not really tested.
 
@@ -176,7 +176,7 @@ void chargesViaPaymentGateway() {
 
 WireMock also lets you simulate failures (500s, timeouts, malformed bodies) so you can test your retry and error handling against realistic HTTP behaviour.
 
-> **The integration / contract boundary.** WireMock proves *your client works against the response you stubbed.* It does **not** prove the real provider actually sends that shape. That guarantee is what [Contract Testing](../05-contract-testing/) provides (Pact, Spring Cloud Contract). Use WireMock for "does my code handle this response?"; use contract tests for "do the two sides still agree?".
+> **The integration / contract boundary.** WireMock proves *your client works against the response you stubbed.* It does **not** prove the real provider actually sends that shape. That guarantee is what [Contract Testing](../05-contract-testing/README.md) provides (Pact, Spring Cloud Contract). Use WireMock for "does my code handle this response?"; use contract tests for "do the two sides still agree?".
 
 ---
 

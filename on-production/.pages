@@ -4,7 +4,7 @@ nav:
   - Estimation: estimation
   - Testing: testing
   - Performance: performance
-  - Deployment Infrastructure: deployment-infrastructure
+  - Infrastructure: infrastructure
   - Release: release
   - Monitoring: monitoring
   - Observability: observability

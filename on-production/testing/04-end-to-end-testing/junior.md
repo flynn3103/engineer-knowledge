@@ -56,7 +56,7 @@ E2E is the **top**: the smallest slice. A common, painful anti-pattern is the **
 
 The discipline you'll learn: **use E2E for confidence, not for coverage.** Cover the few critical journeys end-to-end; push everything else (validation rules, edge cases, error formatting) down into unit and integration tests where they run in milliseconds.
 
-See [Test Strategy & the Pyramid](../01-test-strategy-and-the-pyramid/) for the full picture.
+See [Test Strategy & the Pyramid](../01-test-strategy-and-the-pyramid/README.md) for the full picture.
 
 ---
 
@@ -163,7 +163,7 @@ test('shows order confirmation', async ({ page }) => {
 });
 ```
 
-The web-first assertion waits *exactly* as long as needed and no longer. **"`sleep` is a bug"** — engrave it. We'll go deeper on flakiness in [Flaky Tests & Reliability](../12-flaky-tests-and-reliability/).
+The web-first assertion waits *exactly* as long as needed and no longer. **"`sleep` is a bug"** — engrave it. We'll go deeper on flakiness in [Flaky Tests & Reliability](../12-flaky-tests-and-reliability/README.md).
 
 ---
 

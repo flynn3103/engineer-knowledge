@@ -640,7 +640,7 @@ Manual instrumentation does not scale to 300 services. Auto-instrumentation give
 
 ### The Go exception and eBPF
 
-Go has no monkey-patching (static binaries, no runtime agent), so historically Go needed explicit `otelhttp`/`otelgrpc` wrappers. The frontier answer is **eBPF auto-instrumentation** (Grafana Beyla, Odigos) — kernel-level tracing of HTTP/gRPC with *zero code change and zero recompile*, language-agnostic. It can't see inside application logic (no business spans), but it gives you the request-boundary spans for free across any language. See [`../13-dynamic-instrumentation-and-ebpf/`](../13-dynamic-instrumentation-and-ebpf/) for the eBPF foundations.
+Go has no monkey-patching (static binaries, no runtime agent), so historically Go needed explicit `otelhttp`/`otelgrpc` wrappers. The frontier answer is **eBPF auto-instrumentation** (Grafana Beyla, Odigos) — kernel-level tracing of HTTP/gRPC with *zero code change and zero recompile*, language-agnostic. It can't see inside application logic (no business spans), but it gives you the request-boundary spans for free across any language. See [`../13-dynamic-instrumentation-and-ebpf/`](../13-dynamic-instrumentation-and-ebpf/README.md) for the eBPF foundations.
 
 ### The fleet-scale auto-instrumentation problems you own
 

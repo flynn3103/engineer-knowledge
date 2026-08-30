@@ -450,7 +450,7 @@ The user's request pays only for the **hash** (microseconds) and a normal DB ins
 - **Time-partition the store** (daily/monthly). Old partitions roll to cold WORM storage; queries during an investigation hit a known partition range.
 - **Index for the forensic queries**, not for writes: `(actor_id, time)`, `(resource_type, resource_id, time)`, `(action, time)`. Audit tables are insert-heavy and read-rarely, but the rare read is during an incident or audit when you cannot afford a full scan.
 - **Compress segments** before WORM (`.ndjson.gz`) — audit events are highly compressible (repeated field names, similar actions); 10–20× is typical.
-- **Sample? Never.** This is the one telemetry stream you must not sample. See [`../14-telemetry-cost-and-sampling-strategy/`](../14-telemetry-cost-and-sampling-strategy/) — audit events are the explicit exception. A sampled audit log is a worthless audit log.
+- **Sample? Never.** This is the one telemetry stream you must not sample. See [`../14-telemetry-cost-and-sampling-strategy/`](../14-telemetry-cost-and-sampling-strategy/README.md) — audit events are the explicit exception. A sampled audit log is a worthless audit log.
 
 ### Cost reality
 

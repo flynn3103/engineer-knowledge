@@ -179,7 +179,7 @@ Quality gates    → enforce the above on the diff (policy)
 ```
 
 - vs **[Code Coverage](../../code-coverage/):** coverage is the cheap, broad floor; mutation is the expensive, narrow sufficiency check on top. Run coverage everywhere; run mutation where correctness is load-bearing. Coverage caps the mutation score, so you need both.
-- vs **[Property-Based Testing](../06-property-based-testing/):** PBT widens input space; mutation validates that the properties are strong enough to catch faults. They compound.
+- vs **[Property-Based Testing](../06-property-based-testing/README.md):** PBT widens input space; mutation validates that the properties are strong enough to catch faults. They compound.
 - vs **[Engineering Metrics & DORA](../../engineering-metrics-and-dora/):** mutation score is a *team-owned diagnostic*, not a delivery metric. Keep it out of cross-team leaderboards to avoid Goodhart.
 
 Use the **`unit-testing-patterns`** skill to standardize the assertion patterns that kill mutants across teams — a shared vocabulary of "assert the value, the boundary, the side effect" makes the gate teachable rather than punitive.

@@ -37,7 +37,7 @@ Each entry below is **Q** (the question) / *what's really being tested* / **A** 
 
 - The full ladder: junior (AAA, naming), middle (classical vs mockist, behavior-not-impl), senior (four pillars, smells), professional (suite health).
 - Be ready to write a small test live in your strongest language.
-- Know the vocabulary of [Test Doubles](../10-test-doubles-mocks-fakes/) and [Mutation Testing](../07-mutation-testing/).
+- Know the vocabulary of [Test Doubles](../10-test-doubles-mocks-fakes/README.md) and [Mutation Testing](../07-mutation-testing/README.md).
 
 ---
 
@@ -215,9 +215,9 @@ Interview-level unit testing is about **reasoning, not recitation**. Define a un
 
 ## Related Topics
 
-- [Test Strategy & the Pyramid](../01-test-strategy-and-the-pyramid/) — the ratio and placement questions.
-- [Test Doubles, Mocks & Fakes](../10-test-doubles-mocks-fakes/) — the mocking-debate vocabulary.
-- [Mutation Testing](../07-mutation-testing/) — the protection metric interviewers love.
-- [Flaky Tests & Reliability](../12-flaky-tests-and-reliability/) — the flakiness scenario playbook.
+- [Test Strategy & the Pyramid](../01-test-strategy-and-the-pyramid/README.md) — the ratio and placement questions.
+- [Test Doubles, Mocks & Fakes](../10-test-doubles-mocks-fakes/README.md) — the mocking-debate vocabulary.
+- [Mutation Testing](../07-mutation-testing/README.md) — the protection metric interviewers love.
+- [Flaky Tests & Reliability](../12-flaky-tests-and-reliability/README.md) — the flakiness scenario playbook.
 - [Code Coverage](../../code-coverage/) — coverage as a floor, not a target.
 - **Start over:** [Unit Testing — Junior Level](junior.md).

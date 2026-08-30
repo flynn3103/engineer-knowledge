@@ -775,5 +775,5 @@ You can wire crash capture in any of Node, Python, Go, Java/Android, or native C
 - [Crash Reporting — Senior](senior.md)
 - [Crash Reporting — Professional](professional.md)
 - [Crash Reporting — Interview](interview.md)
-- Sibling diagnostic topics: [Debugging](../01-debugging/README.md), [Error Handling](../03-error-handling/README.md), [Logging](../02-logging/README.md), [Tracing](../05-tracing/)
+- Sibling diagnostic topics: [Debugging](../01-debugging/README.md), [Error Handling](../03-error-handling/README.md), [Logging](../02-logging/README.md), [Tracing](../05-tracing/README.md)
 - Cousins: [Clean Code — Error Handling](../../code-craft/clean-code/06-error-handling/README.md), [Refactoring — Tooling & Automation](../../code-craft/refactoring/05-tooling-and-automation/)

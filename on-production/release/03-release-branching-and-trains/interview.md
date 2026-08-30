@@ -35,7 +35,7 @@ Interviewers probe release branching to test whether you understand *why* a mode
 
 - The [junior](./junior.md) through [senior](./senior.md) tiers of this topic.
 - Working `git` fluency: cherry-pick, tag, merge, branch.
-- Awareness of CI/CD promotion and feature flags ([06](../06-feature-flags-and-progressive-delivery/)).
+- Awareness of CI/CD promotion and feature flags ([06](../06-feature-flags-and-progressive-delivery/README.md)).
 
 ---
 
@@ -222,9 +222,9 @@ Interview success here is connecting branching choices to constraints and trade-
 
 ## Related Topics
 
-- [Versioning & SemVer](../01-versioning-and-semver/)
-- [Changelogs & Release Notes](../02-changelogs-and-release-notes/)
-- [Artifact Signing & Provenance](../04-artifact-signing-and-provenance/)
-- [Feature Flags & Progressive Delivery](../06-feature-flags-and-progressive-delivery/)
-- [Rollback & Roll-Forward](../07-rollback-and-roll-forward/)
-- [Release Automation](../08-release-automation/)
+- [Versioning & SemVer](../01-versioning-and-semver/README.md)
+- [Changelogs & Release Notes](../02-changelogs-and-release-notes/README.md)
+- [Artifact Signing & Provenance](../04-artifact-signing-and-provenance/README.md)
+- [Feature Flags & Progressive Delivery](../06-feature-flags-and-progressive-delivery/README.md)
+- [Rollback & Roll-Forward](../07-rollback-and-roll-forward/README.md)
+- [Release Automation](../08-release-automation/README.md)

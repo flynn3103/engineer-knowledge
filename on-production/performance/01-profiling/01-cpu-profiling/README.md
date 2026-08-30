@@ -16,8 +16,8 @@ CPU profiles attribute *where the CPU spent its cycles* — wall-clock vs on-CPU
 
 ## Related
 
-- **[Flame Graphs](../04-flame-graphs/)** — the dominant visualisation for CPU profiles.
-- **[Benchmarking](../../02-benchmarking-and-microbenchmarks/)** — comparison after profile-guided change.
+- **[Flame Graphs](../04-flame-graphs/README.md)** — the dominant visualisation for CPU profiles.
+- **[Benchmarking](../../02-benchmarking-and-microbenchmarks/README.md)** — comparison after profile-guided change.
 - **[Diagnostics → Diagnostic Endpoints](../../../../diagnostics/diagnostic-endpoints/)** — `/debug/pprof` for live capture.
 
 ---

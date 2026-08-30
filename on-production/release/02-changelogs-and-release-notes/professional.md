@@ -58,7 +58,7 @@ Beyond a contract, the changelog and release record carry **legal and regulatory
 - **Change-management compliance (SOC 2 CC8, ISO 27001 A.12.1.2).** Auditors require that production changes are tracked, reviewed, and approved. The changelog + release record + approval trail *is* the evidence. "What changed in production on 2026-05-12 and who approved it?" must be answerable. If your changelog can't reconstruct this, you fail the control.
 - **Append-only / immutable history.** Once a version's entries ship, **never rewrite them.** Rewriting shipped history destroys the audit trail and can constitute falsifying records. Corrections go in a *new* entry ("Corrected: the 2.3.0 entry misstated…"), not by editing the old one. This is why mature pipelines protect tags and changelog history.
 - **Security-disclosure obligations.** Regulations and contracts increasingly require timely vulnerability disclosure (e.g. customer SLAs, sector regulations, the EU CRA's reporting duties). The Security section's timestamps are the proof of when you disclosed. Disclosing late — or before the patch — has legal consequences.
-- **License and dependency provenance.** For some compliance regimes the changelog must note dependency changes that affect licensing or the SBOM. This ties the changelog to [Supply-Chain Security](../09-supply-chain-security/).
+- **License and dependency provenance.** For some compliance regimes the changelog must note dependency changes that affect licensing or the SBOM. This ties the changelog to [Supply-Chain Security](../09-supply-chain-security/README.md).
 - **Contractual feature commitments.** If a contract promises a feature "by Q3," the dated release note is evidence of delivery. Conversely, announcing a removed feature in the changelog can trigger contractual notice periods.
 
 > The reframe: the changelog is not just developer courtesy; it is a **record of corporate action**. Design it with the same integrity controls you'd apply to any audit artifact — immutability, attribution, timestamps, review.
@@ -159,7 +159,7 @@ Goodhart's law bites hard here: *when a measure becomes a target, it ceases to b
 - **Audit a sample qualitatively.** Periodically read a random sample of recent notes against the standard. Numbers tell you coverage; reading tells you quality.
 - **Watch the dodge incentives.** The most dangerous gaming is reclassifying security fixes as `fix:` to avoid disclosure timing — monitor for it explicitly.
 
-> See [Engineering Metrics & DORA](../../) — the same Goodhart discipline applies. Treat change-comms metrics as health indicators for a conversation, not as targets to maximize.
+> See [Engineering Metrics & DORA](../../README.md) — the same Goodhart discipline applies. Treat change-comms metrics as health indicators for a conversation, not as targets to maximize.
 
 ---
 
@@ -188,7 +188,7 @@ For platforms with many integrators, breaking changes aren't one-off events — 
 Publication *timing* is a professional-level control, especially where security and large customers are involved.
 
 - **Security embargo.** An embargoed fix must publish binary + advisory + changelog **simultaneously**, never the changelog first (which hands attackers a roadmap to unpatched users). The pipeline must gate advisory publication on artifact availability. Coordinated disclosure with reporters and downstreams (CERTs, major customers) follows an agreed timeline.
-- **Staggered rollout vs changelog timing (SaaS).** With progressive delivery, a feature is at 5% then 50% then 100%. Announcing in the public changelog at 5% confuses the 95% who don't have it; announcing at merge is even earlier. Standard: **announce user-facing changes when they reach general availability**, with a separate early-access channel for beta cohorts. See [Feature Flags & Progressive Delivery](../06-feature-flags-and-progressive-delivery/) and [Rollback & Roll-Forward](../07-rollback-and-roll-forward/) — if a rollout is rolled back, the changelog/notes must be retractable too.
+- **Staggered rollout vs changelog timing (SaaS).** With progressive delivery, a feature is at 5% then 50% then 100%. Announcing in the public changelog at 5% confuses the 95% who don't have it; announcing at merge is even earlier. Standard: **announce user-facing changes when they reach general availability**, with a separate early-access channel for beta cohorts. See [Feature Flags & Progressive Delivery](../06-feature-flags-and-progressive-delivery/README.md) and [Rollback & Roll-Forward](../07-rollback-and-roll-forward/README.md) — if a rollout is rolled back, the changelog/notes must be retractable too.
 - **Pre-announcement for breaking changes.** Major customers and integrators often have contractual notice rights. The changelog's `Deprecated` entry may need to be backed by direct customer notice on a defined timeline.
 - **Time-zone and market coordination.** Global products coordinate note publication with regional launches and app-store review latency (Apple/Google review can delay localized notes by days — plan for it).
 

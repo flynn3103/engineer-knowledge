@@ -16,7 +16,7 @@ Use the smallest realistic scenario that exposes the decision and its failure be
 
 Every unit test can be scored on four attributes. A test's *value* is roughly the product of the first two, weighed against the cost captured by the last two.
 
-**1. Protection against regressions.** When a real bug is introduced into the code the test covers, does the test fail? This is the whole reason tests exist. It depends on how much code the test exercises, how complex that code is, and how meaningful the assertions are. A test that runs a lot of important logic and checks the real outcome has high regression protection. (`assert true` has none.) The honest, mechanical measure is **mutation score** — see [Mutation Testing](../07-mutation-testing/).
+**1. Protection against regressions.** When a real bug is introduced into the code the test covers, does the test fail? This is the whole reason tests exist. It depends on how much code the test exercises, how complex that code is, and how meaningful the assertions are. A test that runs a lot of important logic and checks the real outcome has high regression protection. (`assert true` has none.) The honest, mechanical measure is **mutation score** — see [Mutation Testing](../07-mutation-testing/README.md).
 
 **2. Resistance to refactoring.** When you change the code's *structure* without changing its *behavior*, does the test stay green? A test with high resistance produces a failure **only** when behavior actually breaks. The enemy here is the **false positive** — a failing test on correct code. False positives are catastrophic at scale: they train the team to ignore red, and they make every refactor expensive, so refactoring stops and the code rots. Resistance to refactoring comes almost entirely from **testing observable behavior, not implementation**.
 
@@ -43,7 +43,7 @@ You cannot maximize all four. The first three trade against each other; only mai
 - End-to-end-style tests that drive a lot of code have *high* protection but *low* resistance only if they assert on implementation; well-written, they also resist refactoring — but they're slow.
 - Mockist tests that pin every interaction have *high* localization but *low* resistance to refactoring — they break on rearrangement.
 
-**Fast feedback ↔ regression protection.** Bigger tests catch more (more code exercised) but run slower. Tiny tests are fast but each catches little. This is precisely why the **pyramid** exists: a base of fast, focused unit tests plus a thin top of slow, broad tests — see [Test Strategy & the Pyramid](../01-test-strategy-and-the-pyramid/).
+**Fast feedback ↔ regression protection.** Bigger tests catch more (more code exercised) but run slower. Tiny tests are fast but each catches little. This is precisely why the **pyramid** exists: a base of fast, focused unit tests plus a thin top of slow, broad tests — see [Test Strategy & the Pyramid](../01-test-strategy-and-the-pyramid/README.md).
 
 The one corner you can almost always win: a test that is **trivial, brittle, AND slow** has no redeeming pillar — delete it. The hard cases are the genuine three-way trade-offs.
 
@@ -76,7 +76,7 @@ The structural causes of low resistance at scale, and the fixes:
 | Mocking owned, in-process collaborators | Use real / in-memory fakes; mock only unmanaged out-of-process deps |
 | Asserting on private state or call sequences | Assert on observable output and resulting state |
 | Tests that mirror the production code's structure 1:1 | Test through stable public contracts, not internal seams |
-| Snapshot/approval tests over volatile output | Reserve for stable, reviewed output (see [Snapshot Testing](../08-snapshot-and-approval-testing/)) |
+| Snapshot/approval tests over volatile output | Reserve for stable, reviewed output (see [Snapshot Testing](../08-snapshot-and-approval-testing/README.md)) |
 | Over-specified mocks (`verifyNoMoreInteractions`) | Verify only the interactions that *are* the contract |
 
 The discipline that buys resistance most cheaply: **drive every test through the same public surface a real caller uses, and never let a test know anything a caller wouldn't.** When you find yourself reaching past the public API — reflection on a private field, a `@VisibleForTesting` method, an internal call assertion — treat it as a design smell, not a testing necessity. It usually means a hidden unit wants to be extracted and tested on its own public surface (Concept 6).
@@ -149,7 +149,7 @@ Each smell maps to a violated pillar. Learn to name them in review.
 - **Slow unit.** A "unit" test that takes hundreds of ms — usually because it secretly touches I/O. *Violates fast feedback.* Find and remove the hidden dependency.
 - **Eager test / testing everything at once.** One test exercising five behaviors. Split it.
 - **Conditional logic in tests** (`if`/`for`/`try` deciding what to assert). A test with branches has untested branches of its own. Replace with parameterization.
-- **Flaky test.** Non-deterministic pass/fail. *Violates everything* — see [Flaky Tests & Reliability](../12-flaky-tests-and-reliability/). A flaky test is a trust leak; quarantine and fix, never ignore.
+- **Flaky test.** Non-deterministic pass/fail. *Violates everything* — see [Flaky Tests & Reliability](../12-flaky-tests-and-reliability/README.md). A flaky test is a trust leak; quarantine and fix, never ignore.
 
 The `code-smell-detection` skill and `unit-testing-patterns` skill expand these with refactors.
 
@@ -205,13 +205,13 @@ it("marks a token expired one hour after issue", () => {
 });
 ```
 
-Anything you can't make deterministic doesn't belong in the unit layer — push it up to integration ([Integration Testing](../03-integration-testing/)).
+Anything you can't make deterministic doesn't belong in the unit layer — push it up to integration ([Integration Testing](../03-integration-testing/README.md)).
 
 ---
 
 ## Real-World Examples
 
-**1. The suite that scored its own tests.** A platform team ran [mutation testing](../07-mutation-testing/) over a 12,000-test module and found a 41% mutation score — most tests restated the implementation and caught nothing. High line coverage, low protection. They rewrote assertions to compare against independently-computed expected values; the mutation score rose to 78% and they *deleted* 1,500 tests that protected nothing, making the suite faster and more trustworthy at once.
+**1. The suite that scored its own tests.** A platform team ran [mutation testing](../07-mutation-testing/README.md) over a 12,000-test module and found a 41% mutation score — most tests restated the implementation and caught nothing. High line coverage, low protection. They rewrote assertions to compare against independently-computed expected values; the mutation score rose to 78% and they *deleted* 1,500 tests that protected nothing, making the suite faster and more trustworthy at once.
 
 **2. Refactoring rescued by resistance.** A billing engine was migrated from inheritance to composition. Because the tests asserted on computed invoices (behavior) and used real in-memory line-item objects rather than mocks, the entire 800-test suite stayed green through a structural overhaul — turning a feared rewrite into a confident afternoon.
 

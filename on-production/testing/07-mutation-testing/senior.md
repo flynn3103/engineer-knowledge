@@ -93,7 +93,7 @@ Selected: mutant × (tests that cover the mutated line)
 
 PIT does this by default — it instruments once, records per-test line coverage, and dispatches each mutant only to its covering tests. On a typical codebase this turns "every mutant runs 5,000 tests" into "every mutant runs the 3–20 tests that touch it," often a 100×+ reduction. It also short-circuits: as soon as *one* test kills the mutant, it stops (a mutant only needs to be killed once).
 
-This is why mutation testing on the JVM is viable at all. It also means **fast, well-isolated unit tests** make mutation testing dramatically cheaper — slow integration tests that cover everything blow up the per-mutant cost. Another reason the discipline in [Unit Testing](../02-unit-testing/) pays compound interest.
+This is why mutation testing on the JVM is viable at all. It also means **fast, well-isolated unit tests** make mutation testing dramatically cheaper — slow integration tests that cover everything blow up the per-mutant cost. Another reason the discipline in [Unit Testing](../02-unit-testing/README.md) pays compound interest.
 
 ---
 
@@ -203,7 +203,7 @@ The senior move is **scoping**: configure the tool to target the handful of pack
 
 Mutation testing primarily grades **unit tests** — it needs fast, isolated, line-precise tests for test selection to work and for the run to finish. Slow integration/E2E tests that cover everything make per-mutant cost explode and rarely *kill* a specific mutant precisely.
 
-It also has a natural partnership with **property-based testing**. PBT generates a wide range of inputs against an invariant; mutation testing checks whether those properties are *strong enough* to catch faults. A property that survives mutants is a property that's too weak — it asserts something true but unhelpful. Run mutation testing over your PBT suite and weak invariants surface immediately. See [Property-Based Testing](../06-property-based-testing/).
+It also has a natural partnership with **property-based testing**. PBT generates a wide range of inputs against an invariant; mutation testing checks whether those properties are *strong enough* to catch faults. A property that survives mutants is a property that's too weak — it asserts something true but unhelpful. Run mutation testing over your PBT suite and weak invariants surface immediately. See [Property-Based Testing](../06-property-based-testing/README.md).
 
 ```text
 Pyramid layer    Mutation testing fit

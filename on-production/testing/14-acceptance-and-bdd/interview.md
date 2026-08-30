@@ -33,7 +33,7 @@ The fastest way to fail a BDD interview is to equate it with Cucumber. Interview
 
 ## Prerequisites
 
-- Solid grasp of unit/integration/E2E and the test pyramid ([Test Strategy & the Pyramid](../01-test-strategy-and-the-pyramid/)).
+- Solid grasp of unit/integration/E2E and the test pyramid ([Test Strategy & the Pyramid](../01-test-strategy-and-the-pyramid/README.md)).
 - You can read and write Gherkin and a step definition ([Junior](./junior.md), [Middle](./middle.md)).
 - You can argue the cost/benefit of BDD ([Senior](./senior.md)) and discuss rollout ([Professional](./professional.md)).
 - Familiarity with the `test-driven-development` skill (the inner loop BDD wraps).
@@ -237,6 +237,6 @@ In a BDD interview, the differentiator is framing: **lead with collaboration**, 
 - [Middle Level](./middle.md) — Three Amigos, declarative discipline, tooling.
 - [Senior Level](./senior.md) — cost/benefit, the trap, pyramid placement.
 - [Professional Level](./professional.md) — org rollout and measurement.
-- [Test Strategy & the Pyramid](../01-test-strategy-and-the-pyramid/) — where acceptance tests belong.
-- [End-to-End Testing](../04-end-to-end-testing/) — the drive layer acceptance tests often use.
+- [Test Strategy & the Pyramid](../01-test-strategy-and-the-pyramid/README.md) — where acceptance tests belong.
+- [End-to-End Testing](../04-end-to-end-testing/README.md) — the drive layer acceptance tests often use.
 - The `test-driven-development` skill — the inner loop ATDD wraps.

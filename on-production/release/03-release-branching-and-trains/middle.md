@@ -25,7 +25,7 @@ The choice is not fashion — it's a function of how often you deploy and how mu
 | Release = | Merge `release` → `main` + tag | Tag on `main` (or short branch cut from `main`) |
 | Hidden cost | Painful integration, stale branches | Requires discipline + feature flags for incomplete work |
 
-**Why high-velocity teams left GitFlow:** GitFlow optimizes for *isolating* parallel work, which means problems are discovered *late*, at merge time, when many changes collide. Trunk-based optimizes for *integrating early*, so conflicts and broken assumptions surface within hours, not weeks. The price of trunk-based is discipline: incomplete work must hide behind **feature flags** rather than long-lived branches (see [Feature Flags & Progressive Delivery](../06-feature-flags-and-progressive-delivery/)).
+**Why high-velocity teams left GitFlow:** GitFlow optimizes for *isolating* parallel work, which means problems are discovered *late*, at merge time, when many changes collide. Trunk-based optimizes for *integrating early*, so conflicts and broken assumptions surface within hours, not weeks. The price of trunk-based is discipline: incomplete work must hide behind **feature flags** rather than long-lived branches (see [Feature Flags & Progressive Delivery](../06-feature-flags-and-progressive-delivery/README.md)).
 
 ```mermaid
 flowchart TD

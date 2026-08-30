@@ -249,7 +249,7 @@ Two tiers. **Agents** (per-node DaemonSet): receive OTLP, enrich with k8s/host m
 
 Don't reflexively slash sampling (that blinds you as you scale). Instead: (1) **tail-sample traces** — keep errors/slow/key-tenants at 100%, sample the boring successful majority; (2) keep **metrics unsampled** (they're cheap aggregates and power SLOs); (3) **cardinality budgets** per team and **drop unqueried attributes** (OTTL) — pure cost; (4) **retention tiers** (raw events briefly, aggregates longer); (5) **cost attribution** by `team` so the spend is visible to whoever creates it. The principle: cut *boring* data, not *failure fidelity*.
 
-> 🎯 **What's really being tested:** Cost governance as a design problem, and the discipline not to cut the fidelity you'll need (cross-ref [telemetry-cost](../14-telemetry-cost-and-sampling-strategy/)).
+> 🎯 **What's really being tested:** Cost governance as a design problem, and the discipline not to cut the fidelity you'll need (cross-ref [telemetry-cost](../14-telemetry-cost-and-sampling-strategy/README.md)).
 
 ### Q: An org has logs, metrics, and traces but resolves incidents slowly. Where do you take them?
 
@@ -347,10 +347,10 @@ What I'm grading: does the candidate reach for the **wide-event / cardinality-ec
 
 **Sibling diagnostic topics:**
 
-- [Tracing](../05-tracing/) · [Metrics](../04-metrics/) · [Logging](../02-logging/) — the signals, in depth.
-- [Continuous Profiling](../12-continuous-profiling/) — the span→profile link.
-- [Telemetry Cost & Sampling Strategy](../14-telemetry-cost-and-sampling-strategy/) — sampling/fidelity economics.
-- [Dynamic Instrumentation & eBPF](../13-dynamic-instrumentation-and-ebpf/) · [Crash Reporting](../07-crash-reporting/) · [Post-Mortem Analysis](../10-post-mortem-analysis/).
+- [Tracing](../05-tracing/README.md) · [Metrics](../04-metrics/README.md) · [Logging](../02-logging/README.md) — the signals, in depth.
+- [Continuous Profiling](../12-continuous-profiling/README.md) — the span→profile link.
+- [Telemetry Cost & Sampling Strategy](../14-telemetry-cost-and-sampling-strategy/README.md) — sampling/fidelity economics.
+- [Dynamic Instrumentation & eBPF](../13-dynamic-instrumentation-and-ebpf/README.md) · [Crash Reporting](../07-crash-reporting/README.md) · [Post-Mortem Analysis](../10-post-mortem-analysis/README.md).
 
 **Cross-roadmap links:**
 

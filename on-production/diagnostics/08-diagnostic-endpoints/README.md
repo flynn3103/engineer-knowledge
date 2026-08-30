@@ -4,7 +4,7 @@
 
 This roadmap is about **the live diagnostic surfaces a running service exposes** — `/debug/pprof`, `/health`, `/ready`, JMX, management endpoints, runtime-toggleable feature flags, in-process REPLs. The pattern that lets you ask a live production process "what's slow right now?" without re-deploying.
 
-> Looking for *offline* analysis from a dead process (core dumps, heap dumps, JFR recordings)? See [Post-Mortem Analysis](../10-post-mortem-analysis/).
+> Looking for *offline* analysis from a dead process (core dumps, heap dumps, JFR recordings)? See [Post-Mortem Analysis](../10-post-mortem-analysis/README.md).
 >
 > Looking for *system-level* health-check design (load balancer probes, liveness vs readiness in Kubernetes)? See [Container Orchestration](../../../DevOps/) and the `high-availability-patterns` skill.
 

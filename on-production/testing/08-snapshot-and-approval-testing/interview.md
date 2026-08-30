@@ -212,7 +212,7 @@ The interview signal for this topic is one sentence understood deeply: **a snaps
 ## Related Topics
 
 - [Snapshot & Approval Testing — Professional](./professional.md) — governance, scale economics, migration.
-- [Unit Testing](../02-unit-testing/) — explicit assertions, the alternative when you know the answer.
-- [Test Data Management](../11-test-data-management/) — stable inputs that keep golden tests deterministic.
-- [Flaky Tests & Reliability](../12-flaky-tests-and-reliability/) — the non-determinism that breaks golden tests.
+- [Unit Testing](../02-unit-testing/README.md) — explicit assertions, the alternative when you know the answer.
+- [Test Data Management](../11-test-data-management/README.md) — stable inputs that keep golden tests deterministic.
+- [Flaky Tests & Reliability](../12-flaky-tests-and-reliability/README.md) — the non-determinism that breaks golden tests.
 - The **`refactoring-techniques`** skill — characterization-then-refactor for untested legacy code.

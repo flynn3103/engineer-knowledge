@@ -378,6 +378,6 @@ But they cause leaks (and bugs) through misuse: **`WeakHashMap` weakly reference
 ## Related Topics
 
 - [03 — Allocation Profiling](../03-allocation-profiling/interview.md) — the *rate* side: `alloc_space`, GC pressure, and reducing churn (the sibling distinction this page keeps deferring to).
-- [Memory Optimization](../../05-memory-and-allocation-profiling/) — what to do once you know what's retained.
+- [Memory Optimization](../../05-memory-and-allocation-profiling/README.md) — what to do once you know what's retained.
 - [Diagnostics → Post-Mortem Analysis](../../../../diagnostics/post-mortem-analysis/README.md) — heap dumps captured at crash time.
 - [Profiling README](../README.md) — where memory profiling sits among the profiler family.

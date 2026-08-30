@@ -77,7 +77,7 @@ deny[msg] {
 }
 ```
 
-This is the same principle as [Quality Gates](../../testing/) applied to versioning: the standard is enforced by the system, so compliance does not depend on diligence.
+This is the same principle as [Quality Gates](../../testing/README.md) applied to versioning: the standard is enforced by the system, so compliance does not depend on diligence.
 
 ## Core Concept 3 — Versioning the Internal Platform: Protos, Schemas, Templates
 
@@ -175,7 +175,7 @@ Versions are the keys that tie everything else in the release contract together 
 - **Versions index the SBOM.** Vulnerability management is "which *versions* are affected," so the version string must precisely and immutably identify the build it names. This is why pinning to a digest (`@sha256:...`) beats pinning to a tag for security-critical deployments.
 - **Yanking, not deleting.** When a published version is found dangerous (a leaked secret, a critical bug), the supply-chain-safe operation is to *yank* (mark unusable for new resolutions while leaving existing pins working), as crates.io and npm support — not to delete and break every lockfile referencing it.
 
-See [Artifact Signing & Provenance](../04-artifact-signing-and-provenance/) and [Supply Chain Security](../09-supply-chain-security/) for the attestation machinery these version guarantees underpin.
+See [Artifact Signing & Provenance](../04-artifact-signing-and-provenance/README.md) and [Supply Chain Security](../09-supply-chain-security/README.md) for the attestation machinery these version guarantees underpin.
 
 ## Core Concept 8 — Choosing Schemes Across a Heterogeneous Estate
 

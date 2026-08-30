@@ -52,7 +52,7 @@ This changes the artifacts:
 
 - **SaaS leans on CalVer or no version at all.** `2026.06` or "the June release" communicates more than `v847`. The changelog becomes a **dated stream** ("Changelog" pages like Stripe's or GitHub's) rather than a tag-anchored file.
 - **Because users can't opt out, the release note carries more weight than for a library.** A library user who ignores your note can stay on the old version; a SaaS user who misses your note is broken at next login. So SaaS release notes must be *louder* about behavior changes and *earlier* (announce before, not after).
-- **Feature flags decouple "merged" from "released."** A feature behind a flag is in the codebase but not in any user's reality. Your changelog must describe *what users can now do*, which is gated by rollout, not by merge. This is why SaaS changelogs are often written at *flag-100%* time, not merge time. See [Feature Flags & Progressive Delivery](../06-feature-flags-and-progressive-delivery/).
+- **Feature flags decouple "merged" from "released."** A feature behind a flag is in the codebase but not in any user's reality. Your changelog must describe *what users can now do*, which is gated by rollout, not by merge. This is why SaaS changelogs are often written at *flag-100%* time, not merge time. See [Feature Flags & Progressive Delivery](../06-feature-flags-and-progressive-delivery/README.md).
 
 > The principle: **the changelog's unit of change must match the user's unit of adoption.** For libraries that's a version; for SaaS it's a dated rollout. Forcing SaaS into per-tag changelogs produces noise no user reads.
 
@@ -145,7 +145,7 @@ Principles:
   ```
 
 - **State the fixed inventory.** Which versions received the backported fix? Operators on `2.x` need to know `2.9.5` is safe, not just `3.7.2`. This is also what populates vulnerability databases (OSV, GitHub's advisory DB) that downstream scanners consume.
-- **Coordinate disclosure timing.** The Security entry must not land *before* the fix is published — that's a zero-day handed to attackers. Embargoed fixes ship the binary and the advisory simultaneously. This couples changelog publication to your disclosure process. See [Supply-Chain Security](../09-supply-chain-security/).
+- **Coordinate disclosure timing.** The Security entry must not land *before* the fix is published — that's a zero-day handed to attackers. Embargoed fixes ship the binary and the advisory simultaneously. This couples changelog publication to your disclosure process. See [Supply-Chain Security](../09-supply-chain-security/README.md).
 - **The changelog feeds machines now.** Tools like Dependabot/Renovate and SBOM scanners read your advisory metadata to auto-flag downstream. A precise, machine-parseable Security entry protects every downstream user automatically; a vague one protects no one.
 
 ---
@@ -199,7 +199,7 @@ Concretely, the gate is a checklist enforced in the release PR (the release-plea
 - [ ] Deprecations state since-version and removal-version
 ```
 
-This makes release notes a **quality gate** alongside tests and coverage. See Quality Gates for the gate-design patterns this reuses, and [Release Automation](../08-release-automation/) for wiring it into the pipeline.
+This makes release notes a **quality gate** alongside tests and coverage. See Quality Gates for the gate-design patterns this reuses, and [Release Automation](../08-release-automation/README.md) for wiring it into the pipeline.
 
 ---
 

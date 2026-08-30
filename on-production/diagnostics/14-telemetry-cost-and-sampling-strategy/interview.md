@@ -407,11 +407,11 @@ Top-10 must-know questions for any telemetry-cost-and-sampling interview:
 
 **Sibling diagnostic topics:**
 
-- [Metrics](../04-metrics/) — the cardinality cost driver originates here; histograms and the "can't average p99s" rule.
-- [Tracing](../05-tracing/) — the signal you sample most; spans, `trace_id`, context propagation.
-- [Logging](../02-logging/) — the volume cost driver; levels, retention, field pruning.
-- [Observability Engineering](../06-observability-engineering/) — the whole-system strategy this cost discipline serves.
-- [Continuous Profiling](../12-continuous-profiling/) — another signal with its own sampling/cost story.
+- [Metrics](../04-metrics/README.md) — the cardinality cost driver originates here; histograms and the "can't average p99s" rule.
+- [Tracing](../05-tracing/README.md) — the signal you sample most; spans, `trace_id`, context propagation.
+- [Logging](../02-logging/README.md) — the volume cost driver; levels, retention, field pruning.
+- [Observability Engineering](../06-observability-engineering/README.md) — the whole-system strategy this cost discipline serves.
+- [Continuous Profiling](../12-continuous-profiling/README.md) — another signal with its own sampling/cost story.
 
 **Cross-roadmap links:**
 

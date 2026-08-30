@@ -427,7 +427,7 @@ The end-to-end loop that justifies the whole pipeline:
 6. FIX             → pool the encoder / cache the marshaled payload; re-profile; box shrinks
 ```
 
-Two things make step 3 instant rather than an expedition: the profile was *already collected* (continuous), and the **labels match across signals** — the same `service`/`version`/`region` you query in metrics select the right profiles. That label-alignment across logs, metrics, traces, and profiles is the heart of the `observability-stack` skill and a recurring theme of [`../06-observability-engineering/`](../06-observability-engineering/).
+Two things make step 3 instant rather than an expedition: the profile was *already collected* (continuous), and the **labels match across signals** — the same `service`/`version`/`region` you query in metrics select the right profiles. That label-alignment across logs, metrics, traces, and profiles is the heart of the `observability-stack` skill and a recurring theme of [`../06-observability-engineering/`](../06-observability-engineering/README.md).
 
 ---
 
@@ -494,7 +494,7 @@ go http.ListenAndServe("0.0.0.0:6060", nil) // internal network / k8s only
 3. **Scrape what you already discover; push what you can't reach.** Parca for the long-lived fleet, SDK push for serverless/batch.
 4. **Default to ~10–15 s collection cadence** and ~100 Hz CPU sampling — the standard "leave it on" overhead (~1–2%).
 5. **Keep pprof endpoints internal**, exactly as you would `net/http/pprof` at junior level.
-6. **Set retention deliberately.** Profiles are bulky; keep high-resolution recent data and downsample/expire the rest (cost detail: [`../14-telemetry-cost-and-sampling-strategy/`](../14-telemetry-cost-and-sampling-strategy/)).
+6. **Set retention deliberately.** Profiles are bulky; keep high-resolution recent data and downsample/expire the rest (cost detail: [`../14-telemetry-cost-and-sampling-strategy/`](../14-telemetry-cost-and-sampling-strategy/README.md)).
 7. **Learn the diff view early.** It's the feature that pays for the whole pipeline; default to comparing against the previous deploy.
 
 ---

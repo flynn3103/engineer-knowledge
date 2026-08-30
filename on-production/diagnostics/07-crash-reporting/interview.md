@@ -522,5 +522,5 @@ Top-10 must-know questions for any crash-reporting interview:
 - [Debugging — Interview](../01-debugging/interview.md) — reading stack traces, core dumps, Heisenbugs.
 - [Error Handling — Interview](../03-error-handling/interview.md) — typed/wrapped errors group better and read cleaner.
 - [Logging — Interview](../02-logging/interview.md) — structured logs and correlation IDs that pair with breadcrumbs.
-- [Tracing](../05-tracing/) — `traceparent`/trace IDs that link a crash to its distributed request.
-- [Telemetry Cost and Sampling Strategy](../14-telemetry-cost-and-sampling-strategy/) — the cost dimension of crash events.
+- [Tracing](../05-tracing/README.md) — `traceparent`/trace IDs that link a crash to its distributed request.
+- [Telemetry Cost and Sampling Strategy](../14-telemetry-cost-and-sampling-strategy/README.md) — the cost dimension of crash events.

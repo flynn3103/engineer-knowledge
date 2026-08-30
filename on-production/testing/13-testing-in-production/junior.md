@@ -107,7 +107,7 @@ journey("user can log in and see dashboard", async (page) => {
 
 **How is this different from an end-to-end (E2E) test?**
 
-| | [E2E test](../04-end-to-end-testing/) | Synthetic monitor |
+| | [E2E test](../04-end-to-end-testing/README.md) | Synthetic monitor |
 |---|---|---|
 | **When** | Before release (in CI/staging) | Forever, in production |
 | **Environment** | Test/staging | Real production |

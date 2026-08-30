@@ -76,7 +76,7 @@ For **microservices**, Spotify (André Schaffer) proposed the *honeycomb*: lots 
    implementation     (thin bottom -- isolated unit, only where logic is real)
 ```
 
-The reasoning: a single microservice is usually **thin** — it receives a request, talks to a DB or another service, transforms data, responds. Its bugs live at the seams (HTTP, JSON, SQL), not in deep algorithms. So integration tests that exercise the service with real (or in-memory) infrastructure give the most confidence per test. *Integrated* tests across many services are kept few because they are slow and flaky — their job is largely replaced by **contract tests** (see [Concept 7](#core-concept-7----the-allocation-heuristic) and [Contract Testing](../05-contract-testing/)).
+The reasoning: a single microservice is usually **thin** — it receives a request, talks to a DB or another service, transforms data, responds. Its bugs live at the seams (HTTP, JSON, SQL), not in deep algorithms. So integration tests that exercise the service with real (or in-memory) infrastructure give the most confidence per test. *Integrated* tests across many services are kept few because they are slow and flaky — their job is largely replaced by **contract tests** (see [Concept 7](#core-concept-7----the-allocation-heuristic) and [Contract Testing](../05-contract-testing/README.md)).
 
 ## Core Concept 5 -- The ice-cream cone anti-pattern
 
@@ -128,7 +128,7 @@ The decision rule for "where does this test go," combining everything above:
 1. **Find the lowest level that can prove the behaviour.** Pure logic? Unit. Needs a real DB/HTTP round-trip? Integration. Needs the user-visible flow across the whole stack? E2E.
 2. **Keep size small where possible.** Inject the clock, fake the network, use in-memory adapters — turn would-be medium/large tests into small ones.
 3. **Cover each behaviour once.** If unit tests fully cover the discount matrix, integration/E2E should *not* re-test discount cases — they test *wiring*, not logic.
-4. **Replace cross-service E2E with contract tests at boundaries.** Instead of booting six services to check service A talks to service B, write a contract: A's expectations of B, verified against B in isolation. (See [Contract Testing](../05-contract-testing/).)
+4. **Replace cross-service E2E with contract tests at boundaries.** Instead of booting six services to check service A talks to service B, write a contract: A's expectations of B, verified against B in isolation. (See [Contract Testing](../05-contract-testing/README.md).)
 5. **Reserve E2E for critical journeys only.** Sign-up, checkout, the one flow that loses money if it breaks — and just the spine of each.
 
 Result: most behaviour is proven by fast small tests; a moderate set of integration tests proves the wiring and I/O; contract tests guard the seams between services; and a tiny, hand-picked set of E2E tests proves the whole machine assembles.

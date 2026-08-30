@@ -2,7 +2,7 @@
 
 > *"A trace is the story of one request — told by every service that touched it."*
 
-This roadmap is about **distributed tracing as it appears inside the code** — instrumenting spans, propagating context, choosing what's a span vs a log, and avoiding the "trace everything" trap. It's the third pillar of observability alongside [Logging](../02-logging/) and [Metrics](../04-metrics/).
+This roadmap is about **distributed tracing as it appears inside the code** — instrumenting spans, propagating context, choosing what's a span vs a log, and avoiding the "trace everything" trap. It's the third pillar of observability alongside [Logging](../02-logging/README.md) and [Metrics](../04-metrics/README.md).
 
 > Looking for the *system-design* angle (collector topology, storage backends, Jaeger / Tempo / Honeycomb architecture)? See [Backend → Distributed Tracing](../../../Backend/distributed-systems/10-distributed-tracing/).
 >

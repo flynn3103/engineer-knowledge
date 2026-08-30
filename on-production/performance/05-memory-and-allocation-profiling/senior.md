@@ -7,7 +7,7 @@ At senior level, focus on this question:
 
 Use the smallest realistic scenario that exposes the decision and its failure behavior.
 > **Roadmap:** [Performance](../README.md) → Memory and Allocation Optimization
-> *The middle page taught you to read a heap profile and cut allocations. This page is about why allocation costs what it costs: the size-class machinery inside the allocator, the write barriers and pacing logic inside the garbage collector, and the moment a per-object `malloc` should become an arena. Profiler tooling — pprof, heaptrack, async-profiler — lives next door in [01-profiling](../01-profiling/); here we use the numbers those tools give you to reshape how memory actually flows.*
+> *The middle page taught you to read a heap profile and cut allocations. This page is about why allocation costs what it costs: the size-class machinery inside the allocator, the write barriers and pacing logic inside the garbage collector, and the moment a per-object `malloc` should become an arena. Profiler tooling — pprof, heaptrack, async-profiler — lives next door in [01-profiling](../01-profiling/README.md); here we use the numbers those tools give you to reshape how memory actually flows.*
 
 ---
 

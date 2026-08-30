@@ -88,7 +88,7 @@ feat(api)!: rename `userId` field to `accountId`
 
 That last one — the `!` — signals a breaking change and forces a MAJOR bump. The tool reads all commits since the last release, finds the *highest* bump implied, and that becomes your new version. The same commits become your changelog, grouped by type.
 
-> This is the input contract. The discipline cost is real: everyone on the team has to write commits this way. The payoff is that the version and changelog become free, automatic, and never wrong. See [Changelogs and Release Notes](../02-changelogs-and-release-notes/) for how the changelog gets shaped.
+> This is the input contract. The discipline cost is real: everyone on the team has to write commits this way. The payoff is that the version and changelog become free, automatic, and never wrong. See [Changelogs and Release Notes](../02-changelogs-and-release-notes/README.md) for how the changelog gets shaped.
 
 ---
 

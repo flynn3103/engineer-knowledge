@@ -79,7 +79,7 @@ scenario = a_checkout_scenario().with_stock("SKU-1", qty=5).build(db)
 # returns linked customer + cart + inventory, ready for the E2E flow
 ```
 
-- **Cross-service data.** In a microservice E2E, each service owns its data store. Seed each via its own API or builder, not by reaching into another service's database — that couples your test to a private schema. (See [Contract Testing](../05-contract-testing/) for testing boundaries without full data setup.)
+- **Cross-service data.** In a microservice E2E, each service owns its data store. Seed each via its own API or builder, not by reaching into another service's database — that couples your test to a private schema. (See [Contract Testing](../05-contract-testing/README.md) for testing boundaries without full data setup.)
 
 The discipline from earlier levels still rules: even in a 50-step E2E test, each step should set only the data that step depends on. Large suites fail not from too little data but from too much undifferentiated data nobody can reason about.
 
@@ -164,7 +164,7 @@ Performance and load tests have a data requirement the others don't: **volume an
 - **Distribution / skew.** Real systems have hot keys (a few customers with millions of orders) and cold ones. Uniform synthetic data hides the hotspots that actually break production. Match the skew, not just the count.
 - **Cardinality.** Index selectivity depends on how many distinct values a column has. Synthetic data with the wrong cardinality produces query plans you'll never see in prod.
 
-Generate this data once, snapshot it, and reuse it so runs are comparable. The detailed treatment of running these tests lives in [Performance & Load Testing](../09-performance-and-load-testing/); here the point is that **the data is the experiment** — the wrong data set makes the whole load test a lie.
+Generate this data once, snapshot it, and reuse it so runs are comparable. The detailed treatment of running these tests lives in [Performance & Load Testing](../09-performance-and-load-testing/README.md); here the point is that **the data is the experiment** — the wrong data set makes the whole load test a lie.
 
 ---
 

@@ -6,7 +6,7 @@ This roadmap is about **how a running program reports what it's doing to its ope
 
 > Looking for *how code expresses failure to its caller* (exceptions, `Result`, error wrapping)? See the sibling roadmap: [Error Handling](../03-error-handling/README.md). Errors and logs are related but distinct concerns — errors are an API question, logs are an operational question.
 >
-> Looking for *dashboards, alerts, SLOs, full observability stack*? See [Observability Engineering](../06-observability-engineering/). This roadmap stays at the **code level** — what you write inside the program; observability covers what happens to those logs after they leave the process.
+> Looking for *dashboards, alerts, SLOs, full observability stack*? See [Observability Engineering](../06-observability-engineering/README.md). This roadmap stays at the **code level** — what you write inside the program; observability covers what happens to those logs after they leave the process.
 >
 > Looking for the *three pillars comparison* (logs vs metrics vs traces)? That's covered briefly in section 09 below, but the deep treatment lives in `observability-stack`.
 

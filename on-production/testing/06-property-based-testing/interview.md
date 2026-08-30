@@ -238,7 +238,7 @@ PBT interviews reward the conceptual shift (specify a rule for all inputs, don't
 
 - [Property-Based Testing — Senior](./senior.md) — stateful testing, seeds, determinism.
 - [Property-Based Testing — Professional](./professional.md) — PBT as spec, adoption, ROI.
-- [Unit Testing](../02-unit-testing/) — the foundation PBT extends.
-- [Mutation Testing](../07-mutation-testing/) — validating property strength.
-- [Flaky Tests and Reliability](../12-flaky-tests-and-reliability/) — keeping randomized tests deterministic.
+- [Unit Testing](../02-unit-testing/README.md) — the foundation PBT extends.
+- [Mutation Testing](../07-mutation-testing/README.md) — validating property strength.
+- [Flaky Tests and Reliability](../12-flaky-tests-and-reliability/README.md) — keeping randomized tests deterministic.
 - [Dynamic Analysis and Sanitizers](../../dynamic-analysis-and-sanitizers/) — coverage-guided fuzzing.

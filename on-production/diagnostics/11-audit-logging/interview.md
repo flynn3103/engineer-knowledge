@@ -637,7 +637,7 @@ Top-10 must-know questions for any audit-logging interview:
 - [Audit Logging — Professional](professional.md)
 - [Logging — Interview](../02-logging/interview.md)
 - [Error Handling — Interview](../03-error-handling/interview.md)
-- [Tracing](../05-tracing/) — where `trace_id` comes from and how it propagates for correlation.
-- [Telemetry Cost & Sampling Strategy](../14-telemetry-cost-and-sampling-strategy/) — and why audit events are explicitly exempt from sampling.
+- [Tracing](../05-tracing/README.md) — where `trace_id` comes from and how it propagates for correlation.
+- [Telemetry Cost & Sampling Strategy](../14-telemetry-cost-and-sampling-strategy/README.md) — and why audit events are explicitly exempt from sampling.
 - The `secrets-management` and `encryption-basics` skill areas — what must never enter an audit event, and how to tokenize what you keep.
 - The `auth-token-security` / `api-authentication` skill areas — where the actor identity (including on-behalf-of) originates, the foundation of non-repudiation.

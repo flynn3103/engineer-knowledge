@@ -45,7 +45,7 @@ syft dir:. -o cyclonedx-json=sbom.cdx.json
 syft myorg/api:1.4.2 -o cyclonedx-json=sbom.cdx.json
 ```
 
-**When you generate matters.** Generating from source reflects what you *declared*; generating from the built image reflects what actually *shipped* (including OS packages baked into the base image — see the `docker-best-practices` skill). The image-level SBOM is closer to truth for "what's running in production." Best practice is to generate at build time and attach the SBOM to the artifact as an attestation (mechanics: [Artifact Signing & Provenance](../04-artifact-signing-and-provenance/)).
+**When you generate matters.** Generating from source reflects what you *declared*; generating from the built image reflects what actually *shipped* (including OS packages baked into the base image — see the `docker-best-practices` skill). The image-level SBOM is closer to truth for "what's running in production." Best practice is to generate at build time and attach the SBOM to the artifact as an attestation (mechanics: [Artifact Signing & Provenance](../04-artifact-signing-and-provenance/README.md)).
 
 Then *use* it. `grype` consumes an SBOM directly, so you separate "what's in the artifact" (slow, do once at build) from "what's now known-vulnerable" (fast, re-run continuously as the advisory DB updates):
 
@@ -149,7 +149,7 @@ At the consume side, the middle-tier awareness is:
 - **Trusted publishing (OIDC)** lets CI publish to a registry using a short-lived, identity-bound token instead of a long-lived secret — so there's no publish token to steal (the channel Codecov-style attacks abuse). PyPI, npm, and others support it.
 - You **verify before you trust**: check the signature/attestation as a gate, not after the fact.
 
-The actual commands — `cosign verify`, `cosign verify-attestation`, SLSA verifier — and the cryptography behind them live in [Artifact Signing & Provenance](../04-artifact-signing-and-provenance/). Here, just internalize the *shape*: at consume time you add a verification gate that rejects artifacts lacking valid, expected provenance, and you prefer publish flows that have no long-lived secret to steal. (See also the `secrets-management` skill.)
+The actual commands — `cosign verify`, `cosign verify-attestation`, SLSA verifier — and the cryptography behind them live in [Artifact Signing & Provenance](../04-artifact-signing-and-provenance/README.md). Here, just internalize the *shape*: at consume time you add a verification gate that rejects artifacts lacking valid, expected provenance, and you prefer publish flows that have no long-lived secret to steal. (See also the `secrets-management` skill.)
 
 ---
 

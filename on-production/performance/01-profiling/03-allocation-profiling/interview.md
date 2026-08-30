@@ -365,7 +365,7 @@ The senior caveat: these are *hypotheses to verify with a profile*, not a licens
 ## Related Topics
 
 - [02 — Memory Profiling](../02-memory-profiling/interview.md) — the *retained heap* sibling: leaks, the live set, and `inuse_*` — the other half of this distinction.
-- [Memory Optimization](../../05-memory-and-allocation-profiling/) — reducing allocation rate at the source once the profile has found it.
+- [Memory Optimization](../../05-memory-and-allocation-profiling/README.md) — reducing allocation rate at the source once the profile has found it.
 - [Language Internals → Escape Analysis](../../../../language-internals/memory-management/08-escape-analysis/) — the compiler analysis behind every avoidable heap allocation.
 - [Language Internals → Tracing GC](../../../../language-internals/memory-management/05-tracing-garbage-collection/) — why allocation rate sets GC frequency, CPU, and pause behavior.
 - [Profiling README](../README.md) — where allocation profiling sits among CPU, memory, and the other profiling lenses.

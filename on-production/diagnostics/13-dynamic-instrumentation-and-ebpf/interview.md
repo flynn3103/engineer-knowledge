@@ -433,9 +433,9 @@ Mantras: **tracepoint > kprobe; fentry/fexit > kprobe/kretprobe; aggregate in-ke
 
 ## Related Topics
 
-- [Continuous Profiling](../12-continuous-profiling/) — fleet-wide always-on sampling, often eBPF-based
-- [Tracing](../05-tracing/) — distributed spans and trace context that eBPF complements
-- [Metrics](../04-metrics/) — the pre-paid signals dynamic tracing fills the gaps around
-- [Logging](../02-logging/) — static, intentional signals vs after-the-fact probes
-- [Debugging](../01-debugging/) — root-cause workflows that dynamic instrumentation feeds
-- [Observability Engineering](../06-observability-engineering/) — the discipline that decides pre-paid vs pay-as-you-go coverage
+- [Continuous Profiling](../12-continuous-profiling/README.md) — fleet-wide always-on sampling, often eBPF-based
+- [Tracing](../05-tracing/README.md) — distributed spans and trace context that eBPF complements
+- [Metrics](../04-metrics/README.md) — the pre-paid signals dynamic tracing fills the gaps around
+- [Logging](../02-logging/README.md) — static, intentional signals vs after-the-fact probes
+- [Debugging](../01-debugging/README.md) — root-cause workflows that dynamic instrumentation feeds
+- [Observability Engineering](../06-observability-engineering/README.md) — the discipline that decides pre-paid vs pay-as-you-go coverage

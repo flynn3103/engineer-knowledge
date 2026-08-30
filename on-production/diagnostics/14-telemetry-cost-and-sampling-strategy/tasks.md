@@ -424,11 +424,11 @@ You can stand up a tail-sampling collector that keeps every error and slow trace
 
 **Sibling diagnostic topics:**
 
-- [Metrics](../04-metrics/) — the cardinality cost driver and the relabel/recording-rule mechanics these tasks reuse.
-- [Tracing](../05-tracing/) — the signal you sample most; spans, `trace_id`, W3C propagation.
-- [Logging](../02-logging/) — the volume cost driver; levels, field pruning, retention tiers.
-- [Observability Engineering](../06-observability-engineering/) — the whole-system strategy this cost discipline serves.
-- [Continuous Profiling](../12-continuous-profiling/) — another signal with its own sampling/cost story.
+- [Metrics](../04-metrics/README.md) — the cardinality cost driver and the relabel/recording-rule mechanics these tasks reuse.
+- [Tracing](../05-tracing/README.md) — the signal you sample most; spans, `trace_id`, W3C propagation.
+- [Logging](../02-logging/README.md) — the volume cost driver; levels, field pruning, retention tiers.
+- [Observability Engineering](../06-observability-engineering/README.md) — the whole-system strategy this cost discipline serves.
+- [Continuous Profiling](../12-continuous-profiling/README.md) — another signal with its own sampling/cost story.
 
 **Cross-roadmap links:**
 

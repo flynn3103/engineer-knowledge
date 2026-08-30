@@ -35,7 +35,7 @@ Change-communication questions appear in release-engineering, platform, and seni
 ## Prerequisites
 
 - All four tier files for this topic (junior → professional).
-- [Versioning & SemVer](../01-versioning-and-semver/).
+- [Versioning & SemVer](../01-versioning-and-semver/README.md).
 - Working knowledge of Git, CI, and PR workflows.
 
 ---
@@ -234,8 +234,8 @@ METRICS:      measure outcomes not coverage · watch security-reclassification d
 
 ## Related Topics
 
-- [Versioning & SemVer](../01-versioning-and-semver/) — the contract the changelog narrates.
-- [Release Automation](../08-release-automation/) — the pipeline behind generated changelogs.
-- [Supply-Chain Security](../09-supply-chain-security/) — advisories, SBOMs, disclosure.
-- [Feature Flags & Progressive Delivery](../06-feature-flags-and-progressive-delivery/) — GA-timed announcements.
+- [Versioning & SemVer](../01-versioning-and-semver/README.md) — the contract the changelog narrates.
+- [Release Automation](../08-release-automation/README.md) — the pipeline behind generated changelogs.
+- [Supply-Chain Security](../09-supply-chain-security/README.md) — advisories, SBOMs, disclosure.
+- [Feature Flags & Progressive Delivery](../06-feature-flags-and-progressive-delivery/README.md) — GA-timed announcements.
 - [Quality Gates](../../quality-gates/) — release-notes review as a required gate.

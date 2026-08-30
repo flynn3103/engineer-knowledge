@@ -211,9 +211,9 @@ Integration-testing interviews reward concrete reasoning over vocabulary. Be abl
 
 ## Related Topics
 
-- [Unit Testing](../02-unit-testing/) — the contrasting layer.
-- [Contract Testing](../05-contract-testing/) — the both-sides guarantee WireMock can't give.
-- [Test Doubles, Mocks & Fakes](../10-test-doubles-mocks-fakes/) — what you choose not to use.
-- [Test Data Management](../11-test-data-management/) — fixtures and reset.
-- [Flaky Tests & Reliability](../12-flaky-tests-and-reliability/) — the flakiness discipline.
-- [End-to-End Testing](../04-end-to-end-testing/) — the broadest layer.
+- [Unit Testing](../02-unit-testing/README.md) — the contrasting layer.
+- [Contract Testing](../05-contract-testing/README.md) — the both-sides guarantee WireMock can't give.
+- [Test Doubles, Mocks & Fakes](../10-test-doubles-mocks-fakes/README.md) — what you choose not to use.
+- [Test Data Management](../11-test-data-management/README.md) — fixtures and reset.
+- [Flaky Tests & Reliability](../12-flaky-tests-and-reliability/README.md) — the flakiness discipline.
+- [End-to-End Testing](../04-end-to-end-testing/README.md) — the broadest layer.

@@ -65,7 +65,7 @@ This converts a *branch-management* problem (divergence, merge debt) into a *run
 
 - **Branch by abstraction** for changes too invasive for a simple boolean: introduce an interface, build the new implementation behind it on `main`, switch over, delete the old path.
 - **Dark launches**: ship code to production off, then enable per-cohort — this is also your rollback mechanism (flip the flag, not the deploy).
-- **Flags are debt too.** Stale flags rot; you need a flag-retirement discipline. (See [Feature Flags & Progressive Delivery](../06-feature-flags-and-progressive-delivery/).)
+- **Flags are debt too.** Stale flags rot; you need a flag-retirement discipline. (See [Feature Flags & Progressive Delivery](../06-feature-flags-and-progressive-delivery/README.md).)
 
 The strategic insight: in a flag-driven org, the *release branch shrinks or disappears*, because the thing it used to provide — a way to ship a stable subset while risky work continues elsewhere — is now provided at runtime by flags.
 
@@ -86,7 +86,7 @@ Principles:
 - **Immutable, content-addressed artifacts.** Promote `app@sha256:...`, never a mutable tag like `:latest`. The digest *is* the identity.
 - **Gates are evidence, not vibes.** A gate passes on signals: soak error rate, canary SLO compliance, manual sign-off recorded with who/when. (See [Quality Gates] concepts and the `ci-cd-pipeline-design` skill.)
 - **Environments differ only in config, not in build.** If staging and prod run different binaries, your soak validated nothing.
-- **Promotion is auditable.** Each transition records the digest, the gate evidence, and the approver — this is also your provenance trail ([Artifact Signing & Provenance](../04-artifact-signing-and-provenance/)).
+- **Promotion is auditable.** Each transition records the digest, the gate evidence, and the approver — this is also your provenance trail ([Artifact Signing & Provenance](../04-artifact-signing-and-provenance/README.md)).
 
 The payoff: GA is "flip the pointer to the already-soaked digest," a near-zero-risk operation, instead of "build the release," a high-variance one.
 
@@ -172,10 +172,10 @@ What to automate:
 - **Branch cut at last-known-green**, not blind HEAD.
 - **RC tagging and artifact build** triggered by the tag; digest recorded.
 - **Backport PR creation** from labeled `main` PRs.
-- **Changelog/release-note assembly** from merged PRs ([02](../02-changelogs-and-release-notes/)).
+- **Changelog/release-note assembly** from merged PRs ([02](../02-changelogs-and-release-notes/README.md)).
 - **Freeze enforcement** as branch-protection rules, not Slack reminders.
 
-Leave to humans: go/no-go on gates, exception decisions, and "is this the release we want to ship." Automate the toil, not the judgment. (See [Release Automation](../08-release-automation/) and the `ci-cd-pipeline-design` skill.)
+Leave to humans: go/no-go on gates, exception decisions, and "is this the release we want to ship." Automate the toil, not the judgment. (See [Release Automation](../08-release-automation/README.md) and the `ci-cd-pipeline-design` skill.)
 
 ---
 

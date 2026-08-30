@@ -2,9 +2,9 @@
 
 > *"The crash that nobody noticed is worse than the one that woke you up — because the second one, you can fix."*
 
-This roadmap is about **collecting, transmitting, and triaging unhandled errors from production code** — Sentry / Crashlytics / Bugsnag-style flows, symbol upload, deduplication, and the discipline of *not drowning in noise*. It is the bridge between [Error Handling](../03-error-handling/) (what you wrote in the code) and on-call response (what wakes the engineer).
+This roadmap is about **collecting, transmitting, and triaging unhandled errors from production code** — Sentry / Crashlytics / Bugsnag-style flows, symbol upload, deduplication, and the discipline of *not drowning in noise*. It is the bridge between [Error Handling](../03-error-handling/README.md) (what you wrote in the code) and on-call response (what wakes the engineer).
 
-> Looking for *post-mortem analysis* of a process after it died (core dumps, heap dumps, JFR)? See [Post-Mortem Analysis](../10-post-mortem-analysis/).
+> Looking for *post-mortem analysis* of a process after it died (core dumps, heap dumps, JFR)? See [Post-Mortem Analysis](../10-post-mortem-analysis/README.md).
 >
 > Looking for *alerting* discipline (SLOs, alert fatigue, paging)? See [Backend → Observability → Monitoring](../../../Backend/backend/09-observability/).
 

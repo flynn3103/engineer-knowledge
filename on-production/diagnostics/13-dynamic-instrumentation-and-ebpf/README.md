@@ -4,9 +4,9 @@
 
 This roadmap is about **observing a running, unmodified program — or the kernel itself — without changing its source, recompiling it, or restarting it.** Traditional observability is *pre-paid*: you only see the log, metric, or span you had the foresight to add. Dynamic instrumentation is *pay-as-you-go*: you attach a probe to a live binary or syscall at the moment you need an answer, and detach it when you're done. **eBPF** is the modern engine that makes this safe enough to do in production.
 
-> Looking for the *aggregate* signals a service emits on purpose? See [Metrics](../04-metrics/).
+> Looking for the *aggregate* signals a service emits on purpose? See [Metrics](../04-metrics/README.md).
 >
-> Looking for *CPU/heap flame graphs over time*? See [Continuous Profiling](../12-continuous-profiling/) and the **profiling-techniques** skill.
+> Looking for *CPU/heap flame graphs over time*? See [Continuous Profiling](../12-continuous-profiling/README.md) and the **profiling-techniques** skill.
 >
 > This section is the **runtime-attach** discipline — answering the unknown-unknowns of a system you cannot pause, redeploy, or reproduce.
 

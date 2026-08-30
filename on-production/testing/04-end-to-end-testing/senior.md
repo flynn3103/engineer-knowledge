@@ -146,7 +146,7 @@ export const test = base.extend<{ authedPage: Page }>({
 });
 ```
 
-Now a test starts already authenticated, with a known account, in milliseconds — no fragile login-by-UI in every spec. Seeding strategy is a topic of its own: see [Test Data Management](../11-test-data-management/) and the **test-data-management** skill.
+Now a test starts already authenticated, with a known account, in milliseconds — no fragile login-by-UI in every spec. Seeding strategy is a topic of its own: see [Test Data Management](../11-test-data-management/README.md) and the **test-data-management** skill.
 
 ---
 
@@ -214,7 +214,7 @@ steps:
 |-------|-----------|-----|
 | **Pre-merge (PR)** | Fast critical-journey subset (smoke), headless, sharded | Keep PRs fast; catch the worst breakage before merge |
 | **Post-merge / nightly** | Full E2E suite, all browsers | Broader coverage without blocking developers |
-| **Pre-deploy / smoke-on-prod** | A few read-only journeys against the deploy | Catch environment/config breakage — see [Testing in Production](../13-testing-in-production/) |
+| **Pre-deploy / smoke-on-prod** | A few read-only journeys against the deploy | Catch environment/config breakage — see [Testing in Production](../13-testing-in-production/README.md) |
 
 **Artifacts are non-negotiable** — a CI failure you can't reproduce locally is useless without evidence. Capture trace, screenshot, and video on failure:
 
@@ -256,7 +256,7 @@ When flake appears, resist the reflex to bump timeouts. Work it methodically:
 4. **Classify the cause** (sleep, isolation, time/random, third party, genuine product race) and apply the matching fix from the [Middle tier](./middle.md#core-concept-5----flakiness-the-1-enemy).
 5. **Quarantine if it blocks**, but with a ticket and an owner.
 
-Crucially: **a flaky E2E test is sometimes telling the truth.** Intermittent failures can reveal a real race condition or eventual-consistency bug in your *product*. Never paper over flake with retries before ruling that out. Deep dive: [Flaky Tests & Reliability](../12-flaky-tests-and-reliability/).
+Crucially: **a flaky E2E test is sometimes telling the truth.** Intermittent failures can reveal a real race condition or eventual-consistency bug in your *product*. Never paper over flake with retries before ruling that out. Deep dive: [Flaky Tests & Reliability](../12-flaky-tests-and-reliability/README.md).
 
 ---
 

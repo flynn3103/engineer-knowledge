@@ -29,4 +29,4 @@ Each topic has five depth levels — **junior → middle → senior → professi
 
 ---
 
-> Part of the [Engineering Thinking](../) roadmap. It pairs with [Metacognition & Learning](../10-metacognition-and-learning/) — reasoning about your own thinking translates directly into reasoning about a system's behavior under failure.
+> Part of the [Engineering Thinking](../README.md) roadmap. It pairs with [Metacognition & Learning](../10-metacognition-and-learning/) — reasoning about your own thinking translates directly into reasoning about a system's behavior under failure.

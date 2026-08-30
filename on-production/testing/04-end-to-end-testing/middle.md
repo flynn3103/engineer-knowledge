@@ -52,7 +52,7 @@ Examples for an e-commerce app:
 
 > **Mantra: E2E for confidence, not coverage.** You are not trying to exercise every branch. You're proving the spine of the product holds.
 
-Cross-link: deciding *what* to test where is the heart of [Test Strategy & the Pyramid](../01-test-strategy-and-the-pyramid/).
+Cross-link: deciding *what* to test where is the heart of [Test Strategy & the Pyramid](../01-test-strategy-and-the-pyramid/README.md).
 
 ---
 
@@ -154,7 +154,7 @@ test('cart shows total', async ({ page, request }) => {
 });
 ```
 
-**Retries** (`retries: 2` in config) can stabilize CI, but treat them as a smoke alarm: if a test only passes on retry, log it and investigate — a blind retry can hide a genuine race condition in your *product*. Full treatment: [Flaky Tests & Reliability](../12-flaky-tests-and-reliability/).
+**Retries** (`retries: 2` in config) can stabilize CI, but treat them as a smoke alarm: if a test only passes on retry, log it and investigate — a blind retry can hide a genuine race condition in your *product*. Full treatment: [Flaky Tests & Reliability](../12-flaky-tests-and-reliability/README.md).
 
 ---
 
@@ -176,7 +176,7 @@ test('order lifecycle end-to-end via API', async ({ request }) => {
 });
 ```
 
-This still hits the real router, services, and database end-to-end — it just skips the browser. **Heuristic:** use browser E2E when the *UI itself* is the risk (a checkout form, a multi-step wizard); use API E2E when the risk is in the backend flow. See the **api-testing** skill and [Contract Testing](../05-contract-testing/) for verifying service boundaries cheaply.
+This still hits the real router, services, and database end-to-end — it just skips the browser. **Heuristic:** use browser E2E when the *UI itself* is the risk (a checkout form, a multi-step wizard); use API E2E when the risk is in the backend flow. See the **api-testing** skill and [Contract Testing](../05-contract-testing/README.md) for verifying service boundaries cheaply.
 
 ---
 

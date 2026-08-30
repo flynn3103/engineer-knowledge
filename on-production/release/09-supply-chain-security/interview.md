@@ -27,7 +27,7 @@
 
 > Focus: **answering supply-chain questions the way a strong engineer does — precise on the chain and the real incidents, fluent in SBOMs and provenance, and able to design a program that trades assurance against velocity.**
 
-Supply-chain questions reward *precision*. Anyone can say "use SBOMs"; an interviewer is listening for whether you know an SBOM is an inventory not a guarantee, what `go.sum` actually verifies, why a *signature* didn't save SolarWinds customers, and how you'd answer "are we affected, and where" at 2 a.m. This bank uses **Q** / *what's really being tested* / **A** format. Signing *mechanics* are deferred to [Artifact Signing & Provenance](../04-artifact-signing-and-provenance/); know the boundary and say so in an interview.
+Supply-chain questions reward *precision*. Anyone can say "use SBOMs"; an interviewer is listening for whether you know an SBOM is an inventory not a guarantee, what `go.sum` actually verifies, why a *signature* didn't save SolarWinds customers, and how you'd answer "are we affected, and where" at 2 a.m. This bank uses **Q** / *what's really being tested* / **A** format. Signing *mechanics* are deferred to [Artifact Signing & Provenance](../04-artifact-signing-and-provenance/README.md); know the boundary and say so in an interview.
 
 ---
 
@@ -63,7 +63,7 @@ Supply-chain questions reward *precision*. Anyone can say "use SBOMs"; an interv
 
 **Q5. Walk me through generating and using an SBOM in a pipeline.**
 *Testing: practical fluency and the generate-vs-use split.*
-**A.** Generate at build time with `syft` — and prefer the *built image* over source, because the image reflects what actually ships including OS packages: `syft "$IMAGE@$DIGEST" -o cyclonedx-json=sbom.cdx.json`. Attach it as a signed attestation so its integrity is verifiable (`cosign attest`, mechanics in [topic 04](../04-artifact-signing-and-provenance/)). Then *use* it: scan the SBOM, not the filesystem — `grype sbom:sbom.cdx.json` or `osv-scanner --sbom=...` — so you separate the slow "what's in it" (once, at build) from the fast "what's now known-vulnerable" (continuously, as advisories update). Store it in a corpus (Dependency-Track) so the whole fleet is re-matched against new CVEs without rebuilding.
+**A.** Generate at build time with `syft` — and prefer the *built image* over source, because the image reflects what actually ships including OS packages: `syft "$IMAGE@$DIGEST" -o cyclonedx-json=sbom.cdx.json`. Attach it as a signed attestation so its integrity is verifiable (`cosign attest`, mechanics in [topic 04](../04-artifact-signing-and-provenance/README.md)). Then *use* it: scan the SBOM, not the filesystem — `grype sbom:sbom.cdx.json` or `osv-scanner --sbom=...` — so you separate the slow "what's in it" (once, at build) from the fast "what's now known-vulnerable" (continuously, as advisories update). Store it in a corpus (Dependency-Track) so the whole fleet is re-matched against new CVEs without rebuilding.
 
 **Q6. How do you defend against dependency confusion?**
 *Testing: knowledge of the 2021 Birsan class and concrete mitigations.*
@@ -71,7 +71,7 @@ Supply-chain questions reward *precision*. Anyone can say "use SBOMs"; an interv
 
 **Q7. Where does provenance verification fit, and how is it different from a signature?**
 *Testing: the SolarWinds insight and the verify-before-trust gate.*
-**A.** A signature proves *who* signed ("the key holder"). **Provenance** proves *what* was built and *from where*: this artifact came from commit X of repo Y, built by builder Z. SolarWinds shipped a *validly signed* backdoor because the build was compromised — the signature was authentic, the artifact wasn't. So you verify provenance as a **fail-closed gate** at promote/admission — `cosign verify-attestation --type slsaprovenance` checking expected source, builder identity, and ideally workflow — rejecting anything signed by the wrong identity or built outside your sanctioned pipeline. Mechanics live in [topic 04](../04-artifact-signing-and-provenance/); the design point is *the gate must reject, not warn*.
+**A.** A signature proves *who* signed ("the key holder"). **Provenance** proves *what* was built and *from where*: this artifact came from commit X of repo Y, built by builder Z. SolarWinds shipped a *validly signed* backdoor because the build was compromised — the signature was authentic, the artifact wasn't. So you verify provenance as a **fail-closed gate** at promote/admission — `cosign verify-attestation --type slsaprovenance` checking expected source, builder identity, and ideally workflow — rejecting anything signed by the wrong identity or built outside your sanctioned pipeline. Mechanics live in [topic 04](../04-artifact-signing-and-provenance/README.md); the design point is *the gate must reject, not warn*.
 
 **Q8. What makes a build hermetic, reproducible, and ephemeral — and why care?**
 *Testing: build integrity depth.*
@@ -199,7 +199,7 @@ scorecard --repo=github.com/yourco/service
 
 ## Summary
 
-Interviewers probe supply-chain knowledge for **precision and judgment**. Be exact about the chain (source → build → publish → consume) and which incident maps to which edge. Know the distinctions that separate strong answers: SBOM is an *inventory and a map*, not a guarantee; a *hash proves same, not safe*; a *signature proves who, provenance proves what and from where* (the SolarWinds reframe); SLSA is a *ladder matched to blast radius*, not a binary. Demonstrate the operational muscle — generate SBOMs at build, scan continuously, verify provenance as a *fail-closed* gate, treat CI/CD as production, and answer "are we affected, and where" from a corpus in minutes via a *rehearsed* runbook. And know the boundary: defer signing cryptography to [Artifact Signing & Provenance](../04-artifact-signing-and-provenance/), and say so rather than bluff.
+Interviewers probe supply-chain knowledge for **precision and judgment**. Be exact about the chain (source → build → publish → consume) and which incident maps to which edge. Know the distinctions that separate strong answers: SBOM is an *inventory and a map*, not a guarantee; a *hash proves same, not safe*; a *signature proves who, provenance proves what and from where* (the SolarWinds reframe); SLSA is a *ladder matched to blast radius*, not a binary. Demonstrate the operational muscle — generate SBOMs at build, scan continuously, verify provenance as a *fail-closed* gate, treat CI/CD as production, and answer "are we affected, and where" from a corpus in minutes via a *rehearsed* runbook. And know the boundary: defer signing cryptography to [Artifact Signing & Provenance](../04-artifact-signing-and-provenance/README.md), and say so rather than bluff.
 
 ---
 
@@ -215,8 +215,8 @@ Interviewers probe supply-chain knowledge for **precision and judgment**. Be exa
 
 ## Related Topics
 
-- [Artifact Signing & Provenance](../04-artifact-signing-and-provenance/) — the signing/attestation/SLSA mechanics this bank defers to.
-- [Registries & Distribution](../05-registries-and-distribution/) — registries, mirrors, admission, distribution.
-- [Release Automation](../08-release-automation/) — gates and verification in the pipeline.
+- [Artifact Signing & Provenance](../04-artifact-signing-and-provenance/README.md) — the signing/attestation/SLSA mechanics this bank defers to.
+- [Registries & Distribution](../05-registries-and-distribution/README.md) — registries, mirrors, admission, distribution.
+- [Release Automation](../08-release-automation/README.md) — gates and verification in the pipeline.
 - [Build Systems](../../build-systems/) and [Static Analysis](../../static-analysis/) — adjacent assurance areas.
 - Topic tiers: [Junior](junior.md) · [Middle](middle.md) · [Senior](senior.md) · [Professional](professional.md).

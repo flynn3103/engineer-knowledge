@@ -316,5 +316,5 @@ Nearly every question in this bank is one of those four distinctions wearing a c
 ## Related Topics
 
 - [Junior](junior.md), [Middle](middle.md), [Senior](senior.md), [Professional](professional.md) — the tiered treatment of this topic that these questions are drawn from.
-- [Profiling → Memory Profiling](../01-profiling/02-memory-profiling/) — the hands-on profiling workflow (`pprof`, heap dumps, flame graphs) behind the answers in Themes 5 and 6.
+- [Profiling → Memory Profiling](../01-profiling/02-memory-profiling/README.md) — the hands-on profiling workflow (`pprof`, heap dumps, flame graphs) behind the answers in Themes 5 and 6.
 - [Performance README](../README.md) — where memory and allocation sits in the broader performance-engineering landscape.

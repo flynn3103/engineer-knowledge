@@ -240,7 +240,7 @@ Two failure directions, with senior-specific causes:
 
 ## Sampling & Quota Under Load
 
-Crashes are *not* logs — you usually want every fatal one. But "every fatal one" and "every handled exception" are different budgets, and at scale you must decide deliberately. See [`../14-telemetry-cost-and-sampling-strategy/`](../14-telemetry-cost-and-sampling-strategy/) for the cost dimension; here's the crash-specific policy.
+Crashes are *not* logs — you usually want every fatal one. But "every fatal one" and "every handled exception" are different budgets, and at scale you must decide deliberately. See [`../14-telemetry-cost-and-sampling-strategy/`](../14-telemetry-cost-and-sampling-strategy/README.md) for the cost dimension; here's the crash-specific policy.
 
 ### The budget table
 

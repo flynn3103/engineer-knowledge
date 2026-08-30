@@ -68,7 +68,7 @@ curl -s "$DT/api/v1/component?purl=pkg:maven/org.apache.logging.log4j/log4j-core
 
 Verification (senior tier) becomes a *program* when the policy is **code**: versioned, reviewed, tested, and enforced uniformly across every deploy. Express it in OPA/Rego, Kyverno, or Sigstore policy-controller, and run it as a fail-closed admission gate.
 
-A representative policy (the *intent*, not signing internals — those are in [topic 04](../04-artifact-signing-and-provenance/)):
+A representative policy (the *intent*, not signing internals — those are in [topic 04](../04-artifact-signing-and-provenance/README.md)):
 
 ```rego
 # Deny any image that fails the supply-chain bar (illustrative Rego)

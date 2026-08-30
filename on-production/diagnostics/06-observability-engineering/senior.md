@@ -35,7 +35,7 @@ Raw observability lets you debug. **SLOs** turn it into a contract: a measured i
 
 ### 6. Sampling trades fidelity for cost — design the trade, don't accept the default
 
-At scale you cannot keep every event. The senior skill is choosing *what* fidelity to give up: keep 100% of errors and slow traces, sample the boring fast majority, and never let the sampler eat the rare failure you'll need. Sampling is a fidelity-allocation decision, covered in depth in [telemetry-cost](../14-telemetry-cost-and-sampling-strategy/).
+At scale you cannot keep every event. The senior skill is choosing *what* fidelity to give up: keep 100% of errors and slow traces, sample the boring fast majority, and never let the sampler eat the rare failure you'll need. Sampling is a fidelity-allocation decision, covered in depth in [telemetry-cost](../14-telemetry-cost-and-sampling-strategy/README.md).
 
 ---
 
@@ -190,7 +190,7 @@ Stamp `trace_id` and `span_id` on every log line (via an OTel log handler or a l
 
 ### trace → profile, via span context
 
-The newest link: a **span-aware continuous profiler** tags CPU/alloc samples with the active `span_id`, so for one slow span you can ask "which function was burning CPU *for this request*?" (cross-ref [continuous-profiling](../12-continuous-profiling/)). This closes the loop from "this request was slow" to "this line of code was the reason."
+The newest link: a **span-aware continuous profiler** tags CPU/alloc samples with the active `span_id`, so for one slow span you can ask "which function was burning CPU *for this request*?" (cross-ref [continuous-profiling](../12-continuous-profiling/README.md)). This closes the loop from "this request was slow" to "this line of code was the reason."
 
 ```text
 [metric spike] ──exemplar(trace_id)──► [trace: the slow span]
@@ -265,7 +265,7 @@ Alerting strategy is a senior design decision. The two modes complement each oth
 
 ## Sampling and Fidelity
 
-Sampling is the lever between cost and **fidelity** — how faithfully your stored telemetry reflects reality. (Deep dive: [telemetry-cost](../14-telemetry-cost-and-sampling-strategy/).) The senior framing:
+Sampling is the lever between cost and **fidelity** — how faithfully your stored telemetry reflects reality. (Deep dive: [telemetry-cost](../14-telemetry-cost-and-sampling-strategy/README.md).) The senior framing:
 
 - **Head sampling** decides at trace *start* (and propagates the decision). Cheap and simple, but you decide *before* knowing if the trace is interesting — so naïve head sampling at 1% keeps 1 in 100 errors, and the rare failure is exactly what you wanted.
 - **Tail sampling** decides at trace *end*, in the Collector, after seeing the whole trace. You can keep **100% of errors and slow traces** and sample the boring fast majority. The cost: the Collector must buffer whole traces in memory until they complete, which constrains topology (covered in [`professional.md`](professional.md)).
@@ -278,7 +278,7 @@ The fidelity principle: **never sample away the rare thing you'll need.** Alloca
 
 ## Debugging in Production
 
-The whole point. (Cross-ref [testing-in-production](../../testing/13-testing-in-production/) — observability is its prerequisite; you can't safely test in prod if you can't see what happens.)
+The whole point. (Cross-ref [testing-in-production](../../testing/13-testing-in-production/README.md) — observability is its prerequisite; you can't safely test in prod if you can't see what happens.)
 
 - **Production is the only complete environment.** Staging lacks real traffic shapes, real cardinality, real concurrency, real data. The unknown-unknowns live in prod, so observability must be a prod-first capability.
 - **The loop runs against live data.** Hypothesis → query the last hour of wide events → narrow → confirm. No reproduction, no redeploy.

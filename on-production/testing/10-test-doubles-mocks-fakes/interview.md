@@ -38,7 +38,7 @@ Each entry is **Q** (the question) / *what's really being tested* / **A** (a mod
 
 - The full ladder: junior (the five doubles, first stub), middle (state vs behavior, Detroit/London, faking clock/HTTP), senior (over-mocking, don't-mock-what-you-don't-own), professional (org discipline, migration cost).
 - Be ready to write a small stub *and* a fake live, in your strongest language.
-- Know the neighboring topics: [Unit Testing](../02-unit-testing/), [Integration Testing](../03-integration-testing/), [Contract Testing](../05-contract-testing/).
+- Know the neighboring topics: [Unit Testing](../02-unit-testing/README.md), [Integration Testing](../03-integration-testing/README.md), [Contract Testing](../05-contract-testing/README.md).
 
 ---
 

@@ -201,9 +201,9 @@ Interview success on this topic is about maturity signaling. Separate the joke (
 
 ## Related Topics
 
-- [Test Strategy and the Pyramid](../01-test-strategy-and-the-pyramid/) — prod testing as the apex.
-- [End-to-End Testing](../04-end-to-end-testing/) — synthetic monitoring's pre-prod cousin.
-- [Performance and Load Testing](../09-performance-and-load-testing/) — real-scale verification.
-- [Flaky Tests and Reliability](../12-flaky-tests-and-reliability/) — canary-analysis reliability.
+- [Test Strategy and the Pyramid](../01-test-strategy-and-the-pyramid/README.md) — prod testing as the apex.
+- [End-to-End Testing](../04-end-to-end-testing/README.md) — synthetic monitoring's pre-prod cousin.
+- [Performance and Load Testing](../09-performance-and-load-testing/README.md) — real-scale verification.
+- [Flaky Tests and Reliability](../12-flaky-tests-and-reliability/README.md) — canary-analysis reliability.
 - [Feature Flags & Progressive Delivery](../../release-engineering/06-feature-flags-and-progressive-delivery/) — the control plane.
 - [Rollback and Roll-Forward](../../release-engineering/07-rollback-and-roll-forward/) — the automated safety net.

@@ -34,7 +34,7 @@ E2E questions separate engineers who've *written* tests from those who've *owned
 ## Prerequisites
 
 - Working knowledge across [Junior](./junior.md) → [Professional](./professional.md) tiers.
-- Comfort with the [test pyramid](../01-test-strategy-and-the-pyramid/), [integration](../03-integration-testing/), and [contract testing](../05-contract-testing/).
+- Comfort with the [test pyramid](../01-test-strategy-and-the-pyramid/README.md), [integration](../03-integration-testing/README.md), and [contract testing](../05-contract-testing/README.md).
 
 ---
 
@@ -238,10 +238,10 @@ MEASURE    flake rate ↓ + escaped defects ≈ 0 (govern both) · runtime withi
 
 ## Related Topics
 
-- [Test Strategy & the Pyramid](../01-test-strategy-and-the-pyramid/)
-- [Integration Testing](../03-integration-testing/)
-- [Contract Testing](../05-contract-testing/)
-- [Flaky Tests & Reliability](../12-flaky-tests-and-reliability/)
-- [Test Data Management](../11-test-data-management/)
-- [Acceptance & BDD](../14-acceptance-and-bdd/)
+- [Test Strategy & the Pyramid](../01-test-strategy-and-the-pyramid/README.md)
+- [Integration Testing](../03-integration-testing/README.md)
+- [Contract Testing](../05-contract-testing/README.md)
+- [Flaky Tests & Reliability](../12-flaky-tests-and-reliability/README.md)
+- [Test Data Management](../11-test-data-management/README.md)
+- [Acceptance & BDD](../14-acceptance-and-bdd/README.md)
 - [End-to-End Testing — Junior Level](./junior.md)

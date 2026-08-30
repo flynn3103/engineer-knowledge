@@ -122,7 +122,7 @@ Design for it deliberately:
 
 3. **Prefer many small idempotent steps over one big script.** A monolithic `release.sh` that does everything can't resume mid-way. Discrete CI steps each with a skip-guard can.
 
-4. **Have a documented manual runbook** for the cases automation can't fix — e.g. a publish that *partially* uploaded a multi-arch image. The runbook says exactly which commands to run to complete or roll back. (Rollback specifics live in [Rollback and Roll-forward](../07-rollback-and-roll-forward/).)
+4. **Have a documented manual runbook** for the cases automation can't fix — e.g. a publish that *partially* uploaded a multi-arch image. The runbook says exactly which commands to run to complete or roll back. (Rollback specifics live in [Rollback and Roll-forward](../07-rollback-and-roll-forward/README.md).)
 
 5. **Alert on partial state.** A release that publishes but fails to create the GitHub Release should page someone, because re-running fixes it but only if a human knows to re-run.
 
@@ -165,7 +165,7 @@ cosign verify ghcr.io/myorg/app@sha256:... \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 ```
 
-> Notice the verification pins *which workflow* may have signed. That is the payoff: the signature attests not just "a valid key" but "produced by this org's release workflow." Combined with SLSA provenance, you get a verifiable claim about exactly how the artifact was built. Full detail in [Artifact Signing and Provenance](../04-artifact-signing-and-provenance/) and [Supply-chain Security](../09-supply-chain-security/).
+> Notice the verification pins *which workflow* may have signed. That is the payoff: the signature attests not just "a valid key" but "produced by this org's release workflow." Combined with SLSA provenance, you get a verifiable claim about exactly how the artifact was built. Full detail in [Artifact Signing and Provenance](../04-artifact-signing-and-provenance/README.md) and [Supply-chain Security](../09-supply-chain-security/README.md).
 
 ---
 
@@ -222,7 +222,7 @@ module.exports = {
 
 **Backports / maintenance releases.** When you're on 2.x but a customer on 1.x needs a security fix, you cherry-pick the `fix:` onto the `1.x` branch; the pipeline computes `1.7.4`, publishes it to the `1.x` channel, and `latest` stays at 2.x. This requires the tool to scope version computation to the branch's range, which the config above expresses.
 
-> Channel design connects directly to [Release Branching and Trains](../03-release-branching-and-trains/): your branch model *is* your channel model. Decide them together.
+> Channel design connects directly to [Release Branching and Trains](../03-release-branching-and-trains/README.md): your branch model *is* your channel model. Decide them together.
 
 ---
 

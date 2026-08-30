@@ -2,7 +2,7 @@
 
 > *"The leak you can find is the one you can attribute. The leak you can attribute is the one whose retention path you can read."*
 
-Memory profiling answers *what is alive in the heap right now, and what keeps it alive*. Distinct from [Allocation Profiling](../03-allocation-profiling/) (which counts what was *allocated*), this section is about what was *retained*.
+Memory profiling answers *what is alive in the heap right now, and what keeps it alive*. Distinct from [Allocation Profiling](../03-allocation-profiling/README.md) (which counts what was *allocated*), this section is about what was *retained*.
 
 ---
 
@@ -17,8 +17,8 @@ Memory profiling answers *what is alive in the heap right now, and what keeps it
 
 ## Related
 
-- **[Allocation Profiling](../03-allocation-profiling/)** — the *rate* side; usually the easier optimisation target.
-- **[Memory Optimization](../../05-memory-and-allocation-profiling/)** — what to do once you know what's retained.
+- **[Allocation Profiling](../03-allocation-profiling/README.md)** — the *rate* side; usually the easier optimisation target.
+- **[Memory Optimization](../../05-memory-and-allocation-profiling/README.md)** — what to do once you know what's retained.
 - **[Diagnostics → Post-Mortem Analysis](../../../../diagnostics/post-mortem-analysis/)** — heap dumps captured at crash time.
 - **[Language Internals → Memory Management](../../../../language-internals/memory-management/)** — GC strategies and their effect on what "memory profile" even means.
 

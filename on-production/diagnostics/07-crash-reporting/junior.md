@@ -191,7 +191,7 @@ func main() {
 }
 ```
 
-> **The goroutine trap (critical):** `recover()` only catches panics in *its own* goroutine. A panic in a bare `go func(){ ... }()` with no deferred recover **crashes the whole process**, full stop. Every goroutine you spawn needs its own guard. This is the #1 Go crash-reporting mistake. See [`../09-panic-and-recovery/`](../09-panic-and-recovery/).
+> **The goroutine trap (critical):** `recover()` only catches panics in *its own* goroutine. A panic in a bare `go func(){ ... }()` with no deferred recover **crashes the whole process**, full stop. Every goroutine you spawn needs its own guard. This is the #1 Go crash-reporting mistake. See [`../09-panic-and-recovery/`](../09-panic-and-recovery/README.md).
 
 ### Java / Kotlin — `Thread.setDefaultUncaughtExceptionHandler`
 

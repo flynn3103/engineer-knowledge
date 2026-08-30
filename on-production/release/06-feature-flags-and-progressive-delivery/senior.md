@@ -33,7 +33,7 @@ if flags.BoolValue(ctx, "risky-new-pricing", false) {
 }
 ```
 
-The caveat that makes this *senior*: a flag only rolls you back if **the old path still exists and still works.** The moment you delete `legacyPricing`, the flag is no longer a rollback — it's just a fork that both lead to new code. Keep the off-path viable for the whole life of a kill-switch, and verify it (Concept 6). For the full revert-vs-roll-forward picture, see [Rollback & Roll-Forward](../07-rollback-and-roll-forward/).
+The caveat that makes this *senior*: a flag only rolls you back if **the old path still exists and still works.** The moment you delete `legacyPricing`, the flag is no longer a rollback — it's just a fork that both lead to new code. Keep the off-path viable for the whole life of a kill-switch, and verify it (Concept 6). For the full revert-vs-roll-forward picture, see [Rollback & Roll-Forward](../07-rollback-and-roll-forward/README.md).
 
 ---
 
@@ -121,7 +121,7 @@ The cultural half of governance: a flag change is a *change*, and changes belong
 
 A flag is only a safe rollback lever if *both* values are safe at *any* moment, including mid-flip during the consistency window. This is design work, not config.
 
-- **Both paths must be simultaneously safe.** If `new-write-format` is on for instance A and off for instance B, both formats are being written *right now*. Readers must handle both. This is the expand/contract pattern from [Rollback & Roll-Forward](../07-rollback-and-roll-forward/) and database-migration discipline: make the schema/format tolerant of both states before you let the flag move.
+- **Both paths must be simultaneously safe.** If `new-write-format` is on for instance A and off for instance B, both formats are being written *right now*. Readers must handle both. This is the expand/contract pattern from [Rollback & Roll-Forward](../07-rollback-and-roll-forward/README.md) and database-migration discipline: make the schema/format tolerant of both states before you let the flag move.
 - **No flag should change irreversible state on flip.** If flipping a flag deletes data or performs a one-way migration, you can't flip back. Decouple the destructive action from the flag.
 - **Default to the survivable value.** When the SDK has nothing, it returns the hardcoded default. That default must be the value the system survives indefinitely on.
 - **Keep the off-path warm.** A kill-switch's off path (the legacy code) must stay tested and deployable for the flag's whole life. Run it in staging, and periodically in production via the flag, so it doesn't bit-rot into the Knight Capital scenario.

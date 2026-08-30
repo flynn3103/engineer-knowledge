@@ -62,7 +62,7 @@ Automated acceptance tests are typically realised at the **integration or E2E le
    /__________\                                  ← "is each piece correct?"
 ```
 
-The common BDD pathology is to push *every* acceptance criterion into a browser-driven Cucumber scenario, inverting the pyramid into an **ice-cream cone**: hundreds of slow, flaky, business-language tests and a thin layer of unit tests. The suite becomes the bottleneck and the flake source. Cross-reference [Test Strategy & the Pyramid](../01-test-strategy-and-the-pyramid/) and [End-to-End Testing](../04-end-to-end-testing/): the discipline that keeps E2E sane keeps acceptance sane, because they're usually the same tests.
+The common BDD pathology is to push *every* acceptance criterion into a browser-driven Cucumber scenario, inverting the pyramid into an **ice-cream cone**: hundreds of slow, flaky, business-language tests and a thin layer of unit tests. The suite becomes the bottleneck and the flake source. Cross-reference [Test Strategy & the Pyramid](../01-test-strategy-and-the-pyramid/README.md) and [End-to-End Testing](../04-end-to-end-testing/README.md): the discipline that keeps E2E sane keeps acceptance sane, because they're usually the same tests.
 
 A useful reframing: a complex business *rule* (discount stacking, premium calculation) is best pinned by many cheap example rows at a **lower** layer; only the critical end-to-end *journey* (a customer completes a purchase) needs a true top-of-pyramid acceptance test.
 
@@ -155,7 +155,7 @@ An acceptance suite decays faster than a unit suite because it's slower and more
 - **Cap the count.** Few, business-critical scenarios. Resist "let's add a scenario for every bug" — most bugs want a unit test.
 - **Drive below the UI** by default (Concept 6); reserve browser runs for a thin smoke layer.
 - **Stage with tags.** `@smoke` on every push; full set nightly. Don't make the slow suite a per-commit gate.
-- **Zero tolerance for flake.** A flaky acceptance test is more corrosive than a flaky unit test because it's expensive to re-run. Quarantine fast, fix or delete (see [Flaky Tests & Reliability](../12-flaky-tests-and-reliability/)).
+- **Zero tolerance for flake.** A flaky acceptance test is more corrosive than a flaky unit test because it's expensive to re-run. Quarantine fast, fix or delete (see [Flaky Tests & Reliability](../12-flaky-tests-and-reliability/README.md)).
 - **Own the step-definition library** like production code — DRY, well-factored, no dead steps.
 - **Periodically ask the readers.** If the PO/QA have stopped reading the features, the collaboration is dead and you're back to paying tax — react.
 

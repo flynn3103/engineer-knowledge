@@ -1,13 +1,21 @@
 # Data Privacy
 
-> Coming soon — this section is planned but not yet written.
+> Handle user data under real legal and contractual obligations — classify it, know where it can live, prove who touched it, and manage the keys that protect it.
 
-## Planned topics
+## Topics
 
-- PII and Data Classification
-- GDPR and Right to Be Forgotten
-- Data Residency
-- Audit Logging
-- Encryption Key Lifecycle
+| # | Topic | What you'll learn |
+|---|-------|-------------------|
+| 01 | [PII and Data Classification](01-pii-and-data-classification/junior.md) | Identify and tag which fields in a schema are sensitive — the prerequisite for everything else here. |
+| 02 | [GDPR and Right to Be Forgotten](02-gdpr-and-right-to-be-forgotten/junior.md) | Propagate an erasure request across services and backups without leaving zombie data. |
+| 03 | [Data Residency](03-data-residency/junior.md) | Keep classified data (and its downstream copies) inside the jurisdiction it's supposed to stay in. |
+| 04 | [Audit Logging](04-audit-logging/junior.md) | Prove who accessed a piece of classified data, and when, with a tamper-evident trail. |
+| 05 | [Encryption Key Lifecycle](05-encryption-key-lifecycle/junior.md) | Rotate, retire, and crypto-shred the keys that protect classified data at rest. |
 
-Each topic will follow this site's four-level progression (junior, middle, senior, professional) once written: performing the practice correctly, choosing boundaries in a real system, protecting invariants under failure, and leading durable delivery across teams.
+## How to use this section
+
+Each topic has four depth levels — **junior → middle → senior → professional**. Start at your level and climb. PII and Data Classification is the prerequisite — you can't apply the other four topics to data you haven't identified as sensitive. The remaining four are largely independent obligations that all act on classified data: erasure (GDPR), location (Residency), access proof (Audit Logging), and protection (Key Lifecycle).
+
+---
+
+> Part of the [On Production](../README.md) roadmap.

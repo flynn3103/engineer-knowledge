@@ -40,7 +40,7 @@ What each buys you:
 | Speed of running | Fast (collaborators are real but in-memory) | Fast |
 | Design feedback | Less | More — pain from setup nudges you toward smaller classes |
 
-The pragmatic middle ground (Khorikov's recommendation, and the one this roadmap takes): **default to classical**, use real collaborators when they're in-memory and fast, and reserve mocks for **out-of-process, shared dependencies** that you don't own — the unmanaged ones (a payment gateway, an email service). Mocking a same-process, owned collaborator usually couples your test to the implementation. The full taxonomy of doubles lives in [Test Doubles, Mocks & Fakes](../10-test-doubles-mocks-fakes/), and the strategy of *when* to reach for each is in the `mocking-strategies` skill.
+The pragmatic middle ground (Khorikov's recommendation, and the one this roadmap takes): **default to classical**, use real collaborators when they're in-memory and fast, and reserve mocks for **out-of-process, shared dependencies** that you don't own — the unmanaged ones (a payment gateway, an email service). Mocking a same-process, owned collaborator usually couples your test to the implementation. The full taxonomy of doubles lives in [Test Doubles, Mocks & Fakes](../10-test-doubles-mocks-fakes/README.md), and the strategy of *when* to reach for each is in the `mocking-strategies` skill.
 
 ---
 
@@ -238,7 +238,7 @@ def test_password_reset_sends_one_email(mailer_spy):
     assert mailer_spy.sent == [("user@example.com", "Reset your password")]
 ```
 
-Sending the email is the externally observable outcome — there's no return value or state to check, so the interaction *is* the contract. That's legitimate. Verifying that an internal, owned helper was called is not. The decision rule and the spy/mock vocabulary are detailed in the `mocking-strategies` skill and [Test Doubles](../10-test-doubles-mocks-fakes/).
+Sending the email is the externally observable outcome — there's no return value or state to check, so the interaction *is* the contract. That's legitimate. Verifying that an internal, owned helper was called is not. The decision rule and the spy/mock vocabulary are detailed in the `mocking-strategies` skill and [Test Doubles](../10-test-doubles-mocks-fakes/README.md).
 
 ---
 

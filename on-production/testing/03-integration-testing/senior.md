@@ -23,7 +23,7 @@ Heuristics that hold up:
 - **Don't re-test the same logic at two layers.** If a business rule has thorough unit coverage, the integration test for the endpoint that uses it should assert *wiring* (it's reachable, serialized, persisted), not re-enumerate every rule branch.
 - **Push fidelity to the lowest layer that catches the bug.** A serialization bug belongs in a focused HTTP-layer test, not a full end-to-end click-through.
 
-The pyramid shape isn't dogma, but its logic is: integration tests are 10–100× costlier than unit tests, so spend them where only real I/O can catch the bug. See [Test Strategy & the Pyramid](../01-test-strategy-and-the-pyramid/).
+The pyramid shape isn't dogma, but its logic is: integration tests are 10–100× costlier than unit tests, so spend them where only real I/O can catch the bug. See [Test Strategy & the Pyramid](../01-test-strategy-and-the-pyramid/README.md).
 
 ---
 
@@ -123,7 +123,7 @@ The win: the expensive layers (0–2) run once; only the cheap, test-specific la
 - **Template database** (Postgres `CREATE DATABASE ... TEMPLATE`) — clone a pre-seeded DB per test in milliseconds.
 - **Savepoints** — nest each test in a savepoint, roll back to it; faster than full truncate when the per-test footprint is small.
 
-Build fixtures with **factories/builders**, not giant SQL dumps, so each test declares exactly the state it needs (see [Test Data Management](../11-test-data-management/) and the `test-data-management` skill). The senior smell is a 2000-line `seed.sql` every test depends on implicitly — change one row and a dozen tests break for unrelated reasons.
+Build fixtures with **factories/builders**, not giant SQL dumps, so each test declares exactly the state it needs (see [Test Data Management](../11-test-data-management/README.md) and the `test-data-management` skill). The senior smell is a 2000-line `seed.sql` every test depends on implicitly — change one row and a dozen tests break for unrelated reasons.
 
 ---
 
@@ -141,7 +141,7 @@ A flaky integration test is worse than no test: it trains the team to ignore red
 | **Resource leaks** | Slow degradation, port/connection exhaustion | Close pools/containers in teardown |
 | **Nondeterministic queries** | `LIMIT` without `ORDER BY` returns different rows | Always order; assert on sets, not row order |
 
-**Policy, not heroics.** Quarantine a flaky test out of the gating suite the moment it's identified, file a ticket, and fix the root cause — but never let "add a retry" be the fix for a test whose flakiness reflects a *real* race in the product. See [Flaky Tests & Reliability](../12-flaky-tests-and-reliability/).
+**Policy, not heroics.** Quarantine a flaky test out of the gating suite the moment it's identified, file a ticket, and fix the root cause — but never let "add a retry" be the fix for a test whose flakiness reflects a *real* race in the product. See [Flaky Tests & Reliability](../12-flaky-tests-and-reliability/README.md).
 
 ---
 
@@ -201,7 +201,7 @@ Principles for broad integration:
 
 - **Bound the blast radius.** Test one async hop with real infra; mock the hops beyond it. Don't spin up the whole estate for one assertion.
 - **Make boundaries deterministic.** Wait on *observable conditions* (a row, an offset, a topic record), never on time.
-- **Prefer contract tests for service-to-service shape.** Broad integration is expensive; verify message *formats* with contracts and reserve broad integration for genuinely emergent wiring behaviour. See [Contract Testing](../05-contract-testing/).
+- **Prefer contract tests for service-to-service shape.** Broad integration is expensive; verify message *formats* with contracts and reserve broad integration for genuinely emergent wiring behaviour. See [Contract Testing](../05-contract-testing/README.md).
 
 ---
 

@@ -1,15 +1,23 @@
 # SRE & Reliability
 
-> Coming soon — this section is planned but not yet written.
+> Build services that make and keep reliable user promises: define what matters, respond well to failure, and learn into stronger systems.
 
-## Planned topics
+## Topics
 
-- Error Budgets
-- SLO Ownership
-- Incident Management
-- Postmortems
-- Toil Reduction
-- Load Shedding
-- Graceful Degradation
+| # | Topic | What you'll learn |
+|---|---|---|
+| 01 | [Error Budgets](01-error-budgets/README.md) | Use permitted failure to make delivery-risk decisions. |
+| 02 | [SLO Ownership](02-slo-ownership/README.md) | Give reliability objectives durable, actionable owners. |
+| 03 | [Incident Management](03-incident-management/README.md) | Coordinate mitigation and recovery under pressure. |
+| 04 | [Postmortems](04-postmortems/README.md) | Turn incidents into factual, verifiable improvements. |
+| 05 | [Toil Reduction](05-toil-reduction/README.md) | Reduce repetitive operational work safely. |
+| 06 | [Load Shedding](06-load-shedding/README.md) | Protect critical work during overload. |
+| 07 | [Graceful Degradation](07-graceful-degradation/README.md) | Preserve an honest useful experience when dependencies fail. |
 
-Each topic will follow this site's four-level progression (junior, middle, senior, professional) once written: performing the practice correctly, choosing boundaries in a real system, protecting invariants under failure, and leading durable delivery across teams.
+## How to use this section
+
+Each topic progresses from **junior → middle → senior → professional**. Begin with Error Budgets and SLO Ownership to make reliability measurable and accountable. Incident Management and Postmortems help the team respond and learn. Toil Reduction, Load Shedding, and Graceful Degradation turn that learning into safer day-to-day operation and resilient product behavior.
+
+---
+
+> Part of the [On Production](../README.md) roadmap.

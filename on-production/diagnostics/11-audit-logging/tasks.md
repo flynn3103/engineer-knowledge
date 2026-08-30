@@ -524,7 +524,7 @@ These are open-ended, system-level scenarios. The point is not one correct answe
 **Problem.** Design (and prototype the core of) an audit pipeline for a multi-tenant SaaS that ingests audit events from dozens of services, never samples or drops an audit event even under load, isolates tenants, and lands everything in a durable, append-only, tamper-evident store of record with a SIEM fan-out for alerting.
 
 **Constraints.**
-- Audit events are **exempt from sampling** — unlike app telemetry, they go through a path that cannot be load-shed. Contrast this explicitly with [Telemetry Cost & Sampling Strategy](../14-telemetry-cost-and-sampling-strategy/).
+- Audit events are **exempt from sampling** — unlike app telemetry, they go through a path that cannot be load-shed. Contrast this explicitly with [Telemetry Cost & Sampling Strategy](../14-telemetry-cost-and-sampling-strategy/README.md).
 - Tenant isolation is both a query filter *and* an access-control boundary — tenant A's auditor must not be able to read tenant B's events.
 - The store of record is durable and append-only (ideally tamper-evident); the SIEM is a *fan-out* sink for search/alerting, never the only copy.
 - Back-pressure strategy when the durable sink is slow: buffer (outbox / durable queue), never silently drop.
@@ -569,5 +569,5 @@ You can stand up an append-only store and prove the application cannot mutate it
 - [Audit Logging — Senior](senior.md)
 - [Audit Logging — Professional](professional.md)
 - [Audit Logging — Interview](interview.md)
-- Sibling diagnostic topics: [Logging](../02-logging/), [Tracing](../05-tracing/), [Telemetry Cost & Sampling Strategy](../14-telemetry-cost-and-sampling-strategy/)
+- Sibling diagnostic topics: [Logging](../02-logging/README.md), [Tracing](../05-tracing/README.md), [Telemetry Cost & Sampling Strategy](../14-telemetry-cost-and-sampling-strategy/README.md)
 - Cross-roadmap skills: `encryption-basics`, `secrets-management`, `database-migration-patterns`, `auth-token-security`, `api-authentication`

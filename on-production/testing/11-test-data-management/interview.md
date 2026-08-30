@@ -127,7 +127,7 @@ class OrderBuilder:
 
 **Q15. You're load-testing and need data. What matters that wouldn't matter for a unit test?**
 *Performance data.*
-**A.** **Volume** (production scale or beyond, so query plans and caches behave realistically), **skew** (hot keys — a few accounts with millions of rows — because uniform data hides the hotspots that break prod), and **cardinality** (distinct-value counts drive index selectivity and thus the plan). The dataset *is* the experiment; uniform tiny data makes the load test a lie. Synthetic generation is the only safe way to produce billions of realistic rows. See [Performance & Load Testing](../09-performance-and-load-testing/).
+**A.** **Volume** (production scale or beyond, so query plans and caches behave realistically), **skew** (hot keys — a few accounts with millions of rows — because uniform data hides the hotspots that break prod), and **cardinality** (distinct-value counts drive index selectivity and thus the plan). The dataset *is* the experiment; uniform tiny data makes the load test a lie. Synthetic generation is the only safe way to produce billions of realistic rows. See [Performance & Load Testing](../09-performance-and-load-testing/README.md).
 
 **Q16. How would you run test data for an org of twenty teams?**
 *Strategy and ownership at scale.*
@@ -230,8 +230,8 @@ A strong interview answer threads all five layers: build **minimal, readable** d
 
 ## Related Topics
 
-- [Unit Testing](../02-unit-testing/) — builders and factories in their natural home.
-- [Integration Testing](../03-integration-testing/) — isolation and seeding against a real DB.
-- [Flaky Tests & Reliability](../12-flaky-tests-and-reliability/) — determinism and isolation as the cure.
-- [Performance & Load Testing](../09-performance-and-load-testing/) — volume and skew in test data.
-- [Test Doubles: Mocks & Fakes](../10-test-doubles-mocks-fakes/) — stand-ins vs real data.
+- [Unit Testing](../02-unit-testing/README.md) — builders and factories in their natural home.
+- [Integration Testing](../03-integration-testing/README.md) — isolation and seeding against a real DB.
+- [Flaky Tests & Reliability](../12-flaky-tests-and-reliability/README.md) — determinism and isolation as the cure.
+- [Performance & Load Testing](../09-performance-and-load-testing/README.md) — volume and skew in test data.
+- [Test Doubles: Mocks & Fakes](../10-test-doubles-mocks-fakes/README.md) — stand-ins vs real data.

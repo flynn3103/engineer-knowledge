@@ -182,7 +182,7 @@ These are 1-to-3-hour exercises. The goal is the two things that make observabil
 **Constraints.**
 - Each link must be a real click-through/query, not "they happened around the same time."
 - `trace_id` must correlate logs (Task 2) and exemplars must link the metric (Task 7).
-- If you can't wire span→profile locally, describe precisely what a span-aware profiler would need (the active `span_id` on samples) — cross-ref [continuous-profiling](../12-continuous-profiling/).
+- If you can't wire span→profile locally, describe precisely what a span-aware profiler would need (the active `span_id` on samples) — cross-ref [continuous-profiling](../12-continuous-profiling/README.md).
 
 **Hints.**
 - Build every link *before* you need it; teams that debug in minutes pre-wired all four.
@@ -288,7 +288,7 @@ A multi-day project. This is where you stop instrumenting one service and start 
 - **Pipeline topology.** Specify **agent** Collectors (per-node, enrich, route by `trace_id`) and a **gateway** tier (tail sampling, PII redaction as a single chokepoint, span→metrics, routing). Explain why tail sampling forces `trace_id`-stable routing to a sticky gateway replica.
 - **Backends & build-vs-buy.** Choose backends per signal (e.g. unsampled metrics in Prometheus, tail-sampled traces in Tempo or Honeycomb, logs in Loki) and justify the build-vs-buy call. Explain how OTel keeps the choice reversible/per-signal.
 - **SLOs.** Define at least one **journey-level** SLO (e.g. "payment authorised within 2s") spanning multiple services, with a burn-rate alert and an error-budget policy with teeth.
-- **Cost governance.** State the fidelity/cost plan: metrics unsampled, traces tail-sampled, cardinality budgets, attribute pruning, retention tiers, cost attribution by `team`. State the rule: cut boring data, not failure fidelity (cross-ref [telemetry-cost](../14-telemetry-cost-and-sampling-strategy/)).
+- **Cost governance.** State the fidelity/cost plan: metrics unsampled, traces tail-sampled, cardinality budgets, attribute pruning, retention tiers, cost attribution by `team`. State the rule: cut boring data, not failure fidelity (cross-ref [telemetry-cost](../14-telemetry-cost-and-sampling-strategy/README.md)).
 - **Adoption & maturity.** Place the org on the maturity model, name the next leap, and give the paved-road plan (shared SDK/agent config, golden dashboards, SLO templates) plus how you'd measure adoption by *outcome* (time-to-corner-a-novel-incident) and resist Goodhart.
 - **Demonstration.** Inject a cross-service failure and corner it via the debugging loop, showing the trace crossing all four services including the queue.
 
@@ -332,11 +332,11 @@ A multi-day project. This is where you stop instrumenting one service and start 
 
 **Sibling diagnostic topics:**
 
-- [Tracing](../05-tracing/) · [Metrics](../04-metrics/) · [Logging](../02-logging/) — practice the individual signals.
-- [Continuous Profiling](../12-continuous-profiling/) — the span→profile link (Task 8).
-- [Telemetry Cost & Sampling Strategy](../14-telemetry-cost-and-sampling-strategy/) — fidelity/cost (Tasks 10, 13).
-- [Dynamic Instrumentation & eBPF](../13-dynamic-instrumentation-and-ebpf/) — observing without code changes.
-- [Crash Reporting](../07-crash-reporting/) · [Post-Mortem Analysis](../10-post-mortem-analysis/) — incident follow-through.
+- [Tracing](../05-tracing/README.md) · [Metrics](../04-metrics/README.md) · [Logging](../02-logging/README.md) — practice the individual signals.
+- [Continuous Profiling](../12-continuous-profiling/README.md) — the span→profile link (Task 8).
+- [Telemetry Cost & Sampling Strategy](../14-telemetry-cost-and-sampling-strategy/README.md) — fidelity/cost (Tasks 10, 13).
+- [Dynamic Instrumentation & eBPF](../13-dynamic-instrumentation-and-ebpf/README.md) — observing without code changes.
+- [Crash Reporting](../07-crash-reporting/README.md) · [Post-Mortem Analysis](../10-post-mortem-analysis/README.md) — incident follow-through.
 
 **Cross-roadmap links:**
 

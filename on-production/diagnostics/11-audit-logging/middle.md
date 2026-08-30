@@ -264,7 +264,7 @@ Concretely: pull `request_id` and `trace_id` from the request context and stamp 
 3. Query the app logs and the trace UI by the same ID.
 4. You now have: the deliberate act (audit), the full execution detail (logs), and the cross-service timing (trace) — for the exact same operation.
 
-Without correlation IDs, step 2 onward becomes "find log lines near 14:02:09 and hope." See [`../05-tracing/`](../05-tracing/) and [`../02-logging/middle.md`](../02-logging/middle.md) for how the IDs propagate.
+Without correlation IDs, step 2 onward becomes "find log lines near 14:02:09 and hope." See [`../05-tracing/`](../05-tracing/README.md) and [`../02-logging/middle.md`](../02-logging/middle.md) for how the IDs propagate.
 
 ---
 

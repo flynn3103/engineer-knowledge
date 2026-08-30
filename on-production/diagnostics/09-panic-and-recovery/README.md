@@ -4,9 +4,9 @@
 
 This roadmap is about **what happens when a program encounters something it cannot handle in normal flow** — Go panics, Java `Error` (not `Exception`), Rust `panic!`, JVM uncaught handlers, Python `SystemExit`, signals, and the discipline of when to *recover* vs when to *let it crash*. It is the half of error handling that lives below the normal `try` / `Result` layer.
 
-> Looking for *normal* error handling (exceptions, `Result`, sentinel errors)? See [Error Handling](../03-error-handling/).
+> Looking for *normal* error handling (exceptions, `Result`, sentinel errors)? See [Error Handling](../03-error-handling/README.md).
 >
-> Looking for *crash reporting* after the process dies (Sentry, Crashlytics)? See [Crash Reporting](../07-crash-reporting/).
+> Looking for *crash reporting* after the process dies (Sentry, Crashlytics)? See [Crash Reporting](../07-crash-reporting/README.md).
 
 ---
 

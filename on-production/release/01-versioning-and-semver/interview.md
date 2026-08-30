@@ -188,8 +188,8 @@ SUPPLY CHAIN        immutable versions; YANK not DELETE; pin by digest for secur
 
 ## Related Topics
 
-- [Changelogs & Release Notes](../02-changelogs-and-release-notes/) — Conventional Commits feeding automated bumps.
-- [Rollback & Roll-Forward](../07-rollback-and-roll-forward/) — limiting blast radius when a bump misclassifies.
-- [Release Automation](../08-release-automation/) — wiring derivation and gates into CI.
-- [Supply Chain Security](../09-supply-chain-security/) — immutability, SBOMs, and yanking.
-- [Testing](../../testing/) — contract and golden tests for behavioral breaks.
+- [Changelogs & Release Notes](../02-changelogs-and-release-notes/README.md) — Conventional Commits feeding automated bumps.
+- [Rollback & Roll-Forward](../07-rollback-and-roll-forward/README.md) — limiting blast radius when a bump misclassifies.
+- [Release Automation](../08-release-automation/README.md) — wiring derivation and gates into CI.
+- [Supply Chain Security](../09-supply-chain-security/README.md) — immutability, SBOMs, and yanking.
+- [Testing](../../testing/README.md) — contract and golden tests for behavioral breaks.

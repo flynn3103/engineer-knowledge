@@ -94,7 +94,7 @@ Structural defences:
 - **Don't mandate Gherkin; mandate the conversation.** A standard that says "stories in domains X/Y get an example-mapping session" targets the value. A standard that says "every PR needs a `.feature`" targets the tax.
 - **Require a named non-dev reader per feature file.** If no PO/QA/analyst will read it, it shouldn't be Gherkin — it should be a plain test. Make this a review checklist item.
 - **Lint against imperative steps.** A CI check that flags `click`, `type`, `wait`, `#id`, `xpath` in `.feature` files catches the brittlest anti-pattern automatically.
-- **Cap browser-driven scenarios** via the pyramid policy and drive-layer guidance; provide an in-process/API driver harness so the fast path is the easy path (cross-ref [End-to-End Testing](../04-end-to-end-testing/)).
+- **Cap browser-driven scenarios** via the pyramid policy and drive-layer guidance; provide an in-process/API driver harness so the fast path is the easy path (cross-ref [End-to-End Testing](../04-end-to-end-testing/README.md)).
 - **Periodic "reader audit."** Ask POs/QA whether they actually read the living docs. If a team's readers have gone silent, that team has slipped into tax — intervene or let them drop Gherkin.
 
 > The standard you write determines the outcome. "Every story has Gherkin" produces org-wide tax. "Every complex-domain story has a Three Amigos conversation, recorded as examples a named non-dev reads" produces the benefit.
@@ -144,8 +144,8 @@ You must know if the investment paid off — and this is treacherous, because th
 Across many teams, acceptance suites decay unless governed as a platform concern:
 
 - **A curated step-definition library** with reuse and naming conventions, owned like production code; otherwise every team reinvents `I log in` five ways and the catalogue rots.
-- **Pyramid policy with teeth:** acceptance/E2E scenario budgets per service; CI placement that runs `@smoke` per-commit and full suites on a schedule (cross-ref [Test Strategy & the Pyramid](../01-test-strategy-and-the-pyramid/)).
-- **Org-wide flake SLO.** Acceptance flake is the most expensive flake; track it, quarantine fast, and treat a chronically flaky suite as a reliability incident ([Flaky Tests & Reliability](../12-flaky-tests-and-reliability/)).
+- **Pyramid policy with teeth:** acceptance/E2E scenario budgets per service; CI placement that runs `@smoke` per-commit and full suites on a schedule (cross-ref [Test Strategy & the Pyramid](../01-test-strategy-and-the-pyramid/README.md)).
+- **Org-wide flake SLO.** Acceptance flake is the most expensive flake; track it, quarantine fast, and treat a chronically flaky suite as a reliability incident ([Flaky Tests & Reliability](../12-flaky-tests-and-reliability/README.md)).
 - **Drive-layer harness as paved road.** Provide in-process/API drivers so fast, stable acceptance tests are the default; making the slow browser path the *hard* path is your strongest lever against the ice-cream cone.
 - **Periodic dead-scenario pruning.** Scenarios nobody reads and bugs that should've been unit tests accumulate; budget cleanup.
 

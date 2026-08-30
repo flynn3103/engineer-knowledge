@@ -56,7 +56,7 @@ OTel unifies all telemetry under one umbrella:
 - **Traces** — spans, the per-request path. The most mature signal.
 - **Metrics** — counters/gauges/histograms, with a bridge to/from Prometheus.
 - **Logs** — structured records, correlated to traces via `trace_id`.
-- **Profiles** — sampled CPU/memory by code location; the newest signal (cross-ref [continuous-profiling](../12-continuous-profiling/)).
+- **Profiles** — sampled CPU/memory by code location; the newest signal (cross-ref [continuous-profiling](../12-continuous-profiling/README.md)).
 
 The win of unifying them is **shared context**: the same `trace_id`, the same resource attributes, the same propagation, across every signal. That shared context is what makes correlation possible.
 
@@ -192,7 +192,7 @@ Covered at junior level: stamp `trace_id` and `span_id` on every log line. From 
 
 ### 3. trace → profile, via span context
 
-The newest link: a continuous profiler that is *span-aware* tags CPU samples with the active `span_id`, so you can ask "for this slow span, which function was burning CPU?" (cross-ref [continuous-profiling](../12-continuous-profiling/)).
+The newest link: a continuous profiler that is *span-aware* tags CPU samples with the active `span_id`, so you can ask "for this slow span, which function was burning CPU?" (cross-ref [continuous-profiling](../12-continuous-profiling/README.md)).
 
 ```text
    [metric spike] ──exemplar──► [trace span] ──trace_id──► [logs]
@@ -208,14 +208,14 @@ This chain — spike to trace to logs to profile — is the observability-driven
 
 ## Sampling — First Contact
 
-You cannot afford to store every trace at scale (cross-ref [telemetry-cost](../14-telemetry-cost-and-sampling-strategy/)). Sampling keeps a representative subset.
+You cannot afford to store every trace at scale (cross-ref [telemetry-cost](../14-telemetry-cost-and-sampling-strategy/README.md)). Sampling keeps a representative subset.
 
 | Strategy | When the decision is made | Pro | Con |
 |---|---|---|---|
 | **Head-based** | At trace *start* (e.g. keep 10%) | Cheap, simple, decided once and propagated | Decides *before* you know if the trace is interesting (an error you'd want is dropped) |
 | **Tail-based** | At trace *end*, in the Collector | Keep *all* errors and slow traces; drop boring fast ones | Needs to buffer whole traces; more infra |
 
-The middle-level rule: **head sampling is fine to start; move to tail-based sampling so you never drop the errors.** Naïve random head sampling at 1% means you keep one in a hundred failures — and the rare failure is exactly what you wanted. Tail sampling lets you keep 100% of errors and 1% of successes. Sampling design is its own topic — see [telemetry-cost](../14-telemetry-cost-and-sampling-strategy/).
+The middle-level rule: **head sampling is fine to start; move to tail-based sampling so you never drop the errors.** Naïve random head sampling at 1% means you keep one in a hundred failures — and the rare failure is exactly what you wanted. Tail sampling lets you keep 100% of errors and 1% of successes. Sampling design is its own topic — see [telemetry-cost](../14-telemetry-cost-and-sampling-strategy/README.md).
 
 > Sampling decisions must **propagate** with the trace context — if A samples a trace in, B must honour that, or you get half-traces.
 

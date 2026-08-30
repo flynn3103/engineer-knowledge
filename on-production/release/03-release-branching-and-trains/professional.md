@@ -95,10 +95,10 @@ RM responsibilities:
 - Maintains the train manifest and chases "ready" status before branch point.
 - Chairs the release readiness review and records the go/no-go.
 - Holds (or escalates) freeze-exception authority.
-- Owns the rollback decision if GA goes wrong (with [Rollback & Roll-Forward](../07-rollback-and-roll-forward/) procedures).
+- Owns the rollback decision if GA goes wrong (with [Rollback & Roll-Forward](../07-rollback-and-roll-forward/README.md) procedures).
 - Runs the post-release retro feeding back into the model.
 
-The **runbook** turns the RM role into something a rotation can execute without tribal knowledge: a step-by-step for cutting the branch, building/promoting RCs, the RRR checklist, the exception procedure, the GA steps, and the rollback procedure. A good runbook means a new RM can run a train competently from the document — which is the whole point of professionalizing release engineering. Automate every step the runbook describes that doesn't require judgment ([Release Automation](../08-release-automation/)).
+The **runbook** turns the RM role into something a rotation can execute without tribal knowledge: a step-by-step for cutting the branch, building/promoting RCs, the RRR checklist, the exception procedure, the GA steps, and the rollback procedure. A good runbook means a new RM can run a train competently from the document — which is the whole point of professionalizing release engineering. Automate every step the runbook describes that doesn't require judgment ([Release Automation](../08-release-automation/README.md)).
 
 ---
 
@@ -134,7 +134,7 @@ Org-level policy elements:
 - **Flags as the rollback primitive.** Org-wide, "disable the feature" should be a flag flip (instant, no redeploy) rather than a revert-and-ship. This makes the release model and the rollback model one system.
 - **Clear boundary between flags and config.** Release flags (temporary, decouple deploy from release) differ from ops flags (permanent, operational levers); conflating them rots both.
 
-The strategic point: in a mature org the *long-lived release branch is largely replaced by runtime flag control*, which is why flag governance is now part of release engineering, not a separate concern. (See [Feature Flags & Progressive Delivery](../06-feature-flags-and-progressive-delivery/).)
+The strategic point: in a mature org the *long-lived release branch is largely replaced by runtime flag control*, which is why flag governance is now part of release engineering, not a separate concern. (See [Feature Flags & Progressive Delivery](../06-feature-flags-and-progressive-delivery/README.md).)
 
 ---
 

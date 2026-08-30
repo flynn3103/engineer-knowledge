@@ -36,7 +36,7 @@ Each question below gives the **Q**, *what's really being tested*, and a model *
 ## Prerequisites
 
 - You can explain code coverage and its limits ([Code Coverage](../../code-coverage/)).
-- You've written unit tests with real assertions ([Unit Testing](../02-unit-testing/)).
+- You've written unit tests with real assertions ([Unit Testing](../02-unit-testing/README.md)).
 - You've at least read the junior–senior tiers of this topic.
 
 ---
@@ -222,7 +222,7 @@ Every strong mutation-testing answer routes through one sentence: **coverage pro
 
 ## Related Topics
 
-- [Unit Testing](../02-unit-testing/) — the suite under test.
-- [Property-Based Testing](../06-property-based-testing/) — invariants, graded by mutation.
+- [Unit Testing](../02-unit-testing/README.md) — the suite under test.
+- [Property-Based Testing](../06-property-based-testing/README.md) — invariants, graded by mutation.
 - [Code Coverage](../../code-coverage/) — the metric mutation testing corrects.
 - [Engineering Metrics & DORA](../../engineering-metrics-and-dora/) — why the score must stay a diagnostic.

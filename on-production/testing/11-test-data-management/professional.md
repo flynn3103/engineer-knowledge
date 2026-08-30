@@ -87,7 +87,7 @@ synth.validate(ds, checks=[referential_integrity, distribution_match,
 synth.publish(ds, version="ds-2024Q2.7", lineage=ds.lineage)
 ```
 
-The strategic payoff: synthetic data has **no PII**, so it crosses environment and residency boundaries freely, scales to any volume for [performance and load testing](../09-performance-and-load-testing/), and is reproducible for debugging — while the validation step guards the one residual risk, memorisation. A blend of synthetic bulk plus carefully masked production long-tail is still common, but a strong synthetic program shrinks the masked-prod surface and thus the compliance surface.
+The strategic payoff: synthetic data has **no PII**, so it crosses environment and residency boundaries freely, scales to any volume for [performance and load testing](../09-performance-and-load-testing/README.md), and is reproducible for debugging — while the validation step guards the one residual risk, memorisation. A blend of synthetic bulk plus carefully masked production long-tail is still common, but a strong synthetic program shrinks the masked-prod surface and thus the compliance surface.
 
 ---
 

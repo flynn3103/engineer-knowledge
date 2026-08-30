@@ -191,9 +191,9 @@ MEASURE (read together)
 
 ## Related Topics
 
-- [Unit Testing](../02-unit-testing/) · [Integration Testing](../03-integration-testing/) · [End-to-End Testing](../04-end-to-end-testing/)
-- [Contract Testing](../05-contract-testing/) — the seam strategy.
-- [Property-Based Testing](../06-property-based-testing/) · [Mutation Testing](../07-mutation-testing/) — depth and assertion quality.
-- [Flaky Tests & Reliability](../12-flaky-tests-and-reliability/) — the flakiness tax.
+- [Unit Testing](../02-unit-testing/README.md) · [Integration Testing](../03-integration-testing/README.md) · [End-to-End Testing](../04-end-to-end-testing/README.md)
+- [Contract Testing](../05-contract-testing/README.md) — the seam strategy.
+- [Property-Based Testing](../06-property-based-testing/README.md) · [Mutation Testing](../07-mutation-testing/README.md) — depth and assertion quality.
+- [Flaky Tests & Reliability](../12-flaky-tests-and-reliability/README.md) — the flakiness tax.
 - [Code Coverage](../../code-coverage/) · [Engineering Metrics & DORA](../../engineering-metrics-and-dora/) — measurement context.
 - Tier pages: [junior](junior.md) · [middle](middle.md) · [senior](senior.md) · [professional](professional.md).

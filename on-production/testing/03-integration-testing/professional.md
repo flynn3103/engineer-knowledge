@@ -113,13 +113,13 @@ The strategic push is **toward ephemeral, away from shared**: the more state a t
 At scale, integration testing has shared assets, and *unowned shared assets rot*. Treat them as a product with a team behind them:
 
 - **A shared Testcontainers base / fixtures library** — common container setup, waits, and a Postgres/Kafka harness so every team isn't reinventing lifecycle and flake-avoidance.
-- **Test-data factories** — canonical builders for core domain objects (see [Test Data Management](../11-test-data-management/) and the `test-data-management` skill), so a schema change updates one factory, not 200 tests.
+- **Test-data factories** — canonical builders for core domain objects (see [Test Data Management](../11-test-data-management/README.md) and the `test-data-management` skill), so a schema change updates one factory, not 200 tests.
 - **CI runner pools and Docker infra** — capacity, the registry mirror, runner images.
 - **Migration-testing harness** — a standard way to verify migrations against the real engine in CI (the `database-migration-patterns` skill).
 
 **Ownership model.** A **test platform / developer-experience team** owns this infrastructure as a product: SLAs on the shared harness, a deprecation process for shared fixtures, and a feedback loop with product teams. Product teams own *their* tests; the platform team owns the *means to run them well*. Without explicit ownership, the base image drifts, fixtures fork, flake rates climb, and every team pays the tax independently — the textbook tragedy of the commons.
 
-A governing **test strategy document** (the unit/integration/e2e split, isolation conventions, the flake policy, the ephemeral-over-shared rule) keeps independent teams from diverging into incompatible local optima. See [Test Strategy & the Pyramid](../01-test-strategy-and-the-pyramid/).
+A governing **test strategy document** (the unit/integration/e2e split, isolation conventions, the flake policy, the ephemeral-over-shared rule) keeps independent teams from diverging into incompatible local optima. See [Test Strategy & the Pyramid](../01-test-strategy-and-the-pyramid/README.md).
 
 ---
 
@@ -136,7 +136,7 @@ You manage what you measure. For an integration suite at scale, instrument and t
 | **Slowest-N tests** | Where to optimize | Reviewed regularly |
 | **Container start failures** | Infra health (Docker/Ryuk/resources) | Near zero |
 
-Put these on a dashboard. A rising flake rate or a creeping p95 is a leading indicator that the suite is about to lose the team's trust — catch it before someone proposes "let's just disable integration tests on PRs." Tie a **flake-rate SLO** to a policy: above threshold, the test is auto-quarantined and a ticket is filed. See [Flaky Tests & Reliability](../12-flaky-tests-and-reliability/).
+Put these on a dashboard. A rising flake rate or a creeping p95 is a leading indicator that the suite is about to lose the team's trust — catch it before someone proposes "let's just disable integration tests on PRs." Tie a **flake-rate SLO** to a policy: above threshold, the test is auto-quarantined and a ticket is filed. See [Flaky Tests & Reliability](../12-flaky-tests-and-reliability/README.md).
 
 ---
 
@@ -144,12 +144,12 @@ Put these on a dashboard. A rising flake rate or a creeping p95 is a leading ind
 
 How integration testing is organised across many services shapes everything:
 
-- **Per-service narrow integration + cross-service contracts.** The scalable default: each service tests its own boundaries with Testcontainers; service-to-service agreement is verified with [Contract Testing](../05-contract-testing/), not broad integration. This avoids the combinatorial explosion of spinning up the whole estate for every team.
+- **Per-service narrow integration + cross-service contracts.** The scalable default: each service tests its own boundaries with Testcontainers; service-to-service agreement is verified with [Contract Testing](../05-contract-testing/README.md), not broad integration. This avoids the combinatorial explosion of spinning up the whole estate for every team.
 - **Broad integration reserved for genuine emergent wiring** — a saga across two services, a specific eventual-consistency path — and run sparingly, in dedicated ephemeral environments.
 - **Standardized harness, decentralized tests.** Central team provides the rails (base images, factories, CI templates); product teams write the tests on those rails.
 - **A written test strategy** that codifies: the layer split, isolation conventions, the ephemeral-over-shared rule, the flake policy, and what is/isn't a required check. Without it, 30 teams invent 30 conventions and the shared infra can't serve them all.
 
-This is also where integration testing meets [Testing in Production](../13-testing-in-production/): no pre-prod suite is perfectly faithful, so mature orgs pair a strong integration suite with production observability and synthetic monitoring rather than chasing 100% pre-prod fidelity.
+This is also where integration testing meets [Testing in Production](../13-testing-in-production/README.md): no pre-prod suite is perfectly faithful, so mature orgs pair a strong integration suite with production observability and synthetic monitoring rather than chasing 100% pre-prod fidelity.
 
 A concrete decision framework for "narrow vs broad vs contract" across services:
 

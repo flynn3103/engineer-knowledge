@@ -706,9 +706,9 @@ You can attach to **any** layer of a running system — syscalls, kernel functio
 
 ## Related Topics
 
-- [Continuous Profiling](../12-continuous-profiling/) — always-on, fleet-wide stack sampling (the productionized cousin of A2/A3).
-- [Tracing](../05-tracing/) — distributed request tracing; eBPF can feed and correlate with it.
-- [Metrics](../04-metrics/) — aggregate counters/histograms; eBPF maps are a metrics source.
-- [Logging](../02-logging/) — event records; contrast with eBPF's structured, low-overhead events.
-- [Debugging](../01-debugging/) — interactive and post-mortem techniques alongside live instrumentation.
-- [Observability Engineering](../06-observability-engineering/) — how instrumentation, traces, metrics, and logs combine into a coherent practice.
+- [Continuous Profiling](../12-continuous-profiling/README.md) — always-on, fleet-wide stack sampling (the productionized cousin of A2/A3).
+- [Tracing](../05-tracing/README.md) — distributed request tracing; eBPF can feed and correlate with it.
+- [Metrics](../04-metrics/README.md) — aggregate counters/histograms; eBPF maps are a metrics source.
+- [Logging](../02-logging/README.md) — event records; contrast with eBPF's structured, low-overhead events.
+- [Debugging](../01-debugging/README.md) — interactive and post-mortem techniques alongside live instrumentation.
+- [Observability Engineering](../06-observability-engineering/README.md) — how instrumentation, traces, metrics, and logs combine into a coherent practice.

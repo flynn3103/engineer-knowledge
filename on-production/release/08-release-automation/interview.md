@@ -34,7 +34,7 @@ Release automation shows up in interviews for platform, DevOps, SRE, and senior 
 ## Prerequisites
 
 - The four tier pages: [junior](./junior.md), [middle](./middle.md), [senior](./senior.md), [professional](./professional.md).
-- Comfort discussing [SemVer](../01-versioning-and-semver/), [signing/provenance](../04-artifact-signing-and-provenance/), and [registries](../05-registries-and-distribution/).
+- Comfort discussing [SemVer](../01-versioning-and-semver/README.md), [signing/provenance](../04-artifact-signing-and-provenance/README.md), and [registries](../05-registries-and-distribution/README.md).
 - Familiarity with [DORA metrics](../../engineering-metrics-and-dora/).
 
 ---
@@ -219,11 +219,11 @@ Strong release-automation interview answers start from the pipeline model — or
 
 ## Related Topics
 
-- [Versioning and SemVer](../01-versioning-and-semver/) — what the version step computes.
-- [Changelogs and Release Notes](../02-changelogs-and-release-notes/) — the changelog step's output.
-- [Artifact Signing and Provenance](../04-artifact-signing-and-provenance/) — keyless signing in automation.
-- [Registries and Distribution](../05-registries-and-distribution/) — trusted publishing.
-- [Rollback and Roll-forward](../07-rollback-and-roll-forward/) — recovering from a bad release.
-- [Supply-chain Security](../09-supply-chain-security/) — provenance verification.
+- [Versioning and SemVer](../01-versioning-and-semver/README.md) — what the version step computes.
+- [Changelogs and Release Notes](../02-changelogs-and-release-notes/README.md) — the changelog step's output.
+- [Artifact Signing and Provenance](../04-artifact-signing-and-provenance/README.md) — keyless signing in automation.
+- [Registries and Distribution](../05-registries-and-distribution/README.md) — trusted publishing.
+- [Rollback and Roll-forward](../07-rollback-and-roll-forward/README.md) — recovering from a bad release.
+- [Supply-chain Security](../09-supply-chain-security/README.md) — provenance verification.
 - [Engineering Metrics and DORA](../../engineering-metrics-and-dora/) — measuring automation's impact.
 - [Build Systems](../../build-systems/) — the build step feeding releases.

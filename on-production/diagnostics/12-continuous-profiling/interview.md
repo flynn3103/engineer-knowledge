@@ -411,8 +411,8 @@ Top-10 must-know questions for any continuous-profiling interview:
 - [Continuous Profiling — Tasks](tasks.md)
 - [Metrics — Interview](../04-metrics/interview.md) — the signal that *alerts* you something is slow.
 - [Tracing — Interview](../05-tracing/interview.md) — narrows the slowness to a span; the profile narrows it to a line.
-- [Logging](../02-logging/) — the per-event pillar; the *why* behind a flame graph.
-- [Observability Engineering](../06-observability-engineering/) — how the four signals fit together.
-- [Dynamic Instrumentation & eBPF](../13-dynamic-instrumentation-and-ebpf/) — the kernel tech behind language-agnostic profiling.
-- [Telemetry Cost & Sampling Strategy](../14-telemetry-cost-and-sampling-strategy/) — overhead budgets, retention, and what profiling costs at fleet scale.
+- [Logging](../02-logging/README.md) — the per-event pillar; the *why* behind a flame graph.
+- [Observability Engineering](../06-observability-engineering/README.md) — how the four signals fit together.
+- [Dynamic Instrumentation & eBPF](../13-dynamic-instrumentation-and-ebpf/README.md) — the kernel tech behind language-agnostic profiling.
+- [Telemetry Cost & Sampling Strategy](../14-telemetry-cost-and-sampling-strategy/README.md) — overhead budgets, retention, and what profiling costs at fleet scale.
 - [Quality Engineering → Performance → Profiling](../../../../Software-Engineering/quality-engineering/performance/01-profiling/) — the point-in-time, laptop counterpart: this section *finds* the hot function in prod; that one teaches you to *fix* it.

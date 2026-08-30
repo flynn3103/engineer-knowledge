@@ -4,9 +4,9 @@
 
 This roadmap is about **analysing a process after it has died (or been deliberately frozen for inspection)** — core dumps, heap dumps, thread dumps, JFR recordings, eBPF traces saved offline. The "open the body and look" complement to live debugging.
 
-> Looking for *live* introspection of a running process (`/debug/pprof`, JMX, py-spy)? See [Diagnostic Endpoints](../08-diagnostic-endpoints/).
+> Looking for *live* introspection of a running process (`/debug/pprof`, JMX, py-spy)? See [Diagnostic Endpoints](../08-diagnostic-endpoints/README.md).
 >
-> Looking for *interactive* debugging with a debugger attached? See [Debugging](../01-debugging/).
+> Looking for *interactive* debugging with a debugger attached? See [Debugging](../01-debugging/README.md).
 >
 > Looking for the *human* post-mortem (incident write-up, blameless culture)? That belongs in the Soft-Skills / SRE tracks, not this one — this is the *technical* artefact side.
 

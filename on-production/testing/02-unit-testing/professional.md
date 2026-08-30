@@ -64,9 +64,9 @@ pytest --durations=20
 | **Mutation score** | Whether tests would catch real bugs | Track per-module; gate critical modules |
 | **Maintenance cost** | Churn the suite imposes | Watch test-vs-prod line churn ratio in refactors |
 
-**Coverage is a weak health signal** and a dangerous *target* (Goodhart's law — see the DORA/metrics material). High coverage with low mutation score means tests run lines without checking behavior. Use coverage as a *floor and a gap-finder* (what's totally untested), never as the headline number. The honest protection metric is **mutation score** — [Mutation Testing](../07-mutation-testing/) — and serious orgs gate it on high-risk modules even when they let coverage be advisory elsewhere.
+**Coverage is a weak health signal** and a dangerous *target* (Goodhart's law — see the DORA/metrics material). High coverage with low mutation score means tests run lines without checking behavior. Use coverage as a *floor and a gap-finder* (what's totally untested), never as the headline number. The honest protection metric is **mutation score** — [Mutation Testing](../07-mutation-testing/README.md) — and serious orgs gate it on high-risk modules even when they let coverage be advisory elsewhere.
 
-**Flake is the trust metric.** A flaky test is not a minor annoyance; it's a leak in the suite's entire credibility. The professional response is mechanical: detect flakes (re-run failures, track per-test failure history), **quarantine** them out of the gating path immediately, assign an owner, and fix or delete within a deadline — never let a flake sit in the build untracked. The full playbook is in [Flaky Tests & Reliability](../12-flaky-tests-and-reliability/).
+**Flake is the trust metric.** A flaky test is not a minor annoyance; it's a leak in the suite's entire credibility. The professional response is mechanical: detect flakes (re-run failures, track per-test failure history), **quarantine** them out of the gating path immediately, assign an owner, and fix or delete within a deadline — never let a flake sit in the build untracked. The full playbook is in [Flaky Tests & Reliability](../12-flaky-tests-and-reliability/README.md).
 
 ---
 
@@ -94,7 +94,7 @@ Crucially, **dedupe guidance with the test-design skills rather than restating i
 
 ## Core Concept 5 — The Unit-vs-Higher Balance as Policy
 
-The pyramid (covered in [Test Strategy & the Pyramid](../01-test-strategy-and-the-pyramid/)) is a strategy; at this level it's a *policy* you tune per system. Unit tests are fast and resist refactoring but, by isolating, they **don't catch wiring and integration bugs** — the defects that live between units. The classic failure mode is a green unit suite shipping a broken system because every collaborator was mocked.
+The pyramid (covered in [Test Strategy & the Pyramid](../01-test-strategy-and-the-pyramid/README.md)) is a strategy; at this level it's a *policy* you tune per system. Unit tests are fast and resist refactoring but, by isolating, they **don't catch wiring and integration bugs** — the defects that live between units. The classic failure mode is a green unit suite shipping a broken system because every collaborator was mocked.
 
 The professional decides, per service, how much confidence to buy at each layer:
 
@@ -102,7 +102,7 @@ The professional decides, per service, how much confidence to buy at each layer:
 - A **glue/orchestration service** (mostly calling other services, little logic of its own) gets *fewer* units and proportionally more integration/contract tests — because the risk is in the wiring, not the logic. Over-unit-testing glue code yields brittle mockist tests that protect nothing.
 - A **user-facing flow** needs a thin layer of E2E for the critical paths on top, accepting their cost and slowness for the system-level confidence only they provide.
 
-The anti-pattern to police is the **ice-cream cone** (mostly E2E, few units): slow, flaky, expensive, and it fails to localize. But blind "everything is a unit" is its own failure when applied to glue code. The right ratio is a function of *where the risk lives* — logic vs wiring — and that's an architectural judgment, not a fixed number. Use [Integration](../03-integration-testing/) and [Contract](../05-contract-testing/) testing to cover the seams units leave open.
+The anti-pattern to police is the **ice-cream cone** (mostly E2E, few units): slow, flaky, expensive, and it fails to localize. But blind "everything is a unit" is its own failure when applied to glue code. The right ratio is a function of *where the risk lives* — logic vs wiring — and that's an architectural judgment, not a fixed number. Use [Integration](../03-integration-testing/README.md) and [Contract](../05-contract-testing/README.md) testing to cover the seams units leave open.
 
 ---
 

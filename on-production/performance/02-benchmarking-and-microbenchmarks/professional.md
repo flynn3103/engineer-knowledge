@@ -177,7 +177,7 @@ Baseline hygiene that bites people:
 A microbenchmark can be *internally honest* — DCE-defeated, warmed up, low variance, statistically sound — and still tell you something false about production. This is the most expensive class of benchmarking error because the number *looks* trustworthy. The mechanisms:
 
 - **Cache warm vs cold.** A microbenchmark hammers the same small working set in a tight loop, so by the second iteration everything is in L1/L2 and the branch predictor is trained. Production touches that code path once per request, cold, with the caches full of *other* requests' data. A function that's 50ns hot can be 400ns cold. Your benchmark measured the warm case; production lives in the cold case.
-- **Single-tenant vs contended.** The benchmark runs alone on the box. Production runs that code on 64 threads contending for the same lock, the same allocator arena, the same cache lines (false sharing). A lock-free path that benchmarks beautifully single-threaded can collapse under contention — see [concurrency overhead](../06-concurrency-and-contention/). The microbenchmark measured zero contention; production has plenty.
+- **Single-tenant vs contended.** The benchmark runs alone on the box. Production runs that code on 64 threads contending for the same lock, the same allocator arena, the same cache lines (false sharing). A lock-free path that benchmarks beautifully single-threaded can collapse under contention — see [concurrency overhead](../06-concurrency-and-contention/README.md). The microbenchmark measured zero contention; production has plenty.
 - **Synthetic vs real data distributions.** Benchmarks use clean, uniform, or worst-case-free inputs. Production data is skewed: 90% of strings are short and one is 4 MB; the hash keys cluster; the JSON is mostly nulls. A parser benchmarked on uniform input can be 3x slower on the real long-tail distribution, or vice versa. *The input distribution is part of the measurement* — a benchmark on the wrong distribution measures the wrong thing.
 - **Allocation amortized away.** Tight loops let the allocator and GC reach a steady state the benchmark doesn't pay for; production's bursty allocation triggers GC pauses the microbenchmark never sees. Always report `allocs/op` and validate against production GC behavior.
 - **The whole-system effect is missing.** Making a function 2x faster that's 1% of request time is invisible in production (Amdahl). The microbenchmark celebrates a real local win that the macro picture renders irrelevant.
@@ -185,7 +185,7 @@ A microbenchmark can be *internally honest* — DCE-defeated, warmed up, low var
 The defense is layering, not abandoning microbenchmarks:
 
 1. **Microbenchmark** to iterate fast on a hot function (cheap, fast feedback).
-2. **Validate against a macrobenchmark / load test** with realistic concurrency and data before believing the win is real (see [throughput vs latency](../03-latency-and-throughput/)).
+2. **Validate against a macrobenchmark / load test** with realistic concurrency and data before believing the win is real (see [throughput vs latency](../03-latency-and-throughput/README.md)).
 3. **Confirm in production** with a canary and real metrics. The only authority on production performance is production.
 
 > **The hard-won lesson:** an internally-honest microbenchmark answers "is this function faster in isolation?" — which is a *different question* from "is the system faster for users?" The gap is cache state, contention, data distribution, and Amdahl. Treat a microbenchmark win as a hypothesis to be confirmed by a load test and a canary, never as a conclusion. The number being low-variance does not make it relevant.
@@ -198,7 +198,7 @@ The complement to "don't trust every benchmark" is "don't *write* benchmarks bli
 
 The disciplined loop:
 
-1. **Profile the real workload first** ([01 — Profiling](../01-profiling/)). A CPU flame graph from a production-like load shows the widest frames — the functions that own the most wall-clock or CPU time.
+1. **Profile the real workload first** ([01 — Profiling](../01-profiling/README.md)). A CPU flame graph from a production-like load shows the widest frames — the functions that own the most wall-clock or CPU time.
 2. **Write microbenchmarks for the wide frames, not the narrow ones.** If `json.Marshal` is 22% of CPU and your custom `validate()` is 0.4%, benchmark the marshaling path. Benchmarking `validate()` is effort spent on a frame too thin to matter.
 3. **Use the flame graph to scope the benchmark correctly.** The graph shows whether the cost is in *your* code or in a framework/library frame underneath it — which directly determines whether your benchmark should isolate your code or include the framework. (This is exactly the trap in the war story below.)
 4. **Re-profile after optimizing** to confirm the wide frame shrank and a new bottleneck didn't just take its place.
