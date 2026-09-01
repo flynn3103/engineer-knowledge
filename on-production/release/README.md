@@ -1,31 +1,30 @@
-# Release Engineering
+# Production Release
 
-Use these guides to turn a built artifact into a safe, traceable, and reversible release.
+> Move one traceable artifact through controlled exposure with evidence, rollback, and supply-chain integrity.
 
-## Topics
+```mermaid
+flowchart LR
+    J[Junior: reproducible release] --> M[Middle: automation and flags] --> S[Senior: progressive delivery] --> P[Professional: release platform]
+```
 
-- [Versioning & SemVer](versioning-and-semver/README.md) — choose a version policy that communicates compatibility.
-- [Changelogs & Release Notes](changelogs-and-release-notes/README.md) — explain changes, impact, and required action.
-- [Release Branching & Trains](release-branching-and-trains/README.md) — choose a predictable path from code to release.
-- [Artifact Signing & Provenance](artifact-signing-and-provenance/README.md) — prove where an artifact came from.
-- [Registries & Distribution](registries-and-distribution/README.md) — publish immutable artifacts consumers can retrieve.
-- [Feature Flags & Progressive Delivery](feature-flags-and-progressive-delivery/README.md) — reduce release risk with controlled exposure.
-- [Rollback & Roll-Forward](rollback-and-roll-forward/README.md) — recover quickly when a release fails.
-- [Release Automation](release-automation/README.md) — automate repeatable release steps and safeguards.
-- [Supply-Chain Security](supply-chain-security/README.md) — secure the path from source to consumer.
+```mermaid
+flowchart LR
+    Source --> Build --> Sign --> Registry --> Deploy --> Canary --> Promote
+    Canary --> Rollback
+```
 
-## How to use the guides
+| Level | Guide | You are done when |
+|---|---|---|
+| Junior | [Ship a traceable artifact](junior.md) | You can version, build, verify, and roll back a release. |
+| Middle | [Automate delivery](middle.md) | You can use registries, flags, and release automation safely. |
+| Senior | [Design progressive delivery](senior.md) | You can protect compatibility, provenance, and rollout. |
+| Professional | [Operate release systems](professional.md) | You can govern fleet-wide delivery and supply-chain risk. |
 
-1. Start with the release risk you need to reduce.
-2. Read the level that matches the responsibility you own.
-3. Apply one checklist to a real release.
-4. Keep evidence: the artifact identity, approval, rollout result, and recovery path.
+## Practice rule
 
-## Levels
+Build once, identify immutably, promote the same artifact, and exercise rollback before relying on it.
 
-- **Junior:** Follow a known release procedure safely.
-- **Middle:** Choose and verify a release workflow for one service.
-- **Senior:** Protect release invariants across dependencies and failure cases.
-- **Professional:** Establish organization-wide release practices and measures.
+## Related
 
-Use the questions at the end of each guide for active recall.
+- [Testing](../testing/README.md)
+- [Monitoring](../monitoring/README.md)

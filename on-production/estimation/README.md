@@ -1,20 +1,29 @@
-# Estimation
+# Production Estimation
 
-> Size a system from requirements before you write a line of code — throughput, storage, bandwidth, and latency budgets, grounded in numbers you can defend.
+> Estimate orders of magnitude early enough to reject designs that cannot meet load, latency, storage, or cost constraints.
 
-## Groups
+```mermaid
+flowchart LR
+    J[Junior: Fermi estimates] --> M[Middle: capacity model] --> S[Senior: uncertainty and failure] --> P[Professional: planning systems]
+```
 
-| # | Group | What you'll learn |
-|---|-------|-------------------|
-| 01 | [Introduction](introduction/README.md) | What system design is, how to approach it, and the numbers every engineer should know. |
-| 02 | [Trade-offs Framework](02-tradeoffs-framework/README.md) | CAP, PACELC, and the consistency/availability trade-offs that shape every distributed design. |
-| 03 | [Capacity Estimation](capacity-estimation/README.md) | Turn a requirement into QPS, storage, bandwidth, and latency numbers. |
-| 04 | [Back-of-Envelope](back-of-envelope/README.md) | Fermi-estimate an unfamiliar system fast, with defensible assumptions. |
+```mermaid
+flowchart LR
+    Requirements --> QPS --> Bandwidth --> Storage --> Latency --> Capacity --> Cost
+```
 
-## How to use this section
+| Level | Guide | You are done when |
+|---|---|---|
+| Junior | [Estimate one workload](junior.md) | You can derive QPS, bandwidth, and storage from assumptions. |
+| Middle | [Build a capacity model](middle.md) | You can connect traffic, latency budgets, and resources. |
+| Senior | [Plan under uncertainty](senior.md) | You can model peaks, growth, failure, and headroom. |
+| Professional | [Govern capacity planning](professional.md) | You can align forecasts, benchmarks, spend, and reliability. |
 
-Each topic has four depth levels — **junior → middle → senior → professional** — plus an **interview** Q&A bank. Start at your level and climb.
+## Practice rule
 
----
+Show units, assumptions, ranges, and sensitivity. Precision without evidence is not accuracy.
 
-> Part of the [On Production](../README.md) roadmap.
+## Related
+
+- [Performance](../performance/README.md)
+- [Cost Efficiency](../cost-efficiency/README.md)

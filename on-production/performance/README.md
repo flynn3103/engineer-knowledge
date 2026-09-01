@@ -1,23 +1,29 @@
-# Performance
+# Production Performance
 
-> Measuring, profiling, and optimising the runtime cost of code — latency, throughput, memory, cache behaviour, contention — and protecting hot paths against regression over the lifetime of a system.
+> Measure the user-visible bottleneck, understand its resource mechanism, and prevent regression with budgets.
 
-## Topics
+```mermaid
+flowchart LR
+    J[Junior: measure] --> M[Middle: profile] --> S[Senior: saturation and contention] --> P[Professional: performance systems]
+```
 
-| # | Topic | What you'll learn |
-|---|-------|-------------------|
-| 01 | [Profiling](profiling/README.md) | CPU/memory/allocation profiles, flame graphs, pprof/perf/Instruments/async-profiler |
-| 02 | [Benchmarking & Microbenchmarks](benchmarking-and-microbenchmarks/junior.md) | Avoiding DCE, JIT warm-up, branch-prediction noise; statistical stability |
-| 03 | [Latency & Throughput](latency-and-throughput/junior.md) | Little's Law, the p99 trap, tail-at-scale, coordinated omission, queueing |
-| 04 | [CPU-Bound Optimization](cpu-bound-optimization/junior.md) | Profile-first, the memory hierarchy, branch prediction, SIMD, data layout, PGO |
-| 05 | [Memory & Allocation Optimization](memory-and-allocation-profiling/junior.md) | Allocation rate vs. residency, escape analysis, GC pressure, allocators |
-| 06 | [Concurrency & Contention](concurrency-and-contention/junior.md) | Amdahl & USL, lock contention, false sharing, cache coherence, scaling curves |
-| 07 | [Performance Budgets & Regression Testing](performance-budgets-and-regression-testing/junior.md) | Budgets as SLOs, benchstat/Mann-Whitney, change-point detection, CI gates |
+```mermaid
+flowchart LR
+    Workload --> Latency --> Profile --> Bottleneck --> Change --> Benchmark --> Budget
+```
 
-## How to use this section
+| Level | Guide | You are done when |
+|---|---|---|
+| Junior | [Measure before optimizing](junior.md) | You can build a repeatable baseline and identify a hotspot. |
+| Middle | [Use profiles and benchmarks](middle.md) | You can connect CPU, allocation, I/O, and contention to latency. |
+| Senior | [Protect performance under load](senior.md) | You can reason about queues, tails, concurrency, and budgets. |
+| Professional | [Operate performance capability](professional.md) | You can govern benchmarking, profiling, capacity, and regressions. |
 
-Each topic has four depth levels — **junior → middle → senior → professional** — plus an **interview** Q&A bank. Start at your level and climb.
+## Practice rule
 
----
+State workload, metric, baseline, hypothesis, and success threshold before changing code.
 
-> Part of the [Quality Engineering](../README.md) roadmap.
+## Related
+
+- [Estimation](../estimation/README.md)
+- [Monitoring](../monitoring/README.md)

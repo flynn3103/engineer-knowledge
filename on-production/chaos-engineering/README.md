@@ -1,21 +1,29 @@
 # Chaos Engineering
 
-> Rehearse failure before it happens for real — deliberately inject faults to prove a system's resilience claims instead of assuming them.
+> Test a resilience hypothesis through controlled failure before an uncontrolled failure tests it for you.
 
-## Topics
+```mermaid
+flowchart LR
+    J[Junior: failure hypothesis] --> M[Middle: fault injection] --> S[Senior: game days] --> P[Professional: resilience program]
+```
 
-| # | Topic | What you'll learn |
-|---|-------|-------------------|
-| 01 | [Failure Modes](failure-modes/junior.md) | Catalog what can actually fail, scored by severity, likelihood, and detectability. |
-| 02 | [Fault Injection](fault-injection/junior.md) | The mechanics of injecting network, process, and resource faults safely. |
-| 03 | [Game Days](game-days/junior.md) | Plan and run a scheduled team exercise with real roles and a scenario brief. |
-| 04 | [Resilience Testing](resilience-testing/junior.md) | Automate chaos experiments into a CI/CD gate instead of one-off exercises. |
-| 05 | [Blast Radius and Recovery](blast-radius-and-recovery/junior.md) | Scope an experiment's damage and recover from it, on purpose or by accident. |
+```mermaid
+flowchart LR
+    Steady[steady state] --> Hypothesis --> Inject --> Observe --> AbortOrContinue --> Learn
+```
 
-## How to use this section
+| Level | Guide | You are done when |
+|---|---|---|
+| Junior | [Run a bounded experiment](junior.md) | You can define steady state, fault, and abort condition. |
+| Middle | [Inject realistic faults](middle.md) | You can test network, process, resource, and dependency failure. |
+| Senior | [Lead game days](senior.md) | You can control blast radius and validate recovery. |
+| Professional | [Build resilience capability](professional.md) | You can govern safe experimentation across systems. |
 
-Each topic has four depth levels — **junior → middle → senior → professional**. Start at your level and climb. Failure Modes gives you the vocabulary and catalog; Fault Injection and Game Days are the two ways to actually exercise it (automated vs. human-run); Resilience Testing turns the practice continuous; Blast Radius and Recovery is the safety discipline that runs through all of them.
+## Practice rule
 
----
+Never inject failure without a falsifiable hypothesis, measured steady state, owner, abort condition, and recovery plan.
 
-> Part of the [On Production](../README.md) roadmap.
+## Related
+
+- [SRE & Reliability](../sre-reliability/README.md)
+- [Testing](../testing/README.md)

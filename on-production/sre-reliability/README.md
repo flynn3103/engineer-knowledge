@@ -1,23 +1,29 @@
-# SRE & Reliability
+# SRE and Reliability
 
-> Build services that make and keep reliable user promises: define what matters, respond well to failure, and learn into stronger systems.
+> Define reliable service from the user’s perspective, spend risk deliberately, and recover through practiced systems.
 
-## Topics
+```mermaid
+flowchart LR
+    J[Junior: SLIs and incidents] --> M[Middle: SLOs and degradation] --> S[Senior: error budgets and resilience] --> P[Professional: reliability governance]
+```
 
-| # | Topic | What you'll learn |
+```mermaid
+flowchart LR
+    UserNeed --> SLI --> SLO --> ErrorBudget --> Decision --> Incident --> Learning
+```
+
+| Level | Guide | You are done when |
 |---|---|---|
-| 01 | [Error Budgets](error-budgets/README.md) | Use permitted failure to make delivery-risk decisions. |
-| 02 | [SLO Ownership](slo-ownership/README.md) | Give reliability objectives durable, actionable owners. |
-| 03 | [Incident Management](incident-management/README.md) | Coordinate mitigation and recovery under pressure. |
-| 04 | [Postmortems](postmortems/README.md) | Turn incidents into factual, verifiable improvements. |
-| 05 | [Toil Reduction](toil-reduction/README.md) | Reduce repetitive operational work safely. |
-| 06 | [Load Shedding](load-shedding/README.md) | Protect critical work during overload. |
-| 07 | [Graceful Degradation](graceful-degradation/README.md) | Preserve an honest useful experience when dependencies fail. |
+| Junior | [Operate one service](junior.md) | You can identify impact, follow a runbook, and validate recovery. |
+| Middle | [Own an SLO](middle.md) | You can design degradation, shedding, and toil reduction. |
+| Senior | [Manage reliability risk](senior.md) | You can use budgets, incidents, and recovery evidence. |
+| Professional | [Govern reliability](professional.md) | You can align incentives and reliability across portfolios. |
 
-## How to use this section
+## Practice rule
 
-Each topic progresses from **junior → middle → senior → professional**. Begin with Error Budgets and SLO Ownership to make reliability measurable and accountable. Incident Management and Postmortems help the team respond and learn. Toil Reduction, Load Shedding, and Graceful Degradation turn that learning into safer day-to-day operation and resilient product behavior.
+Define reliability as measurable user outcomes, not infrastructure uptime alone.
 
----
+## Related
 
-> Part of the [On Production](../README.md) roadmap.
+- [Monitoring](../monitoring/README.md)
+- [Chaos Engineering](../chaos-engineering/README.md)

@@ -1,24 +1,32 @@
-# Observability
+# Production Observability
 
-> Build evidence that explains a running system's behavior, connects customer impact to causes, and stays useful under scale and failure.
+> Ask new questions of a running system by preserving connected, trustworthy evidence about its internal behavior.
 
-## Topics
+```mermaid
+flowchart LR
+    J[Junior: signals and context] --> M[Middle: trace flows] --> S[Senior: SLO and cost] --> P[Professional: telemetry platform]
+```
 
-| # | Topic | What you'll learn |
+```mermaid
+flowchart LR
+    Logs --> Context
+    Metrics --> Context
+    Traces --> Context
+    Context --> Query --> Hypothesis --> Decision
+```
+
+| Level | Guide | You are done when |
 |---|---|---|
-| 01 | [Logs, Metrics, Traces](logs-metrics-traces/README.md) | Choose and correlate the three primary signals. |
-| 02 | [SLO, SLI, and Error Budgets](slo-sli-error-budgets/README.md) | Turn reliability promises into delivery decisions. |
-| 03 | [RED and USE Methods](red-and-use-methods/README.md) | Measure request behavior and resource pressure. |
-| 04 | [Distributed Tracing](distributed-tracing/README.md) | Follow causality across services. |
-| 05 | [Metrics Pipelines](metrics-pipelines/README.md) | Collect and preserve metric evidence. |
-| 06 | [Log Aggregation](log-aggregation/README.md) | Search safe, structured events. |
-| 07 | [Alerting and On-Call](alerting-and-on-call/README.md) | Turn signals into effective response. |
-| 08 | [OpenTelemetry](opentelemetry/README.md) | Use portable telemetry conventions. |
-| 09 | [Cardinality and Metrics Cost](cardinality-and-metrics-cost/README.md) | Control metric growth and spend. |
-| 10 | [Trace and Log Sampling Strategies](trace-and-log-sampling-strategies/README.md) | Retain high-value diagnostic evidence. |
+| Junior | [Connect signals](junior.md) | You can follow one request through logs, metrics, and traces. |
+| Middle | [Instrument boundaries](middle.md) | You can propagate context and choose useful telemetry. |
+| Senior | [Operate observability](senior.md) | You can balance SLO evidence, sampling, cardinality, and cost. |
+| Professional | [Build a telemetry platform](professional.md) | You can govern schemas, pipelines, tenancy, and reliability. |
 
-Each topic progresses from doing a bounded task, through local design decisions and system invariants, to organization-scale ownership.
+## Practice rule
 
----
+Instrument decisions and boundaries with consistent context; do not collect fields merely because they may be useful someday.
 
-> Part of the [On Production](../README.md) roadmap.
+## Related
+
+- [Monitoring](../monitoring/README.md)
+- [SRE & Reliability](../sre-reliability/README.md)
