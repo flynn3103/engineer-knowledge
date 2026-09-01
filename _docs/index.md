@@ -53,7 +53,7 @@ The knowledge required for modern software development is scattered across count
 
     Build reliable data systems with databases, distributed systems, event streaming, workflow orchestration, and storage foundations.
 
-    [:octicons-arrow-right-24: Browse Data Engineering](Data-Engineering/README.md)
+    [:octicons-arrow-right-24: Browse Data Engineering](Data-Engineering/)
 
 - :material-robot:{ .lg .middle } **AI Engineering**
 
