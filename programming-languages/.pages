@@ -2,4 +2,5 @@ title: Programming Languages
 nav:
   - Overview: README.md
   - Go: golang
+  - Python: python
   - Language Internals: language-internals

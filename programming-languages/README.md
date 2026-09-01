@@ -2,7 +2,7 @@
 
 > Learn a language well enough to deliver software, then use runtime knowledge to explain what the program actually does under load and failure.
 
-Choose a track from the problem in front of you. Use **Go** when you need to build or operate a Go program. Use **Language Internals** when a type, allocation, compiler, runtime, numeric, security, or interoperability decision is unclear.
+Choose a track from the problem in front of you. Use **Go** or **Python** when you need to build and operate software in that language. Use **Language Internals** when a type, allocation, compiler, runtime, numeric, security, or interoperability decision is unclear.
 
 ```mermaid
 flowchart LR
@@ -20,6 +20,7 @@ The destination is evidence: a test, compiler diagnostic, benchmark, profile, tr
 | Track | Start here | Use it to |
 |---|---|---|
 | [Go](golang/README.md) | Set up, write, organize, and operate Go software. | Deliver services and tools with explicit concurrency, error, API, data, and debugging decisions. |
+| [Python](python/README.md) | Build maintainable Python applications, APIs, workers, and data-facing services. | Make explicit choices about interfaces, concurrency, runtime behavior, and operations. |
 | [Language Internals](language-internals/README.md) | Study concepts shared across languages and runtimes. | Predict behavior, compare language choices, and diagnose problems below source syntax. |
 
 ## A practical study loop

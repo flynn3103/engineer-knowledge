@@ -1,67 +1,10 @@
-# Type Systems Roadmap
+# Type Systems
 
-> *"A type system is the most cost-effective unit test you'll ever write."* — adapted from Benjamin C. Pierce
+> A type system is a proof tool for ruling out selected invalid programs—not a proof that the program is correct.
 
-This roadmap is about **what types actually are**, what guarantees they buy you, and how the major mainstream type systems (Go's, Java's, Python's, Rust's, TypeScript's) compare. It's the bridge between everyday API design and the deeper theory that shaped the languages you already use.
+```mermaid
+flowchart LR
+  Values --> Types --> Constraints --> Accepted[accepted program]
+```
 
-> Looking for the *Clean Code chapter* on practical type expressiveness ("make illegal states unrepresentable")? See Clean Code → Generics & Types.
->
-> Looking for *Go-specific* generics? See Golang → Generics.
-
----
-
-## Why a Dedicated Roadmap
-
-Every senior engineer eventually hits the wall of "I know how to use generics in language X, but I don't know what variance, kinding, or higher-rank types mean." This roadmap fills that gap **without leaving the languages you use day-to-day** — theory is grounded in Go / Java / Rust / TypeScript code.
-
-| Roadmap | Question it answers |
-|---|---|
-| Clean Code | How do I write code that doesn't smell? |
-| Design Patterns | What structures recur in OO code? |
-| **Type Systems** (this) | What can the compiler prove about my program before it runs? |
-
----
-
-## Sections
-
-| # | Topic | Focus |
-|---|---|---|
-| [01](01-what-is-a-type/README.md) | What Is a Type? | Sets of values, tags vs proofs, the Curry–Howard correspondence (briefly) |
-| [02](02-static-vs-dynamic/README.md) | Static vs Dynamic | What each style buys you, gradual typing (mypy, TypeScript), hybrid runtimes |
-| [03](03-nominal-vs-structural/README.md) | Nominal vs Structural | Java/Rust (nominal) vs Go/TypeScript (structural), pros and cons of each |
-| [04](04-sum-product-unit-types/README.md) | Sum, Product, and Unit Types | Records, tuples, tagged unions, why most languages got this half-wrong |
-| [05](05-generics-and-parametric-polymorphism/README.md) | Generics & Parametric Polymorphism | Type parameters, monomorphization vs erasure, the cost models |
-| [06](06-variance/README.md) | Variance | Covariance, contravariance, invariance — why `List<Dog>` isn't a `List<Animal>` |
-| [07](07-bounded-polymorphism/README.md) | Bounded Polymorphism | Constraints (`T: Ord`), Go's `comparable`, Rust traits, Java bounded wildcards |
-| [08](08-subtyping-and-liskov/README.md) | Subtyping & Liskov | When inheritance is type-theoretically sound, and when it isn't |
-| [09](09-higher-kinded-types/README.md) | Higher-Kinded Types | What Scala/Haskell have and Go/Java don't, and why it matters |
-| [10](10-dependent-and-refinement-types/README.md) | Dependent & Refinement Types | A taste of TypeScript template literal types, Idris, F* — types that depend on values |
-| [11](11-type-inference/README.md) | Type Inference | Hindley–Milner, Go's limited inference, when inference helps and when it hurts |
-| [12](12-practical-patterns/README.md) | Practical Patterns | "Parse, don't validate," newtype/wrapper types, phantom types, the typestate pattern |
-
----
-
-## Languages
-
-Cross-language comparison is the whole point. Examples in **Go**, **Java**, **Python** (mypy / pyright), **Rust**, and **TypeScript** — the five mainstream type systems that cover most of the design space.
-
----
-
-## Status
-
-✅ **Content-complete — all 12 topics written across the six-file set (junior / middle / senior / professional / interview / tasks).**
-
----
-
-## References
-
-- *Types and Programming Languages* — Benjamin C. Pierce (the canonical text, "TAPL")
-- *Programming Language Pragmatics* — Michael L. Scott
-- Alexis King — *Parse, Don't Validate* (2019)
-- *Type-Driven Development with Idris* — Edwin Brady
-
----
-
-## Project Context
-
-Part of the Senior Project — a personal effort to consolidate the essential knowledge of software engineering in one place.
+Study [junior](junior.md), [middle](middle.md), [senior](senior.md), and [professional](professional.md).

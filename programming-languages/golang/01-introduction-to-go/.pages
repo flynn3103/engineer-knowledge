@@ -1,8 +1,0 @@
-title: Introduction to Go
-nav:
-  - Overview: README.md
-  - Why Use Go: 01-why-use-go
-  - History of Go: 02-history-of-go
-  - Set Up the Environment: 03-setting-up-environment
-  - Hello World: 04-hello-world
-  - The Go Command: 05-go-command

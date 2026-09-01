@@ -1,21 +1,41 @@
-# Code Organization
+# Go Code Organization
 
-> Make dependencies, ownership, release boundaries, and executable wiring obvious from the repository structure.
+Good Go projects are easy to enter, change, test, and deploy. The goal is not a fashionable folder tree. The goal is to make it obvious where a change belongs and to keep dependencies pointing in one direction.
 
-## Path
+## The practical model
 
-| Step | Topic | Decision you learn to make |
-|---|---|---|
-| 1 | [Modules and Dependencies](01-modules-and-dependencies/README.md) | What belongs in the module graph, and how is it verified? |
-| 2 | [Packages](02-packages/README.md) | Which code changes together behind one package API? |
-| 3 | [Project Layout](03-project-layout/README.md) | Which top-level structure fits the actual program? |
-| 4 | [Internal Packages](04-internal-packages/README.md) | Which APIs must not become external contracts? |
-| 5 | [Workspaces](05-workspaces/README.md) | When should several modules be developed together locally? |
-| 6 | [Dependency Injection](06-dependency-injection/README.md) | Where should construction and side effects meet? |
-| 7 | [Architecture Patterns](07-architecture-patterns/README.md) | Which boundaries earn their complexity? |
-| 8 | [Module Versioning](08-module-versioning/README.md) | How do consumers upgrade without surprise breakage? |
-| 9 | [Private Modules](09-private-modules/README.md) | How are authentication and module paths configured safely? |
+```mermaid
+flowchart LR
+    CMD[cmd/api] --> APP[application]
+    APP --> DOMAIN[domain]
+    APP --> ADAPTERS[adapters]
+    ADAPTERS --> DB[(database)]
+    ADAPTERS --> HTTP[HTTP / queue]
+```
 
-## Apply it
+- `cmd/` starts a binary and wires dependencies. Keep it small.
+- A package owns one clear capability, not a technical layer with vague names such as `utils` or `common`.
+- `internal/` protects implementation packages from imports outside the module.
+- `go.mod` records the module and its direct dependencies; commit `go.sum`.
+- Start with few packages. Split only when code has a distinct responsibility, owner, or rate of change.
 
-Draw the import direction for one executable, identify the composition root, and run `go list -deps ./...` plus `go test ./...` to compare the intended boundaries with the actual module graph.
+## Choose the level you need
+
+- [Junior](junior.md): make a small service understandable.
+- [Middle](middle.md): design package boundaries and dependencies.
+- [Senior](senior.md): organize a growing system without accidental coupling.
+- [Professional](professional.md): set organization standards across repositories and teams.
+
+## A useful default
+
+```text
+my-service/
+├── cmd/api/main.go       # composition root
+├── internal/user/        # user use cases and domain rules
+├── internal/platform/    # shared infrastructure owned by this service
+├── migrations/
+├── go.mod
+└── go.sum
+```
+
+This is a starting point, not a template to copy blindly. Let the business capabilities in the repository decide the package names.
