@@ -17,7 +17,7 @@ The hard truth: there is no canonical model of a large system. There are Team A'
 ```mermaid
 flowchart TB
     subgraph Org["Org-wide model distribution"]
-        A[Team A model] 
+        A[Team A model]
         B[Team B model]
         P[Platform model]
         S[SRE runbook model]

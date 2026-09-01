@@ -1,20 +1,19 @@
 # AI Engineering
 
-> Coming soon — this domain is scoped but not yet written.
+> Build grounded, tool-using AI systems whose behavior can be evaluated, secured, and operated.
 
-LLM application development, prompt engineering, RAG, agents, and evaluation, plus building agentic coding tools and core machine learning foundations.
+This domain covers agent architecture and operations alongside the storage and
+retrieval systems that ground AI applications in durable knowledge.
 
 ## Planned sections
 
 | Section | Focus |
 |---|---|
-| AI Agents | Agent architectures, tools/actions, memory, MCP, evaluation, debugging, security. |
-| Claude Code | Understanding, using, and extending Claude Code — CLAUDE.md, skills, subagents, hooks, context management. |
-| LLM Engineer | Pre-trained models, embeddings and vector databases, RAG implementation, agents, multimodal AI. |
-| Machine Learning | Mathematical and programming foundations, data cleaning, core ML, model evaluation, deep learning. |
+| [AI Agents](ai-agents/03-ai-agents-101/) | Agent architectures, tools/actions, memory, MCP, evaluation, debugging, and security. |
+| AI Storage | [Feature stores](ai-storage/feature-store/), [embeddings and vector databases](ai-storage/embeddings-vector-db/), and [retrieval-augmented generation](ai-storage/rag/). |
 
-Each section will follow this site's four-level progression (junior, middle, senior, professional) once written.
+Each topic follows this site's junior, middle, senior, and professional progression.
 
 ---
 
-*Part of [Engineer Knowledge](../index.md).*
+*Part of [Engineer Knowledge](../README.md).*

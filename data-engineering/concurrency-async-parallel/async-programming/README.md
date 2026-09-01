@@ -60,7 +60,8 @@ Cross-language comparison is the whole point. Examples in **JavaScript** (the or
 
 ## Status
 
-⏳ **Structure defined; content pending.**
+**Complete:** all 12 topics include progressive junior, middle, senior, and
+professional guides.
 
 ---
 
