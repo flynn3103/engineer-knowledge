@@ -1,22 +1,35 @@
-# Creative & Lateral Thinking
+# Creative and Lateral Thinking
 
-> The deliberate techniques for generating non-obvious solutions — inverting the problem, borrowing structure from other domains, and turning constraints into design fuel rather than treating creativity as luck.
+> Generate meaningfully different options before converging on the safest familiar answer.
 
-This section covers the mechanics of generating new ideas on demand: switching between divergent and convergent modes, attacking problems backwards through inversion, transferring solutions by analogy, and using tight constraints to force originality. The through-line is that creativity is a set of repeatable moves, not a personality trait.
+```mermaid
+flowchart LR
+    J[Junior: diverge then converge] --> M[Middle: inversion and analogy]
+    M --> S[Senior: constraints and portfolios]
+    S --> P[Professional: innovation systems]
+```
 
-## Topics
+```mermaid
+flowchart LR
+    Frame --> Diverge[generate options]
+    Diverge --> Transform[invert, combine, analogize]
+    Transform --> Converge[evaluate]
+    Converge --> Experiment
+    Experiment --> Learn
+```
 
-| # | Topic | What you'll learn |
-|---|-------|-------------------|
-| 01 | [Divergent vs Convergent](01-divergent-vs-convergent/junior.md) | Separating idea-generation from idea-selection, deferring judgment, quantity-then-quality, when to widen vs narrow |
-| 02 | [Inversion Thinking](02-inversion-thinking/junior.md) | Solving the opposite problem, "how would I cause this to fail?", via negativa, pre-mortems |
-| 03 | [Analogical Thinking](03-analogical-thinking/junior.md) | Borrowing solutions across domains, mapping structure not surface, biomimicry, the risk of false analogy |
-| 04 | [Constraint-Driven Creativity](04-constraint-driven-creativity/junior.md) | Using limits to force originality, the blank-page problem, artificial constraints, less-is-more design |
+| Level | Guide | You are done when |
+|---|---|---|
+| Junior | [Generate alternatives](junior.md) | You can separate option generation from evaluation. |
+| Middle | [Use lateral techniques](middle.md) | You can create non-obvious options through inversion and analogy. |
+| Senior | [Design an option portfolio](senior.md) | You can explore safely under constraints and uncertainty. |
+| Professional | [Build innovation capacity](professional.md) | You can create incentives, funding, and feedback for sustained exploration. |
 
-## How to use this section
+## Practice rule
 
-Each topic has four depth levels — **junior → middle → senior → professional** — with comprehension questions and hidden answers at the end of every guide. Start at your level and climb. Read 01 first to frame the create-then-filter cycle; 02–04 are three independent generators you can reach for when stuck.
+Require at least three structurally different options before choosing, including “remove the need” and “change the constraint.”
 
----
+## Related
 
-> Part of the [Engineering Thinking](../) roadmap. Apply this generative mindset to design with [Object Thinking](../../craftsmanship/object-oriented-design/08-object-thinking/).
+- [First-Principles Thinking](../05-first-principles-thinking/README.md)
+- [Scientific Thinking](../09-scientific-and-hypothesis-driven/README.md)

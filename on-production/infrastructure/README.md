@@ -6,17 +6,17 @@
 
 | # | Topic | What you'll learn |
 |---|-------|-------------------|
-| 01 | [Containers and Docker](01-containers-and-docker/junior.md) | Package an application into a container image and run it. |
-| 02 | [Kubernetes Orchestration](02-kubernetes-orchestration/junior.md) | Run many containers together with Pods, Deployments, and Services. |
-| 03 | [Deployment Strategies](03-deployment-strategies/junior.md) | Replace a running version safely — rolling, blue-green, canary. |
-| 04 | [CI/CD Pipelines](04-ci-cd-pipelines/junior.md) | Get code from commit to a deployable artifact and trigger a deploy. |
-| 05 | [Infrastructure as Code](05-infrastructure-as-code/junior.md) | Declare and provision infrastructure as version-controlled code. |
-| 06 | [Multi-Region Deployment](06-multi-region-deployment/junior.md) | Run a service across regions — active-active vs. active-passive. |
-| 07 | [Disaster Recovery](07-disaster-recovery/junior.md) | Recover from a large-scale infrastructure disaster within RPO/RTO. |
-| 08 | [Autoscaling](08-autoscaling/junior.md) | Adjust running capacity automatically as load changes. |
-| 09 | [Cloud Network Architecture (VPC)](09-cloud-network-architecture-vpc/junior.md) | Design the private network your infrastructure runs inside. |
-| 10 | [GitOps (Argo CD, Flux)](10-gitops-argocd-flux/junior.md) | Drive delivery from a git repo as the pull-based source of truth. |
-| 11 | [Virtual Machine](11-virtual-machine/junior.md) | Use VMs as a deployment unit and know when to choose them over containers. |
+| 01 | [Containers and Docker](containers-and-docker/junior.md) | Package an application into a container image and run it. |
+| 02 | [Kubernetes Orchestration](kubernetes-orchestration/junior.md) | Run many containers together with Pods, Deployments, and Services. |
+| 03 | [Deployment Strategies](deployment-strategies/junior.md) | Replace a running version safely — rolling, blue-green, canary. |
+| 04 | [CI/CD Pipelines](ci-cd-pipelines/junior.md) | Get code from commit to a deployable artifact and trigger a deploy. |
+| 05 | [Infrastructure as Code](infrastructure-as-code/junior.md) | Declare and provision infrastructure as version-controlled code. |
+| 06 | [Multi-Region Deployment](multi-region-deployment/junior.md) | Run a service across regions — active-active vs. active-passive. |
+| 07 | [Disaster Recovery](disaster-recovery/junior.md) | Recover from a large-scale infrastructure disaster within RPO/RTO. |
+| 08 | [Autoscaling](autoscaling/junior.md) | Adjust running capacity automatically as load changes. |
+| 09 | [Cloud Network Architecture (VPC)](cloud-network-architecture-vpc/junior.md) | Design the private network your infrastructure runs inside. |
+| 10 | [GitOps (Argo CD, Flux)](gitops-argocd-flux/junior.md) | Drive delivery from a git repo as the pull-based source of truth. |
+| 11 | [Virtual Machine](virtual-machine/junior.md) | Use VMs as a deployment unit and know when to choose them over containers. |
 
 ## How to use this section
 

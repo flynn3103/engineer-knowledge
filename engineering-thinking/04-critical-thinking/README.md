@@ -1,22 +1,35 @@
 # Critical Thinking
 
-> The habit of not believing your own conclusions until they survive scrutiny — separating claim from evidence, naming the fallacy, catching the bias, and weighing tradeoffs on their merits rather than your gut.
+> Separate claims, evidence, assumptions, and values so an engineering decision can survive disagreement.
 
-This section is about disciplined skepticism applied to engineering decisions. It moves from the structure of a sound argument (claim, evidence, reasoning) through the fallacies and cognitive biases that quietly corrupt technical judgment, and ends with a method for evaluating tradeoffs objectively instead of by who argued loudest.
+```mermaid
+flowchart LR
+    J[Junior: claims and evidence] --> M[Middle: alternatives and bias]
+    M --> S[Senior: trade-offs and uncertainty]
+    S --> P[Professional: decision governance]
+```
 
-## Topics
+```mermaid
+flowchart LR
+    Claim --> Evidence
+    Evidence --> Reasoning
+    Assumptions --> Reasoning
+    Reasoning --> Conclusion
+    Conclusion --> Consequences
+```
 
-| # | Topic | What you'll learn |
-|---|-------|-------------------|
-| 01 | [Claims, Evidence, and Reasoning](01-claims-evidence-and-reasoning/junior.md) | Distinguishing assertion from proof, burden of proof, anecdote vs data, the Toulmin model of an argument |
-| 02 | [Logical Fallacies in Engineering](02-logical-fallacies-in-engineering/junior.md) | Appeal to authority, false dichotomy, hasty generalization, "it works on my machine", correlation vs causation |
-| 03 | [Cognitive Biases in Code Decisions](03-cognitive-biases-in-code-decisions/junior.md) | Confirmation bias, anchoring, sunk-cost fallacy, recency bias, the curse of knowledge in design reviews |
-| 04 | [Evaluating Tradeoffs Objectively](04-evaluating-tradeoffs-objectively/junior.md) | Decision matrices, weighted criteria, making assumptions explicit, separating reversible from irreversible calls |
+| Level | Guide | You are done when |
+|---|---|---|
+| Junior | [Check one claim](junior.md) | You can identify evidence, assumptions, and a falsifying observation. |
+| Middle | [Compare explanations](middle.md) | You can detect common fallacies and actively test alternatives. |
+| Senior | [Run fair trade-off analysis](senior.md) | You can separate facts from values and make uncertainty visible. |
+| Professional | [Govern consequential decisions](professional.md) | You can preserve dissent, evidence quality, and accountability across teams. |
 
-## How to use this section
+## Practice rule
 
-Each topic has four depth levels — **junior → middle → senior → professional** — with comprehension questions and hidden answers at the end of every guide. Start at your level and climb. Read 01 first for the vocabulary of argument, then use 02–04 as a checklist you run against your own reasoning in reviews and design docs.
+For every strong claim, ask: “Compared with what, measured how, under which conditions, and what evidence would change my mind?”
 
----
+## Related
 
-> Part of the [Engineering Thinking](../) roadmap. Sharpen the same edge against unfamiliar problems with [First-Principles Thinking](../05-first-principles-thinking/).
+- [Probabilistic Thinking](../06-probabilistic-thinking/README.md)
+- [First-Principles Thinking](../05-first-principles-thinking/README.md)

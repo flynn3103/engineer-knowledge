@@ -1,18 +1,35 @@
 # Technical Debt
 
-Technical debt is the future cost created by a shortcut, weak design, or deferred decision.
+> Technical debt is a design or implementation choice that increases the expected cost or risk of future change.
 
-## Topics
+```mermaid
+flowchart LR
+    J[Junior: identify friction] --> M[Middle: quantify and prioritize]
+    M --> S[Senior: manage a system portfolio]
+    S --> P[Professional: govern investment]
+```
 
-1. [What is technical debt](01-what-is-technical-debt/junior.md)
-2. [Identifying and quantifying](02-identifying-and-quantifying/junior.md)
-3. [The debt quadrant](03-the-debt-quadrant/junior.md)
-4. [Tracking and prioritizing](04-tracking-and-prioritizing/junior.md)
-5. [Paying down debt](05-paying-down-debt/junior.md)
-6. [Preventing accumulation](06-preventing-accumulation/junior.md)
+```mermaid
+flowchart LR
+    Shortcut --> Benefit[delivery benefit]
+    Shortcut --> Principal[remediation cost]
+    Shortcut --> Interest[repeated change cost]
+    Interest --> Risk
+    Evidence --> Decision[pay, contain, accept, or avoid]
+```
 
-## How to use this section
+| Level | Guide | You are done when |
+|---|---|---|
+| Junior | [Describe debt concretely](junior.md) | You can name affected changes, evidence, and a small improvement. |
+| Middle | [Quantify and prioritize](middle.md) | You can compare debt work with product work using expected impact. |
+| Senior | [Manage system debt](senior.md) | You can sequence remediation with migrations and reliability goals. |
+| Professional | [Govern investment](professional.md) | You can allocate capacity and measure debt across a portfolio. |
 
-- Learn the concepts in order.
-- Tie every debt discussion to a concrete change, risk, or cost.
-- Prefer a small recurring habit over an occasional cleanup campaign.
+## Practice rule
+
+Never create a ticket named “clean up code.” Record the affected capability, recurring cost, risk, evidence, owner, and trigger for action.
+
+## Related
+
+- [Legacy Code](../legacy-code/README.md)
+- [Anti-Patterns](../anti-patterns/README.md)

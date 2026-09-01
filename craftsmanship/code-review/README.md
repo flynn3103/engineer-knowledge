@@ -1,17 +1,31 @@
 # Code Review
-Learn to review changes for behavior, safety, clarity, delivery flow, and healthy team collaboration.
 
-## Topics
+> Review changes to improve correctness, maintainability, security, shared understanding, and delivery flow.
 
-1. What to look for and review order
-2. PR scope and size
-3. Correctness and design review
-4. Security and performance review
-5. Giving and receiving feedback
-6. Review tooling and automation
-7. Review metrics and tempo
-8. Review anti-patterns
+```mermaid
+flowchart LR
+    J[Junior: review behavior] --> M[Middle: design and risk]
+    M --> S[Senior: system boundaries]
+    S --> P[Professional: review systems]
+```
 
-## How to use this section
+```mermaid
+flowchart LR
+    Context --> Scope --> Correctness --> Design --> Risk --> Tests --> Operability --> Decision
+```
 
-Start with the junior guide for a repeatable review habit. Advance when you can explain your reasoning, calibrate severity, and help the team improve its review system.
+| Level | Guide | You are done when |
+|---|---|---|
+| Junior | [Review one clear change](junior.md) | You can verify intent, behavior, tests, and readability respectfully. |
+| Middle | [Review design and risk](middle.md) | You can identify boundary, security, and performance consequences. |
+| Senior | [Review system evolution](senior.md) | You can protect invariants, compatibility, rollout, and operations. |
+| Professional | [Design review capability](professional.md) | You can improve review quality and flow across an organization. |
+
+## Practice rule
+
+Review in risk order: understand intent and scope first, then correctness, design, security, performance, tests, and maintainability. Style automation should not consume human attention.
+
+## Related
+
+- [Documentation](../documentation/README.md)
+- [Object-Oriented Design](../object-oriented-design/README.md)

@@ -1,24 +1,39 @@
 # Problem-Solving
 
-> A teachable, repeatable process for moving from "I don't know how to do this" to a working solution — modeled on Pólya's four phases and adapted for engineering's tightest feedback loop: the debugger.
+> Solve the right problem with a falsifiable plan, small actions, and reflection that improves the next attempt.
 
-This section walks the full arc of solving a problem: understanding what's actually being asked, devising a plan, carrying it out, and reflecting once it works. It then treats debugging as the same loop run at high frequency, and ends with concrete moves for when you're genuinely stuck.
+```mermaid
+flowchart LR
+    J[Junior: understand and reproduce] --> M[Middle: hypotheses and plans]
+    M --> S[Senior: ambiguity and incidents]
+    S --> P[Professional: decision systems]
+```
 
-## Topics
+```mermaid
+flowchart LR
+    Frame[Frame] --> Evidence[Gather evidence]
+    Evidence --> Hypothesis[Form hypothesis]
+    Hypothesis --> Test[Test cheaply]
+    Test --> Act[Implement]
+    Act --> Reflect[Look back]
+    Reflect --> Frame
+```
 
-| # | Topic | What you'll learn |
-|---|-------|-------------------|
-| 01 | [Understanding the Problem](01-understanding-the-problem/junior.md) | Restating in your own words, separating knowns/unknowns/constraints, spotting the real ask behind the stated one, defining "done" |
-| 02 | [Devising a Plan](02-devising-a-plan/junior.md) | Working backwards, solving a simpler subproblem, analogy to known solutions, choosing a strategy before touching code |
-| 03 | [Carrying Out the Plan](03-carrying-out-the-plan/junior.md) | Executing in small verifiable steps, checking each move, knowing when to abandon a plan vs push through |
-| 04 | [Looking Back and Reflecting](04-looking-back-and-reflecting/junior.md) | Verifying the result, extracting reusable insight, generalizing the method, building a personal pattern library |
-| 05 | [Debugging as Problem-Solving](05-debugging-as-problem-solving/junior.md) | Hypothesis-driven debugging, bisection, reproducing reliably, reading the evidence instead of guessing |
-| 06 | [Techniques When You Are Stuck](06-techniques-when-you-are-stuck/junior.md) | Rubber-ducking, changing representation, taking a break, asking for help well, attacking from a different angle |
+This guide preserves the full problem-solving loop: understand the problem, devise a plan, execute it, reflect, debug systematically, and recover when stuck.
 
-## How to use this section
+| Level | Guide | You are done when |
+|---|---|---|
+| Junior | [Solve a bounded problem](junior.md) | You can define expected versus actual behavior and test one hypothesis. |
+| Middle | [Manage competing explanations](middle.md) | You can prioritize hypotheses and produce a reversible plan. |
+| Senior | [Lead uncertain work](senior.md) | You can reduce ambiguity, contain risk, and coordinate evidence across a system. |
+| Professional | [Improve organizational decisions](professional.md) | You can design feedback, incident, and learning systems across teams. |
 
-Each topic has four depth levels — **junior → middle → senior → professional** — with comprehension questions and hidden answers at the end of every guide. Start at your level and climb. The first four topics form one continuous loop (Pólya's phases); read them in order before dipping into debugging and unstuck tactics as needed.
+## Practice rule
 
----
+Write the problem statement and evidence before the solution. If you cannot describe what observation would prove you wrong, you have a belief, not a hypothesis.
 
-> Part of the [Engineering Thinking](../) roadmap. To frame problems before you solve them, back up to [Computational Thinking](../01-computational-thinking/); to reason about the systems your solutions live in, go to [Systems Thinking](../03-systems-thinking/).
+## Related
+
+- [Computational Thinking](../01-computational-thinking/README.md)
+- [Critical Thinking](../04-critical-thinking/README.md)
+- [Scientific Thinking](../09-scientific-and-hypothesis-driven/README.md)

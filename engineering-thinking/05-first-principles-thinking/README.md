@@ -1,21 +1,35 @@
 # First-Principles Thinking
 
-> Refusing to reason by analogy or inherited convention, and instead deriving a solution from the few things you know to be fundamentally true — the way you break out of "this is how it's always done."
+> Separate genuine constraints from inherited choices, then rebuild options from what must actually be true.
 
-This section teaches how to strip a problem down to its irreducible facts, interrogate the assumptions everyone else accepts on faith, and rebuild a solution from the ground up. The through-line is deliberate naivety used as a tool: pretending you've never seen the standard answer so you can find a better one.
+```mermaid
+flowchart LR
+    J[Junior: question assumptions] --> M[Middle: derive options]
+    M --> S[Senior: challenge architecture]
+    S --> P[Professional: reset constraints]
+```
 
-## Topics
+```mermaid
+flowchart LR
+    Problem --> Assumptions
+    Assumptions --> Facts[verified facts]
+    Assumptions --> Choices[inherited choices]
+    Facts --> Requirements
+    Requirements --> NewOptions
+```
 
-| # | Topic | What you'll learn |
-|---|-------|-------------------|
-| 01 | [Reasoning from Fundamentals](01-reasoning-from-fundamentals/junior.md) | Decomposing to bedrock facts, distinguishing physics/constraints from convention, reasoning up from primitives |
-| 02 | [Questioning Assumptions](02-questioning-assumptions/junior.md) | Surfacing implicit assumptions, "why do we believe this?", challenging requirements and defaults, Chesterton's fence |
-| 03 | [Rebuilding Solutions from Scratch](03-rebuilding-solutions-from-scratch/junior.md) | Designing as if no prior art existed, comparing the clean-slate design to the status quo, knowing when to rebuild vs reuse |
+| Level | Guide | You are done when |
+|---|---|---|
+| Junior | [Separate facts from habits](junior.md) | You can challenge one assumed solution and restate the need. |
+| Middle | [Derive a design](middle.md) | You can rebuild options from invariants and measured constraints. |
+| Senior | [Challenge architectural premises](senior.md) | You can expose hidden constraints and test a replacement safely. |
+| Professional | [Reframe organization-scale choices](professional.md) | You can change the constraint system while preserving trust and continuity. |
 
-## How to use this section
+## Practice rule
 
-Each topic has four depth levels — **junior → middle → senior → professional** — with comprehension questions and hidden answers at the end of every guide. Start at your level and climb. The three topics are a single move in sequence: get to fundamentals, kill the false assumptions, then rebuild — so read them in order.
+Ask “what must be true?” until each answer is observable, logically required, or explicitly a value choice.
 
----
+## Related
 
-> Part of the [Engineering Thinking](../) roadmap. When the fundamentals leave room for chance, continue to [Probabilistic Thinking](../06-probabilistic-thinking/).
+- [Critical Thinking](../04-critical-thinking/README.md)
+- [Creative Thinking](../07-creative-and-lateral-thinking/README.md)

@@ -1,27 +1,35 @@
 # Object-Oriented Design
 
-Use these guides to assign clear responsibilities, keep change local, and make design trade-offs explicit.
+> Assign behavior to cohesive objects so domain rules stay local and change does not spread through the system.
 
-## Topics
+```mermaid
+flowchart LR
+    J[Junior: objects and responsibility] --> M[Middle: coupling and SOLID]
+    M --> S[Senior: domain boundaries]
+    S --> P[Professional: evolution and governance]
+```
 
-- [Generic Principles](01-generic/README.md) — apply KISS, YAGNI, separation of concerns, and related fundamentals.
-- [Coupling and Cohesion](02-coupling-and-cohesion/README.md) — reduce unnecessary dependencies and keep related behavior together.
-- [Modules and Classes](03-module-and-class/README.md) — create boundaries that hide what changes.
-- [SOLID](04-solid/README.md) — use responsibility and substitution principles without dogma.
-- [Anti-Patterns and Code Smells](07-antipatterns-and-code-smells/README.md) — recognize design shapes that make change expensive.
-- [Object Thinking](08-object-thinking/README.md) — model behavior and collaborating responsibilities.
-- [Design and Modeling](09-oo-design-and-modeling/README.md) — apply GRASP, metrics, concurrency, and extensibility deliberately.
+```mermaid
+flowchart LR
+    Requirement --> Responsibility --> Collaborator --> Object
+    Object --> Message --> Behavior
+    Behavior --> Invariant
+```
 
-## How to use the guides
+This guide consolidates KISS, YAGNI, separation of concerns, cohesion, coupling, connascence, composition, SOLID, object thinking, GRASP, modeling, concurrency, extension, and common OO smells.
 
-1. Start with the topic that matches your current design problem.
-2. Read the level that matches the scope you own.
-3. Apply one practice step to a real class, module, or boundary.
-4. Move up when you can explain the trade-off and validate the result.
+| Level | Guide | You are done when |
+|---|---|---|
+| Junior | [Model behavior](junior.md) | You can place a rule with the state it protects. |
+| Middle | [Manage collaboration](middle.md) | You can use cohesion, coupling, composition, and SOLID as trade-offs. |
+| Senior | [Design domain boundaries](senior.md) | You can protect invariants under concurrency and evolution. |
+| Professional | [Govern object models](professional.md) | You can guide framework, API, and domain evolution across teams. |
 
-## Levels
+## Practice rule
 
-- **Junior:** Recognize the principle and make a focused local change.
-- **Middle:** Apply it across a component and explain the trade-offs.
-- **Senior:** Use it to contain system-level risk and guide change.
-- **Professional:** Establish shared design practices across teams.
+Ask which object is responsible for deciding and protecting the rule. Prefer telling that object what outcome is needed over extracting its data and deciding elsewhere.
+
+## Related
+
+- [Anti-Patterns](../anti-patterns/README.md)
+- [Legacy Code](../legacy-code/README.md)

@@ -1,22 +1,35 @@
 # Legacy Code
 
-Legacy code is code you must change without a reliable way to prove the change is safe. This section builds a practical path from understanding a risky area to improving it deliberately.
+> Legacy code is code you cannot change confidently; the first task is to create evidence and seams, not rewrite it.
 
-## Topics
+```mermaid
+flowchart LR
+    J[Junior: characterize behavior] --> M[Middle: introduce seams]
+    M --> S[Senior: migrate safely]
+    S --> P[Professional: portfolio modernization]
+```
 
-1. [What is legacy code](01-what-is-legacy-code/junior.md): recognize the risk.
-2. [The legacy change algorithm](02-the-legacy-change-algorithm/junior.md): make a safe change.
-3. [Seams and enabling points](03-seams-and-enabling-points/junior.md): control collaborators.
-4. [Characterization tests](04-characterization-tests/junior.md): record current behavior.
-5. [Dependency-breaking techniques](05-dependency-breaking-techniques/junior.md): create room to test and change.
-6. [Tidy First](06-tidy-first-when-and-how/junior.md): separate structural and behavioral work.
-7. [The economics of tidying](07-the-economics-of-tidying/junior.md): invest where it pays back.
+```mermaid
+flowchart LR
+    Change --> Identify[identify change point]
+    Identify --> Break[break dependency]
+    Break --> Test[characterization test]
+    Test --> Modify[minimal change]
+    Modify --> Refactor --> Verify
+```
 
-## Levels
+| Level | Guide | You are done when |
+|---|---|---|
+| Junior | [Make one safe change](junior.md) | You can capture existing behavior and change it with a focused test. |
+| Middle | [Create seams](middle.md) | You can isolate dependencies and improve design incrementally. |
+| Senior | [Modernize a system](senior.md) | You can stage migration while preserving compatibility and rollback. |
+| Professional | [Govern a legacy portfolio](professional.md) | You can prioritize modernization by risk, economics, and outcomes. |
 
-- **Junior:** make a small change with guidance.
-- **Middle:** choose and explain a local approach.
-- **Senior:** manage boundaries, risk, and trade-offs.
-- **Professional:** make the practice work across teams.
+## Practice rule
 
-Read the topics in order when the material is new. When working on a real change, start with the topic that removes your immediate uncertainty, then return to the full sequence.
+Do not “clean up” behavior you do not understand. First capture what the system does, including surprising behavior that callers may depend on.
+
+## Related
+
+- [Technical Debt](../technical-debt/README.md)
+- [Anti-Patterns](../anti-patterns/README.md)

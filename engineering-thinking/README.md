@@ -20,6 +20,7 @@ The sections are complementary rather than isolated. Decomposition makes a probl
 | 08 | [Object Thinking](../craftsmanship/object-oriented-design/08-object-thinking/) | Model behavior and responsibility, use tell-don't-ask and CRC techniques, and recognize when object thinking is the wrong fit. |
 | 09 | [Scientific and Hypothesis-Driven Thinking](09-scientific-and-hypothesis-driven/) | Form falsifiable hypotheses, design experiments, measure before optimizing, and use spikes to retire uncertainty. |
 | 10 | [Metacognition and Learning](10-metacognition-and-learning/) | Inspect your own reasoning, practice deliberately, learn efficiently, and map the limits of your knowledge. |
+| 11 | [Professionalism](professionalism/) | Make honest commitments, protect quality under pressure, collaborate responsibly, mentor others, and act ethically. |
 
 ## How to use this roadmap
 

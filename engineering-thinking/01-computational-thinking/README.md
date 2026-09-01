@@ -1,23 +1,38 @@
 # Computational Thinking
 
-> The discipline of reframing a messy real-world problem into something a machine can solve — by breaking it down, spotting structure, abstracting away noise, and expressing the result as an algorithm.
+> Turn a messy problem into parts, patterns, abstractions, algorithms, and code whose behavior you can explain.
 
-This section covers the four classic pillars — decomposition, pattern recognition, abstraction, and algorithm design — and then closes the loop by mapping a problem onto concrete code and data structures. The through-line is a repeatable pipeline: take an ambiguous task, carve it into tractable parts, find what repeats, hide what doesn't matter, and encode the rest as steps a computer can execute.
+```mermaid
+flowchart LR
+    J[Junior: decompose] --> M[Middle: model and abstract]
+    M --> S[Senior: boundaries and change]
+    S --> P[Professional: organization-scale decisions]
+```
 
-## Topics
+```mermaid
+flowchart LR
+    Problem[Real problem] --> Parts[Decompose]
+    Parts --> Patterns[Recognize patterns]
+    Patterns --> Model[Choose abstraction]
+    Model --> Steps[Design algorithm]
+    Steps --> Code[Implement and verify]
+```
 
-| # | Topic | What you'll learn |
-|---|-------|-------------------|
-| 01 | [Decomposition](01-decomposition/junior.md) | Functional vs data decomposition, coupling and cohesion, Conway's law, cutting along natural seams instead of arbitrary lines |
-| 02 | [Pattern Recognition](02-pattern-recognition/junior.md) | Spotting recurring structure, isomorphism between problems, when a "new" problem is an old one in disguise, and the trap of false patterns |
-| 03 | [Abstraction and Generalization](03-abstraction-and-generalization/junior.md) | Choosing the right level of detail, leaky abstractions, the rule of three before generalizing, premature-abstraction cost |
-| 04 | [Algorithmic Thinking](04-algorithmic-thinking/junior.md) | Expressing a solution as deterministic steps, invariants, termination, correctness vs efficiency, and reasoning about edge cases |
-| 05 | [Modeling a Problem in Code](05-modeling-a-problem-in-code/junior.md) | Mapping domain concepts to types and data structures, choosing representations that make the right operations cheap, model–reality drift |
+The five core skills are decomposition, pattern recognition, abstraction, algorithmic thinking, and modeling a domain in code. They form one loop: separate concerns, notice repeated structure, preserve only relevant detail, define a procedure, then compare the program with reality.
 
-## How to use this section
+| Level | Guide | You are done when |
+|---|---|---|
+| Junior | [Make one problem tractable](junior.md) | You can split a feature into verifiable outcomes and implement one clear path. |
+| Middle | [Find stable concepts](middle.md) | You can choose package boundaries and abstractions from behavior rather than file size. |
+| Senior | [Design for change](senior.md) | You can define seams, invariants, and incremental delivery across components. |
+| Professional | [Shape the problem-solving system](professional.md) | You can align decomposition, ownership, architecture, and migration across teams. |
 
-Each topic has four depth levels — **junior → middle → senior → professional** — with comprehension questions and hidden answers at the end of every guide. Start at your level and climb. Read it in order: decomposition and pattern recognition feed abstraction, which feeds algorithm design, which finally lands in real code.
+## Practice rule
 
----
+Before writing code, write the observable result, constraints, and smallest independently verifiable slice. After coding, verify that the model still matches the domain.
 
-> Part of the [Engineering Thinking](../) roadmap. Once you can frame problems computationally, [Problem-Solving](../02-problem-solving/) gives you the process for actually working through them.
+## Related
+
+- [Problem-Solving](../02-problem-solving/README.md)
+- [Systems Thinking](../03-systems-thinking/README.md)
+- [First-Principles Thinking](../05-first-principles-thinking/README.md)

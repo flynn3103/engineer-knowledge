@@ -1,22 +1,36 @@
 # Anti-Patterns
 
-## Purpose
+> An anti-pattern is a repeated response that feels locally useful but creates predictable long-term failure.
 
-Anti-patterns are tempting solutions that repeatedly create avoidable cost. Use these guides to recognize the shape, choose a safer next step, and prevent the same problem from returning.
+```mermaid
+flowchart LR
+    J[Junior: recognize code smells] --> M[Middle: diagnose design forces]
+    M --> S[Senior: contain system risk]
+    S --> P[Professional: ratchet improvement]
+```
 
-## Sections
+```mermaid
+flowchart LR
+    Pressure --> Shortcut --> HiddenCost --> MorePressure --> Shortcut
+    Evidence --> Intervention
+    Intervention -.breaks.-> HiddenCost
+```
 
-- [Development](01-development/README.md): code structure, shortcuts, and over-engineering.
-- [Design](02-design/README.md): object misuse, coupling, state, and abstraction failures.
-- [Concurrency](03-concurrency/README.md): synchronization, coordination, and shared-state mistakes.
-- [Async](04-async/README.md): error handling, execution shape, and lifecycle misuse.
-- [Testing](05-testing/README.md): tests that are fragile, flaky, unclear, slow, or over-mocked.
-- [Performance](06-performance/README.md): unmeasured optimization, repeated work, allocation, and data-structure mistakes.
-- [At Scale](07-at-scale/README.md): architecture guardrails, debt control, hotspots, and safe large-system change.
+This guide preserves development, design, concurrency, async, testing, performance, and at-scale anti-patterns without a separate page for every smell.
 
-## How to use the guides
+| Level | Guide | You are done when |
+|---|---|---|
+| Junior | [Recognize local smells](junior.md) | You can explain the concrete harm and make one safe improvement. |
+| Middle | [Diagnose design forces](middle.md) | You can distinguish a symptom from the structural cause. |
+| Senior | [Manage systemic anti-patterns](senior.md) | You can reduce coupling, flaky feedback, and migration risk incrementally. |
+| Professional | [Govern at scale](professional.md) | You can measure hotspots, automate ratchets, and prevent recurrence. |
 
-1. Start with the section closest to the problem you can observe.
-2. Read the guide for your current level.
-3. Make one scoped change and verify it with a test, measurement, or reviewable check.
-4. Move up a level when the same decision affects a wider boundary.
+## Practice rule
+
+Never refactor because a label sounds bad. Name the observed cost, the force creating it, the safer behavior, and the evidence that confirms improvement.
+
+## Related
+
+- [Legacy Code](../legacy-code/README.md)
+- [Technical Debt](../technical-debt/README.md)
+- [Object-Oriented Design](../object-oriented-design/README.md)
