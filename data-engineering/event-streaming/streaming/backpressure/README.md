@@ -35,5 +35,5 @@ input parallelism usually makes an uncorrected downstream bottleneck worse.
 
 ## Related
 
-- [Generic Back-Pressure](../../asynchronism/03-back-pressure/README.md)
+- [Generic Back-Pressure](../../asynchronism/back-pressure/README.md)
 - [Stream Graph](../stream-graph/README.md)

@@ -33,5 +33,5 @@ write and source-progress commit.
 
 ## Related
 
-- [Broker Delivery Guarantees](../../asynchronism/05-delivery-guarantees/README.md)
+- [Broker Delivery Guarantees](../../asynchronism/delivery-guarantees/README.md)
 - [Stateful Computation](../stateful-computation/README.md)

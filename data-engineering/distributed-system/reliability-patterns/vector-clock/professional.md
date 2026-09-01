@@ -136,5 +136,5 @@ point.
   for Optimistic Replication" (the Riak-adopted refinement).
 - Fidge / Mattern — the original independent papers introducing vector
   clocks (1988).
-- See also: [BASE & Eventual Consistency — senior/professional](../../databases/transaction/11-base-and-eventual-consistency/senior.md),
-  [NoSQL Modeling — professional](../../databases/data-modeling/03-nosql-modeling/professional.md).
+- See also: [BASE & Eventual Consistency — senior/professional](../../databases/transaction/base-and-eventual-consistency/senior.md),
+  [NoSQL Modeling — professional](../../databases/data-modeling/nosql-modeling/professional.md).

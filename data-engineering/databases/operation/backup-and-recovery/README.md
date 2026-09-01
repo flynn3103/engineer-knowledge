@@ -36,6 +36,6 @@ plan — you have an unverified assumption.
 
 ## Related
 
-- [MVCC](../../transaction/10-mvcc/README.md)
-- [Replication](../../scaling/16-replication/README.md)
-- [Transactions & ACID](../../transaction/07-transactions-and-acid/README.md)
+- [MVCC](../../transaction/mvcc/README.md)
+- [Replication](../../scaling/replication/README.md)
+- [Transactions & ACID](../../transaction/transactions-and-acid/README.md)

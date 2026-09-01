@@ -123,4 +123,4 @@ engineering cost.
 - MinIO documentation — "Erasure Coding" (a concrete, configurable
   implementation you can inspect directly).
 - See also: [File System — professional](../file-system/professional.md),
-  [Replication — professional](../../databases/scaling/16-replication/professional.md).
+  [Replication — professional](../../databases/scaling/replication/professional.md).

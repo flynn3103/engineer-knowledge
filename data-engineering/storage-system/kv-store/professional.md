@@ -118,4 +118,4 @@ flowchart TD
 - etcd documentation — architecture overview (boltdb storage + Raft +
   watch API layers).
 - See also: [LSM-Tree — professional](../../databases/performance/14-indexing%20%26%20filtering/lsm-tree/professional.md),
-  [Coordination Services — professional](../../distributed-system/18-concurrency-coordination/05-coordination-services/professional.md).
+  [Coordination Services — professional](../../distributed-system/18-concurrency-coordination/coordination-services/professional.md).

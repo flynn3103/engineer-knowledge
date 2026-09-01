@@ -9,14 +9,14 @@ Follow the roadmap in order if Go is new. If you already ship Go, start at the p
 | Stage | Topic | Practice outcome |
 |---|---|---|
 | 1 | [Introduction to Go](01-introduction-to-go/README.md) | Install the toolchain, run a program, and use core Go commands. |
-| 2 | [Goroutines and Concurrency](01-goroutines-and-concurrency/junior.md) | Coordinate work, cancellation, ownership, and shutdown. |
-| 3 | [Go Runtime](02-go-runtime/junior.md) | Explain scheduler, allocation, stack, and garbage-collection evidence. |
-| 4 | [Interfaces](03-interfaces/junior.md) | Put small contracts at consumer boundaries. |
-| 5 | [Error Handling](04-error-handling/junior.md) | Preserve meaning, context, and retry decisions. |
-| 6 | [HTTP and APIs](05-http-and-apis/junior.md) | Bound request lifetime and shut services down safely. |
-| 7 | [Code Organization](06-code-organization/README.md) | Organize modules, packages, dependencies, and releases. |
-| 8 | [Database and Distributed Systems](06-database-and-distributed-systems/junior.md) | Handle transactions, retries, queues, caching, and partial failure. |
-| 9 | [Production Debugging](07-production-debugging/junior.md) | Use profiles, traces, logs, and metrics to test a diagnosis. |
+| 2 | [Goroutines and Concurrency](goroutines-and-concurrency/junior.md) | Coordinate work, cancellation, ownership, and shutdown. |
+| 3 | [Go Runtime](go-runtime/junior.md) | Explain scheduler, allocation, stack, and garbage-collection evidence. |
+| 4 | [Interfaces](interfaces/junior.md) | Put small contracts at consumer boundaries. |
+| 5 | [Error Handling](error-handling/junior.md) | Preserve meaning, context, and retry decisions. |
+| 6 | [HTTP and APIs](http-and-apis/junior.md) | Bound request lifetime and shut services down safely. |
+| 7 | [Code Organization](code-organization/README.md) | Organize modules, packages, dependencies, and releases. |
+| 8 | [Database and Distributed Systems](database-and-distributed-systems/junior.md) | Handle transactions, retries, queues, caching, and partial failure. |
+| 9 | [Production Debugging](production-debugging/junior.md) | Use profiles, traces, logs, and metrics to test a diagnosis. |
 
 ## Use the roadmap on real work
 

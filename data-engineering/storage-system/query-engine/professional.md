@@ -134,6 +134,6 @@ sources).
 - Presto/Trino engineering papers — "Presto: SQL on Everything" (the
   original architecture paper describing coordinator/worker/connector
   design).
-- See also: [Query Optimization — professional](../../databases/performance/15-query-optimization/professional.md),
-  [Database Federation — professional](../../databases/scaling/18-database-federation/professional.md),
+- See also: [Query Optimization — professional](../../databases/performance/query-optimization/professional.md),
+  [Database Federation — professional](../../databases/scaling/database-federation/professional.md),
   [Spark — senior/professional](../../distributed-system/spark/senior.md).

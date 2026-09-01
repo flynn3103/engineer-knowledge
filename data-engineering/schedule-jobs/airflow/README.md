@@ -39,5 +39,5 @@ DAG isn't idempotent yet.
 
 ## Related
 
-- [Schedule-Driven Background Jobs](../17-background-jobs/02-schedule-driven/README.md)
-- [Durable Execution (Temporal)](../17-background-jobs/05-durable-execution-temporal/README.md)
+- [Schedule-Driven Background Jobs](../17-background-jobs/schedule-driven/README.md)
+- [Durable Execution (Temporal)](../17-background-jobs/durable-execution-temporal/README.md)

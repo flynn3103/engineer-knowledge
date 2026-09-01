@@ -44,5 +44,5 @@ the query's real-world performance.
 ## Related
 
 - [File Format — professional](../file-format/professional.md)
-- [Query Optimization](../../databases/performance/15-query-optimization/README.md)
-- [Database Federation — professional](../../databases/scaling/18-database-federation/professional.md)
+- [Query Optimization](../../databases/performance/query-optimization/README.md)
+- [Database Federation — professional](../../databases/scaling/database-federation/professional.md)

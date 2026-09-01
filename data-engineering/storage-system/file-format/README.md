@@ -40,5 +40,5 @@ answer should drive the format choice, not familiarity or default tooling.
 
 ## Related
 
-- [Query Optimization](../../databases/performance/15-query-optimization/README.md)
+- [Query Optimization](../../databases/performance/query-optimization/README.md)
 - [Table Format: Delta Lake](../table-format/delta-lake/README.md)

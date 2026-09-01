@@ -43,6 +43,6 @@ dangerous, start at `junior.md`.
 
 ## Related
 
-- [CAP Theorem](../../02-tradeoffs-framework/01-cap-theorem/README.md)
-- [Consistency Models](../../02-tradeoffs-framework/04-consistency-models/README.md)
-- [2PC/3PC Coordinator](../../distributed-transaction/06-2pc-3pc-coordinator/README.md)
+- [CAP Theorem](../../02-tradeoffs-framework/cap-theorem/README.md)
+- [Consistency Models](../../02-tradeoffs-framework/consistency-models/README.md)
+- [2PC/3PC Coordinator](../../distributed-transaction/2pc-3pc-coordinator/README.md)

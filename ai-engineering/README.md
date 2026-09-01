@@ -9,7 +9,7 @@ retrieval systems that ground AI applications in durable knowledge.
 
 | Section | Focus |
 |---|---|
-| [AI Agents](ai-agents/03-ai-agents-101/) | Agent architectures, tools/actions, memory, MCP, evaluation, debugging, and security. |
+| [AI Agents](ai-agents/ai-agents-101/) | Agent architectures, tools/actions, memory, MCP, evaluation, debugging, and security. |
 | AI Storage | [Feature stores](ai-storage/feature-store/), [embeddings and vector databases](ai-storage/embeddings-vector-db/), and [retrieval-augmented generation](ai-storage/rag/). |
 
 Each topic follows this site's junior, middle, senior, and professional progression.

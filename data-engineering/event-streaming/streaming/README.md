@@ -50,4 +50,4 @@ If one is implicit, correctness is implicit too.
 
 - [Event-driven systems](../events-driven/)
 - [Messaging and asynchronism](../asynchronism/)
-- [Stateful windowing processor lab](../events-driven/02-stateful-windowing-processor/README.md)
+- [Stateful windowing processor lab](../events-driven/stateful-windowing-processor/README.md)

@@ -25,7 +25,7 @@ flowchart LR
 A topic is split into **partitions**, each an independent, ordered log.
 Kafka guarantees ordering **within** a partition, never across partitions
 (exactly the ordering-vs-parallelism trade-off from
-[Event-Driven Background Jobs — senior](../../distributed-system/17-background-jobs/01-event-driven/senior.md)).
+[Event-Driven Background Jobs — senior](../../distributed-system/17-background-jobs/event-driven/senior.md)).
 Within one consumer group, **each partition is assigned to exactly one
 consumer instance** — meaning a topic with 3 partitions can have **at
 most 3** consumer instances in one group doing useful work simultaneously;

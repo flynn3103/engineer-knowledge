@@ -37,7 +37,7 @@ reassigning everything.
 ## Kafka transactions: exactly-once effect for consume-transform-produce
 
 Recall from
-[Exactly-Once Semantics — professional](../../distributed-system/18-concurrency-coordination/03-exactly-once-semantics/professional.md):
+[Exactly-Once Semantics — professional](../../distributed-system/18-concurrency-coordination/exactly-once-semantics/professional.md):
 Kafka's idempotent producer (deduplicating retried sends via a
 per-partition sequence number) and **transactions** (atomically
 committing both a produce to an output topic AND a consumer offset commit)

@@ -125,5 +125,5 @@ flowchart LR
   column chunks, statistics) and "Encodings" (dictionary encoding
   details).
 - Apache Avro documentation — "Schema Resolution."
-- See also: [Query Optimization — professional](../../databases/performance/15-query-optimization/professional.md),
-  [OLTP vs OLAP — professional](../../databases/operation/21-oltp-vs-olap/professional.md).
+- See also: [Query Optimization — professional](../../databases/performance/query-optimization/professional.md),
+  [OLTP vs OLAP — professional](../../databases/operation/oltp-vs-olap/professional.md).

@@ -37,18 +37,18 @@ Without the cross-language picture you can use any one of these, but you can't *
 
 | # | Topic | Focus |
 |---|---|---|
-| [01](01-why-async/) | Why Async (vs Threads) | The C10K problem, thread-per-connection cost, when async actually helps |
-| [02](02-event-loop/) | The Event Loop | Reactor pattern, selectors (`epoll` / `kqueue` / `io_uring` / IOCP), single-thread loops vs work-stealing |
-| [03](03-coroutines-and-generators/) | Coroutines & Generators | Stackful vs stackless, suspend/resume, the machinery underneath `async fn` |
-| [04](04-futures-promises-tasks/) | Futures, Promises, Tasks | What each name means, eager vs lazy execution, completion vs continuation models |
-| [05](05-async-await-syntax/) | `async` / `await` Syntax | Function colouring, what the compiler rewrites, state-machine codegen |
-| [06](06-cancellation-and-timeouts/) | Cancellation & Timeouts | Cooperative cancellation, `CancellationToken`, Go's `context.Context`, structured cancellation |
-| [07](07-backpressure/) | Back-pressure | When the producer outruns the consumer; bounded channels, `Stream` back-pressure, reactive-streams |
-| [08](08-structured-concurrency/) | Structured Concurrency | Scoped lifetimes, no orphan tasks, Kotlin's `coroutineScope`, Swift's `TaskGroup`, Trio nurseries |
-| [09](09-async-runtimes/) | Async Runtimes | Tokio (Rust), libuv (Node), asyncio (Python), .NET ThreadPool — what they do, how they differ |
-| [10](10-mixing-async-and-blocking/) | Mixing Async and Blocking | Why `runBlocking` / `block_on` / sync calls inside async destroy performance; offloading patterns |
-| [11](11-debugging-async-code/) | Debugging Async Code | Async stack traces, why a panic loses context, tracing across `await` points |
-| [12](12-anti-patterns/) | Anti-patterns | "Async all the way down" mythology, fake async, fire-and-forget leaks, deadlocks via single-threaded loops |
+| [01](why-async/) | Why Async (vs Threads) | The C10K problem, thread-per-connection cost, when async actually helps |
+| [02](event-loop/) | The Event Loop | Reactor pattern, selectors (`epoll` / `kqueue` / `io_uring` / IOCP), single-thread loops vs work-stealing |
+| [03](coroutines-and-generators/) | Coroutines & Generators | Stackful vs stackless, suspend/resume, the machinery underneath `async fn` |
+| [04](futures-promises-tasks/) | Futures, Promises, Tasks | What each name means, eager vs lazy execution, completion vs continuation models |
+| [05](async-await-syntax/) | `async` / `await` Syntax | Function colouring, what the compiler rewrites, state-machine codegen |
+| [06](cancellation-and-timeouts/) | Cancellation & Timeouts | Cooperative cancellation, `CancellationToken`, Go's `context.Context`, structured cancellation |
+| [07](backpressure/) | Back-pressure | When the producer outruns the consumer; bounded channels, `Stream` back-pressure, reactive-streams |
+| [08](structured-concurrency/) | Structured Concurrency | Scoped lifetimes, no orphan tasks, Kotlin's `coroutineScope`, Swift's `TaskGroup`, Trio nurseries |
+| [09](async-runtimes/) | Async Runtimes | Tokio (Rust), libuv (Node), asyncio (Python), .NET ThreadPool — what they do, how they differ |
+| [10](mixing-async-and-blocking/) | Mixing Async and Blocking | Why `runBlocking` / `block_on` / sync calls inside async destroy performance; offloading patterns |
+| [11](debugging-async-code/) | Debugging Async Code | Async stack traces, why a panic loses context, tracing across `await` points |
+| [12](anti-patterns/) | Anti-patterns | "Async all the way down" mythology, fake async, fire-and-forget leaks, deadlocks via single-threaded loops |
 
 ---
 

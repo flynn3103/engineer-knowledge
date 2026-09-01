@@ -40,6 +40,6 @@ or barely at all.
 
 ## Related
 
-- [Query Optimization](../../15-query-optimization/README.md)
+- [Query Optimization](../../query-optimization/README.md)
 - [LSM-Tree](../lsm-tree/README.md)
 - [Skip List](../skip-list/README.md)

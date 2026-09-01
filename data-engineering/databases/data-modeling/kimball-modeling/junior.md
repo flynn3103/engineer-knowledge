@@ -32,7 +32,7 @@ fact table like points of a star — hence **star schema**.
 
 Compare answering "total sales by product category, by month" in a fully
 normalized OLTP schema (many small joined tables, per
-[Relational Model — junior](../01-relational-model/junior.md)) versus a star
+[Relational Model — junior](../relational-model/junior.md)) versus a star
 schema:
 
 ```sql
@@ -53,7 +53,7 @@ what a deeply normalized OLTP schema does not offer.
 > one purpose — fast, simple, predictable analytical joins — accepting the
 > anomaly risk because dimension tables are refreshed by a controlled pipeline,
 > never hand-edited by end users (same principle as the materialized view in
-> [Relational Model — senior](../01-relational-model/senior.md)).
+> [Relational Model — senior](../relational-model/senior.md)).
 
 ## Test yourself
 

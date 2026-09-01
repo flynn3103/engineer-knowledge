@@ -145,4 +145,4 @@ flowchart LR
 - Google — "Dapper, a Large-Scale Distributed Systems Tracing
   Infrastructure" (the original, foundational distributed tracing paper).
 - See also: [Service Mesh — professional](../service-mesh/professional.md),
-  [Bulkhead — professional](../20-reliability-patterns/02-bulkhead/professional.md).
+  [Bulkhead — professional](../20-reliability-patterns/bulkhead/professional.md).

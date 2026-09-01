@@ -12,7 +12,7 @@ At junior level, focus on this question:
 
 Without an index, finding `WHERE id = 42` means scanning every row until you
 find it — O(n) in the worst case, as covered in
-[Query Optimization — junior](../../15-query-optimization/junior.md). A
+[Query Optimization — junior](../../query-optimization/junior.md). A
 B+Tree index organizes keys into a **balanced, sorted tree** so a lookup
 only needs to follow one path from root to leaf.
 

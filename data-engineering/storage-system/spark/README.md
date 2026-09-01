@@ -38,5 +38,5 @@ production.
 
 ## Related
 
-- [Query Optimization](../../databases/performance/15-query-optimization/README.md)
-- [OLTP vs OLAP](../../databases/operation/21-oltp-vs-olap/README.md)
+- [Query Optimization](../../databases/performance/query-optimization/README.md)
+- [OLTP vs OLAP](../../databases/operation/oltp-vs-olap/README.md)

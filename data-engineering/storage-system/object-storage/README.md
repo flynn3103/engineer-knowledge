@@ -39,4 +39,4 @@ problem covered in `senior.md`.
 ## Related
 
 - [File System](../file-system/README.md)
-- [NoSQL Modeling — senior](../../databases/data-modeling/03-nosql-modeling/senior.md)
+- [NoSQL Modeling — senior](../../databases/data-modeling/nosql-modeling/senior.md)

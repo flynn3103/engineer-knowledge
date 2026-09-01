@@ -21,7 +21,7 @@ flowchart LR
 
 | Category | What the mesh provides | Maps to |
 |---|---|---|
-| **Traffic management** | Retries with backoff, circuit breaking, timeouts, weighted traffic splitting for canary deploys | [Retry](../20-reliability-patterns/03-retry/README.md), [Circuit Breaker](../20-reliability-patterns/01-circuit-breaker/README.md) |
+| **Traffic management** | Retries with backoff, circuit breaking, timeouts, weighted traffic splitting for canary deploys | [Retry](../20-reliability-patterns/retry/README.md), [Circuit Breaker](../20-reliability-patterns/circuit-breaker/README.md) |
 | **Security** | Automatic mutual TLS (mTLS) between every service-to-service call, without any application code managing certificates | Every service gets encrypted, authenticated communication by default, not opt-in per team |
 | **Observability** | Every request automatically generates a trace span, latency metric, and access log, consistently formatted across every service | [Distributed Tracing](../distributed-tracing/README.md) |
 

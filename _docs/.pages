@@ -1,5 +1,7 @@
 nav:
   - Home: index.md
+  - Blog:
+    - ... | regex=^Blog/.+
   - Craftsmanship:
     - ... | regex=^Craftsmanship/.+
   - Programming Languages:
@@ -14,6 +16,4 @@ nav:
     - ... | regex=^Data-Engineering/.+
   - AI Engineering:
     - ... | regex=^AI-Engineering/.+
-  - Project:
-    - ... | regex=^Project/.+
   - About: about.md

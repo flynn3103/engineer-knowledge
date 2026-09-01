@@ -41,7 +41,7 @@ A reader querying the table **while** a write is in progress can see a
 partially-written file, or see some but not all of a multi-file write's
 new files, producing an inconsistent, incorrect view of the data — there's
 no atomicity across the write, unlike a traditional database's transaction
-guarantee (per [Transactions & ACID](../../../databases/transaction/07-transactions-and-acid/README.md)).
+guarantee (per [Transactions & ACID](../../../databases/transaction/transactions-and-acid/README.md)).
 
 > 🎓 **Takeaway:** "just write Parquet files to a folder" gives you no
 > transactional guarantee at all — readers can see partial writes, and

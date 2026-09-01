@@ -41,4 +41,4 @@ Delta Lake/Iceberg) should be driven directly by these two numbers.
 
 - [Delta Lake](../delta-lake/README.md)
 - [Iceberg](../iceberge/README.md)
-- [CDC Pipeline (Debezium)](../../../event-streaming/events-driven/01-cdc-pipeline/README.md)
+- [CDC Pipeline (Debezium)](../../../event-streaming/events-driven/cdc-pipeline/README.md)

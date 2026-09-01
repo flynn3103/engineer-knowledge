@@ -126,5 +126,5 @@ instead of leader election/locking.
   discovery service protocol specification).
 - Istio documentation — "Istio Performance and Scalability" (istiod
   scaling, push batching/debouncing configuration).
-- See also: [Coordination Services — professional](../18-concurrency-coordination/05-coordination-services/professional.md),
-  [BASE & Eventual Consistency — professional](../../databases/transaction/11-base-and-eventual-consistency/professional.md).
+- See also: [Coordination Services — professional](../18-concurrency-coordination/coordination-services/professional.md),
+  [BASE & Eventual Consistency — professional](../../databases/transaction/base-and-eventual-consistency/professional.md).

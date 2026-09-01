@@ -20,7 +20,7 @@ flowchart LR
 
 Avro was specifically designed for **schema evolution** in
 streaming/RPC contexts (see
-[Schema Registry & Evolution](../../events/04-schema-registry-and-evolution/README.md)) —
+[Schema Registry & Evolution](../../events/schema-registry-and-evolution/README.md)) —
 a reader with an older or newer schema than the writer can still correctly
 deserialize data, as long as the evolution follows compatible rules
 (adding a field with a default, removing a field that had a default).

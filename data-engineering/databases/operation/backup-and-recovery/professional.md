@@ -145,5 +145,5 @@ TrueTime), rather than relying on wall-clock coincidence.
   snapshot consistency).
 - Corbett et al. — "Spanner: Google's Globally-Distributed Database"
   (TrueTime and globally consistent snapshots in production).
-- See also: [MVCC — professional](../../transaction/10-mvcc/professional.md),
-  [Replication — professional](../../scaling/16-replication/professional.md).
+- See also: [MVCC — professional](../../transaction/mvcc/professional.md),
+  [Replication — professional](../../scaling/replication/professional.md).

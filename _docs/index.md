@@ -63,13 +63,13 @@ The knowledge required for modern software development is scattered across count
 
     [:octicons-arrow-right-24: Browse AI Engineering](AI-Engineering/)
 
-- :material-rocket-launch:{ .lg .middle } **Project**
+- :material-rocket-launch:{ .lg .middle } **Blog**
 
     ---
 
-    Hands-on project briefs and build logs. *(Coming soon)*
+    Write-ups and build logs. *(Coming soon)*
 
-    [:octicons-arrow-right-24: Browse Project](Project/README.md)
+    [:octicons-arrow-right-24: Browse Blog](Blog/README.md)
 
 </div>
 

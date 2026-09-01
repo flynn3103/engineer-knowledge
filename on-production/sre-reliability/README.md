@@ -6,13 +6,13 @@
 
 | # | Topic | What you'll learn |
 |---|---|---|
-| 01 | [Error Budgets](01-error-budgets/README.md) | Use permitted failure to make delivery-risk decisions. |
-| 02 | [SLO Ownership](02-slo-ownership/README.md) | Give reliability objectives durable, actionable owners. |
-| 03 | [Incident Management](03-incident-management/README.md) | Coordinate mitigation and recovery under pressure. |
-| 04 | [Postmortems](04-postmortems/README.md) | Turn incidents into factual, verifiable improvements. |
-| 05 | [Toil Reduction](05-toil-reduction/README.md) | Reduce repetitive operational work safely. |
-| 06 | [Load Shedding](06-load-shedding/README.md) | Protect critical work during overload. |
-| 07 | [Graceful Degradation](07-graceful-degradation/README.md) | Preserve an honest useful experience when dependencies fail. |
+| 01 | [Error Budgets](error-budgets/README.md) | Use permitted failure to make delivery-risk decisions. |
+| 02 | [SLO Ownership](slo-ownership/README.md) | Give reliability objectives durable, actionable owners. |
+| 03 | [Incident Management](incident-management/README.md) | Coordinate mitigation and recovery under pressure. |
+| 04 | [Postmortems](postmortems/README.md) | Turn incidents into factual, verifiable improvements. |
+| 05 | [Toil Reduction](toil-reduction/README.md) | Reduce repetitive operational work safely. |
+| 06 | [Load Shedding](load-shedding/README.md) | Protect critical work during overload. |
+| 07 | [Graceful Degradation](graceful-degradation/README.md) | Preserve an honest useful experience when dependencies fail. |
 
 ## How to use this section
 

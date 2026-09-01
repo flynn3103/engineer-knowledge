@@ -20,12 +20,12 @@ Use the diagram as a debugging order: identify the last boundary with healthy ev
 | Stage | Section | Capability you build |
 |---|---|---|
 | 1 | [Protocols](protocols/README.md) | Explain how bytes move, establish trust, and become application messages. |
-| 2 | [Domain Name System](06-domain-name-system/README.md) | Trace name resolution and change DNS safely. |
-| 3 | [Content Delivery Networks](07-content-delivery-networks/README.md) | Control cache behavior and move delivery closer to users. |
-| 4 | [Load Balancers](08-load-balancers/README.md) | Distribute traffic, detect unhealthy targets, and fail over. |
-| 5 | [Communication](09-communication/README.md) | Choose request, stream, and message interaction styles. |
-| 6 | [Application Layer](10-application-layer/README.md) | Draw service boundaries and contain distributed failure. |
-| 7 | [API Design at Scale](11-api-design-at-scale/README.md) | Evolve contracts, retries, gateways, and asynchronous callbacks. |
+| 2 | [Domain Name System](domain-name-system/README.md) | Trace name resolution and change DNS safely. |
+| 3 | [Content Delivery Networks](content-delivery-networks/README.md) | Control cache behavior and move delivery closer to users. |
+| 4 | [Load Balancers](load-balancers/README.md) | Distribute traffic, detect unhealthy targets, and fail over. |
+| 5 | [Communication](communication/README.md) | Choose request, stream, and message interaction styles. |
+| 6 | [Application Layer](application-layer/README.md) | Draw service boundaries and contain distributed failure. |
+| 7 | [API Design at Scale](api-design-at-scale/README.md) | Evolve contracts, retries, gateways, and asynchronous callbacks. |
 
 ## Use this section on a real incident
 

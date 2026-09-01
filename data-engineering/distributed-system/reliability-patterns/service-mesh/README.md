@@ -42,5 +42,5 @@ common library," the mesh's operational complexity may not be worth it yet.
 
 ## Related
 
-- [Circuit Breaker](../01-circuit-breaker/README.md)
-- [Coordination Services](../../coordination/05-coordination-services/README.md)
+- [Circuit Breaker](../circuit-breaker/README.md)
+- [Coordination Services](../../coordination/coordination-services/README.md)

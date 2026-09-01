@@ -6,14 +6,14 @@
 
 | # | Topic | What you'll learn |
 |---|-------|-------------------|
-| 01 | [Cost Modeling](01-cost-modeling/junior.md) | Build a unit-economics model — cost per request, per user, per feature. |
-| 02 | [Capacity Planning](02-capacity-planning/junior.md) | Forecast demand and size infrastructure with headroom before you need it. |
-| 03 | [Efficiency as a Feature](03-efficiency-as-a-feature/junior.md) | Give efficiency an owner, a budget, and a place in planning. |
-| 04 | [Hardware-Aware Design](04-hardware-aware-design/junior.md) | Match a workload's CPU/memory/I/O profile to the right instance type. |
-| 05 | [Performance Economics](05-performance-economics/junior.md) | Decide when optimizing pays for itself versus just scaling out. |
-| 06 | [Cloud Cost Optimization](06-cloud-cost-optimization/junior.md) | Use reserved capacity, spot, and rightsizing without breaking reliability. |
-| 07 | [Storage Tiering and Data Lifecycle](07-storage-tiering-and-data-lifecycle/junior.md) | Match data's access pattern to the right storage tier over its life. |
-| 08 | [Data Transfer and Egress Costs](08-data-transfer-and-egress-costs/junior.md) | Design request paths that don't accumulate hidden transfer charges. |
+| 01 | [Cost Modeling](cost-modeling/junior.md) | Build a unit-economics model — cost per request, per user, per feature. |
+| 02 | [Capacity Planning](capacity-planning/junior.md) | Forecast demand and size infrastructure with headroom before you need it. |
+| 03 | [Efficiency as a Feature](efficiency-as-a-feature/junior.md) | Give efficiency an owner, a budget, and a place in planning. |
+| 04 | [Hardware-Aware Design](hardware-aware-design/junior.md) | Match a workload's CPU/memory/I/O profile to the right instance type. |
+| 05 | [Performance Economics](performance-economics/junior.md) | Decide when optimizing pays for itself versus just scaling out. |
+| 06 | [Cloud Cost Optimization](cloud-cost-optimization/junior.md) | Use reserved capacity, spot, and rightsizing without breaking reliability. |
+| 07 | [Storage Tiering and Data Lifecycle](storage-tiering-and-data-lifecycle/junior.md) | Match data's access pattern to the right storage tier over its life. |
+| 08 | [Data Transfer and Egress Costs](data-transfer-and-egress-costs/junior.md) | Design request paths that don't accumulate hidden transfer charges. |
 
 ## How to use this section
 

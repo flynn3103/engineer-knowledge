@@ -131,4 +131,4 @@ statistics for every remaining decision.
   Execution."
 - Armbrust et al. — "Spark SQL: Relational Data Processing in Spark"
   (the original Catalyst optimizer paper).
-- See also: [Query Optimization — professional](../../databases/performance/15-query-optimization/professional.md).
+- See also: [Query Optimization — professional](../../databases/performance/query-optimization/professional.md).

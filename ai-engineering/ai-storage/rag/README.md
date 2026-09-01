@@ -36,5 +36,5 @@ Evaluate retrieval before generation. A fluent model cannot cite evidence that n
 
 - [Embeddings and Vector Databases](../embeddings-vector-db/)
 - [Feature Store](../feature-store/)
-- [Evaluation and Testing](../../ai-agents/10-evaluation-and-testing/)
-- [Security and Ethics](../../ai-agents/12-security-ethics/)
+- [Evaluation and Testing](../../ai-agents/evaluation-and-testing/)
+- [Security and Ethics](../../ai-agents/security-ethics/)

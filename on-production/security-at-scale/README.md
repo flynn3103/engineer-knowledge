@@ -16,20 +16,20 @@ flowchart LR
 
 | # | Topic | What you'll learn |
 |---|---|---|
-| 01 | [Authentication](01-authentication/README.md) | Establish and verify a caller's identity. |
-| 02 | [Authorization](02-authorization/README.md) | Make and enforce permission decisions. |
-| 03 | [OAuth 2.0 and OpenID Connect](03-oauth2-and-oidc/README.md) | Delegate access and obtain identity claims safely. |
-| 04 | [JWT and Tokens](04-jwt-and-tokens/README.md) | Validate bounded bearer credentials. |
-| 05 | [Encryption at Rest and Transit](05-encryption-at-rest-and-transit/README.md) | Protect stored and moving data. |
-| 06 | [Secrets Management](06-secrets-management/README.md) | Store, deliver, and rotate sensitive values. |
-| 07 | [DDoS Mitigation](07-ddos-mitigation/README.md) | Preserve service for legitimate users under attack. |
-| 08 | [WAF and API Security](08-waf-and-api-security/README.md) | Apply edge controls and secure API behavior. |
-| 09 | [Rate Limiting for Abuse](09-rate-limiting-for-abuse/README.md) | Bound abusive demand fairly. |
-| 10 | [DevSecOps and Supply Chain Security](10-devsecops-and-supply-chain-security/README.md) | Deliver trustworthy software artifacts. |
-| 11 | [Zero Trust Architecture](11-zero-trust-architecture/README.md) | Remove implicit network trust. |
-| 12 | [PKI and Certificate Management](12-pki-and-certificate-management/README.md) | Operate certificates and trust chains. |
-| 13 | [Threat Modeling with STRIDE](13-threat-modeling-stride/README.md) | Discover and prioritize threats before delivery. |
-| 14 | [Envelope Encryption and KMS](14-envelope-encryption-and-kms/README.md) | Protect data keys with managed root keys. |
+| 01 | [Authentication](authentication/README.md) | Establish and verify a caller's identity. |
+| 02 | [Authorization](authorization/README.md) | Make and enforce permission decisions. |
+| 03 | [OAuth 2.0 and OpenID Connect](oauth2-and-oidc/README.md) | Delegate access and obtain identity claims safely. |
+| 04 | [JWT and Tokens](jwt-and-tokens/README.md) | Validate bounded bearer credentials. |
+| 05 | [Encryption at Rest and Transit](encryption-at-rest-and-transit/README.md) | Protect stored and moving data. |
+| 06 | [Secrets Management](secrets-management/README.md) | Store, deliver, and rotate sensitive values. |
+| 07 | [DDoS Mitigation](ddos-mitigation/README.md) | Preserve service for legitimate users under attack. |
+| 08 | [WAF and API Security](waf-and-api-security/README.md) | Apply edge controls and secure API behavior. |
+| 09 | [Rate Limiting for Abuse](rate-limiting-for-abuse/README.md) | Bound abusive demand fairly. |
+| 10 | [DevSecOps and Supply Chain Security](devsecops-and-supply-chain-security/README.md) | Deliver trustworthy software artifacts. |
+| 11 | [Zero Trust Architecture](zero-trust-architecture/README.md) | Remove implicit network trust. |
+| 12 | [PKI and Certificate Management](pki-and-certificate-management/README.md) | Operate certificates and trust chains. |
+| 13 | [Threat Modeling with STRIDE](threat-modeling-stride/README.md) | Discover and prioritize threats before delivery. |
+| 14 | [Envelope Encryption and KMS](envelope-encryption-and-kms/README.md) | Protect data keys with managed root keys. |
 
 ## How to use this section
 

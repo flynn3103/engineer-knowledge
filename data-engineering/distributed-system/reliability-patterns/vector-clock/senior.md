@@ -58,7 +58,7 @@ comparison can correctly say **"these two events are concurrent"** — a
 precise, meaningful statement that neither event's originator had any
 knowledge of the other when it acted. This is exactly the signal a
 distributed data store needs to detect a genuine **write conflict**
-(see [BASE & Eventual Consistency — senior](../../databases/transaction/11-base-and-eventual-consistency/senior.md)):
+(see [BASE & Eventual Consistency — senior](../../databases/transaction/base-and-eventual-consistency/senior.md)):
 two concurrent writes to the same key must be reconciled (LWW, application-
 level merge, or a CRDT), because neither can claim to have "come after"
 the other in any meaningful sense.

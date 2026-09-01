@@ -39,4 +39,4 @@ exactly the gap table formats close.
 
 - [File System — professional](../../file-system/professional.md)
 - [Iceberg](../iceberge/README.md)
-- [Transactions & ACID](../../../databases/transaction/07-transactions-and-acid/README.md)
+- [Transactions & ACID](../../../databases/transaction/transactions-and-acid/README.md)

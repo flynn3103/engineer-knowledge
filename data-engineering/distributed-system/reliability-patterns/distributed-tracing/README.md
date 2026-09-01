@@ -40,4 +40,4 @@ need distributed tracing, not just better logging.
 ## Related
 
 - [Service Mesh](../service-mesh/README.md)
-- [Consumer Autoscaling on Lag](../../event-streaming/events/08-consumer-autoscaling-on-lag/README.md)
+- [Consumer Autoscaling on Lag](../../event-streaming/events/consumer-autoscaling-on-lag/README.md)

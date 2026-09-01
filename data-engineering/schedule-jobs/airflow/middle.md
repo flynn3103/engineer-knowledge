@@ -21,7 +21,7 @@ flowchart LR
 ```
 
 - **Scheduler**: continuously parses every DAG file, evaluates each DAG's
-  schedule (per [Schedule-Driven Background Jobs](../17-background-jobs/02-schedule-driven/README.md)),
+  schedule (per [Schedule-Driven Background Jobs](../17-background-jobs/schedule-driven/README.md)),
   and creates **task instances** in the metadata database once they're due
   and their dependencies are satisfied.
 - **Executor**: a pluggable component deciding **how** tasks actually get

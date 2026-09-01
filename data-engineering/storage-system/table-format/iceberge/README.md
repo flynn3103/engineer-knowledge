@@ -42,4 +42,4 @@ concerns as first priorities.
 ## Related
 
 - [Delta Lake](../delta-lake/README.md)
-- [Partitioning & Sharding](../../../databases/scaling/17-partitioning-and-sharding/README.md)
+- [Partitioning & Sharding](../../../databases/scaling/partitioning-and-sharding/README.md)

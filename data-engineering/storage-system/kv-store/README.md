@@ -42,4 +42,4 @@ machinery than the problem requires.
 
 - [LSM-Tree](../../databases/performance/indexing/lsm-tree/README.md)
 - [B+Tree](../../databases/performance/indexing/b+tree/README.md)
-- [NoSQL Modeling](../../databases/data-modeling/03-nosql-modeling/README.md)
+- [NoSQL Modeling](../../databases/data-modeling/nosql-modeling/README.md)

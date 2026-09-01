@@ -64,11 +64,11 @@ flowchart LR
 ```
 
 Because Airflow's `catchup` (see
-[Schedule-Driven Background Jobs — senior](../17-background-jobs/02-schedule-driven/senior.md))
+[Schedule-Driven Background Jobs — senior](../17-background-jobs/schedule-driven/senior.md))
 and manual re-triggering both mean a DAG run for a **specific**
 `execution_date` can happen more than once, every task must be written
 using the same idempotency discipline from
-[Retries & Idempotency](../17-background-jobs/04-retries-and-idempotency/README.md) —
+[Retries & Idempotency](../17-background-jobs/retries-and-idempotency/README.md) —
 typically by making writes **overwrite-by-partition** rather than
 append-only.
 

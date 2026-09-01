@@ -16,7 +16,7 @@ flowchart LR
     Consume --> Gone["Message is REMOVED\nfrom the queue -\nnobody else can\never read it again"]
 ```
 
-In [Message Queues](../16-asynchronism/01-message-queues/README.md), once
+In [Message Queues](../16-asynchronism/message-queues/README.md), once
 a message is consumed and acknowledged, it's gone — a second consumer
 group wanting the same data would need a separate copy published to a
 separate queue.

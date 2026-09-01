@@ -51,7 +51,7 @@ OS page cache.
 
 > 🎓 **Takeaway:** choose in-memory when your dataset comfortably fits in
 > RAM and raw speed matters most (often as a cache, per
-> [Cache-Aside](../../databases/operation/caching/01-cache-aside/README.md));
+> [Cache-Aside](../../databases/operation/caching/cache-aside/README.md));
 > choose persistent, disk-backed KV storage when dataset size exceeds
 > practical RAM budgets or durability-by-default matters more than
 > shaving off the last bit of latency.

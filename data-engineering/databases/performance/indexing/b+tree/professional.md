@@ -106,4 +106,4 @@ in-memory indexes and [Bloom filters](../bloom-filter/README.md).
 - Use the Index, Luke! (Markus Winand) — practical B+Tree indexing guidance.
 - See also: [LSM-Tree](../lsm-tree/README.md),
   [Bloom Filter](../bloom-filter/README.md),
-  [Query Optimization — senior](../../15-query-optimization/senior.md).
+  [Query Optimization — senior](../../query-optimization/senior.md).

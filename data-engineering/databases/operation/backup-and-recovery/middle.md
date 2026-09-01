@@ -13,7 +13,7 @@ Prerequisite: [`junior.md`](junior.md).
 ## Point-in-time recovery (PITR)
 
 Recall the write-ahead log (WAL) from
-[Transactions & ACID — middle](../../transaction/07-transactions-and-acid/middle.md):
+[Transactions & ACID — middle](../../transaction/transactions-and-acid/middle.md):
 every committed change is durably logged, in order, before being applied to
 data pages. If you keep a **base backup** (a full snapshot) plus the
 **continuous WAL archive** since that backup, you can replay the log forward

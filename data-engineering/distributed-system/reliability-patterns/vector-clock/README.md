@@ -37,5 +37,5 @@ its production variants) is the alternative that doesn't need it.
 
 ## Related
 
-- [BASE & Eventual Consistency](../../databases/transaction/11-base-and-eventual-consistency/README.md)
-- [NoSQL Modeling](../../databases/data-modeling/03-nosql-modeling/README.md)
+- [BASE & Eventual Consistency](../../databases/transaction/base-and-eventual-consistency/README.md)
+- [NoSQL Modeling](../../databases/data-modeling/nosql-modeling/README.md)

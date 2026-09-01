@@ -40,6 +40,6 @@ is better served by a traditional queue (RabbitMQ, NATS).
 
 ## Related
 
-- [Message Queues](../01-message-queues/README.md)
+- [Message Queues](../message-queues/README.md)
 - [Leader Election — professional](../../distributed-system/consensus/leader-election/professional.md)
-- [Exactly-Once Semantics](../../distributed-system/18-concurrency-coordination/03-exactly-once-semantics/README.md)
+- [Exactly-Once Semantics](../../distributed-system/18-concurrency-coordination/exactly-once-semantics/README.md)

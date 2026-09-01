@@ -6,11 +6,11 @@
 
 | # | Topic | What you'll learn |
 |---|-------|-------------------|
-| 01 | [Failure Modes](01-failure-modes/junior.md) | Catalog what can actually fail, scored by severity, likelihood, and detectability. |
-| 02 | [Fault Injection](02-fault-injection/junior.md) | The mechanics of injecting network, process, and resource faults safely. |
-| 03 | [Game Days](03-game-days/junior.md) | Plan and run a scheduled team exercise with real roles and a scenario brief. |
-| 04 | [Resilience Testing](04-resilience-testing/junior.md) | Automate chaos experiments into a CI/CD gate instead of one-off exercises. |
-| 05 | [Blast Radius and Recovery](05-blast-radius-and-recovery/junior.md) | Scope an experiment's damage and recover from it, on purpose or by accident. |
+| 01 | [Failure Modes](failure-modes/junior.md) | Catalog what can actually fail, scored by severity, likelihood, and detectability. |
+| 02 | [Fault Injection](fault-injection/junior.md) | The mechanics of injecting network, process, and resource faults safely. |
+| 03 | [Game Days](game-days/junior.md) | Plan and run a scheduled team exercise with real roles and a scenario brief. |
+| 04 | [Resilience Testing](resilience-testing/junior.md) | Automate chaos experiments into a CI/CD gate instead of one-off exercises. |
+| 05 | [Blast Radius and Recovery](blast-radius-and-recovery/junior.md) | Scope an experiment's damage and recover from it, on purpose or by accident. |
 
 ## How to use this section
 

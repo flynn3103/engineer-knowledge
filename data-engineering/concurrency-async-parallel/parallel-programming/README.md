@@ -32,18 +32,18 @@ Parallel programming is the part of "make this faster" that the textbooks underp
 
 | # | Topic | Focus |
 |---|---|---|
-| [01](01-amdahl-and-gustafson/) | Amdahl & Gustafson | The two laws that bound how much speedup parallelism can give; serial fraction; strong vs weak scaling |
-| [02](02-data-parallelism/) | Data Parallelism | Parallel `map`, `reduce`, `forEach`; SIMD-style at high level; Java parallel streams, Rust Rayon, .NET PLINQ |
-| [03](03-task-parallelism/) | Task Parallelism | Independent task graphs; `Future` join trees; pipelining stages |
-| [04](04-fork-join/) | Fork-Join | Divide-and-conquer pattern; cilk-style, Java `ForkJoinPool`, Rust `join!` |
-| [05](05-work-stealing/) | Work-Stealing | How modern parallel runtimes balance load (Tokio, Rayon, ForkJoinPool, TBB); when it helps and hurts |
-| [06](06-simd-and-vectorization/) | SIMD & Vectorization | Auto-vectorization; intrinsics (SSE/AVX/NEON); Rust `std::simd`, Go SIMD packages |
-| [07](07-parallel-collections/) | Parallel Collections | Java parallel streams, Scala par-collections, Rust Rayon — pros, cons, and when they silently regress |
-| [08](08-cache-and-false-sharing/) | Cache & False Sharing | Cache lines, padding, `@Contended`, cache-friendly layouts (SoA vs AoS for parallel scans) |
-| [09](09-numa-aware-parallelism/) | NUMA-aware Parallelism | Why putting threads on the wrong socket halves your performance |
-| [10](10-gpu-and-accelerator-offload/) | GPU & Accelerator Offload | CUDA / OpenCL / Metal at conceptual level, when "throw it at a GPU" works and when it doesn't |
-| [11](11-benchmarking-parallel-code/) | Benchmarking Parallel Code | Why microbenchmarks lie; warm-up, JIT, contention noise; flame graphs vs lock-contention profilers |
-| [12](12-anti-patterns/) | Anti-patterns | "Parallel for-loop everywhere"; over-parallelisation; lock-as-coordination disguised as parallelism |
+| [01](amdahl-and-gustafson/) | Amdahl & Gustafson | The two laws that bound how much speedup parallelism can give; serial fraction; strong vs weak scaling |
+| [02](data-parallelism/) | Data Parallelism | Parallel `map`, `reduce`, `forEach`; SIMD-style at high level; Java parallel streams, Rust Rayon, .NET PLINQ |
+| [03](task-parallelism/) | Task Parallelism | Independent task graphs; `Future` join trees; pipelining stages |
+| [04](fork-join/) | Fork-Join | Divide-and-conquer pattern; cilk-style, Java `ForkJoinPool`, Rust `join!` |
+| [05](work-stealing/) | Work-Stealing | How modern parallel runtimes balance load (Tokio, Rayon, ForkJoinPool, TBB); when it helps and hurts |
+| [06](simd-and-vectorization/) | SIMD & Vectorization | Auto-vectorization; intrinsics (SSE/AVX/NEON); Rust `std::simd`, Go SIMD packages |
+| [07](parallel-collections/) | Parallel Collections | Java parallel streams, Scala par-collections, Rust Rayon — pros, cons, and when they silently regress |
+| [08](cache-and-false-sharing/) | Cache & False Sharing | Cache lines, padding, `@Contended`, cache-friendly layouts (SoA vs AoS for parallel scans) |
+| [09](numa-aware-parallelism/) | NUMA-aware Parallelism | Why putting threads on the wrong socket halves your performance |
+| [10](gpu-and-accelerator-offload/) | GPU & Accelerator Offload | CUDA / OpenCL / Metal at conceptual level, when "throw it at a GPU" works and when it doesn't |
+| [11](benchmarking-parallel-code/) | Benchmarking Parallel Code | Why microbenchmarks lie; warm-up, JIT, contention noise; flame graphs vs lock-contention profilers |
+| [12](anti-patterns/) | Anti-patterns | "Parallel for-loop everywhere"; over-parallelisation; lock-as-coordination disguised as parallelism |
 
 ---
 

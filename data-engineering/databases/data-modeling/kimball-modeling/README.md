@@ -43,6 +43,6 @@ under-counts the moment someone joins it to a dimension at the wrong level.
 
 ## Related
 
-- [Relational Model](../01-relational-model/README.md)
-- [NoSQL Modeling](../03-nosql-modeling/README.md)
-- [OLTP vs OLAP](../../operation/21-oltp-vs-olap/README.md)
+- [Relational Model](../relational-model/README.md)
+- [NoSQL Modeling](../nosql-modeling/README.md)
+- [OLTP vs OLAP](../../operation/oltp-vs-olap/README.md)

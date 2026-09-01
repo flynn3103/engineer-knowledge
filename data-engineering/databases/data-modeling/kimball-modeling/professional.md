@@ -158,5 +158,5 @@ on that engine, not against Kimball-era assumptions from row-store hardware.
   design rationale, useful to contrast against current engine internals).
 - ClickHouse / DuckDB engineering blogs — vectorized execution and
   zone-map/min-max pruning internals.
-- See also: [Query Optimization — professional](../../performance/15-query-optimization/professional.md),
-  [OLTP vs OLAP — professional](../../operation/21-oltp-vs-olap/professional.md).
+- See also: [Query Optimization — professional](../../performance/query-optimization/professional.md),
+  [OLTP vs OLAP — professional](../../operation/oltp-vs-olap/professional.md).

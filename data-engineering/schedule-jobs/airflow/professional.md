@@ -131,5 +131,5 @@ pod startup overhead dominates actual task runtime.
   Practices" (top-level code performance guidance).
 - Astronomer Engineering Blog — production Airflow scaling case studies
   and metadata database tuning guidance.
-- See also: [Schedule-Driven Background Jobs — professional](../17-background-jobs/02-schedule-driven/professional.md),
-  [Locking & Concurrency Control — professional](../../databases/transaction/09-locking-and-concurrency-control/professional.md).
+- See also: [Schedule-Driven Background Jobs — professional](../17-background-jobs/schedule-driven/professional.md),
+  [Locking & Concurrency Control — professional](../../databases/transaction/locking-and-concurrency-control/professional.md).

@@ -15,7 +15,7 @@ The knowledge required for modern engineering work is scattered across countless
 - **Engineering Thinking** — computational, systems, critical, first-principles, probabilistic, creative, scientific, and metacognitive reasoning
 - **Data Engineering** — databases, distributed systems, event streaming, orchestration, storage, and concurrent processing
 - **AI Engineering** — agents, retrieval, evaluation, security, and AI storage systems
-- **Project** — *coming soon*
+- **Blog** — *coming soon*
 
 ## Project Structure
 
@@ -30,7 +30,7 @@ The knowledge required for modern engineering work is scattered across countless
 ├── 📂 engineering-thinking/              # 9 sections: computational thinking → metacognition and learning
 ├── 📂 data-engineering/                  # Databases, distributed systems, streaming, scheduling, storage, and concurrency
 ├── 📂 ai-engineering/                    # Agents, retrieval, evaluation, security, and AI storage
-└── 📂 Project/                           # Coming soon
+└── 📂 blog/                              # Coming soon
 ```
 
 ## How to use

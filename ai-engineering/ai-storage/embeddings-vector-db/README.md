@@ -37,4 +37,4 @@ Keep canonical source data outside the vector index. Embeddings are derived arti
 
 - [RAG](../rag/)
 - [Feature Store](../feature-store/)
-- [Agent Memory](../../ai-agents/07-agent-memory/)
+- [Agent Memory](../../ai-agents/agent-memory/)

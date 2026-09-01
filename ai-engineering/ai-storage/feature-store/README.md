@@ -36,4 +36,4 @@ Define feature semantics and event-time behavior before choosing storage. A fast
 
 - [Embeddings and Vector Databases](../embeddings-vector-db/)
 - [RAG](../rag/)
-- [Evaluation and Testing](../../ai-agents/10-evaluation-and-testing/)
+- [Evaluation and Testing](../../ai-agents/evaluation-and-testing/)
