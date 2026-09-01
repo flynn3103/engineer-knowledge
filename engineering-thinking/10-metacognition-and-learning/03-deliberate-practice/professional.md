@@ -130,7 +130,13 @@ If output is fine but these are flat, your org is doing one year of experience r
 - [Section overview](../) · [Engineering Thinking root](../../README.md)
 
 ---
-## Check your understanding
+## Use it today
+
+1. Design team systems that provide safe repetition, coaching, and fast feedback.
+2. Make growth expectations concrete for each capability level.
+3. Protect time for the hard practice that daily delivery otherwise crowds out.
+
+## Recall and apply
 
 Try to answer these questions from memory:
 

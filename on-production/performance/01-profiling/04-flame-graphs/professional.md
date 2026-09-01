@@ -27,7 +27,12 @@ The two collection models matter:
 - **eBPF, whole-node (Parca/Pyroscope-eBPF/Polar Signals):** an agent runs per node, attaches to the kernel's perf events, and unwinds stacks for *every* process on the box — no recompile, no library, no app change. It profiles your Go service, the sidecar, the JVM, and `nginx` uniformly. The cost is that unwinding stripped or JIT'd stacks requires extra machinery (DWARF unwind tables, frame pointers, JIT symbol maps).
 - **In-app library (Datadog, Pyroscope SDK):** you add a profiler dependency to the service. It produces perfectly symbolized stacks (the runtime knows its own functions) and rich labels, at the cost of per-language integration and a redeploy to roll out.
 
-The number that makes all of this *safe to leave on forever* is the **overhead: a well-tuned continuous profiler costs 1-2% CPU and a few MB of RAM per process.** A 100 Hz sample (one stack snapshot per core every 10 ms) is statistically rich over minutes yet negligible per second. That is the entire unlock: at 1-2% you don't *decide* to profile, you just *always are*, and the cost is far smaller than the inefficiencies it surfaces. (Verify it for your workload — measure CPU with the agent on vs off before declaring it free.)
+The number that makes all of this *safe to leave on forever* is the overhead:
+
+- A well-tuned continuous profiler costs **1-2% CPU and a few MB of RAM per process.**
+- A 100 Hz sample (one stack snapshot per core every 10 ms) is statistically rich over minutes yet negligible per second.
+- That is the entire unlock: at 1-2% you don't *decide* to profile, you just *always are*, and the cost is far smaller than the inefficiencies it surfaces.
+- (Verify it for your workload — measure CPU with the agent on vs off before declaring it free.)
 
 The other unlock is **labels**. Every sample carries dimensions, exactly like metric labels:
 
@@ -51,7 +56,10 @@ Now a flame graph is sliceable: *the CPU profile of just the `/charge` endpoint,
 
 Here is the single most valuable view continuous profiling unlocks, and the one most teams never build: **merge every CPU sample from the entire fleet into one flame graph.** Not one service — *everything*. Every process, every node, summed.
 
-In that merged graph, **width is proportional to total CPU consumed across the fleet, which is proportional to dollars.** If your fleet is 10,000 vCPUs at roughly \$0.04/vCPU-hour on-demand, that's about \$3.5M/year of compute, and the merged flame graph apportions every dollar of it to a function. **The widest box is your biggest line item.** A frame that's 12% of the merged graph is ~\$420k/year of compute spent inside that call path. This reframes optimization entirely: you stop optimizing the code that *feels* slow and start optimizing the code that *costs the most*, which is frequently dull infrastructure code nobody suspected.
+- In that merged graph, **width is proportional to total CPU consumed across the fleet, which is proportional to dollars.**
+- If your fleet is 10,000 vCPUs at roughly \$0.04/vCPU-hour on-demand, that's about \$3.5M/year of compute, and the merged flame graph apportions every dollar of it to a function.
+- **The widest box is your biggest line item.** A frame that's 12% of the merged graph is ~\$420k/year of compute spent inside that call path.
+- This reframes optimization entirely: you stop optimizing the code that *feels* slow and start optimizing the code that *costs the most*, which is frequently dull infrastructure code nobody suspected.
 
 What consistently shows up wide in real fleet flame graphs — and almost never in a single-service profile, because it's spread thinly everywhere:
 
@@ -230,3 +238,8 @@ The cultural payoff: a flame graph is a *shared visual vocabulary*. A senior eng
 - Which team owns the full lifecycle and incident response?
 - What reversible increment produces the earliest useful evidence?
 - Which exit condition proves that migration or adoption is complete?
+- What is continuous profiling, and why run it in production instead of profiling on demand?
+- How can a fleet-wide merged flame graph function as a cost map, and what workflow turns it into a costed backlog?
+- How would you wire differential flame graphs into CI to catch performance regressions before they ship?
+- Walk through using a flame graph during a live incident, step by step.
+- When is a flame graph the wrong tool for a performance question, and what do you reach for instead?

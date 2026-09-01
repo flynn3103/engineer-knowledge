@@ -2,3 +2,8 @@ title: Data Engineering
 nav:
   - Overview: README.md
   - Concurrency, Async & Parallel: concurrency-async-parallel
+  - Databases: databases
+  - Distributed Systems: distributed-system
+  - Event Streaming: event-streaming
+  - Scheduled Jobs: schedule-jobs
+  - Storage Systems: storage-system

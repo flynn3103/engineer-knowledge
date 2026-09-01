@@ -189,7 +189,13 @@ A representative checklist for any mid-level performance task:
 See also [experiments and A/B testing](../02-experiments-and-ab-testing/) for the statistical-significance side of "is this difference real," and [first-principles reasoning](../../05-first-principles-thinking/01-reasoning-from-fundamentals/) for deriving the latency floor a system can *physically* reach.
 
 ---
-## Check your understanding
+## Use it today
+
+1. Define the workload, baseline, target, and measurement method.
+2. Use profiles and production-like data to find the bottleneck.
+3. **Decision rule:** optimize only when the measured gain justifies complexity and operating cost.
+
+## Recall and apply
 
 Try to answer these questions from memory:
 

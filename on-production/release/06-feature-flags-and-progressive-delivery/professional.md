@@ -22,7 +22,8 @@ Three options, and the answer is usually "buy, or adopt OSS, behind an abstracti
 | **Adopt OSS** | Unleash, Flagsmith, GrowthBook | Want control/self-host, lower license cost, decent feature set | You operate it: HA, upgrades, on-call for tier-0 infra |
 | **Build** | in-house | Hyperscale or unique requirements SaaS can't meet | You're now maintaining tier-0 infra, SDKs for N languages, a UI, audit, and experimentation stats — usually a mistake |
 
-**Building from scratch is almost always the wrong call.** Teams underestimate the *long tail*: multi-language SDKs with consistent bucketing, streaming with bounded skew, an audit trail, RBAC, a usable UI, statistically correct experiment analysis, and tier-0 reliability. That's a product, not a sprint. The defensible middle path: **adopt a mature OSS or SaaS backend, but put OpenFeature in front of it** so the *decision* is reversible. The build-vs-buy reasoning mirrors the `ci-cd-pipeline-design` skill's "don't build your own CI" instinct — own the policy, rent the engine.
+- **Building from scratch is almost always the wrong call.** Teams underestimate the *long tail*: multi-language SDKs with consistent bucketing, streaming with bounded skew, an audit trail, RBAC, a usable UI, statistically correct experiment analysis, and tier-0 reliability. That's a product, not a sprint.
+- The defensible middle path: **adopt a mature OSS or SaaS backend, but put OpenFeature in front of it** so the *decision* is reversible. The build-vs-buy reasoning mirrors the `ci-cd-pipeline-design` skill's "don't build your own CI" instinct — own the policy, rent the engine.
 
 > The honest cost comparison isn't license-fee vs zero. It's license-fee vs (engineers + on-call + opportunity cost) of running tier-0 infra forever. Buy unless your scale or constraints genuinely break the vendor.
 
@@ -30,7 +31,9 @@ Three options, and the answer is usually "buy, or adopt OSS, behind an abstracti
 
 ## Core Concept 2 — OpenFeature as the Vendor-Neutral Layer
 
-OpenFeature (a CNCF project) standardizes the *evaluation API* so your application code is independent of the backend. You write against `OpenFeature.getClient()`; a **provider** adapts that to LaunchDarkly, Unleash, Flagsmith, or a static file. Switching vendors becomes swapping a provider at startup, not rewriting every call site.
+- OpenFeature (a CNCF project) standardizes the *evaluation API* so your application code is independent of the backend.
+- You write against `OpenFeature.getClient()`; a **provider** adapts that to LaunchDarkly, Unleash, Flagsmith, or a static file.
+- Switching vendors becomes swapping a provider at startup, not rewriting every call site.
 
 ```go
 // Application code is vendor-agnostic. Swap the provider, not the call sites.
@@ -136,9 +139,8 @@ This is product-data territory; the platform's job is to make the *correct* anal
 
 At org scale three engineering concerns dominate the architecture.
 
-**Consistency across a large fleet.** A flip propagates to thousands of instances over a *window*, not instantly. You bound it with streaming (sub-second) and accept that, during the window, instances disagree. For correctness-sensitive flags, design both values safe simultaneously (expand/contract) — the senior-tier discipline, now a platform-wide contract.
-
-**Performance on the hot path.** Evaluation must be local, in-process, microsecond-scale — never a per-request RPC. At hyperscale you also avoid every SDK opening a direct upstream connection: a **relay/proxy** (ld-relay, Unleash Edge) terminates one connection to the vendor and fans the ruleset out to thousands of SDKs, cutting upstream load and your dependency on the vendor's edge.
+- **Consistency across a large fleet.** A flip propagates to thousands of instances over a *window*, not instantly. You bound it with streaming (sub-second) and accept that, during the window, instances disagree. For correctness-sensitive flags, design both values safe simultaneously (expand/contract) — the senior-tier discipline, now a platform-wide contract.
+- **Performance on the hot path.** Evaluation must be local, in-process, microsecond-scale — never a per-request RPC. At hyperscale you also avoid every SDK opening a direct upstream connection: a **relay/proxy** (ld-relay, Unleash Edge) terminates one connection to the vendor and fans the ruleset out to thousands of SDKs, cutting upstream load and your dependency on the vendor's edge.
 
 ```text
                           ┌─────────────┐  stream ruleset   ┌──────────────────┐
@@ -148,7 +150,7 @@ At org scale three engineering concerns dominate the architecture.
    benefits: 1 upstream dependency, cached LKG at the relay, no per-SDK vendor coupling
 ```
 
-**Cost.** SaaS flag vendors typically price on MAU/seats/events. Naive client-side SDK usage that sends every evaluation as an event can produce eye-watering bills and a privacy footprint. Control it: evaluate server-side where possible, sample or aggregate evaluation events, and model the cost curve *before* org-wide rollout — vendor cost at 10M MAU is a budget line, not a footnote, and is itself a build-vs-buy input.
+- **Cost.** SaaS flag vendors typically price on MAU/seats/events. Naive client-side SDK usage that sends every evaluation as an event can produce eye-watering bills and a privacy footprint. Control it: evaluate server-side where possible, sample or aggregate evaluation events, and model the cost curve *before* org-wide rollout — vendor cost at 10M MAU is a budget line, not a footnote, and is itself a build-vs-buy input.
 
 ---
 
@@ -220,3 +222,8 @@ Flag debt at one team is a chore; across the org it's a measured program with bu
 - Which team owns the full lifecycle and incident response?
 - What reversible increment produces the earliest useful evidence?
 - Which exit condition proves that migration or adoption is complete?
+- How would you decide whether to build or buy a feature-flag platform for a 300-engineer org?
+- What does it take to trust the result of an A/B experiment run through your flag platform?
+- The flag vendor has a regional outage — what should happen to your services, and what should you have designed?
+- A targeting rule edit accidentally enables a feature for 100% of users instead of 5% — how should the platform have prevented it, and how do you respond?
+- Design how a high-blast-radius flag change should flow end-to-end through your system — what are the components and checks?

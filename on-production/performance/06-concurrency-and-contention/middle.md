@@ -13,7 +13,9 @@ Use the smallest realistic scenario that exposes the decision and its failure be
 
 ## Amdahl's Law — the Ceiling on Parallel Speedup
 
-Split a job into a fraction `p` that can run in parallel and a fraction `(1 - p)` that is inherently serial. With `N` workers, the parallel part finishes in `p/N` of its original time; the serial part doesn't shrink at all. The total time becomes `(1 - p) + p/N`, so speedup is:
+- Split a job into a fraction `p` that can run in parallel and a fraction `(1 - p)` that is inherently serial.
+- With `N` workers, the parallel part finishes in `p/N` of its original time; the serial part doesn't shrink at all.
+- Total time becomes `(1 - p) + p/N`, so speedup is:
 
 ```
                 1
@@ -33,9 +35,9 @@ Plug in numbers and the ceiling appears immediately. Suppose **90%** of the work
 | 32 | 7.80× | 24%  |
 | ∞  | **10.0×** | 0% |
 
-Sixteen cores buy you 6.4×, not 16×, and the *thirty-second* core barely moves the needle. The hard limit as `N → ∞` is `1 / (1 - p) = 1 / 0.1 = 10×`. You can never beat that, no matter how many cores you rent, because the 10% serial part is always there.
-
-The serial fraction is unforgiving. Worked the other way: to hit a **20× speedup**, you need `1 - p ≤ 1/20`, i.e. **`p ≥ 0.95`** *and* infinite cores. To get 20× with a realistic 64 cores requires `p ≈ 0.992` — losing even 1% to serialization caps you well below target.
+- Sixteen cores buy you 6.4×, not 16×, and the *thirty-second* core barely moves the needle.
+- The hard limit as `N → ∞` is `1 / (1 - p) = 1 / 0.1 = 10×`. You can never beat that, no matter how many cores you rent, because the 10% serial part is always there.
+- The serial fraction is unforgiving: to hit a **20× speedup**, you need `1 - p ≤ 1/20`, i.e. **`p ≥ 0.95`** *and* infinite cores. To get 20× with a realistic 64 cores requires `p ≈ 0.992` — losing even 1% to serialization caps you well below target.
 
 > **Key insight:** The first lever in parallel performance isn't "more cores," it's **shrinking the serial fraction**. A 5%-serial program is *fundamentally* limited to 20×; buying cores past the knee of its curve is spending money to raise efficiency from bad to worse. Find what's serial — often a shared lock, a single queue, a global counter — before you scale out.
 
@@ -43,7 +45,8 @@ The serial fraction is unforgiving. Worked the other way: to hit a **20× speedu
 
 ## The Universal Scalability Law — Why Throughput Peaks, Then Drops
 
-Amdahl is optimistic: it assumes the only cost of going parallel is the serial fraction. Real systems pay *two* extra taxes, and Gunther's **Universal Scalability Law (USL)** names both. Relative to single-worker throughput, capacity at `N` workers is:
+- Amdahl is optimistic: it assumes the only cost of going parallel is the serial fraction.
+- Real systems pay *two* extra taxes, and Gunther's **Universal Scalability Law (USL)** names both. Relative to single-worker throughput, capacity at `N` workers is:
 
 ```
                        N
@@ -54,7 +57,12 @@ Amdahl is optimistic: it assumes the only cost of going parallel is the serial f
 - **α (contention)** — the serial/queueing term, the same idea as Amdahl's `(1 - p)`: workers waiting their turn at a shared resource. With `β = 0`, USL *is* Amdahl.
 - **β (coherency)** — the term Amdahl ignores: the cost of keeping shared state *consistent* across workers. Cache-coherence traffic, lock-state synchronization, cross-core invalidations. Critically, this grows as `N·(N − 1)` — roughly `N²` — because every worker may have to coordinate with every other.
 
-The `β·N²` term is what makes scaling *curves down*. Adding work scales linearly (the `N` on top), contention costs scale linearly, but coherency cost scales **quadratically**. Past a point, each new worker adds more coordination cost than it adds capacity, and total throughput **peaks, then declines**:
+The `β·N²` term is what makes scaling *curve down*:
+
+- Adding work scales linearly (the `N` on top).
+- Contention costs scale linearly.
+- Coherency cost scales **quadratically**.
+- Past a point, each new worker adds more coordination cost than it adds capacity, and total throughput **peaks, then declines**:
 
 ```
 throughput
@@ -69,7 +77,8 @@ throughput
         N*  ← peak; adding cores past here HURTS
 ```
 
-The peak is at `N* = sqrt((1 − α) / β)`. For example, with `α = 0.03` and `β = 0.0005`, `N* = sqrt(0.97 / 0.0005) ≈ 44` cores — beyond which a *negative-return* regime begins. This is not theoretical: it's the database that gets slower under more connections, the cache that thrashes harder with more clients, the lock that costs more to acquire than the work it protects.
+- The peak is at `N* = sqrt((1 − α) / β)`. Example: with `α = 0.03` and `β = 0.0005`, `N* = sqrt(0.97 / 0.0005) ≈ 44` cores — beyond which a *negative-return* regime begins.
+- This is not theoretical: it's the database that gets slower under more connections, the cache that thrashes harder with more clients, the lock that costs more to acquire than the work it protects.
 
 > **Key insight:** Amdahl tells you the *ceiling*; USL tells you there's a *cliff*. If your scaling curve bends down instead of flattening, you have a non-zero **β** — coherency cost — and the cure is not fewer waits (α) but *less shared mutable state* (β): sharding, per-core data, immutability. Fit your benchmark data to the USL to estimate α and β and predict where your peak is.
 
@@ -82,9 +91,16 @@ The peak is at `N* = sqrt((1 − α) / β)`. For example, with `α = 0.03` and `
 - **Spin (busy-wait):** B loops, re-checking the lock, burning a CPU core doing nothing. Cheap if the wait is nanoseconds (A is about to release); catastrophic if it's microseconds (B wastes a whole core). Modern mutexes spin *briefly* then fall back to sleeping.
 - **Park (sleep):** B is descheduled by the runtime/OS; its core is freed for other work. But waking it later costs a **context switch** — typically **1–5 µs** of pure overhead (save/restore registers, scheduler bookkeeping, and a cold cache when B resumes on a different core).
 
-A context switch sounds tiny until you count them. A lock taken 200,000 times/sec under contention, each acquisition forcing a park/unpark pair, is ~400,000 context switches/sec — possibly milliseconds of CPU per second *spent purely on scheduling*, plus the cache pollution that doesn't show up in any single switch's cost.
+A context switch sounds tiny until you count them:
 
-Worse is **lock convoying**. Picture threads arriving at a lock faster than the critical section drains. They form a queue. Each holder, on release, wakes the next waiter — but that waiter was *asleep*, so it pays a context switch and a cache miss before it can even start the (tiny) protected work. The lock now spends most of its time in handoff overhead, the queue never empties, and *throughput collapses while CPU looks busy*. Convoying turns a fast critical section into a slow conveyor belt: the bottleneck is the handoff, not the work. It's the human-visible face of a high USL **α**.
+- A lock taken 200,000 times/sec under contention, each acquisition forcing a park/unpark pair, is ~400,000 context switches/sec — possibly milliseconds of CPU per second *spent purely on scheduling*, plus cache pollution that doesn't show up in any single switch's cost.
+
+Worse is **lock convoying**:
+
+- Threads arrive at a lock faster than the critical section drains. They form a queue.
+- Each holder, on release, wakes the next waiter — but that waiter was *asleep*, so it pays a context switch and a cache miss before it can even start the (tiny) protected work.
+- The lock now spends most of its time in handoff overhead, the queue never empties, and *throughput collapses while CPU looks busy*.
+- Convoying turns a fast critical section into a slow conveyor belt: the bottleneck is the handoff, not the work. It's the human-visible face of a high USL **α**.
 
 > **Key insight:** A contended lock doesn't just make threads *wait* — it converts useful work into *scheduling and cache-coherency overhead*. The CPU can be pinned at 100% while almost none of those cycles do your work. "High CPU" and "doing work" are not the same thing under contention.
 
@@ -110,13 +126,24 @@ cache[key] = result
 mu.Unlock()
 ```
 
-If the critical section is 50× shorter, the lock can serve ~50× more callers before it becomes the bottleneck. This single move often deletes a contention problem.
+- If the critical section is 50× shorter, the lock can serve ~50× more callers before it becomes the bottleneck. This single move often deletes a contention problem.
 
-**2. Shard / stripe the lock.** One lock for a whole map serializes *all* access. Split the data into `K` shards, each with its own lock; a key maps to a shard by hash. Now `K` operations on different shards proceed in parallel. This trades a little memory and the loss of "lock the whole thing atomically" for a `K`× drop in contention. (Java's old `ConcurrentHashMap` used exactly this lock-striping idea.)
+**2. Shard / stripe the lock.**
+- One lock for a whole map serializes *all* access.
+- Split the data into `K` shards, each with its own lock; a key maps to a shard by hash. `K` operations on different shards now proceed in parallel.
+- Trades a little memory and the loss of "lock the whole thing atomically" for a `K`× drop in contention. (Java's old `ConcurrentHashMap` used exactly this lock-striping idea.)
 
-**3. Per-core / per-goroutine state, then merge.** The strongest pattern: give each worker its *own* unshared accumulator, so the hot path takes *no* lock at all, then combine the partials at read time. A per-worker counter incremented millions of times with zero coordination, summed once when someone asks — this drives both α and β toward zero. (This is the [worked example](#worked-example--a-sharded-counter) below; Java's `LongAdder` is exactly this pattern productized.)
+**3. Per-core / per-goroutine state, then merge.**
+- The strongest pattern: give each worker its *own* unshared accumulator, so the hot path takes *no* lock at all, then combine the partials at read time.
+- A per-worker counter incremented millions of times with zero coordination, summed once when someone asks — this drives both α and β toward zero.
+- This is the [worked example](#worked-example--a-sharded-counter) below; Java's `LongAdder` is exactly this pattern productized.
 
-**4. Read-write locks — and their limit.** A `sync.RWMutex` lets *many* readers proceed concurrently, serializing only writers. Great for read-heavy data that changes rarely. But know the limits: (a) RW locks have **higher per-acquire overhead** than a plain mutex, so for short critical sections under low contention they can be *slower*; (b) every `RLock` still **writes to the lock's shared reader-count**, so under heavy read traffic the lock itself becomes a false-sharing/coherency hotspot — readers contend on the bookkeeping even though they don't contend on the data. RW locks help when reads are frequent *and* the protected work is substantial.
+**4. Read-write locks — and their limit.**
+- A `sync.RWMutex` lets *many* readers proceed concurrently, serializing only writers. Great for read-heavy data that changes rarely.
+- Know the limits:
+  - RW locks have **higher per-acquire overhead** than a plain mutex, so for short critical sections under low contention they can be *slower*.
+  - Every `RLock` still **writes to the lock's shared reader-count**, so under heavy read traffic the lock itself becomes a false-sharing/coherency hotspot — readers contend on the bookkeeping even though they don't contend on the data.
+- RW locks help when reads are frequent *and* the protected work is substantial.
 
 **5. Go lock-free.** Replace the lock with a single atomic operation (next section). Highest performance, highest difficulty — reserve it for proven hotspots.
 
@@ -126,7 +153,8 @@ If the critical section is 50× shorter, the lock can serve ~50× more callers b
 
 ## False Sharing — Two Variables, One Cache Line, a War
 
-Cores don't synchronize *bytes*; they synchronize **cache lines** (64 bytes on x86/ARM). When core A writes any byte in a line, the coherence protocol (MESI) **invalidates that whole line** in every other core's cache. The next core to touch *anything* in that line eats a cache miss and must re-fetch.
+- Cores don't synchronize *bytes*; they synchronize **cache lines** (64 bytes on x86/ARM).
+- When core A writes any byte in a line, the coherence protocol (MESI) **invalidates that whole line** in every other core's cache. The next core to touch *anything* in that line eats a cache miss and must re-fetch.
 
 Now suppose two unrelated counters, each updated by a different core, happen to sit *in the same 64-byte line*:
 
@@ -137,7 +165,9 @@ type Counters struct {
 } // a and b are 8 bytes apart → SAME cache line
 ```
 
-There is no shared variable, no lock, no logical contention — and yet every increment of `a` invalidates the line holding `b`, forcing goroutine 2's next write to re-fetch, which invalidates `a`, and so on. The line *ping-pongs* between cores' caches across the slow interconnect. This is **false sharing**: contention with no shared data, purely an accident of memory layout. It can make a "parallel" loop *slower* than the single-threaded version, and it's invisible in source — you have to know the layout.
+- There is no shared variable, no lock, no logical contention — and yet every increment of `a` invalidates the line holding `b`, forcing goroutine 2's next write to re-fetch, which invalidates `a`, and so on.
+- The line *ping-pongs* between cores' caches across the slow interconnect. This is **false sharing**: contention with no shared data, purely an accident of memory layout.
+- It can make a "parallel" loop *slower* than the single-threaded version, and it's invisible in source — you have to know the layout.
 
 The fix is **padding**: push each hot variable onto its own cache line.
 
@@ -150,7 +180,9 @@ type Counters struct {
 }
 ```
 
-Go offers `golang.org/x/sys/cpu.CacheLinePad` for this; Java has `@Contended` (with `-XX:-RestrictContended`). The cost is 56 wasted bytes per counter — trivially worth it for a hot field. Per-core sharded arrays are the classic false-sharing trap: an `[]int64` of per-core counters packs ~8 counters per line, so neighboring cores fight even though each "owns" its slot. Pad each slot to a full line.
+- Go offers `golang.org/x/sys/cpu.CacheLinePad` for this; Java has `@Contended` (with `-XX:-RestrictContended`).
+- The cost is 56 wasted bytes per counter — trivially worth it for a hot field.
+- Per-core sharded arrays are the classic false-sharing trap: an `[]int64` of per-core counters packs ~8 counters per line, so neighboring cores fight even though each "owns" its slot. Pad each slot to a full line.
 
 > **Key insight:** False sharing is contention the language *cannot see and the profiler barely shows* — it looks like memory-bandwidth or just "slow," not like a lock. When per-core/sharded state scales worse than expected, suspect the cache line before the algorithm. Pad hot, independently-written fields to 64 bytes.
 
@@ -158,7 +190,8 @@ Go offers `golang.org/x/sys/cpu.CacheLinePad` for this; Java has `@Contended` (w
 
 ## Lock-Free Basics — Atomics and CAS
 
-An **atomic** operation completes indivisibly with respect to other cores — no lock, no possibility of a half-done state. For a simple counter, an atomic add *is* the whole fix:
+- An **atomic** operation completes indivisibly with respect to other cores — no lock, no possibility of a half-done state.
+- For a simple counter, an atomic add *is* the whole fix:
 
 ```go
 var n atomic.Int64
@@ -166,7 +199,7 @@ n.Add(1)          // atomic increment, no mutex, no parking
 total := n.Load() // atomic read
 ```
 
-Atomics are implemented as single CPU instructions (e.g. `LOCK XADD`) and skip the entire park/unpark machinery — no context switches, no convoy. For one shared integer they are dramatically faster than a mutex under contention.
+- Atomics are implemented as single CPU instructions (e.g. `LOCK XADD`) and skip the entire park/unpark machinery — no context switches, no convoy. For one shared integer they are dramatically faster than a mutex under contention.
 
 The general primitive is **compare-and-swap (CAS)**: "set `x` to `new`, but *only if* `x` still equals `old`; tell me whether it worked." It's the building block for lock-free updates of anything you can read-modify-write:
 
@@ -181,7 +214,10 @@ for {
 }
 ```
 
-Each iteration optimistically computes the new value, then commits only if nobody interfered. Under low contention this almost always succeeds first try. But CAS is **not free under high contention**: many cores retrying the same CAS create a coherency storm — the same `β·N²` cliff — where most CPU is spent on *failed* attempts. Atomic-on-a-single-shared-word does not escape USL; it just lowers the constant. (CAS also has the ABA hazard, where a value changes `A → B → A` and CAS wrongly succeeds — a correctness concern handled with versioned pointers/hazard pointers, deferred to [senior.md](senior.md).)
+- Each iteration optimistically computes the new value, then commits only if nobody interfered. Under low contention this almost always succeeds first try.
+- CAS is **not free under high contention**: many cores retrying the same CAS create a coherency storm — the same `β·N²` cliff — where most CPU is spent on *failed* attempts.
+- Atomic-on-a-single-shared-word does not escape USL; it just lowers the constant.
+- CAS also has the ABA hazard, where a value changes `A → B → A` and CAS wrongly succeeds — a correctness concern handled with versioned pointers/hazard pointers, deferred to [senior.md](senior.md).
 
 > **Key insight:** Atomics replace a *lock* with a *single instruction*, removing parking and convoying — a big win for one shared word. But a single hot atomic is *still* shared mutable state, still subject to the coherency cliff. The scalable answer to a hot counter is usually **per-core counters merged on read**, not one global atomic.
 
@@ -206,7 +242,9 @@ go tool pprof http://localhost:6060/debug/pprof/block   # WHERE goroutines block
 # (pprof) list Foo → annotated source: which exact line waits
 ```
 
-The **mutex profile** ranks call sites by total time spent *contending* for mutexes; the **block profile** is broader (channels, selects, `Cond`, `WaitGroup`, locks). The mutex profile answers "which lock?"; the block profile answers "where do goroutines stall?"
+- The **mutex profile** ranks call sites by total time spent *contending* for mutexes.
+- The **block profile** is broader (channels, selects, `Cond`, `WaitGroup`, locks).
+- The mutex profile answers "which lock?"; the block profile answers "where do goroutines stall?"
 
 **Java.** `LockSupport`/thread states via JFR (`jdk.JavaMonitorEnter` events) and async-profiler in `lock` mode show monitor contention with stack traces. JMC visualizes the worst monitors.
 
@@ -239,7 +277,8 @@ func (c *Counter) Inc()  { c.mu.Lock(); c.n++; c.mu.Unlock() }
 func (c *Counter) Get() int64 { c.mu.Lock(); defer c.mu.Unlock(); return c.n }
 ```
 
-Every goroutine serializes on `c.mu`. The critical section is one instruction, but the *handoff* (acquire/park/wake) dwarfs it — textbook convoying. Throughput is essentially flat regardless of cores; USL **α** is near 1.
+- Every goroutine serializes on `c.mu`. The critical section is one instruction, but the *handoff* (acquire/park/wake) dwarfs it — textbook convoying.
+- Throughput is essentially flat regardless of cores; USL **α** is near 1.
 
 **After — per-shard counters, padded, merged on read:**
 
@@ -265,7 +304,9 @@ func (c *Counter) Get() (sum int64) {
 }
 ```
 
-(In real code use a simpler shard selector — e.g. a fast thread-local hash; `procPin` is illustrative.) Increments now spread across 64 independent, cache-line-isolated atomics: low collision probability, no parking, no convoy, no false sharing. Reads pay `O(shards)` — fine, since reads are rare relative to writes.
+- (In real code use a simpler shard selector — e.g. a fast thread-local hash; `procPin` is illustrative.)
+- Increments now spread across 64 independent, cache-line-isolated atomics: low collision probability, no parking, no convoy, no false sharing.
+- Reads pay `O(shards)` — fine, since reads are rare relative to writes.
 
 **Illustrative scaling (writes/sec, 8 cores):**
 
@@ -276,7 +317,9 @@ func (c *Counter) Get() (sum int64) {
 | 4 | 22 M *(↓↓)* | 210 M |
 | 8 | 15 M *(↓↓↓)* | 390 M |
 
-The single-mutex version *gets slower* as cores increase — the convoy/coherency cliff (high **β**) made visible. The sharded version scales near-linearly because there's almost nothing shared to coordinate. This is the whole page in one table: the fix for "scaling falls off a cliff" is to *remove the shared mutable state*, not to optimize the lock around it.
+- The single-mutex version *gets slower* as cores increase — the convoy/coherency cliff (high **β**) made visible.
+- The sharded version scales near-linearly because there's almost nothing shared to coordinate.
+- This is the whole page in one table: the fix for "scaling falls off a cliff" is to *remove the shared mutable state*, not to optimize the lock around it.
 
 > **Key insight:** This is `LongAdder`'s entire strategy: trade a slightly more expensive *read* (sum the shards) for an almost-free, contention-free *write*. For write-heavy, read-rarely counters and aggregates, it's the default — not the exception.
 
@@ -321,3 +364,9 @@ The single-mutex version *gets slower* as cores increase — the convoy/coherenc
 - What constraint would make you choose the alternative design?
 - How would you isolate a local defect from an integration defect?
 - What evidence shows that the change remains maintainable?
+- Given measured throughput at a few concurrency levels, how do you compute the optimal number of workers?
+- What does a thread blocked on a lock actually cost the system, beyond the wait itself?
+- Explain lock convoying, and why it's disproportionately costly.
+- What are the levers for reducing lock contention, from strongest to weakest?
+- When does a reader/writer lock fail to help, or even hurt?
+- How do you size a thread pool or worker pool for a given workload?

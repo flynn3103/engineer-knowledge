@@ -102,7 +102,9 @@ The test of whether you've understood a problem isn't whether *you* feel clear. 
 **Connected ideas:** A well-framed problem flows into [devising a plan](../02-devising-a-plan/); after shipping, you verify your framing held in [looking back and reflecting](../04-looking-back-and-reflecting/). For defects, framing *is* reproduction — see [debugging as problem-solving](../05-debugging-as-problem-solving/); when framing fails entirely, consult [techniques for when you're stuck](../06-techniques-when-you-are-stuck/). The assumption-hunting muscle is [questioning assumptions](../../05-first-principles-thinking/02-questioning-assumptions/); breaking the framed problem apart is [decomposition](../../01-computational-thinking/01-decomposition/). Back to the [problem-solving section](../) and the [roadmap root](../../README.md).
 
 ---
-## Check your understanding
+## Recall and apply
+
+**Practice loop:** Restate one live problem, list its constraints and unknowns, then confirm them with the right person or evidence.
 
 Try to answer these questions from memory:
 

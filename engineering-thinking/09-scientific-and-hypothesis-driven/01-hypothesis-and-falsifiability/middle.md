@@ -170,7 +170,13 @@ Continue to the [senior](./senior.md) level for designing experiments under cost
 - The null hypothesis — standard statistical-inference framing applied to debugging. See also [critical thinking](../../04-critical-thinking/).
 
 ---
-## Check your understanding
+## Use it today
+
+1. State the cause, expected effect, and measurable prediction.
+2. List competing hypotheses, not just your favorite.
+3. Test the prediction that separates them most cheaply.
+
+## Recall and apply
 
 Try to answer these questions from memory:
 

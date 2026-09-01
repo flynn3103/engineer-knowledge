@@ -134,7 +134,15 @@ A result with no sample size, no time window, and no guardrails isn't a result; 
 - [Section root](../) · [Engineering Thinking roadmap](../../README.md)
 
 ---
-## Check your understanding
+## Use it today
+
+1. State the change, audience, success metric, and guardrail before the test.
+2. Change one important thing at a time.
+3. Stop or roll back when a guardrail is breached.
+
+## Recall and apply
+
+Use these prompts to check your understanding and choose one action to try in your next task.
 
 Try to answer these questions from memory:
 

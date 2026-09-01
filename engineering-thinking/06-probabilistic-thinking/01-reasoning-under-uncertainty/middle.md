@@ -6,6 +6,13 @@
 
 ---
 
+## Quick use
+1. Start with a relevant prior.
+2. Update it with evidence that changes likelihoods.
+3. Choose an action that matches confidence and reversibility.
+
+**Decision rule:** a precise number without a relevant reference class is false confidence.
+
 ## 1. From vibes to numbers
 
 [The junior level](junior.md) established the mindset: hold a probability, not a yes/no. The middle level adds the **mechanics** — specifically, the one tool every engineer should be able to run on a napkin: **Bayes' theorem**.
@@ -192,7 +199,7 @@ For the alert example: a 1.9% chance of a real incident is *low*, but if the inc
 | Estimating under uncertainty | [estimation under uncertainty](../04-estimation-under-uncertainty/) |
 
 ---
-## Check your understanding
+## Recall and apply
 
 Try to answer these questions from memory:
 

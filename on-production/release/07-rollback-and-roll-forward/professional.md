@@ -14,7 +14,7 @@ Use the smallest realistic scenario that exposes the decision and its failure be
 
 ## Core Concept 1 — Reversibility as a first-class design constraint
 
-The professional reframe: **reversibility is a requirement, evaluated at design and code-review time, with the same weight as correctness, security, and performance.** "How do we undo this?" is asked *before* merge, not discovered during an outage.
+> The professional reframe: **reversibility is a requirement, evaluated at design and code-review time, with the same weight as correctness, security, and performance.** "How do we undo this?" is asked *before* merge, not discovered during an outage.
 
 Operationalize it as a checklist applied to every non-trivial change:
 
@@ -29,7 +29,9 @@ Reversibility review (gate before merge of risky changes):
   [ ] Cache keys are versioned so N-1 doesn't mis-read N's entries.
 ```
 
-This makes reversibility a *standing constraint* rather than a heroic recovery skill. Borrow Amazon's **one-way / two-way door** language: most changes should be engineered into two-way doors (reversible, decide fast, undo if wrong). When a change is genuinely a one-way door — a destructive migration, an irreversible data transformation — it must be *flagged as such*, reviewed at a higher bar, and sequenced so that the irreversible step happens only after the reversible parts have been proven in production.
+- This makes reversibility a *standing constraint* rather than a heroic recovery skill.
+- Borrow Amazon's **one-way / two-way door** language: most changes should be engineered into two-way doors (reversible, decide fast, undo if wrong).
+- When a change is genuinely a one-way door — a destructive migration, an irreversible data transformation — it must be *flagged as such*, reviewed at a higher bar, and sequenced so the irreversible step happens only after the reversible parts have been proven in production.
 
 ---
 
@@ -63,12 +65,13 @@ The irreversible step shrinks to a single, late, well-understood release with no
 
 ## Core Concept 3 — Coordinating rollback across dependent services
 
-In a microservice system, rolling back one service can break others. Service A's N-1 may not understand service B's N, and vice versa. Rollback becomes a *distributed* problem.
+- In a microservice system, rolling back one service can break others.
+- Service A's N-1 may not understand service B's N, and vice versa. Rollback becomes a *distributed* problem.
 
 **Principles for cross-service reversibility:**
 
 - **Independent deployability requires independent reversibility.** If A can deploy without B, A must be able to *roll back* without B. This is purchased with N↔N-1 compatibility *at every interface*, enforced by contract tests so a rollback of A never breaks B.
-- **Order matters, both ways.** If A's new feature depends on B's new capability, you must deploy B before A — and roll back A before B. Capture these dependencies explicitly; an ordered rollback runbook for a coordinated launch is part of the launch plan.
+- **Order matters, both ways.** If A's new feature depends on B's new capability, deploy B before A — and roll back A before B. Capture these dependencies explicitly; an ordered rollback runbook for a coordinated launch is part of the launch plan.
 - **Avoid lockstep releases.** A release that requires three services to flip simultaneously is an irreversible release in disguise — there's no clean rollback point. Decompose it into independently reversible steps using flags and additive contracts.
 - **Distributed side effects need sagas/compensations.** When a workflow spans services and has committed effects, "rollback" means executing **compensating transactions** (refund, cancel, retract), not reverting code. Design the saga's compensations up front. See the `event-driven-architecture` concepts and the `high-availability-patterns` skill.
 
@@ -79,13 +82,15 @@ Coordinated launch rollback order (recorded in the launch runbook):
   Verify N-1 compatibility at each hop before proceeding.
 ```
 
-The platform-level answer is **deploy/release decoupling via flags**: deploy all services dark in any order (they're all backward-compatible), then *release* the cross-cutting behavior with a single flag flip — which is also a single, instant, coordinated *rollback* point. This is the cleanest distributed rollback primitive that exists.
+- The platform-level answer is **deploy/release decoupling via flags**: deploy all services dark in any order (they're all backward-compatible), then *release* the cross-cutting behavior with a single flag flip — which is also a single, instant, coordinated *rollback* point.
+- This is the cleanest distributed rollback primitive that exists.
 
 ---
 
 ## Core Concept 4 — Rollback governance and decision authority
 
-At scale, the bottleneck in recovery is often not the mechanism but the *decision*. Who is allowed to roll back? Who decides between rollback and roll-forward at 3 a.m.? Governance answers this before the incident.
+- At scale, the bottleneck in recovery is often not the mechanism but the *decision*.
+- Who is allowed to roll back? Who decides between rollback and roll-forward at 3 a.m.? Governance answers this before the incident.
 
 - **Single decision authority during incidents.** The **incident commander** owns the rollback/roll-forward call. Not a committee, not a Slack debate. Pre-authorize the IC to roll back tier-1 services without further sign-off — recovery speed dies in approval chains.
 - **Pre-authorized, bounded autonomy.** On-call engineers should be *pre-approved* to execute rollback and kill-switches within a defined blast radius (their service). No change-advisory-board ticket to stop an outage.
@@ -101,7 +106,7 @@ Decision matrix (encoded in the incident policy):
   Break-glass (bypass gate)            → allowed, auto-logged, post-incident review
 ```
 
-The governance goal: **make the safe action the fast action.** If the policy forces a debate to roll back, the policy is the outage.
+> The governance goal: **make the safe action the fast action.** If the policy forces a debate to roll back, the policy is the outage.
 
 ---
 
@@ -118,9 +123,10 @@ Fast rollback is an insurance premium, and someone pays it. Professionals make t
 | **Feature-flag platform** | Instant behavioral rollback, no deploy | Flag-management tooling, flag debt/cleanup cost |
 | **Auto-rollback (Argo/Flagger)** | Near-zero MTTR | Controller complexity; risk of false aborts |
 
-The trade-off is **rollback speed vs steady-state cost**. Blue-green gives the fastest cutover but doubles capacity; rolling deploys are cheaper but slower to reverse; flags are cheap at runtime but carry maintenance debt. Tier-1 revenue services may justify blue-green and warm standby; a batch job does not — a slow `rollout undo` is fine there.
-
-A subtle but important point: **a fast pipeline is itself a rollback-cost reducer.** If you can rebuild and ship in 3 minutes, roll-forward is cheap and you can carry less warm standby. Investing in pipeline speed (caching, fast gates — see [Release Automation](../08-release-automation/professional.md)) reduces the capacity you must pay to keep warm. The cheapest fast recovery is often a fast pipeline plus pervasive flags, not double infrastructure.
+- The trade-off is **rollback speed vs steady-state cost**. Blue-green gives the fastest cutover but doubles capacity; rolling deploys are cheaper but slower to reverse; flags are cheap at runtime but carry maintenance debt.
+- Tier-1 revenue services may justify blue-green and warm standby; a batch job does not — a slow `rollout undo` is fine there.
+- **A fast pipeline is itself a rollback-cost reducer.** If you can rebuild and ship in 3 minutes, roll-forward is cheap and you can carry less warm standby. Investing in pipeline speed (caching, fast gates — see [Release Automation](../08-release-automation/professional.md)) reduces the capacity you must pay to keep warm.
+- The cheapest fast recovery is often a fast pipeline plus pervasive flags, not double infrastructure.
 
 ---
 
@@ -152,7 +158,8 @@ The professional sets the *policy* (which tier gets which default, what each mus
 
 ## Core Concept 7 — Organization-wide rollback as a platform capability
 
-The endgame: individual teams should not each invent rollback. The platform provides it as a **paved road**, so that *every* service inherits tested, fast, governed recovery by default.
+- The endgame: individual teams should not each invent rollback.
+- The platform provides it as a **paved road**, so that *every* service inherits tested, fast, governed recovery by default.
 
 What a platform team ships:
 
@@ -163,7 +170,7 @@ What a platform team ships:
 - **Org-wide MTTR / rollback-time dashboards** with SLOs per tier, so reversibility is measured and regressions are visible to leadership.
 - **Game-day-as-a-service**: scheduled, automated chaos that exercises each service's rollback path and reports recovery time.
 
-This turns reversibility from a per-team heroics problem into an *org property*: the default service is reversible because the platform makes irreversibility hard to build by accident. That is the highest expression of this topic — **the safe thing is the easy thing, everywhere, by default.**
+> This turns reversibility from a per-team heroics problem into an *org property*: the default service is reversible because the platform makes irreversibility hard to build by accident. That is the highest expression of this topic — **the safe thing is the easy thing, everywhere, by default.**
 
 ---
 
@@ -209,3 +216,8 @@ This turns reversibility from a per-team heroics problem into an *org property*:
 - Which team owns the full lifecycle and incident response?
 - What reversible increment produces the earliest useful evidence?
 - Which exit condition proves that migration or adoption is complete?
+- A feature spans three services that must all change together — how do you keep it reversible?
+- The org is debating rollback culture vs roll-forward culture — how do you frame the decision?
+- Fast rollback isn't free — what does it cost, and how do you decide how much to buy per workload tier?
+- Who should be allowed to roll back during an incident, and why does that governance matter for MTTR?
+- How do you isolate and defer a genuinely irreversible change, such as dropping a column?

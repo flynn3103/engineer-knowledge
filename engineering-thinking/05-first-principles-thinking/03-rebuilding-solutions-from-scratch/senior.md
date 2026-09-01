@@ -5,6 +5,13 @@
 
 ---
 
+## Quick use
+1. Keep analysis and delivery as separate decisions.
+2. Measure essential versus accidental complexity.
+3. Investigate fences, then refactor or replace through reversible slices.
+
+**Decision rule:** replacement needs a wrong essential model or an impossible new requirement—not dislike of old code.
+
 ## 1. The two rebuilds, kept strictly apart
 
 The single discipline that separates senior judgment from junior enthusiasm is refusing to let these two collapse into one:
@@ -160,7 +167,7 @@ The from-scratch derivation paid for itself the moment it told you which 33% was
 - Reasoning about the whole — [Systems thinking](../../03-systems-thinking/)
 
 ---
-## Check your understanding
+## Recall and apply
 
 Try to answer these questions from memory:
 

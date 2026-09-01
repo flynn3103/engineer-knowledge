@@ -176,7 +176,11 @@ We never wrote a line of real code, yet we already know the contract, the edge c
 - For the actual algorithms (sorting, searching, graphs), see the **Data Structures & Algorithms** roadmap at [../../../../Data/datastructures-and-algorithms/](../../../../Data/datastructures-and-algorithms/). This pillar teaches you how to *think about* them.
 
 ---
-## Check your understanding
+## Recall and apply
+
+**Practice loop:** For one task, write the input, output, and steps before coding; test the smallest and edge cases.
+
+Use these prompts to check your understanding and choose one action to try in your next task.
 
 Try to answer these questions from memory:
 

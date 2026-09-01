@@ -152,7 +152,15 @@ Measuring before optimizing is the performance version of the scientific method:
 **Takeaway for juniors:** Slow code is a *measurement* problem before it is a *coding* problem. Time it, profile it, find the real bottleneck, change one thing, measure again. The famous Knuth quote isn't telling you to never optimize — it's telling you to never optimize *blind*.
 
 ---
-## Check your understanding
+## Use it today
+
+1. Measure the baseline before proposing an optimization.
+2. Identify the largest cost in the real workload.
+3. Change one thing, measure again, and keep the result.
+
+## Recall and apply
+
+Use these prompts to check your understanding and choose one action to try in your next task.
 
 Try to answer these questions from memory:
 

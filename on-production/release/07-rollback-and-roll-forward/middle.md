@@ -14,7 +14,7 @@ Use the smallest realistic scenario that exposes the decision and its failure be
 
 ## Core Concept 1 — Rollback mechanisms ranked by speed and risk
 
-Not all rollbacks are equal. Rank them from fastest/safest to slowest/riskiest and *reach for the top of the list first*:
+Not all rollbacks are equal. Rank them from fastest/safest to slowest/riskiest, and **reach for the top of the list first**:
 
 | # | Mechanism | Recovery time | Notes |
 |---|-----------|---------------|-------|
@@ -23,7 +23,10 @@ Not all rollbacks are equal. Rank them from fastest/safest to slowest/riskiest a
 | 3 | **Redeploy previous artifact** | Minutes | `rollout undo` / `helm rollback` to the *exact* prior image. |
 | 4 | **Revert commit + rebuild** | Tens of minutes, **risky** | New, untested artifact. Last resort. |
 
-**1 — Kill switch.** If the broken feature is behind a flag, you don't roll back anything; you flip the flag off. No pods restart, no traffic moves. This is why progressive delivery and rollback are deeply linked — see [Feature Flags & Progressive Delivery](../06-feature-flags-and-progressive-delivery/middle.md).
+**1 — Kill switch.**
+- If the broken feature is behind a flag, you don't roll back anything; you flip the flag off.
+- No pods restart, no traffic moves.
+- Progressive delivery and rollback are deeply linked — see [Feature Flags & Progressive Delivery](../06-feature-flags-and-progressive-delivery/middle.md).
 
 ```bash
 # Conceptual: flip a flag off (LaunchDarkly/Unleash/OpenFeature backend)
@@ -32,7 +35,8 @@ curl -X PATCH https://flags.internal/api/flags/new-checkout \
 # Effect is global within seconds. No deployment occurred.
 ```
 
-**2 — Traffic shift / blue-green.** If you deployed green alongside still-running blue, recovery is just repointing the router.
+**2 — Traffic shift / blue-green.**
+- If you deployed green alongside still-running blue, recovery is just repointing the router.
 
 ```bash
 # Blue-green via a Kubernetes Service selector swap
@@ -40,14 +44,17 @@ kubectl patch service checkout -p \
   '{"spec":{"selector":{"version":"blue"}}}'   # instant cutback to blue
 ```
 
-**3 — Redeploy previous artifact.** The workhorse. Deploy the known-good image by tag/digest:
+**3 — Redeploy previous artifact.**
+- The workhorse. Deploy the known-good image by tag/digest:
 
 ```bash
 kubectl rollout undo deployment/checkout --to-revision=4
 helm rollback checkout 7        # to a specific Helm revision
 ```
 
-**4 — Revert + rebuild.** Only when no prior artifact exists or the fix genuinely belongs in source and you've decided to roll *forward*. It is the slowest and the only one that ships something production has never seen.
+**4 — Revert + rebuild.**
+- Only when no prior artifact exists, or the fix genuinely belongs in source and you've decided to roll *forward*.
+- The slowest, and the only one that ships something production has never seen.
 
 > **The mantra: roll back the *binary*, not the *source*.** Mechanisms 1–3 reuse proven artifacts/state. Mechanism 4 builds a new one — that's roll-forward in disguise.
 
@@ -55,9 +62,15 @@ helm rollback checkout 7        # to a specific Helm revision
 
 ## Core Concept 2 — The data problem and expand/contract migrations
 
-Code rolls back in seconds. **Databases do not.** A schema migration is, by default, a one-way door — and if it removed something the old code reads, rolling the code back lands it in a database it cannot operate. This is *the* reason rollbacks fail.
+- Code rolls back in seconds. **Databases do not.**
+- A schema migration is, by default, a one-way door.
+- If it removed something the old code reads, rolling the code back lands it in a database it cannot operate. This is *the* reason rollbacks fail.
 
-The fix is to make every schema change **backward-compatible** so that *both* the old and new code work against *every* intermediate schema. The pattern is **expand/contract** (Fowler calls it **parallel change**). Instead of one destructive step, you split a change into reversible phases spread across multiple releases.
+The fix:
+
+- Make every schema change **backward-compatible** so *both* the old and new code work against *every* intermediate schema.
+- The pattern is **expand/contract** (Fowler calls it **parallel change**).
+- Instead of one destructive step, split the change into reversible phases spread across multiple releases.
 
 ### Worked example: renaming `full_name` → `name`
 
@@ -102,13 +115,16 @@ DROP TRIGGER trg_sync_name ON users;
 ALTER TABLE users DROP COLUMN full_name;
 ```
 
-At every step, the previous version of the code can still run. **Rollback is preserved because the schema is forward-only and backward-compatible.** The `database-migration-patterns` skill covers backfill batching, dual-writes, and contract timing in depth.
+- At every step, the previous version of the code can still run.
+- **Rollback is preserved because the schema is forward-only and backward-compatible.**
+- The `database-migration-patterns` skill covers backfill batching, dual-writes, and contract timing in depth.
 
 ---
 
 ## Core Concept 3 — Never couple a schema change to the deploy that uses it
 
-The most common way teams destroy their own rollback path is to bundle a schema change *into the same deploy* as the code that depends on it. Now the deploy is atomic in the wrong way: you can't undo the code without undoing the schema, and you can't undo the schema because it deleted data.
+- The most common way teams destroy their own rollback path is bundling a schema change *into the same deploy* as the code that depends on it.
+- That deploy becomes atomic in the wrong way: you can't undo the code without undoing the schema, and you can't undo the schema because it deleted data.
 
 **Decouple migrations from deploys:**
 
@@ -125,13 +141,14 @@ stages:
   - migrate-contract   # destructive; gated behind "previous release is permanent"
 ```
 
-A migration in the expand phase must be **idempotent** (`ADD COLUMN IF NOT EXISTS`, guarded backfills) so re-running it during a chaotic rollout never corrupts state.
+- A migration in the expand phase must be **idempotent** (`ADD COLUMN IF NOT EXISTS`, guarded backfills) so re-running it during a chaotic rollout never corrupts state.
 
 ---
 
 ## Core Concept 4 — Hotfix policy: roll-forward as a procedure
 
-When you *must* roll forward (a destructive change shipped, or only a small fix is appropriate), do it as a disciplined procedure, not a hero scramble. A hotfix is roll-forward formalized.
+- When you *must* roll forward (a destructive change shipped, or only a small fix is appropriate), do it as a disciplined procedure, not a hero scramble.
+- A hotfix is roll-forward formalized.
 
 **The standard hotfix flow:**
 
@@ -155,9 +172,9 @@ git checkout main
 git cherry-pick <hotfix-commit-sha>
 ```
 
-Why branch from the **tag** and not `main`? Because `main` may already contain unreleased changes you do *not* want in production. Branching from the release tag guarantees the hotfix contains *only* the in-production code plus your one fix. See [Release Branching & Trains](../03-release-branching-and-trains/middle.md) for how release branches and tags support this.
-
-The **expedited gate** is a deliberately narrowed quality gate: you still run the critical correctness and security checks, but you skip the slow, low-risk parts so recovery isn't blocked for an hour. Never skip *all* gates — an unverified hotfix can make the incident worse.
+- **Why branch from the tag, not `main`?** `main` may already contain unreleased changes you do *not* want in production. Branching from the release tag guarantees the hotfix contains *only* the in-production code plus your one fix. See [Release Branching & Trains](../03-release-branching-and-trains/middle.md).
+- **The expedited gate** is a deliberately narrowed quality gate: run the critical correctness and security checks, skip the slow, low-risk parts so recovery isn't blocked for an hour.
+- **Never skip *all* gates** — an unverified hotfix can make the incident worse.
 
 ---
 
@@ -189,7 +206,8 @@ The tree is ordered by speed and safety. You only descend when the faster option
 
 ## Core Concept 6 — Mixed-version fleets: N and N-1 must interoperate
 
-During any rollout *or* rollback, you transiently run **two versions at once**: some pods on N, some on N-1. If those two versions can't coexist, your rollback (and your rollout) will break mid-flight.
+- During any rollout *or* rollback, you transiently run **two versions at once**: some pods on N, some on N-1.
+- If those two versions can't coexist, your rollback (and your rollout) will break mid-flight.
 
 Concretely, N and N-1 must agree on:
 
@@ -203,7 +221,9 @@ Rolling rollback in progress:
   Every pair must interoperate, or requests fail non-deterministically.
 ```
 
-The practical rule: **every release must be compatible with the one immediately before it.** This compatibility window is what *makes* rollback safe — without it, a rollback is just a different way to cause an outage. The `high-availability-patterns` skill discusses designing for mixed-version operation.
+- The practical rule: **every release must be compatible with the one immediately before it.**
+- This compatibility window is what *makes* rollback safe — without it, a rollback is just a different way to cause an outage.
+- The `high-availability-patterns` skill discusses designing for mixed-version operation.
 
 ---
 
@@ -247,3 +267,8 @@ The practical rule: **every release must be compatible with the one immediately 
 - What constraint would make you choose the alternative design?
 - How would you isolate a local defect from an integration defect?
 - What evidence shows that the change remains maintainable?
+- How would you rank rollback mechanisms by speed and risk, and when would you reach for each one?
+- Why should a hotfix branch from the release tag rather than `main`?
+- How would you implement expand/contract in SQL to rename a column safely?
+- Why must a destructive schema change never be coupled to the deploy that uses it?
+- What must N and N-1 agree on to interoperate safely during a mixed-version rollout?

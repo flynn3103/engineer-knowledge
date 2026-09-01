@@ -145,7 +145,11 @@ Five verified steps. At every point the endpoint *ran*. If step 4's dates came o
 > Continue to [Looking Back and Reflecting](../04-looking-back-and-reflecting/) once it works — checking each step is execution; reviewing the whole solution is its own stage. Back to the [Problem-Solving section](../) or the [Engineering Thinking roadmap](../../README.md).
 
 ---
-## Check your understanding
+## Recall and apply
+
+**Practice loop:** Take the smallest safe step, check the agreed signal, and adjust the plan when evidence disagrees.
+
+Use these prompts to check your understanding and choose one action to try in your next task.
 
 Try to answer these questions from memory:
 

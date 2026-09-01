@@ -159,7 +159,9 @@ Get the representation right and, as Brooks promised, the flowcharts become obvi
 **See also:** [Decomposition](../01-decomposition/) · [Pattern recognition](../02-pattern-recognition/) · [Abstraction and generalization](../03-abstraction-and-generalization/) · [Algorithmic thinking](../04-algorithmic-thinking/) · [Domain modeling from requirements](../../../craftsmanship/object-oriented-design/08-object-thinking/06-domain-modeling-from-requirements/) · [First-principles thinking](../../05-first-principles-thinking/) · [Roadmap home](../../README.md)
 
 ---
-## Check your understanding
+## Recall and apply
+
+**Practice loop:** Model one current task explicitly: name the entities, rules, boundaries, and one assumption to test.
 
 Try to answer these questions from memory:
 

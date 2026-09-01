@@ -156,7 +156,9 @@ This is the bridge to the staff level: you stop optimizing only *your* unstickin
 Everything here scales: at the staff/principal level the question becomes *how do I unblock a stuck **team**, break **analysis paralysis** at org scale, and build a **culture** where asking for help early is safe* — see [professional](./professional.md). The deeper you go, the more "getting unstuck" stops being a personal trick and becomes a leverage point you apply to whole systems and groups.
 
 ---
-## Check your understanding
+## Recall and apply
+
+**Practice loop:** Name the blocker, choose one technique, time-box it, and state what evidence would tell you to switch approaches.
 
 Try to answer these questions from memory:
 

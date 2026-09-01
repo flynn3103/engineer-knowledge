@@ -120,7 +120,13 @@ The constraint didn't cost you the feature. It cost you the gold-plating — and
 - [Engineering thinking roadmap](../../README.md) — the full map.
 
 ---
-## Check your understanding
+## Use it today
+
+1. Classify each constraint as fixed, adjustable, or assumed.
+2. Vary one constraint at a time to generate distinct designs.
+3. Choose the option that meets the true constraint with the least added complexity.
+
+## Recall and apply
 
 Try to answer these questions from memory:
 

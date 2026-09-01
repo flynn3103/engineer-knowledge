@@ -15,7 +15,11 @@ Use the smallest realistic scenario that exposes the decision and its failure be
 
 A flame graph is a frequency count of *stack traces*. If the traces are corrupt, every downstream conclusion is corrupt — and collecting a correct stack trace from a running, optimized program is genuinely hard. The profiler has a program counter and a stack pointer; it must reconstruct the chain of callers from there. There are three ways to do that, and each fails differently.
 
-**1. Frame-pointer (FP) unwinding.** The classic convention: every function pushes the caller's `%rbp` and sets `%rbp` to its own frame, forming a linked list the unwinder can walk in a handful of instructions. Cheap, robust, works in-kernel. The catch: compilers *omit* the frame pointer by default at `-O2` (`-fomit-frame-pointer` is implied) because `%rbp` then becomes a free general-purpose register, worth a small but real speedup. With frame pointers omitted, FP unwinding walks into garbage after the first frame — you get **broken, truncated stacks**: a leaf or two, then `[unknown]`, then nothing.
+**1. Frame-pointer (FP) unwinding.**
+
+- The classic convention: every function pushes the caller's `%rbp` and sets `%rbp` to its own frame, forming a linked list the unwinder can walk in a handful of instructions. Cheap, robust, works in-kernel.
+- The catch: compilers *omit* the frame pointer by default at `-O2` (`-fomit-frame-pointer` is implied) because `%rbp` then becomes a free general-purpose register, worth a small but real speedup.
+- With frame pointers omitted, FP unwinding walks into garbage after the first frame — you get **broken, truncated stacks**: a leaf or two, then `[unknown]`, then nothing.
 
 ```bash
 perf record -F 99 -g -- ./app          # -g defaults to fp unwinding
@@ -24,20 +28,41 @@ perf script | head -40
 # [unknown]            ← frame pointer omitted: chain breaks here
 ```
 
-The fix is to compile with `-fno-omit-frame-pointer`. This is the **frame-pointer trade**, and it is a real organizational decision, not a free win. Restoring the frame pointer costs roughly **1–2% CPU** on typical workloads (occasionally more on register-starved hot loops, near-zero on memory-bound code). In exchange you get cheap, always-correct, in-kernel-capable unwinding fleet-wide. Major distributions (Fedora, Ubuntu) re-enabled frame pointers in their default builds in 2023–2024 *specifically* to make continuous profiling trustworthy — the consensus among people who profile at scale is that 1% CPU is a bargain for stacks that are never broken. If your binaries omit frame pointers, your flame graph's depth is a lie wherever the chain snapped.
+- The fix is to compile with `-fno-omit-frame-pointer`. This is the **frame-pointer trade**, and it is a real organizational decision, not a free win.
+- Restoring the frame pointer costs roughly **1–2% CPU** on typical workloads (occasionally more on register-starved hot loops, near-zero on memory-bound code).
+- In exchange you get cheap, always-correct, in-kernel-capable unwinding fleet-wide.
+- Major distributions (Fedora, Ubuntu) re-enabled frame pointers in their default builds in 2023–2024 *specifically* to make continuous profiling trustworthy — the consensus among people who profile at scale is that 1% CPU is a bargain for stacks that are never broken.
+- If your binaries omit frame pointers, your flame graph's depth is a lie wherever the chain snapped.
 
-**2. DWARF (CFI) unwinding.** Instead of a runtime convention, the compiler emits `.eh_frame` / `.debug_frame` Call Frame Information describing, for every PC, how to find the caller's frame and saved registers. `perf record --call-graph dwarf` uses this. It works *without* frame pointers and reconstructs stacks correctly even through `-O2` code — but it's expensive in a way that distorts production profiling: `perf` can't interpret DWARF cheaply at sample time, so it **copies a chunk of the user stack** (default 8 KB) into the trace on every sample and unwinds offline.
+**2. DWARF (CFI) unwinding.**
+
+- Instead of a runtime convention, the compiler emits `.eh_frame` / `.debug_frame` Call Frame Information describing, for every PC, how to find the caller's frame and saved registers.
+- `perf record --call-graph dwarf` uses this. It works *without* frame pointers and reconstructs stacks correctly even through `-O2` code — but it's expensive in a way that distorts production profiling: `perf` can't interpret DWARF cheaply at sample time, so it **copies a chunk of the user stack** (default 8 KB) into the trace on every sample and unwinds offline.
 
 ```bash
 perf record -F 99 --call-graph dwarf,16384 -- ./app   # copy 16KB of stack/sample
 #   huge perf.data, high overhead, and stacks deeper than the dump size get truncated
 ```
 
-That stack-copy has two consequences a senior must weigh. First, **enormous trace volume and overhead** — easily 5–20x the data of FP unwinding, enough to perturb the very latency you're measuring. Second, **the dump-size truncation trap**: any stack deeper than the copied window (8 KB ≈ a few dozen frames of deep recursion or fiber machinery) is cut off, reintroducing the truncation you were trying to avoid. DWARF unwinding is the right tool when you *cannot* recompile with frame pointers and you can tolerate the overhead on a profiling host — it is the wrong default for always-on fleet profiling.
+That stack-copy has two consequences a senior must weigh:
 
-**3. LBR (Last Branch Record) unwinding.** Intel/AMD CPUs keep a small hardware ring buffer of the most recent taken branches (16–32 entries). `perf record --call-graph lbr` reconstructs the call stack from that buffer — no frame pointers, no stack copy, very low overhead, hardware-accurate for the branches it captured. The limit is in the name: the ring is shallow (**~16–32 frames**), so deep stacks are truncated to the most recent N. LBR is excellent for shallow, hot CPU code and is the cheapest accurate option, but it can't show you a 60-frame web-framework call chain.
+- **Enormous trace volume and overhead** — easily 5–20x the data of FP unwinding, enough to perturb the very latency you're measuring.
+- **The dump-size truncation trap** — any stack deeper than the copied window (8 KB ≈ a few dozen frames of deep recursion or fiber machinery) is cut off, reintroducing the truncation you were trying to avoid.
+- DWARF unwinding is the right tool when you *cannot* recompile with frame pointers and you can tolerate the overhead on a profiling host — it is the wrong default for always-on fleet profiling.
 
-**4. ORC — the kernel's answer.** The Linux kernel can't use `.eh_frame` (it's stripped) and the maintainers refused to pay the frame-pointer tax kernel-wide for years. The compromise is **ORC** (Oops Rewind Capability): a *custom, compact, fast* unwind-table format generated by `objtool` at kernel build time, living in `.orc_unwind`. It's a DWARF-like table designed to be simple and quick to interpret in-kernel, giving correct kernel stacks without frame pointers and without DWARF's cost. When you see clean kernel frames in a `perf` flame graph on a modern kernel (`CONFIG_UNWINDER_ORC=y`), ORC is why. (Userspace still needs FP/DWARF/LBR — ORC is a kernel-only mechanism.)
+**3. LBR (Last Branch Record) unwinding.**
+
+- Intel/AMD CPUs keep a small hardware ring buffer of the most recent taken branches (16–32 entries).
+- `perf record --call-graph lbr` reconstructs the call stack from that buffer — no frame pointers, no stack copy, very low overhead, hardware-accurate for the branches it captured.
+- The limit is in the name: the ring is shallow (**~16–32 frames**), so deep stacks are truncated to the most recent N.
+- LBR is excellent for shallow, hot CPU code and is the cheapest accurate option, but it can't show you a 60-frame web-framework call chain.
+
+**4. ORC — the kernel's answer.**
+
+- The Linux kernel can't use `.eh_frame` (it's stripped) and the maintainers refused to pay the frame-pointer tax kernel-wide for years.
+- The compromise is **ORC** (Oops Rewind Capability): a *custom, compact, fast* unwind-table format generated by `objtool` at kernel build time, living in `.orc_unwind`.
+- It's a DWARF-like table designed to be simple and quick to interpret in-kernel, giving correct kernel stacks without frame pointers and without DWARF's cost.
+- When you see clean kernel frames in a `perf` flame graph on a modern kernel (`CONFIG_UNWINDER_ORC=y`), ORC is why. (Userspace still needs FP/DWARF/LBR — ORC is a kernel-only mechanism.)
 
 | Method | Needs FP? | Overhead | Depth limit | Best for |
 |---|---|---|---|---|
@@ -90,7 +115,10 @@ The **off-CPU flame graph** inverts the metric: width is **time spent off-CPU (b
 
 How the wait time is actually captured depends on the stack:
 
-**eBPF / `perf sched` at the kernel level (any language).** The kernel scheduler knows exactly when a thread leaves the CPU (`sched_switch` off) and returns (on). Capture the stack at switch-out, the timestamp at switch-out and switch-in, and the delta *is* the off-CPU duration for that stack. The eBPF tool `offcputime` (BCC) does precisely this, aggregating in-kernel so overhead stays sane even though context switches are far more frequent than CPU samples:
+**eBPF / `perf sched` at the kernel level (any language).**
+
+- The kernel scheduler knows exactly when a thread leaves the CPU (`sched_switch` off) and returns (on). Capture the stack at switch-out, the timestamp at switch-out and switch-in, and the delta *is* the off-CPU duration for that stack.
+- The eBPF tool `offcputime` (BCC) does precisely this, aggregating in-kernel so overhead stays sane even though context switches are far more frequent than CPU samples:
 
 ```bash
 # BCC: off-CPU time by stack, blocked >1ms, for 30s → folded stacks → flame graph
@@ -102,9 +130,13 @@ perf sched record -- sleep 30
 perf sched latency                  # per-task scheduling latency summary
 ```
 
-The eBPF approach is the senior default because it (a) aggregates stacks in kernel space — no per-switch userspace round-trip — and (b) can capture both kernel *and* user stacks at the blocking point. The honest caveat: at very high context-switch rates the overhead is real, and very short blocks (the `-m` threshold) are filtered to keep it tractable.
+- The eBPF approach is the senior default because it (a) aggregates stacks in kernel space — no per-switch userspace round-trip — and (b) can capture both kernel *and* user stacks at the blocking point.
+- The honest caveat: at very high context-switch rates the overhead is real, and very short blocks (the `-m` threshold) are filtered to keep it tractable.
 
-**Go runtime: block and mutex profiles.** Go doesn't need eBPF for this — the runtime instruments blocking directly. The **block profile** records stacks where goroutines block on channel ops, `select`, `sync` primitives, and network/timer waits; the **mutex profile** records contended `sync.Mutex`/`RWMutex` holders. Both feed `pprof` and render as off-CPU flame graphs:
+**Go runtime: block and mutex profiles.**
+
+- Go doesn't need eBPF for this — the runtime instruments blocking directly.
+- The **block profile** records stacks where goroutines block on channel ops, `select`, `sync` primitives, and network/timer waits; the **mutex profile** records contended `sync.Mutex`/`RWMutex` holders. Both feed `pprof` and render as off-CPU flame graphs:
 
 ```go
 runtime.SetBlockProfileRate(1)        // sample every blocking event (1ns granularity)
@@ -115,7 +147,8 @@ go tool pprof -http=:8080 http://localhost:6060/debug/pprof/block
 go tool pprof -http=:8080 http://localhost:6060/debug/pprof/mutex
 ```
 
-And Go's **execution tracer** (`runtime/trace`) goes further than any sampled profile: it records *every* scheduling event with timestamps, so you can see a single goroutine's exact wall-clock timeline — running, blocked-on-mutex, blocked-on-network, GC-paused — not a statistical aggregate. When a Go service's latency doesn't show up in the CPU profile, the order of escalation is: block/mutex profile (cheap, aggregate) → execution trace (expensive, exact, per-event).
+- Go's **execution tracer** (`runtime/trace`) goes further than any sampled profile: it records *every* scheduling event with timestamps, so you can see a single goroutine's exact wall-clock timeline — running, blocked-on-mutex, blocked-on-network, GC-paused — not a statistical aggregate.
+- When a Go service's latency doesn't show up in the CPU profile, the order of escalation is: block/mutex profile (cheap, aggregate) → execution trace (expensive, exact, per-event).
 
 > **Key insight:** A CPU flame graph and an off-CPU flame graph are *complements*, not alternatives, and wall-clock time is exactly their sum. Latency bugs — lock contention, slow I/O, serialized round-trips — live almost entirely in the off-CPU graph, which most engineers never generate. The first question for any "it's slow but the CPU is idle" problem is "where's the off-CPU flame graph?" Capture the wait at switch-out (eBPF/`perf sched`) for language-agnostic coverage, or use the runtime's block/mutex profile when you have one.
 
@@ -125,7 +158,11 @@ And Go's **execution tracer** (`runtime/trace`) goes further than any sampled pr
 
 You changed something and want to know what got faster or slower. The naive approach — eyeball two flame graphs side by side — fails because human vision can't diff thousands of stacks. The **differential flame graph** computes the difference per stack and colors it: typically **red = grew, blue = shrank**, intensity ∝ magnitude. Done right it's the fastest regression-finder you have. Done wrong it actively misleads, and the wrong way is the *default* way.
 
-The core trap is **comparing two profiles with different total sample counts.** Profile A ran for 30 s and collected 3,000 samples; profile B (after your change, or on a busier host) ran for 30 s and collected 4,500 samples. A function that holds a *constant 10% share* in both will show **1,500 raw samples in B vs 1,000 in A** — and a naive diff paints it bright red ("this got 50% worse!") when in reality its proportion didn't move at all. The whole graph tilts red simply because B has more total samples. You'll chase a "regression" that's an artifact of sample-count mismatch.
+The core trap is **comparing two profiles with different total sample counts.**
+
+- Profile A ran for 30 s and collected 3,000 samples; profile B (after your change, or on a busier host) ran for 30 s and collected 4,500 samples.
+- A function that holds a *constant 10% share* in both will show **1,500 raw samples in B vs 1,000 in A** — and a naive diff paints it bright red ("this got 50% worse!") when in reality its proportion didn't move at all.
+- The whole graph tilts red simply because B has more total samples. You'll chase a "regression" that's an artifact of sample-count mismatch.
 
 The fix is **normalization**: compare *fractions*, not raw counts. Scale both profiles to the same total (or diff percentages) before subtracting, so the comparison measures *share of time*, which is what you actually care about. Brendan Gregg's `difffolded.pl` does this; so do `pprof -diff_base` and Speedscope's "left-heavy diff" view:
 
@@ -167,7 +204,12 @@ sec     │ ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ │ ← 0-100ms:  steady bas
    ░ = low   ▓ = medium   █ = high sample intensity
 ```
 
-The workflow is the payoff: you **select a region of the heatmap** — just the bright spike column, or just the horizontal band — and FlameScope generates a flame graph *from only the samples in that region*. Now you have a flame graph of the perturbation in isolation, with the steady-state baseline excluded. The horizontal band ("same offset every second") is a dead giveaway for a *periodic* task — a once-per-second metrics flush, a timer-driven GC, a heartbeat. A diagonal stripe means a slowly-drifting period. A vertical column means a one-time event at a specific wall-clock moment. None of these are legible in the averaged flame graph; all of them are obvious in the heatmap.
+The workflow is the payoff:
+
+- You **select a region of the heatmap** — just the bright spike column, or just the horizontal band — and FlameScope generates a flame graph *from only the samples in that region*.
+- Now you have a flame graph of the perturbation in isolation, with the steady-state baseline excluded.
+- The horizontal band ("same offset every second") is a dead giveaway for a *periodic* task — a once-per-second metrics flush, a timer-driven GC, a heartbeat. A diagonal stripe means a slowly-drifting period. A vertical column means a one-time event at a specific wall-clock moment.
+- None of these are legible in the averaged flame graph; all of them are obvious in the heatmap.
 
 > **Key insight:** A flame graph trades away time to show you structure; FlameScope trades back enough time to show you *variance*. Whenever the symptom is "p99 is bad but p50 is fine" or "it stalls periodically," the averaged flame graph is the wrong tool — it dilutes the rare-but-severe event into the background. Use the subsecond heatmap to *find* the perturbation in time, then zoom that region into its own flame graph to see its stacks. Averages hide tails; FlameScope is how you stop averaging.
 
@@ -177,16 +219,23 @@ The workflow is the payoff: you **select a region of the heatmap** — just the 
 
 Even with perfect stacks, the *attribution* of samples to instructions can be wrong, and under load samples can be *dropped* — two distinct sources of "missing time" that a flame graph won't flag.
 
-**Skid.** A sampling profiler arms a hardware counter (cycles, or a PMU event) to interrupt after N events; the CPU then has to stop the out-of-order pipeline and record the instruction pointer. But on a deeply pipelined, speculating CPU, the IP captured at interrupt time is often **not the instruction that triggered the event** — it's one a few instructions downstream. This is **skid**, and it smears samples onto neighboring instructions and, at function boundaries, onto the *wrong function*. A tight hot loop's cost can appear to leak into the function after it. The hardware mitigation is **PEBS** (Precise Event-Based Sampling) on Intel / **IBS** on AMD, which records the *precise* faulting IP in a hardware buffer:
+**Skid.**
+
+- A sampling profiler arms a hardware counter (cycles, or a PMU event) to interrupt after N events; the CPU then has to stop the out-of-order pipeline and record the instruction pointer.
+- But on a deeply pipelined, speculating CPU, the IP captured at interrupt time is often **not the instruction that triggered the event** — it's one a few instructions downstream. This is **skid**, and it smears samples onto neighboring instructions and, at function boundaries, onto the *wrong function*.
+- A tight hot loop's cost can appear to leak into the function after it. The hardware mitigation is **PEBS** (Precise Event-Based Sampling) on Intel / **IBS** on AMD, which records the *precise* faulting IP in a hardware buffer:
 
 ```bash
 perf record -e cycles:pp -F 999 -g -- ./app    # :pp = use PEBS for precise IP (low skid)
 #   :p  = reduced skid,  :pp = requested precise,  :ppp = max precise
 ```
 
-Skid mostly distorts *which instruction/line* within a function, less so coarse function-level width — but at hot boundaries it absolutely moves time between adjacent frames. When line-level attribution in a flame graph looks "off by one function," suspect skid and re-record with `:pp`.
+- Skid mostly distorts *which instruction/line* within a function, less so coarse function-level width — but at hot boundaries it absolutely moves time between adjacent frames. When line-level attribution in a flame graph looks "off by one function," suspect skid and re-record with `:pp`.
 
-**Lost samples.** Under heavy load `perf` writes samples to a ring buffer that userspace drains; if the buffer fills faster than it's drained, samples are **silently dropped**. The flame graph then under-represents exactly the busiest periods — the time you most wanted to see. `perf` *does* tell you, if you look:
+**Lost samples.**
+
+- Under heavy load `perf` writes samples to a ring buffer that userspace drains; if the buffer fills faster than it's drained, samples are **silently dropped**. The flame graph then under-represents exactly the busiest periods — the time you most wanted to see.
+- `perf` *does* tell you, if you look:
 
 ```bash
 perf report 2>&1 | grep -i 'lost\|warning'
@@ -194,7 +243,12 @@ perf report 2>&1 | grep -i 'lost\|warning'
 perf record -m 64M ...        # bigger ring buffer → fewer drops
 ```
 
-The deeper "missing time" symptom is a flame graph whose widths don't sum to the wall-clock you expected — a chunk is simply *gone*. The usual culprits, in order: (1) the thread was **off-CPU** and you only captured on-CPU (the big one — see above); (2) **lost samples** under load; (3) **broken unwinding** dumping time into `[unknown]`; (4) time in code with **no symbols** (JIT without a map, stripped libs) showing as a hex-address plateau you can't read.
+The deeper "missing time" symptom is a flame graph whose widths don't sum to the wall-clock you expected — a chunk is simply *gone*. The usual culprits, in order:
+
+1. The thread was **off-CPU** and you only captured on-CPU (the big one — see above).
+2. **Lost samples** under load.
+3. **Broken unwinding** dumping time into `[unknown]`.
+4. Time in code with **no symbols** (JIT without a map, stripped libs) showing as a hex-address plateau you can't read.
 
 > **Key insight:** "The widths don't add up to the wall-clock" is a signal, not a rounding error. Missing time is almost always one of: off-CPU time you didn't capture, samples lost to a full ring buffer, or unwinding/symbolization failures dumping time into `[unknown]`. And the *location* of time within a function is subject to skid — use precise sampling (`:pp`/PEBS/IBS) before trusting line-level attribution. A flame graph that accounts for less than the elapsed time is telling you where to look next.
 
@@ -220,7 +274,12 @@ bpftrace -e 'tracepoint:block:block_rq_issue { @[kstack, comm] = sum(args->bytes
 go tool pprof -sample_index=alloc_space -http=:8080 http://localhost:6060/debug/pprof/heap
 ```
 
-The senior judgment: **pick the metric that matches the symptom.** High GC CPU → *allocation* flame graph (find the allocator, not the collector). Slow under load but CPU idle → *off-CPU* or *lock-contention*. Erratic latency with high page-fault counts → *page-fault*. The visualization is constant; choosing the right width is the skill, and it routes directly to sibling topics — [03 — Allocation Profiling](../03-allocation-profiling/senior.md) for the allocation variant, and the broader profiling map for the rest.
+The senior judgment: **pick the metric that matches the symptom.**
+
+- High GC CPU → *allocation* flame graph (find the allocator, not the collector).
+- Slow under load but CPU idle → *off-CPU* or *lock-contention*.
+- Erratic latency with high page-fault counts → *page-fault*.
+- The visualization is constant; choosing the right width is the skill, and it routes directly to sibling topics — [03 — Allocation Profiling](../03-allocation-profiling/senior.md) for the allocation variant, and the broader profiling map for the rest.
 
 > **Key insight:** A flame graph is a *renderer for any additive, stack-attributable metric*. The same SVG that shows CPU time shows allocated bytes, page faults, I/O bytes, or lock-wait time — you just change what you fold. The leverage is matching metric to symptom: optimizing CPU when the real problem is allocation (or lock contention) wastes the diagnostic. One visualization, many questions.
 
@@ -241,7 +300,8 @@ Everything above describes profiling *one process, once*. The senior reality is 
 bpftrace -e 'profile:hz:99 { @[ustack, kstack, comm] = count(); }'
 ```
 
-The key property: eBPF can capture **kernel and user stacks together**, system-wide, without recompiling the target — making it the substrate for the off-CPU, I/O, and lock variants above as well as plain CPU. It still depends on good *userspace* unwinding (frame pointers, or DWARF, or recent kernels' BPF stack-walking), which is exactly why the frame-pointer decision matters at fleet scale: eBPF gives you cheap collection, but only frame pointers give you cheap *correct* collection.
+- The key property: eBPF can capture **kernel and user stacks together**, system-wide, without recompiling the target — making it the substrate for the off-CPU, I/O, and lock variants above as well as plain CPU.
+- It still depends on good *userspace* unwinding (frame pointers, or DWARF, or recent kernels' BPF stack-walking), which is exactly why the frame-pointer decision matters at fleet scale: eBPF gives you cheap collection, but only frame pointers give you cheap *correct* collection.
 
 **Continuous, fleet-wide profilers** build the production system on top. **Parca** (CNCF, eBPF-based, agent per node) and **Grafana Pyroscope** (formerly Pyroscope/Phlare; eBPF *and* SDK-based) continuously sample every process across the fleet, attach metadata (service, version, pod, region), store profiles time-series-style, and serve **flame graphs you can slice by any dimension and diff across time or version**. This turns the flame graph from a one-shot artifact into a queryable signal:
 
@@ -310,3 +370,10 @@ Trustworthy stacks still get misread. The senior reading errors:
 - Where should recovery responsibility live, and why?
 - Which assumption deserves an experiment before implementation?
 - How can the design evolve without changing every consumer at once?
+- Compare frame-pointer, DWARF, and LBR stack unwinding — when do you reach for each, and what does each fail to see?
+- How does function inlining distort a flame graph, and how do inline-aware profilers recover the true call tree?
+- What is FlameScope, and what does it recover that an ordinary flame graph discards?
+- A service's CPU flame graph looks nearly empty even though requests are slow — which flame graph do you generate next, and why?
+- What's tricky about reading an off-CPU flame graph compared to a CPU one?
+- Before trusting a differential flame graph built from profiles with very different sample counts, what must you do first?
+- A wide `[unknown]` box appears with the stacks above it missing — is the profiler broken? What do you check?

@@ -174,7 +174,9 @@ Then ask one more question (Agans Rule 9 plus a [looking-back](../04-looking-bac
 - You've fixed it only when you can turn the bug on and off — and only if you fixed the cause, not the symptom.
 
 ---
-## Check your understanding
+## Recall and apply
+
+**Practice loop:** Write the symptom, a falsifiable cause, the smallest probe, and the result before changing production code.
 
 Try to answer these questions from memory:
 

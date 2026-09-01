@@ -13,7 +13,8 @@ Use the smallest realistic scenario that exposes the decision and its failure be
 
 ## Escape Analysis — Why a Value Goes to the Heap
 
-The compiler would *prefer* to put everything on the stack: stack allocation is a pointer bump, and the whole frame is freed for free when the function returns — the GC never sees it. A value is forced onto the heap only when the compiler can't prove its lifetime ends with the function. That proof is **escape analysis**, and you can read its verdict directly:
+- The compiler would *prefer* to put everything on the stack: stack allocation is a pointer bump, and the whole frame is freed for free when the function returns — the GC never sees it.
+- A value is forced onto the heap only when the compiler can't prove its lifetime ends with the function. That proof is **escape analysis**, and you can read its verdict directly:
 
 ```bash
 go build -gcflags='-m' ./...
@@ -22,7 +23,7 @@ go build -gcflags='-m' ./...
 # ./main.go:31:23: make([]byte, n) does not escape
 ```
 
-`-m` once shows decisions; `-m -m` (or `-gcflags='-m=2'`) shows the *reasoning chain*. The common reasons a value escapes:
+`-m` once shows decisions; `-m -m` (or `-gcflags='-m=2'`) shows the *reasoning chain*. Common reasons a value escapes:
 
 - **Returning a pointer to a local.** `func New() *User { u := User{}; return &u }` — `u` must outlive the frame, so it's heap-allocated. (Returning the *value* `User` instead keeps it on the stack until the caller decides.)
 - **Storing a pointer in something that outlives the call** — a field of a longer-lived struct, an element of a heap slice, a channel.
@@ -44,15 +45,15 @@ func MakeUser(name string) User { return User{Name: name} }
 
 ## The Allocation-Rate → GC-Frequency Loop
 
-Here is the relationship that reframes the whole topic. A tracing GC like Go's runs roughly when the live heap has grown by a set fraction since the last collection. So the *frequency* of GC is governed not by how big your heap is, but by **how fast you allocate**:
+This is the relationship that reframes the whole topic. A tracing GC like Go's runs roughly when the live heap has grown by a set fraction since the last collection. So the *frequency* of GC is governed not by how big your heap is, but by **how fast you allocate**:
 
 ```
 GC interval ≈ (GOGC% × live_heap) / allocation_rate
 ```
 
-Two services with an identical 200 MB live heap behave completely differently if one allocates 50 MB/s and the other 2 GB/s — the second triggers GC ~40× more often, and each cycle burns CPU on marking and steals cache. This is why allocation-heavy code shows up in the *CPU* profile as `runtime.mallocgc` and `gcBgMarkWorker`, not as a memory problem at all. The bytes get reclaimed fine; you're paying in **throughput**, not in residency.
-
-The practical consequence: **reducing allocations/op is a CPU optimization as much as a memory one.** A loop that drops from `42 allocs/op` to `3` doesn't just save memory — it cuts the GC's workload by an order of magnitude, often recovering more wall-clock time than the allocation savings alone would suggest.
+- Two services with an identical 200 MB live heap behave completely differently if one allocates 50 MB/s and the other 2 GB/s — the second triggers GC ~40× more often, and each cycle burns CPU on marking and steals cache.
+- This is why allocation-heavy code shows up in the *CPU* profile as `runtime.mallocgc` and `gcBgMarkWorker`, not as a memory problem at all. The bytes get reclaimed fine; you're paying in **throughput**, not in residency.
+- The practical consequence: **reducing allocations/op is a CPU optimization as much as a memory one.** A loop that drops from `42 allocs/op` to `3` doesn't just save memory — it cuts the GC's workload by an order of magnitude, often recovering more wall-clock time than the allocation savings alone would suggest.
 
 > **Key insight:** Heap *size* is a tuning knob (GOGC). Allocation *rate* is a code property — and it's the one that determines how often the GC interrupts your hot path. Optimize the rate in code; tune the size last.
 
@@ -60,7 +61,8 @@ The practical consequence: **reducing allocations/op is a CPU optimization as mu
 
 ## Preallocation and Growth Amortization
 
-Slices and maps grow by **reallocation**: when capacity runs out, the runtime allocates a larger backing array (Go roughly doubles for small slices, then grows ~1.25× for large ones) and **copies** the old contents over. A slice that grows to N elements one `append` at a time performs O(log N) reallocations and copies a total of ~2N elements along the way — all of it garbage the moment it's superseded.
+- Slices and maps grow by **reallocation**: when capacity runs out, the runtime allocates a larger backing array (Go roughly doubles for small slices, then grows ~1.25× for large ones) and **copies** the old contents over.
+- A slice that grows to N elements one `append` at a time performs O(log N) reallocations and copies a total of ~2N elements along the way — all of it garbage the moment it's superseded.
 
 ```go
 // Bad: starts at cap 0, reallocates ~log2(10000) times, copying as it goes.
@@ -72,7 +74,8 @@ out := make([]int, 0, 10000)
 for i := 0; i < 10000; i++ { out = append(out, f(i)) }
 ```
 
-The fix is to tell the runtime the size up front when you know (or can estimate) it: `make([]T, 0, n)` for slices, `make(map[K]V, n)` for maps (the hint sizes the bucket array so it doesn't rehash repeatedly). You don't need an exact count — even a rough upper bound collapses many reallocations into one.
+- The fix: tell the runtime the size up front when you know (or can estimate) it — `make([]T, 0, n)` for slices, `make(map[K]V, n)` for maps (the hint sizes the bucket array so it doesn't rehash repeatedly).
+- You don't need an exact count — even a rough upper bound collapses many reallocations into one.
 
 > **Key insight:** Doubling makes *amortized* append O(1), but "amortized cheap" still produces real garbage on every doubling step. Preallocation converts O(log N) allocations-plus-copies into exactly one. When the final size is knowable, there is no reason not to.
 
@@ -84,9 +87,8 @@ A subtlety: a slice and its backing array are different things. `s = s[:0]` rese
 
 Many allocations come from creating *new* objects when you could mutate or reuse existing ones.
 
-**Value semantics keep things on the stack.** Passing and returning small structs *by value* (rather than `*T`) often avoids the heap entirely — the value rides in the caller's frame. The instinct that "pointers are cheaper" is wrong for small values: a pointer can *force* an escape that a value wouldn't.
-
-**In-place operations reuse backing storage.** `strings.Builder` and `bytes.Buffer` grow one backing array and write into it, instead of `+`-concatenating which allocates a fresh string per step:
+- **Value semantics keep things on the stack.** Passing and returning small structs *by value* (rather than `*T`) often avoids the heap entirely — the value rides in the caller's frame. The instinct that "pointers are cheaper" is wrong for small values: a pointer can *force* an escape that a value wouldn't.
+- **In-place operations reuse backing storage.** `strings.Builder` and `bytes.Buffer` grow one backing array and write into it, instead of `+`-concatenating which allocates a fresh string per step:
 
 ```go
 // Allocates a new string every iteration — O(n²) bytes of garbage.
@@ -100,7 +102,9 @@ for _, p := range parts { b.WriteString(p) }
 s := b.String()
 ```
 
-**The `[]byte`↔`string` conversions normally copy.** `string(b)` and `[]byte(s)` each allocate and copy, because Go strings are immutable and the runtime must guarantee the string can't be mutated through the original slice. In hot paths this copy is pure overhead. The standard library already avoids it in the right places — `m[string(keyBytes)]` is special-cased by the compiler to *not* allocate, since the temporary string can't escape the lookup. For your own code, the safe modern tool is `unsafe.String`/`unsafe.Slice` (Go 1.20+):
+- **The `[]byte`↔`string` conversions normally copy.** `string(b)` and `[]byte(s)` each allocate and copy, because Go strings are immutable and the runtime must guarantee the string can't be mutated through the original slice.
+  - In hot paths this copy is pure overhead. The standard library already avoids it in the right places — `m[string(keyBytes)]` is special-cased by the compiler to *not* allocate, since the temporary string can't escape the lookup.
+  - For your own code, the safe modern tool is `unsafe.String`/`unsafe.Slice` (Go 1.20+):
 
 ```go
 // Zero-copy view: NO allocation, but the []byte MUST NOT be mutated afterward,
@@ -131,7 +135,7 @@ func handle(w io.Writer, data []byte) {
 }
 ```
 
-`sync.Pool` is designed for exactly this: a per-P (per-processor) free list that the GC drains on each cycle. But it is sharp, and pooling helps far less often than people assume:
+`sync.Pool` is a per-P (per-processor) free list that the GC drains on each cycle. It is sharp, and pooling helps far less often than people assume:
 
 - **It helps** when the pooled object is meaningfully expensive (large buffers, parsers, gzip writers, `bytes.Buffer` reused thousands of times/sec) and the churn is real. The win shows up as a drop in `allocs/op` *and* in GC CPU.
 - **It hurts** when objects are small or cheap — the pool's own bookkeeping, the type assertion, and the `Get`/`Put` synchronization can cost more than the allocation you avoided. Pooling a `struct{ x, y int }` is almost always a net loss.
@@ -155,7 +159,8 @@ A heap profile has three lenses, and choosing the wrong one sends you optimizing
 | **Alloc space** | `-alloc_space` | bytes *ever allocated* (cumulative) | sites producing the most GC byte-pressure |
 | **Alloc objects** | `-alloc_objects` | objects *ever allocated* (cumulative) | sites producing the most *allocation count* — the GC-frequency driver |
 
-For cutting GC pressure, `-alloc_objects` is usually the right starting lens: GC cost scales with the *number* of allocations more than their total bytes, and `allocs/op` is what `benchmem` reports. A site allocating ten million 24-byte objects hurts more than one allocating a single 200 MB buffer, even though `-alloc_space` ranks the latter higher.
+- For cutting GC pressure, `-alloc_objects` is usually the right starting lens: GC cost scales with the *number* of allocations more than their total bytes, and `allocs/op` is what `benchmem` reports.
+- A site allocating ten million 24-byte objects hurts more than one allocating a single 200 MB buffer, even though `-alloc_space` ranks the latter higher.
 
 ```bash
 go test -bench=. -benchmem -memprofile=mem.out
@@ -172,14 +177,16 @@ go tool pprof -alloc_objects mem.out
 
 ## GC Tuning Basics — GOGC and the Heap Target
 
-`GOGC` (default `100`) sets the heap-growth target: GC triggers when the live heap has grown by `GOGC%` since the last cycle. `GOGC=100` means "run when the heap has doubled"; `GOGC=200` means "wait until it triples." Higher GOGC → fewer, larger collections → less GC CPU but more memory; lower GOGC → the reverse.
+- `GOGC` (default `100`) sets the heap-growth target: GC triggers when the live heap has grown by `GOGC%` since the last cycle. `GOGC=100` means "run when the heap has doubled"; `GOGC=200` means "wait until it triples."
+- Higher GOGC → fewer, larger collections → less GC CPU but more memory; lower GOGC → the reverse.
 
 ```bash
 GOGC=200 ./server     # trade RAM for throughput: GC half as often
 GOGC=off ./batch      # disable entirely for a short-lived batch job
 ```
 
-For services with a hard memory ceiling (containers, especially), Go 1.19+ added `GOMEMLIMIT` — a **soft memory limit** that makes the GC run *more aggressively* as the heap approaches the limit, regardless of GOGC. The modern pattern is `GOMEMLIMIT` set near your container limit (with headroom) plus a generous `GOGC`: you get throughput in the common case but avoid the OOM kill when the heap spikes.
+- For services with a hard memory ceiling (containers, especially), Go 1.19+ added `GOMEMLIMIT` — a **soft memory limit** that makes the GC run *more aggressively* as the heap approaches the limit, regardless of GOGC.
+- The modern pattern is `GOMEMLIMIT` set near your container limit (with headroom) plus a generous `GOGC`: throughput in the common case, but no OOM kill when the heap spikes.
 
 The order of operations matters and is constantly inverted:
 
@@ -240,24 +247,21 @@ $ go test -bench=Format -benchmem
 BenchmarkFormat-8   214905    5436 ns/op    4816 B/op    101 allocs/op
 ```
 
-`402 → 101 allocs/op`, `22.8µs → 5.4µs` (~4.2× faster), and a third the bytes. The remaining 101 are the one slice plus the 100 result strings — irreducible without changing the API (the caller wants `[]string`). The `strconv.Itoa`-vs-`Sprintf` swap alone removed the interface boxing that `-gcflags=-m` flagged on lines `Key`/`Val`. Note the throughput win exceeds the byte win — that's the allocation-rate-to-GC effect from earlier, cashed out as real wall-clock time.
+- `402 → 101 allocs/op`, `22.8µs → 5.4µs` (~4.2× faster), and a third the bytes.
+- The remaining 101 are the one slice plus the 100 result strings — irreducible without changing the API (the caller wants `[]string`).
+- The `strconv.Itoa`-vs-`Sprintf` swap alone removed the interface boxing that `-gcflags=-m` flagged on lines `Key`/`Val`.
+- The throughput win exceeds the byte win — that's the allocation-rate-to-GC effect from earlier, cashed out as real wall-clock time.
 
 ---
 
 ## Common Mistakes
 
 1. **Returning `*T` "for efficiency" on small values.** A pointer to a local often *forces* an escape that returning the value by copy would avoid. For small structs, value semantics are frequently cheaper. Check with `-gcflags=-m`.
-
 2. **Optimizing `-alloc_space` when the problem is GC frequency.** Total bytes ranks the one giant buffer first; GC cost is driven by allocation *count*. Use `-alloc_objects` to find the line spraying millions of tiny objects.
-
 3. **Pooling cheap or rarely-reused objects.** `sync.Pool` overhead can exceed the allocation it replaces, and pool churn (cleared every GC) makes a low-reuse pool a near-zero-hit cache. Benchmark before *and* after; if `allocs/op` doesn't drop, remove the pool.
-
 4. **Forgetting to reset pooled objects.** A `bytes.Buffer` from the pool still holds the last caller's data. No `Reset()` → cross-request data leakage, a genuine security bug, not just a perf nit.
-
 5. **`append`-ing in a loop without preallocating.** Known final size and still `var s []T` then `append`? You're paying O(log N) reallocations and copies for nothing. `make([]T, 0, n)` collapses it to one.
-
 6. **Reaching for the zero-copy `unsafe.String` trick by default.** It breaks immutability. Correct only when you can prove the bytes are stable and the alias won't outlive its backing array. Default to the safe copy; use `unsafe` only in a measured, contained hot path.
-
 7. **Tuning GOGC before cutting allocations.** GOGC trades CPU for RAM; it doesn't reduce the work. Cut the allocation rate in code first, then dial GOGC/GOMEMLIMIT for the residual trade-off.
 
 ---
@@ -283,3 +287,9 @@ BenchmarkFormat-8   214905    5436 ns/op    4816 B/op    101 allocs/op
 - What constraint would make you choose the alternative design?
 - How would you isolate a local defect from an integration defect?
 - What evidence shows that the change remains maintainable?
+- When is `sync.Pool` the right tool, and what are its pitfalls?
+- How does preallocating a slice or map reduce allocations, and what's the failure mode?
+- How does the choice between value semantics and pointer semantics affect allocation?
+- How do `[]byte`↔`string` conversions cause allocations, and how do you avoid them?
+- Walk through a disciplined process to cut allocations on a hot path.
+- What do `GOGC` and `GOMEMLIMIT` each control?

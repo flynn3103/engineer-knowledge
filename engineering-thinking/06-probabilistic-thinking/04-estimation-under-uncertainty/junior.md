@@ -6,6 +6,13 @@
 
 ---
 
+## Quick use
+1. Give a range and confidence, not a date-like point.
+2. State what creates the high end.
+3. Decompose unknown quantities into checkable inputs and record the result.
+
+**Decision rule:** an estimate is useful only when its uncertainty is visible.
+
 ## 1. Why "3 days" is a lie
 
 When a senior asks "how long for this ticket?" and you say **"3 days"**, you have just made three silent claims:
@@ -174,7 +181,9 @@ Every estimate rests on assumptions. "2–5 days" *assumes* the design is settle
 4. **Log estimate vs actual** so you learn your own bias.
 
 ---
-## Check your understanding
+## Recall and apply
+
+Use these prompts to check your understanding and choose one action to try in your next task.
 
 Try to answer these questions from memory:
 

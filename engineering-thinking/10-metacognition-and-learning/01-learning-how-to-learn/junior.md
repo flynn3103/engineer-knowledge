@@ -147,7 +147,15 @@ Next, [middle.md](middle.md) goes deeper into spaced repetition tooling, where f
 **See also:** [Deliberate practice](../03-deliberate-practice/) · [Knowing what you don't know](../04-knowing-what-you-dont-know/) · [Section overview](../) · [Roadmap root](../../README.md)
 
 ---
-## Check your understanding
+## Use it today
+
+1. Pick one small skill and study it in short sessions.
+2. Close the notes and recall the idea or solve a tiny problem.
+3. Schedule a later review; do not rely on rereading alone.
+
+## Recall and apply
+
+Use these prompts to check your understanding and choose one action to try in your next task.
 
 Try to answer these questions from memory:
 

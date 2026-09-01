@@ -13,15 +13,14 @@ Use the smallest realistic scenario that exposes the decision and its failure be
 
 ## Core Concept 1 — A Heap Profile Is a Snapshot of What's Alive
 
-Picture the heap as a room. Every object your program created and still uses is standing in that room. A heap profile walks in, photographs everyone, and hands you a list: *"4,000 `User` objects, 38 MB total. 1 big `[]byte` buffer, 64 MB. 200,000 `string`s, 12 MB."* That list is the snapshot.
+- Picture the heap as a room. Every object your program created and still uses is standing in it.
+- A heap profile walks in, photographs everyone, and hands you a list — e.g. *"4,000 `User` objects, 38 MB total. 1 big `[]byte` buffer, 64 MB. 200,000 `string`s, 12 MB."* That list is the snapshot.
 
 Three things to internalize about the photograph:
 
-**It only contains the living.** Objects your program created and then dropped — a temporary slice in a function that already returned — are *not* in the snapshot, because the GC either already collected them or is about to. The profile is not a history of allocation; it's a census of survivors.
-
-**Survival means reachability.** An object stays in the room because something is still pointing at it: a global variable, a field of another live object, a closure captured by a running goroutine. Trace those pointers from the program's roots (globals, stacks) and everything you can reach is "live." Everything you can't is garbage. The snapshot is exactly the reachable set.
-
-**Every language has this same picture, under different names.** The concept is universal; only the file format and tool differ:
+- **It only contains the living.** Objects your program created and then dropped — a temporary slice in a function that already returned — are *not* in the snapshot, because the GC either already collected them or is about to. The profile is not a history of allocation; it's a census of survivors.
+- **Survival means reachability.** An object stays in the room because something is still pointing at it: a global variable, a field of another live object, a closure captured by a running goroutine. Trace those pointers from the program's roots (globals, stacks) and everything you can reach is "live." Everything you can't is garbage. The snapshot is exactly the reachable set.
+- **Every language has this same picture, under different names.** The concept is universal; only the file format and tool differ:
 
 | Runtime | How you capture it | What you open it with |
 |---|---|---|
@@ -32,7 +31,7 @@ Three things to internalize about the photograph:
 
 > **Key insight:** A heap profile answers *"what is alive right now and who allocated it,"* not *"what did my program ever allocate."* Allocation rate — how fast objects are born — is a *different* profile (`-alloc_space` in Go), covered in [Allocation Profiling](../03-allocation-profiling/junior.md). When you want to know *why memory is high*, you want the *in-use* (live) profile, every time.
 
-In Go, the live view is the `-inuse_space` profile. It reports the bytes currently held by objects that are still reachable, grouped by the line of code that allocated them.
+- In Go, the live view is the `-inuse_space` profile: bytes currently held by objects still reachable, grouped by the line of code that allocated them.
 
 ---
 
@@ -40,9 +39,9 @@ In Go, the live view is the `-inuse_space` profile. It reports the bytes current
 
 This is the single most important distinction at this level, and it's the one nobody explains.
 
-Memory being **high** is a *level*. Memory being a **leak** is a *trend*. They look identical in a single screenshot and completely different over time.
-
-Watch what healthy memory does. It saws up and down: it climbs as your program allocates, then drops sharply when the GC runs and reclaims the dead, then climbs again. That sawtooth is *normal*. The peaks can be high and the program is perfectly fine — the GC just hasn't felt enough pressure to run yet, so dead objects are sitting around waiting to be swept. **High peaks are not a leak.**
+- Memory being **high** is a *level*. Memory being a **leak** is a *trend*. They look identical in a single screenshot and completely different over time.
+- Healthy memory saws up and down: it climbs as your program allocates, then drops sharply when the GC runs and reclaims the dead, then climbs again. That sawtooth is *normal*.
+- Peaks can be high and the program is perfectly fine — the GC just hasn't felt enough pressure to run yet, so dead objects are sitting around waiting to be swept. **High peaks are not a leak.**
 
 ```
 Healthy (sawtooth — GC reclaims):        Leak (ratchet — floor keeps rising):
@@ -56,23 +55,24 @@ MB                                       MB
    GC drops it back down each cycle         floor never returns to baseline
 ```
 
-The signature of a real **leak** is that the *floor* rises. After every GC, memory should fall back to roughly the same baseline — the size of what's genuinely still needed. In a leak, the post-GC floor creeps upward run after run, because more objects are surviving every cycle than the cycle before. The GC is doing its job perfectly; the problem is that the objects are *still reachable*, so the GC is *correct* to keep them. The bug is in your code holding the reference, not in the collector.
-
-And there's a third case that masquerades as both: a large but **stable** working set. A service holding a 2 GB in-memory cache will report 2 GB forever and never grow — that's not a leak, that's the feature working. The way you tell these three apart is not by staring at one number; it's by watching the post-GC floor over time, or by the diff technique in Concept 4.
+- The signature of a real **leak** is that the *floor* rises. After every GC, memory should fall back to roughly the same baseline — the size of what's genuinely still needed.
+- In a leak, the post-GC floor creeps upward run after run, because more objects are surviving every cycle than the cycle before.
+- The GC is doing its job perfectly; the problem is that the objects are *still reachable*, so the GC is *correct* to keep them. The bug is in your code holding the reference, not in the collector.
+- A third case masquerades as both: a large but **stable** working set. A service holding a 2 GB in-memory cache will report 2 GB forever and never grow — that's not a leak, that's the feature working.
+- Tell the three apart not by staring at one number, but by watching the post-GC floor over time, or by the diff technique in Concept 4.
 
 > **Key insight:** Before you debug a "leak," answer one question: *does the post-GC floor keep rising, or is it just high-and-flat?* High-and-flat is a working set (or a lazy GC) — leave it alone or right-size the cache. A **rising floor** is a leak — now go find what's growing. Skipping this question is how engineers spend a day "fixing" memory that was never broken.
 
-To see whether it's the GC just being lazy versus a true growing floor, you can force a collection right before you measure. In Go that's `runtime.GC()` before `runtime.ReadMemStats`; in Java, a heap dump triggers a full GC first, which is exactly why a `.hprof` shows the *reachable* set rather than the inflated pre-GC number.
+- To tell a lazy GC from a true growing floor, force a collection right before you measure: in Go that's `runtime.GC()` before `runtime.ReadMemStats`; in Java, a heap dump triggers a full GC first — exactly why a `.hprof` shows the *reachable* set rather than the inflated pre-GC number.
 
 ---
 
 ## Core Concept 3 — Shallow Size vs Retained Size
 
-Open any heap tool — MAT, Chrome DevTools, pprof's flame graph — and you'll see two size columns. Reading the wrong one is the most common mistake in memory profiling, so let's make it concrete.
+Open any heap tool — MAT, Chrome DevTools, pprof's flame graph — and you'll see two size columns. Reading the wrong one is the most common mistake in memory profiling.
 
-**Shallow size** is the bytes of the object *itself*: its own fields and the pointers it holds — but **not** the things those pointers point to. A struct with two `int` fields and a slice header is small *shallowly*, even if that slice points at a gigabyte.
-
-**Retained size** is the bytes that would be **freed if you deleted this object** — the object itself **plus everything that would become unreachable once it's gone**. It answers the question you actually care about: *"if this thing went away, how much memory do I get back?"*
+- **Shallow size** — the bytes of the object *itself*: its own fields and the pointers it holds — but **not** the things those pointers point to. A struct with two `int` fields and a slice header is small *shallowly*, even if that slice points at a gigabyte.
+- **Retained size** — the bytes that would be **freed if you deleted this object**: the object itself **plus everything that would become unreachable once it's gone**. It answers the question you actually care about: *"if this thing went away, how much memory do I get back?"*
 
 Consider a `Cache` struct:
 
@@ -83,11 +83,15 @@ type Cache struct {
 }
 ```
 
-The `Cache` object's **shallow** size is tiny: a string header and a map header, maybe 50 bytes. But its **retained** size could be 500 MB, because the `entries` map — and every `[]byte` value inside it — is kept alive *only* by this one `Cache`. Delete the `Cache`, and all 500 MB becomes collectable. The retained size is 500 MB; the shallow size is 50 bytes.
+- The `Cache` object's **shallow** size is tiny: a string header and a map header, maybe 50 bytes.
+- Its **retained** size could be 500 MB, because the `entries` map — and every `[]byte` value inside it — is kept alive *only* by this one `Cache`.
+- Delete the `Cache`, and all 500 MB becomes collectable. Retained size: 500 MB. Shallow size: 50 bytes.
 
 > **Key insight:** **Shallow size** is "how big is this box?" **Retained size** is "how much falls off the truck if I remove this box?" When you're hunting what's eating memory, you sort by **retained** size — that's what tells you which object, if fixed, actually gives memory back. Sorting by shallow size points you at a thousand small strings and hides the one `Cache` holding them all.
 
-Java's MAT exposes this directly, and adds a beautiful structure called the **dominator tree**: it groups every object under the single object that *exclusively* keeps it alive. The top of the dominator tree, sorted by retained size, is almost always your leak — "this `HashMap` retains 480 MB" is the headline you're looking for. (The dominator tree is a middle-level topic; for now, just know that *retained size* is the number that points at the real offender.)
+- Java's MAT exposes this directly, and adds a structure called the **dominator tree**: it groups every object under the single object that *exclusively* keeps it alive.
+- The top of the dominator tree, sorted by retained size, is almost always your leak — "this `HashMap` retains 480 MB" is the headline you're looking for.
+- (The dominator tree is a middle-level topic; for now, just know that *retained size* is the number that points at the real offender.)
 
 ---
 
@@ -101,7 +105,9 @@ Here is the one technique that turns vague suspicion into a named culprit. It wo
 4. Force a GC, then take a second snapshot. Call it **B**.
 5. **Diff B against A.** Whatever *grew* is your suspect.
 
-The logic is airtight. After step 3's work is finished, every *temporary* object it created should be dead and collected — they were needed only during the work. So anything that's *larger in B than in A* is something the work created **and then failed to let go of**. That's the definition of a leak. The diff filters out all the steady, healthy memory and leaves only the things that accumulated.
+- The logic is airtight: after step 3's work finishes, every *temporary* object it created should be dead and collected — they were only needed during the work.
+- So anything *larger in B than in A* is something the work created **and then failed to let go of**. That's the definition of a leak.
+- The diff filters out all the steady, healthy memory and leaves only the things that accumulated.
 
 In Go you capture the two profiles and let `pprof` compute the difference with `-base`:
 
@@ -128,7 +134,8 @@ A leaking program produces a diff that screams the answer:
        ...
 ```
 
-`cache.(*Store).Put` accounts for 78.5 MB of *growth* between the two snapshots — it allocated objects during the work and they're all still alive in B. Your suspect is whatever data structure `Put` is appending to and never trimming.
+- `cache.(*Store).Put` accounts for 78.5 MB of *growth* between the two snapshots — it allocated objects during the work and they're all still alive in B.
+- Your suspect is whatever data structure `Put` is appending to and never trimming.
 
 Every other ecosystem has the identical move:
 
@@ -181,7 +188,10 @@ go run main.go
 go tool pprof -inuse_space heap.pb.gz
 ```
 
-The `-inuse_space` flag is the one that matters: it asks for **space currently in use by live objects** — exactly the snapshot we want. (Its siblings: `-inuse_objects` counts live *objects*; `-alloc_space` and `-alloc_objects` count *cumulative allocation* — the rate, not the live set.) Inside the interactive prompt:
+- The `-inuse_space` flag is the one that matters: it asks for **space currently in use by live objects** — exactly the snapshot we want.
+- Its siblings: `-inuse_objects` counts live *objects*; `-alloc_space` and `-alloc_objects` count *cumulative allocation* — the rate, not the live set.
+
+Inside the interactive prompt:
 
 ```
 (pprof) top
@@ -190,7 +200,7 @@ Showing nodes accounting for 195.31MB, 100% of 195.31MB total
   195.31MB   100%   100%   195.31MB   100%  main.handle
 ```
 
-The profile is blunt: `main.handle` is holding 195 MB of live memory. Now ask *where* it's allocated:
+- The profile is blunt: `main.handle` is holding 195 MB of live memory. Now ask *where* it's allocated:
 
 ```
 (pprof) list handle
@@ -200,36 +210,50 @@ The profile is blunt: `main.handle` is holding 195 MB of live memory. Now ask *w
          .          .     19:}
 ```
 
-Line 18 is your leak, annotated with the exact bytes it retains. The fix is conceptual (forget old entries, bound the map, use a cache with eviction) and belongs to [Memory Optimization](../../05-memory-and-allocation-profiling/junior.md) — but *finding* it took one snapshot and two commands. For a visual version, `go tool pprof -inuse_space -http=:8080 heap.pb.gz` opens a flame graph in your browser where the widest box is the biggest retainer.
+- Line 18 is your leak, annotated with the exact bytes it retains.
+- The fix is conceptual (forget old entries, bound the map, use a cache with eviction) and belongs to [Memory Optimization](../../05-memory-and-allocation-profiling/junior.md) — but *finding* it took one snapshot and two commands.
+- For a visual version, `go tool pprof -inuse_space -http=:8080 heap.pb.gz` opens a flame graph in your browser where the widest box is the biggest retainer.
 
 > **Key insight:** `-inuse_space` = "what's alive now" (the leak hunt). `-alloc_space` = "what got created total" (the allocation-rate hunt). They answer different questions and will point at different lines. For *"why is memory high/growing,"* reach for `-inuse_space` first.
 
-The same end-to-end story in other runtimes: Java's `jmap -dump:live,format=b,file=heap.hprof <pid>` then open in MAT and read "Leak Suspects"; Python's `tracemalloc.start()` then `snapshot.statistics('lineno')` to rank source lines by live bytes; Node's `--heapsnapshot-near-heap-limit` or a manual DevTools snapshot, sorted by Retained Size. Different buttons, identical picture: *who is alive, and who retains them.*
+The same end-to-end story in other runtimes:
+
+- **Java:** `jmap -dump:live,format=b,file=heap.hprof <pid>` then open in MAT and read "Leak Suspects".
+- **Python:** `tracemalloc.start()` then `snapshot.statistics('lineno')` to rank source lines by live bytes.
+- **Node:** `--heapsnapshot-near-heap-limit` or a manual DevTools snapshot, sorted by Retained Size.
+- Different buttons, identical picture: *who is alive, and who retains them.*
 
 ---
 
 ## Real-World Examples
 
-**1. The unbounded cache that "wasn't a cache."** A service kept a `map[string]Result` to "remember recent lookups" — but with no size limit and no expiry. Under steady traffic, memory climbed for days and OOM-killed the pod every Tuesday. A snapshot-work-snapshot diff showed the map's `Put` site growing by ~30 MB per hour while everything else stayed flat. It was a leak dressed as a cache: every distinct key lived forever. (This is the textbook growing-map leak — a global or long-lived collection that only ever *adds*.)
+**1. The unbounded cache that "wasn't a cache."**
+- A service kept a `map[string]Result` to "remember recent lookups" — but with no size limit and no expiry.
+- Under steady traffic, memory climbed for days and OOM-killed the pod every Tuesday.
+- A snapshot-work-snapshot diff showed the map's `Put` site growing by ~30 MB per hour while everything else stayed flat.
+- It was a leak dressed as a cache: every distinct key lived forever — the textbook growing-map leak.
 
-**2. The 1.6 GB that was completely healthy.** A different team panicked at a 1.6 GB resident-memory alert and spent an afternoon hunting a leak. The post-GC floor told the real story: it was *flat* at 1.6 GB across hours — a deliberately large in-memory index, exactly the working set the service was designed to hold. There was no leak. The fix was to the *alert threshold*, not the code. Reading the trend (flat) instead of the level (high) would have saved the afternoon.
+**2. The 1.6 GB that was completely healthy.**
+- A different team panicked at a 1.6 GB resident-memory alert and spent an afternoon hunting a leak.
+- The post-GC floor told the real story: it was *flat* at 1.6 GB across hours — a deliberately large in-memory index, exactly the working set the service was designed to hold.
+- There was no leak. The fix was to the *alert threshold*, not the code.
+- Reading the trend (flat) instead of the level (high) would have saved the afternoon.
 
-**3. The listener that never unsubscribed.** A Node dashboard registered an event listener on every WebSocket reconnect but never removed the old one. Each reconnect captured the previous page's data in a closure that stayed reachable through the listener list. Two `.heapsnapshot`s taken ten minutes apart, compared in DevTools, showed the listener-held `Detached` DOM and closure objects climbing steadily. The retained-size column pointed straight at the closure; the diff proved it was *growing*, not merely present.
+**3. The listener that never unsubscribed.**
+- A Node dashboard registered an event listener on every WebSocket reconnect but never removed the old one.
+- Each reconnect captured the previous page's data in a closure that stayed reachable through the listener list.
+- Two `.heapsnapshot`s taken ten minutes apart, compared in DevTools, showed the listener-held `Detached` DOM and closure objects climbing steadily.
+- The retained-size column pointed straight at the closure; the diff proved it was *growing*, not merely present.
 
 ---
 
 ## Common Mistakes
 
 1. **Calling high memory a leak.** A high *level* is not a leak; a rising post-GC *floor* is. Check the trend before you debug. Large-and-flat is usually a working set (or a cache doing its job) — not a bug.
-
 2. **Reading shallow size when you meant retained.** The small struct at the top of a shallow-sorted list is rarely the problem. Sort by **retained** size to find the object that actually holds the memory hostage.
-
 3. **Profiling allocation rate to find a leak.** `-alloc_space` shows what got created over the whole run, including long-dead objects. To find *what's still alive*, use `-inuse_space` (Go) / a heap dump (Java) / a live `tracemalloc` snapshot. Wrong profile, wrong line.
-
 4. **Forgetting to GC before the snapshot.** Without a forced collection, the snapshot includes dead-but-not-yet-swept objects and overstates live memory — making a healthy program look like a leak. Force a GC first (Go's `runtime.GC()`; a Java heap dump does it for you).
-
 5. **Taking only one snapshot when hunting a leak.** A single snapshot shows what's *big*, not what's *growing*. A leak is defined by growth, so you need **two** snapshots across a unit of work and a diff. One snapshot can't distinguish a leak from a large working set.
-
 6. **Profiling during warm-up.** Snapshots taken before caches fill and pools stabilize are noisy — everything looks like it's "growing" because the program is still filling its legitimate working set. Reach steady state first, *then* start the diff.
 
 ---
@@ -255,3 +279,9 @@ The same end-to-end story in other runtimes: Java's `jmap -dump:live,format=b,fi
 - Which input changes the observed result, and why?
 - What is the smallest useful success check?
 - Which beginner mistake would your evidence catch?
+- What is the difference between a memory profile and an allocation profile?
+- What is the difference between `inuse_space` and `alloc_space` in Go's pprof?
+- What is shallow size versus retained size, and why does retained size matter more?
+- Is high heap usage always a leak? What distinguishes a leak from a big working set?
+- Why should you force a garbage collection before taking a heap snapshot?
+- What is a GC root?

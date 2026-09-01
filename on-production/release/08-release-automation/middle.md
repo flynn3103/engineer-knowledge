@@ -58,7 +58,11 @@ The ordering is not arbitrary: you compute and build everything *before* you pub
 
 ## Core Concept 2 — Conventional commits as a contract
 
-Conventional Commits is not a style preference — it is a **machine-readable contract** between developers and the release tool. The developer's promise: "I will describe each change's type accurately." The tool's promise: "I will compute the correct version and a complete changelog." Break the first promise and both break.
+Conventional Commits is not a style preference — it is a **machine-readable contract** between developers and the release tool:
+
+- The developer's promise: "I will describe each change's type accurately."
+- The tool's promise: "I will compute the correct version and a complete changelog."
+- Break the first promise and both break.
 
 The grammar:
 
@@ -80,9 +84,17 @@ Mapping to behavior:
 | `feat!: ...` or `BREAKING CHANGE:` footer | MAJOR | ⚠ BREAKING |
 | `refactor:`, `chore:`, `docs:`, `test:`, `ci:`, `style:` | none | (hidden by default) |
 
-**The discipline cost is real and worth naming.** Every developer must learn the format. PRs get nitpicked over commit types. New hires get it wrong. Some teams resent it. The payoff: versions and changelogs that are *always correct* and *never hand-maintained*, plus a commit history that reads like documentation. For most teams shipping frequently, the trade is decidedly worth it.
+The discipline cost is real and worth naming:
 
-**Squash-merge as the source of truth.** Many teams squash-merge PRs. In that model, individual commits inside the PR don't matter — only the **squash commit title** does, and that's usually the PR title. So the contract shifts: the *PR title* must be a conventional commit. Enforce it with a PR-title linter rather than per-commit linting. This is often easier to adopt than asking everyone to write every commit perfectly.
+- Every developer must learn the format. PRs get nitpicked over commit types. New hires get it wrong. Some teams resent it.
+- The payoff: versions and changelogs that are *always correct* and *never hand-maintained*, plus a commit history that reads like documentation.
+- For most teams shipping frequently, the trade is decidedly worth it.
+
+**Squash-merge as the source of truth.**
+
+- Many teams squash-merge PRs. In that model, individual commits inside the PR don't matter — only the **squash commit title** does, and that's usually the PR title.
+- So the contract shifts: the *PR title* must be a conventional commit.
+- Enforce it with a PR-title linter rather than per-commit linting. This is often easier to adopt than asking everyone to write every commit perfectly.
 
 ---
 
@@ -113,7 +125,7 @@ npx husky init
 echo 'npx --no -- commitlint --edit "$1"' > .husky/commit-msg
 ```
 
-And — more importantly, because local hooks can be bypassed — enforce it in CI on the PR title:
+Enforce it in CI on the PR title too — more importantly, because local hooks can be bypassed:
 
 ```yaml
 # .github/workflows/pr-lint.yml
@@ -168,7 +180,11 @@ jobs:
         if: ${{ steps.release.outputs.release_created }}
 ```
 
-The release PR is a genuinely nice artifact: a reviewable, mergeable preview of exactly what the next version and changelog will be. It gives you an approval point and an audit trail without forcing humans to compute versions. The trade-off versus semantic-release: releases are less continuous (they happen when someone merges the PR, not automatically).
+The release PR is a genuinely nice artifact:
+
+- A reviewable, mergeable preview of exactly what the next version and changelog will be.
+- It gives you an approval point and an audit trail without forcing humans to compute versions.
+- The trade-off versus semantic-release: releases are less continuous (they happen when someone merges the PR, not automatically).
 
 ---
 
@@ -186,7 +202,9 @@ There is no universal best tool. Match the tool to your language and your releas
 | **Maven Release Plugin / Gradle** | JVM | Plugin-driven | Java/Kotlin artifacts to Maven Central |
 | **Raw GitHub Actions** | Any | Hand-built | Custom flows the above can't express |
 
-**changesets** deserves a closer look because it inverts the model. Instead of inferring intent from commits, contributors *declare* it by adding a markdown "changeset" file in their PR:
+**changesets** deserves a closer look because it inverts the model:
+
+- Instead of inferring intent from commits, contributors *declare* it by adding a markdown "changeset" file in their PR:
 
 ```markdown
 ---
@@ -197,7 +215,9 @@ There is no universal best tool. Match the tool to your language and your releas
 Add `<Tooltip>` component and fix focus-trap edge case in `<Modal>`.
 ```
 
-This file says: bump `@myorg/ui` a minor, `@myorg/utils` a patch, with this note. At release time, `changeset version` consumes all such files, bumps each package independently, and writes per-package changelogs. The explicit intent is a feature: in a monorepo where one PR touches several packages, commit-message inference is too coarse — a human stating "this PR is a minor for X, a patch for Y" is clearer and reviewable.
+- This file says: bump `@myorg/ui` a minor, `@myorg/utils` a patch, with this note.
+- At release time, `changeset version` consumes all such files, bumps each package independently, and writes per-package changelogs.
+- The explicit intent is a feature: in a monorepo where one PR touches several packages, commit-message inference is too coarse — a human stating "this PR is a minor for X, a patch for Y" is clearer and reviewable.
 
 > Decision shortcut: **Go → goreleaser. Rust → cargo-release. JVM → Maven/Gradle. JS single package → semantic-release. JS/any monorepo → changesets. Want a human approval gate → release-please.**
 
@@ -207,7 +227,10 @@ This file says: bump `@myorg/ui` a minor, `@myorg/utils` a patch, with this note
 
 The scariest release bug is the **double publish** or the **partial release**. Idempotency is the property that protects you.
 
-**Tag-driven triggers** are the cleanest way to get idempotency. The release runs only when a tag is pushed, and the tag *is* the version. A tag can only exist once, so the release for that version can only be initiated once:
+**Tag-driven triggers** are the cleanest way to get idempotency:
+
+- The release runs only when a tag is pushed, and the tag *is* the version.
+- A tag can only exist once, so the release for that version can only be initiated once:
 
 ```yaml
 on:
@@ -215,10 +238,12 @@ on:
     tags: ["v*"]
 ```
 
-Compare with push-to-main triggers (semantic-release), which need an *internal* guard: before publishing, the tool checks whether that version already exists on the registry and on the git tags. If it does, it exits cleanly. Both approaches achieve idempotency; tag-driven makes it structural rather than logical.
+- Compare with push-to-main triggers (semantic-release), which need an *internal* guard: before publishing, the tool checks whether that version already exists on the registry and on the git tags. If it does, it exits cleanly.
+- Both approaches achieve idempotency; tag-driven makes it structural rather than logical.
 
-**The "release is just CI" model and its limits.** It is liberating to treat a release as just another CI job. But the model has limits that distinguish a release from a normal build:
+**The "release is just CI" model and its limits:**
 
+- It is liberating to treat a release as just another CI job, but the model has limits that distinguish a release from a normal build.
 - A normal CI job is *fully* idempotent — rerun it freely. A release publishes *side effects to the outside world* (npm, a registry, a GitHub Release) that can't always be cleanly undone.
 - npm forbids republishing a version (and unpublish is heavily restricted). Container registries may allow overwriting a tag — which is its own danger.
 - A failure *between* publishing to the registry and creating the GitHub Release leaves a **partial release**: the package is live but undocumented. Recovery means re-running only the remaining steps, which requires the pipeline to be resumable, not just rerunnable.
@@ -229,11 +254,20 @@ So: design every step to be idempotent, order irreversible steps last, and have 
 
 ## Real-World Examples
 
-**A React component library on npm.** Team uses changesets. Every PR that changes a component includes a changeset file describing the bump. The CI opens a "Version Packages" PR; merging it bumps versions, writes per-package changelogs, and publishes to npm. Contributors love that the changelog is written in plain English by whoever made the change, not auto-generated from terse commits.
+- **A React component library on npm.**
+  - Team uses changesets. Every PR that changes a component includes a changeset file describing the bump.
+  - CI opens a "Version Packages" PR; merging it bumps versions, writes per-package changelogs, and publishes to npm.
+  - Contributors love that the changelog is written in plain English by whoever made the change, not auto-generated from terse commits.
 
-**A Go microservice.** Tag-driven goreleaser. `git tag v3.2.0 && git push --tags` triggers a build of multi-arch container images, signs them with cosign, generates SBOM and provenance, pushes to the org's OCI registry via OIDC (no stored credentials), and cuts a GitHub Release. Four minutes, fully reproducible.
+- **A Go microservice.**
+  - Tag-driven goreleaser. `git tag v3.2.0 && git push --tags` triggers a build of multi-arch container images.
+  - It signs them with cosign, generates SBOM and provenance, pushes to the org's OCI registry via OIDC (no stored credentials), and cuts a GitHub Release.
+  - Four minutes, fully reproducible.
 
-**A platform team's API server.** release-please. Engineers merge `feat:`/`fix:` PRs all week. A standing release PR shows the accumulating 2.5.0 changelog. On Tuesday's release window, the on-call merges the release PR; that triggers the build, sign, publish, and deploy. The approval point satisfies the change-management policy.
+- **A platform team's API server.**
+  - release-please. Engineers merge `feat:`/`fix:` PRs all week. A standing release PR shows the accumulating 2.5.0 changelog.
+  - On Tuesday's release window, the on-call merges the release PR; that triggers the build, sign, publish, and deploy.
+  - The approval point satisfies the change-management policy.
 
 ---
 
@@ -269,3 +303,7 @@ So: design every step to be idempotent, order irreversible steps last, and have 
 - What constraint would make you choose the alternative design?
 - How would you isolate a local defect from an integration defect?
 - What evidence shows that the change remains maintainable?
+- When would you choose the release-PR model over releasing on every merge?
+- semantic-release vs. changesets vs. goreleaser: how do you pick for a given codebase?
+- Why does a local commit-message hook not guarantee the commit contract?
+- Why must you check whether a version already exists before publishing?

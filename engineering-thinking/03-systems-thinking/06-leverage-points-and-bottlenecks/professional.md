@@ -115,7 +115,9 @@ Operating principles that fall out of it:
 - [Measure before you optimize](../../09-scientific-and-hypothesis-driven/03-measure-before-optimize/) — value-stream mapping is "measure first" applied to the org.
 
 ---
-## Check your understanding
+## Recall and apply
+
+**Practice loop:** Find the limiting step, state the evidence, try the smallest high-leverage change, and measure the whole-system result.
 
 Try to answer these questions from memory:
 

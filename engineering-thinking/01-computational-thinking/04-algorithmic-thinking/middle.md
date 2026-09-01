@@ -156,7 +156,9 @@ RETURN false
 - Related pillars: [decomposition](../01-decomposition/) (breaking the problem down) and [pattern recognition](../02-pattern-recognition/) (spotting the strategy's tell-tale sign).
 
 ---
-## Check your understanding
+## Recall and apply
+
+**Practice loop:** For one task, write the input, output, and steps before coding; test the smallest and edge cases.
 
 Try to answer these questions from memory:
 

@@ -118,7 +118,13 @@ A senior's reflex on seeing a 30% lift is not joy — it's suspicion. Big, clean
 - [Section root](../) · [Engineering Thinking roadmap](../../README.md)
 
 ---
-## Check your understanding
+## Use it today
+
+1. Review experiment design for bias, interference, power, and harm before launch.
+2. Give the experiment an owner and a precommitted decision rule.
+3. **Decision rule:** ship only when the primary result and guardrails support the stated threshold.
+
+## Recall and apply
 
 Try to answer these questions from memory:
 

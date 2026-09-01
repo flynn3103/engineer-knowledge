@@ -154,7 +154,15 @@ You don't need all of these every time. Pick the one that fits the moment. The g
 - Back to [Metacognition & learning](../) · [Engineering Thinking](../../README.md)
 
 ---
-## Check your understanding
+## Use it today
+
+1. When you feel certain, write the evidence and one alternative explanation.
+2. Ask a teammate to challenge the assumption, not you personally.
+3. Update your view when the evidence disagrees.
+
+## Recall and apply
+
+Use these prompts to check your understanding and choose one action to try in your next task.
 
 Try to answer these questions from memory:
 

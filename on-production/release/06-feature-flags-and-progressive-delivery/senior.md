@@ -20,7 +20,9 @@ When a release goes bad, you have three levers, in order of speed:
 2. **Traffic shift / canary abort** — minutes. Route traffic back to the previous version (Argo/Flagger, load balancer).
 3. **Binary rollback / redeploy** — many minutes to tens of minutes. Re-deploy the previous artifact; re-runs the whole pipeline.
 
-For anything you can gate behind a flag, **the flag is your fastest rollback** — and speed is what bounds the damage. This is why senior engineers deliberately ship risky changes *behind flags they can kill*, not just behind flags they can roll out. The rollout flag and the kill-switch are often the same flag used in two directions.
+- For anything you can gate behind a flag, **the flag is your fastest rollback** — and speed is what bounds the damage.
+- This is why senior engineers deliberately ship risky changes *behind flags they can kill*, not just behind flags they can roll out.
+- The rollout flag and the kill-switch are often the same flag used in two directions.
 
 ```go
 // A change shipped so it can be killed instantly, with a safe default.
@@ -33,15 +35,23 @@ if flags.BoolValue(ctx, "risky-new-pricing", false) {
 }
 ```
 
-The caveat that makes this *senior*: a flag only rolls you back if **the old path still exists and still works.** The moment you delete `legacyPricing`, the flag is no longer a rollback — it's just a fork that both lead to new code. Keep the off-path viable for the whole life of a kill-switch, and verify it (Concept 6). For the full revert-vs-roll-forward picture, see [Rollback & Roll-Forward](../07-rollback-and-roll-forward/README.md).
+The caveat that makes this *senior*:
+
+- A flag only rolls you back if **the old path still exists and still works.**
+- The moment you delete `legacyPricing`, the flag is no longer a rollback — it's just a fork that both lead to new code.
+- Keep the off-path viable for the whole life of a kill-switch, and verify it (Concept 6). For the full revert-vs-roll-forward picture, see [Rollback & Roll-Forward](../07-rollback-and-roll-forward/README.md).
 
 ---
 
 ## Core Concept 2 — The Knight Capital Lesson
 
-On 1 August 2012, Knight Capital Group deployed new trading code to its servers. The deploy reused an old flag — specifically, it repurposed a flag bit that, on one of eight servers, still activated a long-dormant, defunct piece of code called *Power Peg*. The deploy was not applied to all eight servers, so one server ran the new meaning of the flag while still wired to the old, dead code path the flag used to control.
+On 1 August 2012, Knight Capital Group deployed new trading code to its servers.
 
-When trading opened, that server began sending millions of unintended child orders. In **about 45 minutes** Knight accumulated a roughly **$460 million** loss and was effectively bankrupted within days. It is the canonical disaster of flag/release engineering, and every clause of it is a lesson:
+- The deploy **reused an old flag** — specifically, it repurposed a flag bit that, on one of eight servers, still activated a long-dormant, defunct piece of code called *Power Peg*.
+- The deploy was not applied to all eight servers, so one server ran the new meaning of the flag while still wired to the old, dead code path the flag used to control.
+- When trading opened, that server began sending millions of unintended child orders. In **about 45 minutes** Knight accumulated a roughly **$460 million** loss and was effectively bankrupted within days.
+
+It is the canonical disaster of flag/release engineering, and every clause of it is a lesson:
 
 - **Reusing a flag's meaning is lethal.** The same flag controlled two different behaviors at two different times. A flag's identity must be permanent and singular. Never recycle a flag key for a new purpose.
 - **Dead code behind a stale flag is a loaded gun.** *Power Peg* should have been deleted years earlier. It survived only because removing dead code felt unnecessary. The flag kept it reachable.
@@ -54,9 +64,8 @@ When trading opened, that server began sending millions of unintended child orde
 
 ## Core Concept 3 — Flag Config IS Production Config
 
-A flag change does everything a deploy does — alters production behavior for real users — but typically with **none of the controls**: no PR review, no CI, no canary, no signed artifact, no automatic audit trail of "who changed what and why." That gap is the senior-level risk to close.
-
-Apply deploy-grade discipline to flag changes proportional to blast radius:
+- A flag change does everything a deploy does — alters production behavior for real users — but typically with **none of the controls**: no PR review, no CI, no canary, no signed artifact, no automatic audit trail of "who changed what and why."
+- That gap is the senior-level risk to close: apply deploy-grade discipline to flag changes proportional to blast radius.
 
 | Control | Low-risk flag (1% experiment) | High-risk flag (global kill-switch) |
 |---|---|---|
@@ -66,7 +75,13 @@ Apply deploy-grade discipline to flag changes proportional to blast radius:
 | **Rollback** | flip back | rehearsed runbook + on-call aware |
 | **Blast-radius preview** | optional | mandatory ("this affects N users") |
 
-Concretely: the flag platform should show *how many users a change will affect before you commit it*, require a reason string, log every change immutably, and (for high-risk flags) gate behind a second approver — the **two-person rule** you'd never skip for a prod deploy. Treating "flip flag" as a casual UI action while treating "deploy" as sacred is the asymmetry that kills you. The `ci-cd-pipeline-design` skill's review-before-prod mindset applies to flag changes too.
+Concretely, the flag platform should:
+
+- Show *how many users a change will affect* before you commit it.
+- Require a reason string and log every change immutably.
+- Gate high-risk flags behind a second approver — the **two-person rule** you'd never skip for a prod deploy.
+
+Treating "flip flag" as a casual UI action while treating "deploy" as sacred is the asymmetry that kills you. The `ci-cd-pipeline-design` skill's review-before-prod mindset applies to flag changes too.
 
 ---
 
@@ -74,13 +89,17 @@ Concretely: the flag platform should show *how many users a change will affect b
 
 Two properties of flag evaluation become first-order concerns at scale.
 
-**Consistency.** When you flip a flag, your fleet doesn't update atomically. Instance A (streaming) sees it in 200ms; instance B (polling, 30s) sees it 28 seconds later. During that **consistency window** users may get different behavior on consecutive requests — fine for a cosmetic toggle, *not* fine for a flag that changes a data write format or a stateful workflow. For those, you need either fast streaming with bounded skew, or you design the change so both values are simultaneously safe (Concept 6).
+**Consistency.**
+
+- When you flip a flag, your fleet doesn't update atomically. Instance A (streaming) sees it in 200ms; instance B (polling, 30s) sees it 28 seconds later.
+- During that **consistency window** users may get different behavior on consecutive requests — fine for a cosmetic toggle, *not* fine for a flag that changes a data write format or a stateful workflow.
+- For those, you need either fast streaming with bounded skew, or you design the change so both values are simultaneously safe (Concept 6).
 
 **Performance.** Flag evaluation sits on the hot path of every request. Rules:
 
 - Evaluate **locally, in-process**, from a cached ruleset. A network call per evaluation couples your latency *and* availability to the vendor's — unacceptable on the hot path.
 - The ruleset refresh (stream/poll) is the only network dependency, and it's off the request path.
-- Persist LKG to disk so a cold start during a flag-service outage still has values.
+- Persist LKG (last-known-good) to disk so a cold start during a flag-service outage still has values.
 - Watch the cost of rich targeting: a flag with hundreds of rules and large segment lists evaluated millions of times/sec is real CPU. Keep rules lean; prefer attribute checks over big inclusion lists.
 
 ```go
@@ -176,7 +195,13 @@ spec:
               / sum(rate(http_requests_total{job="checkout"}[1m])) < 0.01
 ```
 
-The principles: choose guardrails that *see the specific change* (a global success-rate may not catch a feature-specific bug — add a feature-scoped metric); make abort automatic and faster than a human; and remember that flag-level rollouts and deployment-level canaries are complementary — the flag controls *behavior*, the rollout controls *which binary serves traffic*. Lean on the `monitoring-alerting` skill to define guardrails that won't promote a quietly broken release.
+The principles:
+
+- Choose guardrails that *see the specific change* (a global success-rate may not catch a feature-specific bug — add a feature-scoped metric).
+- Make abort automatic and faster than a human.
+- Remember that flag-level rollouts and deployment-level canaries are complementary — the flag controls *behavior*, the rollout controls *which binary serves traffic*.
+
+Lean on the `monitoring-alerting` skill to define guardrails that won't promote a quietly broken release.
 
 ---
 
@@ -239,3 +264,8 @@ comm -23 \
 - Where should recovery responsibility live, and why?
 - Which assumption deserves an experiment before implementation?
 - How can the design evolve without changing every consumer at once?
+- What does it mean to design a flag that is "safe to flip," especially across a fleet?
+- Walk through the Knight Capital incident and the lessons it teaches about flags.
+- Your new pricing logic ships and starts producing wrong totals in production — how do you respond?
+- A PM asks to let anyone on the team flip any flag instantly from a dashboard — how do you respond?
+- A flag propagates over a 30-second polling window and changes a data-write format — what can go wrong?

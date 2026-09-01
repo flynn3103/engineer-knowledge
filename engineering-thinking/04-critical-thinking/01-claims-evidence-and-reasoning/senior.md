@@ -6,6 +6,13 @@
 
 ---
 
+## Action card
+1. Separate observed facts from inferences.
+2. Check evidence provenance and competing warrants.
+3. Run the smallest experiment that distinguishes the warrants.
+
+**Decision rule:** when evidence is thin, state the bet, confidence, and reversal path.
+
 ## 1. Provenance: where evidence came from changes what it means
 
 Junior thinking ranks evidence by *type* (profile > benchmark > anecdote). Senior thinking adds a second axis: **provenance** — the conditions under which the evidence was produced, which determines what it can be generalized to.
@@ -131,7 +138,7 @@ As a senior you don't just reason well; you make good reasoning the path of leas
 - Back to [Critical Thinking](../) · [Engineering Thinking](../../README.md).
 
 ---
-## Check your understanding
+## Recall and apply
 
 Try to answer these questions from memory:
 

@@ -5,6 +5,13 @@
 
 ---
 
+## Quick use
+1. Require an assumptions table with owner, confidence, and monitor.
+2. Use pre-mortems for large bets and slow down one-way doors.
+3. Turn time- and scale-sensitive assumptions into alerts or contracts.
+
+**Decision rule:** make doubt safe to raise and visible in the decision artifact.
+
 ## 1. The unit of failure at scale is a shared, unexamined assumption
 
 Individual engineers make small assumptions. Organizations make *enormous* ones, held collectively, written nowhere, and therefore never challenged. These are the assumptions behind the headline outages and the strategic dead-ends:
@@ -173,7 +180,7 @@ Half of strategic "impossibles" dissolve when you separate the load-bearing cons
 - Back to the [first-principles-thinking section](../) or the [roadmap root](../../README.md).
 
 ---
-## Check your understanding
+## Recall and apply
 
 Try to answer these questions from memory:
 

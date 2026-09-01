@@ -8,12 +8,12 @@
 
 The knowledge required for modern engineering work is scattered across countless blogs, courses, and documentation. This project brings it all together in **one place**, in a **structured way**, organized around eight domains:
 
-- **Craftsmanship** — code review, object-oriented design, disciplined testing, documentation, build engineering, legacy code, anti-patterns, and technical debt
+- **Craftsmanship** — code review, object-oriented design, disciplined testing, documentation, build engineering, diagnostics, legacy code, anti-patterns, and technical debt
 - **Programming Languages** — Go plus shared language/runtime internals
 - **Networking** — protocols, DNS, CDNs, load balancing, service communication, and APIs at scale
 - **On Production** — estimation, testing, performance, release, and diagnostics for a system after it ships (more sections planned)
 - **Engineering Thinking** — computational, systems, critical, first-principles, probabilistic, creative, scientific, and metacognitive reasoning
-- **Data Engineering** — concurrency, async & parallel programming (more sections planned)
+- **Data Engineering** — databases, distributed systems, event streaming, orchestration, storage, and concurrent processing
 - **AI Engineering** — *coming soon*
 - **Project** — *coming soon*
 
@@ -21,14 +21,14 @@ The knowledge required for modern engineering work is scattered across countless
 
 ```
 📁 engineer-knowledge
-├── 📂 craftsmanship/                     # Review, design, testing discipline, docs, builds, legacy code, and debt
+├── 📂 craftsmanship/                     # Review, design, testing discipline, docs, builds, diagnostics, legacy code, and debt
 ├── 📂 programming-languages/
 │   ├── golang/                           # Go roadmap — concurrency through production debugging
 │   └── language-internals/               # Runtime, memory, types, compilers, and interoperability
 ├── 📂 networking/                         # Protocols, traffic delivery, service communication, and APIs
 ├── 📂 on-production/                     # Estimation, testing, performance, release, diagnostics + planned sections
 ├── 📂 engineering-thinking/              # 9 sections: computational thinking → metacognition and learning
-├── 📂 data-engineering/                  # Concurrency, async & parallel + planned sections
+├── 📂 data-engineering/                  # Databases, distributed systems, streaming, scheduling, storage, and concurrency
 ├── 📂 ai-engineering/                    # Coming soon
 └── 📂 Project/                           # Coming soon
 ```

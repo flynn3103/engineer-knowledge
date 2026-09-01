@@ -5,6 +5,13 @@
 
 ---
 
+## Quick use
+1. Make floor models durable, reviewed artifacts for load-bearing systems.
+2. Teach the law/requirement/convention taxonomy.
+3. Set an explicit boundary between derivation and proven industry practice.
+
+**Decision rule:** derive differentiating, irreversible bets; adopt mature undifferentiated solutions.
+
 ## 1. The principal's actual problem
 
 A staff or principal engineer rarely has time to do first-principles analysis on every decision personally — the leverage is in making *the organization* reason this way without you in the room. That means three deliverables:
@@ -141,7 +148,7 @@ Even at principal level, first-principles reasoning has hard boundaries you must
 The companion disciplines — choosing *which* assumptions warrant the spotlight in [questioning assumptions](../02-questioning-assumptions/), the rebuild path in [rebuilding from scratch](../03-rebuilding-solutions-from-scratch/), the whole-system framing of [systems thinking](../../03-systems-thinking/), and the bias-audit of [critical thinking](../../04-critical-thinking/) — are what keep a floor model honest at scale.
 
 ---
-## Check your understanding
+## Recall and apply
 
 Try to answer these questions from memory:
 

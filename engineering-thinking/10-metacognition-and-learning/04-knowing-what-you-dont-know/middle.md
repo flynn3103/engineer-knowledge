@@ -153,7 +153,13 @@ You're now senior enough that *juniors watch how you handle ignorance.* When you
 - Gawande, A. (2009). *The Checklist Manifesto.*
 
 ---
-## Check your understanding
+## Use it today
+
+1. Maintain an uncertainty list for a design, incident, or unfamiliar system.
+2. Rank unknowns by impact and urgency.
+3. Resolve the highest-risk unknown with the cheapest reliable evidence.
+
+## Recall and apply
 
 Try to answer these questions from memory:
 

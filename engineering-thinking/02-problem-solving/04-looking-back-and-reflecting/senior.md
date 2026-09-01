@@ -139,7 +139,9 @@ The outage produced a permanent improvement to the *system* and to *how the team
 Next: [professional](./professional.md) — institutionalizing reflection across an organization. Back to the [problem-solving section](../) · [engineering thinking roadmap](../../README.md).
 
 ---
-## Check your understanding
+## Recall and apply
+
+**Practice loop:** After one task, record what you expected, what happened, what changed your mind, and one reusable lesson.
 
 Try to answer these questions from memory:
 

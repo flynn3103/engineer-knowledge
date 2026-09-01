@@ -6,6 +6,13 @@
 
 ---
 
+## Action card
+1. Separate the defensible claim from the action being proposed.
+2. Compare real options with the real baseline.
+3. Change incentives when a metric is being gamed.
+
+**Decision rule:** counter the argument structure, not the speaker.
+
 ## 1. The senior shift: from facts to structure
 
 By now you can name fallacies and supply missing evidence. The senior problem is different: the most damaging fallacies in technical debates aren't *factual* errors you can correct with a benchmark. They're *structural* — the argument is built so that no fact can touch it. You defeat those by exposing the structure, not by arguing the surface claim.
@@ -176,7 +183,7 @@ This is where critical thinking becomes *culture*: you're not winning individual
 Next, at the professional level: spotting these patterns across org-wide RFCs, post-mortems, and strategy documents — and the institutional norms that defuse them at the scale of dozens of teams.
 
 ---
-## Check your understanding
+## Recall and apply
 
 Try to answer these questions from memory:
 

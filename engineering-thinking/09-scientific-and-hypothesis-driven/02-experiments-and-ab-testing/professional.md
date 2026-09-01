@@ -121,7 +121,13 @@ The most-skipped, highest-value practice: **go back and check.** Months after sh
 - [Section root](../) · [Engineering Thinking roadmap](../../README.md)
 
 ---
-## Check your understanding
+## Use it today
+
+1. Provide shared experimentation standards, instrumentation, and review paths.
+2. Track cumulative learning, not only individual wins.
+3. Protect users with clear ethics, guardrails, and escalation rules.
+
+## Recall and apply
 
 Try to answer these questions from memory:
 

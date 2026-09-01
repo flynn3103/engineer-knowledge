@@ -118,7 +118,13 @@ Measurement stops being something you *do* and becomes something the *system enf
 The throughline from junior to principal is unchanged — *never optimize blind* — but the scope grows: you're no longer just measuring your code, you're building the organizational machinery that guarantees everyone measures before they optimize, and that nobody optimizes past what the business actually needs. See [hypothesis and falsifiability](../01-hypothesis-and-falsifiability/), [experiments and A/B testing](../02-experiments-and-ab-testing/), [spikes and prototypes](../04-spikes-and-prototypes/), and the [engineering-thinking overview](../../README.md) for the broader framework this sits in.
 
 ---
-## Check your understanding
+## Use it today
+
+1. Invest in observability that makes important costs and trade-offs visible.
+2. Set organization-wide performance budgets and ownership.
+3. Prioritize optimization work by measured customer impact and cost of delay.
+
+## Recall and apply
 
 Try to answer these questions from memory:
 

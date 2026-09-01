@@ -5,6 +5,13 @@
 
 ---
 
+## Quick use
+1. State the goal as a number.
+2. List what must be true versus what is merely familiar.
+3. Compute a rough floor and compare it with reality.
+
+**Decision rule:** a large gap above the floor needs an explanation before new machinery.
+
 ## 1. Two ways to answer any question
 
 There are only two ways to decide *how* to build something.
@@ -170,7 +177,9 @@ For one week, every time you hear "because that's how we do it" or "because it's
 Next, sharpen the partner skill of pulling apart the assumptions hiding inside a requirement in [questioning assumptions](../02-questioning-assumptions/), and when you're ready to throw the inherited design away entirely, see [rebuilding solutions from scratch](../03-rebuilding-solutions-from-scratch/). The broader family of these mental tools lives in [critical thinking](../../04-critical-thinking/).
 
 ---
-## Check your understanding
+## Recall and apply
+
+Use these prompts to check your understanding and choose one action to try in your next task.
 
 Try to answer these questions from memory:
 

@@ -115,7 +115,9 @@ Meadows ranks loop parameters and feedback structure high among leverage points 
 **Keep this:** an organization is a system of feedback loops. Make the corrective loops fast and the amplifying loops bounded, watch which one dominates near the limit, and the whole socio-technical system becomes self-stabilizing instead of self-destructing.
 
 ---
-## Check your understanding
+## Recall and apply
+
+**Practice loop:** Draw one feedback loop. Label the reinforcing or balancing effect, delay, and metric that would show it.
 
 Try to answer these questions from memory:
 

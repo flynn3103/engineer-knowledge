@@ -15,7 +15,9 @@ Use the smallest realistic scenario that exposes the decision and its failure be
 
 The senior page introduced continuous profiling as a capability. At the professional level it's a *system you run*, with the same operational weight as your metrics pipeline — agents, a storage backend, retention policy, query API, and an on-call rotation when it breaks.
 
-The lineage matters because it explains the design. Google's **Google-Wide Profiling (GWP)** (Ren et al., IEEE Micro 2010) established the model: sample a small, randomly-chosen subset of machines across the entire datacenter at low frequency, all the time, and aggregate the results centrally. The insight was statistical — you don't need to profile every host continuously; you need enough samples across the fleet that aggregate attribution converges. GWP made "which function, across all of Google, burns the most CPU" a query you ran against a table, not a study you commissioned. Every modern continuous profiler is a descendant of that idea.
+- The lineage matters because it explains the design. Google's **Google-Wide Profiling (GWP)** (Ren et al., IEEE Micro 2010) established the model: sample a small, randomly-chosen subset of machines across the entire datacenter at low frequency, all the time, and aggregate the results centrally.
+- The insight was statistical — you don't need to profile every host continuously; you need enough samples across the fleet that aggregate attribution converges.
+- GWP made "which function, across all of Google, burns the most CPU" a query you ran against a table, not a study you commissioned. Every modern continuous profiler is a descendant of that idea.
 
 The open-source and commercial successors split into two architectural camps:
 
@@ -42,9 +44,9 @@ pyroscope.Start(pyroscope.Config{
 })
 ```
 
-The choice between camps is the recurring professional tradeoff: eBPF agents give you *coverage* (everything, instantly, no buy-in from app teams) but only the dimensions the kernel sees (process, function, host). SDKs give you *richness* (endpoint, tenant, trace correlation) but require every team to adopt them. The mature answer is usually **both** — an eBPF agent for fleet-wide baseline coverage, plus SDK labels in the services where slicing by endpoint or tenant pays for the integration cost.
-
-What you get for running it is a profile *of the past*. Metrics tell you CPU was at 80% at 14:32; a continuous profiler tells you *which function* was burning that 80% at 14:32, queryable after the fact, without having reproduced anything. That is the capability that turns "we couldn't repro it" into "let me pull the profile from the window it happened in."
+- The choice between camps is the recurring professional tradeoff: eBPF agents give you *coverage* (everything, instantly, no buy-in from app teams) but only the dimensions the kernel sees (process, function, host). SDKs give you *richness* (endpoint, tenant, trace correlation) but require every team to adopt them.
+- The mature answer is usually **both** — an eBPF agent for fleet-wide baseline coverage, plus SDK labels in the services where slicing by endpoint or tenant pays for the integration cost.
+- What you get for running it is a profile *of the past*. Metrics tell you CPU was at 80% at 14:32; a continuous profiler tells you *which function* was burning that 80% at 14:32, queryable after the fact, without having reproduced anything. That is the capability that turns "we couldn't repro it" into "let me pull the profile from the window it happened in."
 
 > **The professional reality:** continuous profiling is the fourth observability pillar, next to metrics, logs, and traces — and it's the only one that answers "where exactly are the cycles going" at function granularity, fleet-wide, retroactively. Standing it up is infrastructure work (agents, storage, retention, query), not a developer convenience. Once it exists, "let me profile this" is replaced by "let me query the profile that's already there."
 
@@ -54,7 +56,7 @@ What you get for running it is a profile *of the past*. Metrics tell you CPU was
 
 The entire practice rests on a single number: the per-host overhead has to be small enough that running it *permanently on production* is uncontroversial. The working budget is **under 1–2% of CPU**, and everything about the design exists to hold that line.
 
-The math is the senior overhead model applied at scale. Cost per sample is roughly: take the interrupt, latch the RIP, walk the stack, record. At 19 Hz with frame-pointer or eBPF unwinding, that's a few microseconds, nineteen times a second, per core — comfortably under 1%. The levers, in order of impact:
+The math is the senior overhead model applied at scale — cost per sample is roughly: take the interrupt, latch the RIP, walk the stack, record. At 19 Hz with frame-pointer or eBPF unwinding, that's a few microseconds, nineteen times a second, per core — comfortably under 1%. The levers, in order of impact:
 
 - **Frequency.** Linear in cost. GWP-style fleet profiling runs at **~19–100 Hz**, not the 999 Hz you'd use for a focused one-off. You compensate for the lower per-host rate with the *number of hosts and duration* — aggregate samples across the fleet still converge.
 - **Unwinding method.** This is where budgets are blown. Frame pointers (`-fno-omit-frame-pointer`, `-XX:+PreserveFramePointer`) and LBR are cheap; **DWARF unwinding copies kilobytes of stack per sample** and can push a continuous profiler from sub-1% to several percent — fine for a one-off, disqualifying for always-on. This is the single biggest reason Fedora and Ubuntu re-enabled frame pointers archive-wide: it converts the whole fleet from "DWARF-only, expensive to profile" to "fp, cheap to profile always."
@@ -77,7 +79,7 @@ The discipline is to **measure** the overhead, not assume it. A misconfigured ag
 
 Here is the capability that makes continuous profiling fund itself: turning a fleet-wide flame graph into a **dollar-denominated cost-attribution report**. This is the artifact that gets the program budget renewed.
 
-The chain is mechanical once the profiler exists. A flame graph is a set of (stack, sample-count) pairs. Sample count is proportional to CPU time. CPU time, multiplied by your fleet's cost-per-core-hour, is dollars. So every frame in the aggregate flame graph carries an attributable cost:
+The chain is mechanical once the profiler exists. A flame graph is a set of (stack, sample-count) pairs. Sample count is proportional to CPU time. CPU time, multiplied by your fleet's cost-per-core-hour, is dollars:
 
 ```
 fleet CPU cost of a function
@@ -87,7 +89,9 @@ fleet CPU cost of a function
   × (hours)
 ```
 
-Plug in real numbers. A 12,000-core fleet on cloud instances at roughly **$0.04 per core-hour** (a typical blended on-demand-plus-savings-plan rate) costs ~$4.2M/year in compute. If the aggregate profile shows JSON serialization across all services is **6%** of fleet CPU, that's **720 cores, ~$250K/year**, spent encoding and decoding JSON. Now "should we adopt a faster codec" is not an aesthetic debate — it's a quarter-million-dollar line item with a named owner.
+- A 12,000-core fleet on cloud instances at roughly **$0.04 per core-hour** (a typical blended on-demand-plus-savings-plan rate) costs ~$4.2M/year in compute.
+- If the aggregate profile shows JSON serialization across all services is **6%** of fleet CPU, that's **720 cores, ~$250K/year**, spent encoding and decoding JSON.
+- Now "should we adopt a faster codec" is not an aesthetic debate — it's a quarter-million-dollar line item with a named owner.
 
 The same arithmetic rolls up by **service** and by **team**:
 
@@ -153,7 +157,9 @@ A caution that bites: labels must be **bounded cardinality**. Tag by *route patt
 
 The marquee feature of continuous profiling is **differential**: not "what is hot" but "what got *hotter* between release N and release N+1." A flame-graph diff between two time windows — or two `version` labels — points straight at the function that regressed, and therefore at the commit that caused it.
 
-The mechanism is subtraction. Take the aggregate profile for the week before a deploy (or filtered to `version=old`) and the week after (`version=new`), normalize both to per-request or per-unit-work (crucial — raw CPU rises with traffic, which isn't a regression), and render the *delta*. Functions that grew show up as hot in the diff; functions unchanged cancel to zero. A **differential flame graph** colors growth red and shrinkage blue, so a CPU regression is a red tower sitting on the exact frame that got more expensive.
+- The mechanism is subtraction. Take the aggregate profile for the week before a deploy (or filtered to `version=old`) and the week after (`version=new`), normalize both to per-request or per-unit-work (crucial — raw CPU rises with traffic, which isn't a regression), and render the *delta*.
+- Functions that grew show up as hot in the diff; functions unchanged cancel to zero.
+- A **differential flame graph** colors growth red and shrinkage blue, so a CPU regression is a red tower sitting on the exact frame that got more expensive.
 
 ```bash
 # Go pprof: base = before the deploy, current = after
@@ -165,9 +171,15 @@ go tool pprof -diff_base=before.pprof after.pprof
 # version labels → "Diff" view renders the red/blue differential flame graph directly.
 ```
 
-The non-obvious discipline is **normalization**. If traffic grew 15% between the windows, *every* function burns ~15% more CPU — that's load, not a regression. Diff on a per-request basis (CPU-seconds per request, or sample-share rather than absolute samples) so genuine load growth cancels and only *relative* changes survive. Skipping this is the classic false alarm: a diff that lights up everything because you compared a quiet Sunday to a busy Monday.
+- The non-obvious discipline is **normalization**. If traffic grew 15% between the windows, *every* function burns ~15% more CPU — that's load, not a regression.
+- Diff on a per-request basis (CPU-seconds per request, or sample-share rather than absolute samples) so genuine load growth cancels and only *relative* changes survive.
+- Skipping this is the classic false alarm: a diff that lights up everything because you compared a quiet Sunday to a busy Monday.
 
-This turns regression-hunting from archaeology into a filter. The old workflow was "compute spend went up, bisect through deploys, reproduce locally, profile." The new one is "open the diff between the two suspect versions, read the red tower, it names the function and often the line." Wired into CI/CD, the diff can even gate a release: capture a profile from a canary running `version=new`, diff against `version=old` on the same traffic, and **fail the rollout if any function's CPU share grew beyond a threshold** — a CPU-regression test, the profiling analog of a performance budget (see [07 — Performance Budgets and Regression Testing](../../07-performance-budgets-and-regression-testing/professional.md)).
+This turns regression-hunting from archaeology into a filter:
+
+- The old workflow was "compute spend went up, bisect through deploys, reproduce locally, profile."
+- The new one is "open the diff between the two suspect versions, read the red tower, it names the function and often the line."
+- Wired into CI/CD, the diff can even gate a release: capture a profile from a canary running `version=new`, diff against `version=old` on the same traffic, and **fail the rollout if any function's CPU share grew beyond a threshold** — a CPU-regression test, the profiling analog of a performance budget (see [07 — Performance Budgets and Regression Testing](../../07-performance-budgets-and-regression-testing/professional.md)).
 
 > **Key insight:** the highest-value thing a continuous profiler does is *diff*. Two windows (or two `version` labels), normalized per-request, rendered as a red/blue differential flame graph, names the function that regressed and points at the commit — turning "why did CPU creep up" from a multi-day bisect into a thirty-second read. Normalize per unit of work, or load growth masquerades as regression.
 
@@ -190,9 +202,9 @@ cp cpu.pprof ./cmd/server/default.pgo
 go build ./cmd/server      # "profile-guided optimization" in build output
 ```
 
-Go's PGO primarily drives **more aggressive, profile-informed inlining** (and devirtualization of hot interface calls): functions that are hot in production get inlined past the default budget, hot interface call sites get speculatively devirtualized. Reported gains are typically **2–7%** CPU on real services — modest per build, but it compounds across a large fleet and costs almost nothing once the profile-collection pipeline exists.
-
-**Java's** equivalent is the JIT's own runtime profiling (the JIT already profiles and recompiles hot methods continuously — PGO is, in a sense, the JVM's native mode), plus ahead-of-time toolchains: **AutoFDO** (Google's pipeline that turns `perf` LBR profiles into compiler feedback for AOT/JIT) and **BOLT** (a *post-link binary optimizer* that re-lays-out an already-compiled binary's code using a production profile, improving I-cache and iTLB behavior — gains of 5–15% on large C/C++/Go binaries are common, on top of PGO). The same lineage — AutoFDO, **Propeller**, BOLT — is what Google and Meta run on their largest binaries.
+- Go's PGO primarily drives **more aggressive, profile-informed inlining** (and devirtualization of hot interface calls): functions that are hot in production get inlined past the default budget, hot interface call sites get speculatively devirtualized.
+- Reported gains are typically **2–7%** CPU on real services — modest per build, but it compounds across a large fleet and costs almost nothing once the profile-collection pipeline exists.
+- **Java's** equivalent is the JIT's own runtime profiling (the JIT already profiles and recompiles hot methods continuously — PGO is, in a sense, the JVM's native mode), plus ahead-of-time toolchains: **AutoFDO** (Google's pipeline that turns `perf` LBR profiles into compiler feedback for AOT/JIT) and **BOLT** (a *post-link binary optimizer* that re-lays-out an already-compiled binary's code using a production profile, improving I-cache and iTLB behavior — gains of 5–15% on large C/C++/Go binaries are common, on top of PGO). The same lineage — AutoFDO, **Propeller**, BOLT — is what Google and Meta run on their largest binaries.
 
 The pipeline discipline that separates a working PGO setup from a footgun:
 
@@ -240,7 +252,7 @@ asprof -d 30 -e cpu -f /tmp/incident.html <pid>
 asprof -d 30 -e wall -f /tmp/incident-wall.html <pid>
 ```
 
-And **JDK Flight Recorder (JFR)** — built into the JVM, designed for *always-acceptable* overhead (~1%), startable on a live process:
+**JDK Flight Recorder (JFR)** — built into the JVM, designed for *always-acceptable* overhead (~1%), startable on a live process:
 
 ```bash
 # Start a recording on a running JVM without restart; dump it mid-incident:
@@ -318,21 +330,13 @@ The cultural piece that makes it stick: **make the cost visible and the regressi
 ## Common Mistakes
 
 1. **Profiling a synthetic benchmark and calling it the production workload.** The expensive bugs (pathological inputs, real data distributions, co-tenant pressure) only appear in production. Run continuous profiling on the real fleet; the benchmark will never have production's data.
-
 2. **Blowing the overhead budget with DWARF unwinding or high frequency, then disabling "always-on" because it's expensive.** The budget is won at the unwinder: frame pointers/LBR/eBPF + 19–99 Hz + in-kernel aggregation keeps it sub-2%. Measure with `perf stat` before declaring it too costly.
-
 3. **Producing flame graphs but never dollars.** A profiling program justified by "we can see flame graphs" gets cut. The same data, costed as $/core per service and per team, identifies six-figure wins and funds itself. Ship the cost-attribution report.
-
 4. **Diffing without normalizing per unit of work.** Comparing a busy window to a quiet one lights up every function — that's load, not regression. Normalize to per-request / sample-share so genuine growth cancels and only relative changes survive.
-
 5. **Unbounded label cardinality.** Tagging by raw path (`/users/8675309`) instead of route pattern (`/users/{id}`) explodes the profile store the way unbounded Prometheus labels do. Keep `endpoint`/`tenant` bounded.
-
 6. **Feeding PGO a stale or unrepresentative profile.** PGO optimizes for the distribution it's shown; a stale profile pessimizes the *current* workload (one team caught exactly this). Refresh from the continuous store, merge across hosts for representativeness, verify the win with a diff.
-
 7. **Discovering during an incident that `/debug/pprof` isn't exposed.** The capability is free but must be wired up *in advance*, on a locked-down admin port. Bake it into the base image; an outage is the wrong time to learn it's missing.
-
 8. **Restarting the burning process before profiling it.** The restart "fixes" it and deletes the evidence, guaranteeing a recurrence. Capture the live profile (and a thread/goroutine dump) *first*, then mitigate.
-
 9. **No owner, no routing.** A profiler nobody owns rots; a regression nobody is paged for is ignored. Platform owns the sensor; regressions auto-route to the owning team with the flame graph attached.
 
 ---
@@ -358,3 +362,10 @@ The cultural piece that makes it stick: **make the cost visible and the regressi
 - Which team owns the full lifecycle and incident response?
 - What reversible increment produces the earliest useful evidence?
 - Which exit condition proves that migration or adoption is complete?
+- What is continuous profiling, and why run a profiler in production all the time instead of only during investigations?
+- How do you set and verify an overhead budget for always-on production profiling?
+- During a live latency-spike incident, how does profiling fit into your response, and in what order?
+- How do you distinguish profiling from benchmarking, and when do you use each?
+- How would you attribute fleet-wide CPU cost to specific teams or functions, and turn it into a dollar figure?
+- Who should own continuous profiling infrastructure versus who owns fixing a detected regression?
+- How do you decide whether a service should adopt profile-guided optimization?

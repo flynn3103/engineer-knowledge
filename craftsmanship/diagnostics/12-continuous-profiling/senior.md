@@ -355,7 +355,7 @@ In production you ship **stripped** binaries — debug info removed to shrink im
 
 ## Continuous vs Point-in-Time Profiling
 
-These are partners. Continuous profiling lives here; point-in-time, laptop, "now I optimise this function" profiling lives in [`../../performance/01-profiling/`](../../performance/01-profiling/README.md). Keep the boundary clean.
+These are partners. Continuous profiling lives here; point-in-time, laptop, "now I optimise this function" profiling lives in [`../../../On-Production/performance/01-profiling/`](../../../On-Production/performance/01-profiling/README.md). Keep the boundary clean.
 
 | | **Continuous (this roadmap)** | **Point-in-time (Performance → Profiling)** |
 |---|---|---|

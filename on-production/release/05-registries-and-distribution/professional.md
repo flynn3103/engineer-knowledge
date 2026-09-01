@@ -14,7 +14,8 @@ Use the smallest realistic scenario that exposes the decision and its failure be
 
 ## Core Concept 1 — Distribution as an org-wide platform
 
-A platform team owns "how artifacts are published and consumed here" so product teams don't each reinvent it. The platform provides:
+- A platform team owns "how artifacts are published and consumed here" so product teams don't each reinvent it.
+- The platform provides:
 
 - **One blessed path to publish** (a reusable CI workflow) that signs, attaches provenance + SBOM, publishes by digest, and records the release.
 - **One blessed path to consume** (proxies/mirrors with scanning, resolver config that blocks dependency confusion, admission policy in clusters).
@@ -25,9 +26,13 @@ A platform team owns "how artifacts are published and consumed here" so product 
 
 ## Core Concept 2 — Trusted publishing and the death of long-lived tokens
 
-Long-lived publish tokens are the worst credential class in distribution: broadly scoped (publish under your name), rarely rotated, and catastrophic if leaked — and they leak (CI logs, env dumps, committed `.npmrc`). **Trusted publishing** eliminates them.
+- Long-lived publish tokens are the worst credential class in distribution: broadly scoped (publish under your name), rarely rotated, and catastrophic if leaked — and they leak (CI logs, env dumps, committed `.npmrc`).
+- **Trusted publishing** eliminates them.
 
-The mechanism: your CI provider (GitHub Actions, GitLab) issues a short-lived **OIDC** token asserting "this run is from repo X, workflow Y, branch Z." The registry is configured to *trust* that specific claim and mints a short-lived publish credential — no secret stored anywhere.
+The mechanism:
+
+- Your CI provider (GitHub Actions, GitLab) issues a short-lived **OIDC** token asserting "this run is from repo X, workflow Y, branch Z."
+- The registry is configured to *trust* that specific claim and mints a short-lived publish credential — no secret stored anywhere.
 
 ```yaml
 # PyPI trusted publishing — no API token anywhere
@@ -45,13 +50,22 @@ jobs:
     NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}   # or, increasingly, OIDC trusted publishing
 ```
 
-PyPI and npm both support trusted publishing; container registries support the analogous pattern via cloud workload identity (GitHub OIDC → ECR/GHCR/Artifactory) so no static cloud keys live in CI.
+- PyPI and npm both support trusted publishing.
+- Container registries support the analogous pattern via cloud workload identity (GitHub OIDC → ECR/GHCR/Artifactory) so no static cloud keys live in CI.
 
-**Rollout as a program:** inventory every place a long-lived publish token exists → enable trusted publishing per package/registry → revoke the old tokens → add a policy check that *fails CI* if a publish step uses a static token. Trusted publishing also strengthens provenance: because the registry verified the OIDC claim, the "published from repo X / workflow Y" statement is trustworthy by construction.
+**Rollout as a program:**
+
+1. Inventory every place a long-lived publish token exists.
+2. Enable trusted publishing per package/registry.
+3. Revoke the old tokens.
+4. Add a policy check that *fails CI* if a publish step uses a static token.
+
+Trusted publishing also strengthens provenance: because the registry verified the OIDC claim, the "published from repo X / workflow Y" statement is trustworthy by construction.
 
 ## Core Concept 3 — Provenance and SBOM as a program
 
-One artifact with provenance is a demo. Provenance *as a program* means every artifact, automatically, carries verifiable answers to "where did this come from?" and "what's inside it?"
+- One artifact with provenance is a demo.
+- Provenance *as a program* means every artifact, automatically, carries verifiable answers to "where did this come from?" and "what's inside it?"
 
 - **Provenance (SLSA / in-toto)** — a signed attestation: this digest was built from this commit, by this builder, with these inputs. Stored alongside the artifact in the registry (as an OCI referrer / attestation).
 - **SBOM (SPDX / CycloneDX)** — the dependency inventory, generated at build, attached to the artifact, queryable when the next Log4Shell-class CVE drops: "which of our 4,000 deployed images contain the vulnerable library?"
@@ -63,11 +77,14 @@ cosign attest --predicate sbom.json --type spdxjson ghcr.io/acme/api@sha256:9b2c
 cosign verify-attestation --type slsaprovenance ghcr.io/acme/api@sha256:9b2c...
 ```
 
-The registry becomes the **system of record** for trust metadata: artifact + signature + provenance + SBOM, all addressed by the same digest. The professional deliverable is the *pipeline* that produces this for every artifact and the *query capability* to answer audit and incident questions in minutes. Depth lives in [Artifact Signing & Provenance](../04-artifact-signing-and-provenance/professional.md) and [Supply-Chain Security](../09-supply-chain-security/professional.md).
+- The registry becomes the **system of record** for trust metadata: artifact + signature + provenance + SBOM, all addressed by the same digest.
+- The professional deliverable is the *pipeline* that produces this for every artifact and the *query capability* to answer audit and incident questions in minutes.
+- Depth lives in [Artifact Signing & Provenance](../04-artifact-signing-and-provenance/professional.md) and [Supply-Chain Security](../09-supply-chain-security/professional.md).
 
 ## Core Concept 4 — Policy: only admitted artifacts run
 
-Generating trust metadata is worthless if nothing checks it. The enforcement point is **admission control** in your runtime: an image runs only if it is signed by an approved key, has acceptable provenance (e.g. SLSA level ≥ N), comes from an allowed registry, and passes scan policy.
+- Generating trust metadata is worthless if nothing checks it.
+- The enforcement point is **admission control** in your runtime: an image runs only if it is signed by an approved key, has acceptable provenance (e.g. SLSA level ≥ N), comes from an allowed registry, and passes scan policy.
 
 ```yaml
 # Sigstore policy-controller (cluster policy): admit only verified images
@@ -83,13 +100,21 @@ spec:
             subjectRegExp: "https://github.com/acme/.*"
 ```
 
-Policy spectrum (roll out gradually): **audit/warn** (log violations, admit anyway) → **enforce in staging** → **enforce in production**. Going straight to hard-enforce org-wide breaks deploys and burns trust in the program. The professional move is staged rollout with clear dashboards of what *would* be blocked before it *is*.
+Policy spectrum (roll out gradually):
+
+1. **Audit/warn** — log violations, admit anyway.
+2. **Enforce in staging.**
+3. **Enforce in production.**
+
+- Going straight to hard-enforce org-wide breaks deploys and burns trust in the program.
+- The professional move is staged rollout with clear dashboards of what *would* be blocked before it *is*.
 
 > The principle: the registry holds the evidence; the admission gate is the judge. No evidence or failing evidence → no run. This closes the loop from "we sign things" to "unsigned things cannot reach production."
 
 ## Core Concept 5 — Cost governance at scale
 
-At fleet scale, registry cost is real and usually un-owned: storage grows monotonically, cross-region/cross-cloud egress spikes on every scale event, and nobody's budget is debited. Levers:
+- At fleet scale, registry cost is real and usually un-owned: storage grows monotonically, cross-region/cross-cloud egress spikes on every scale event, and nobody's budget is debited.
+- Levers:
 
 - **Retention by tag class, automated.** CI-scratch and PR tags expire in days; release tags persist. This alone often cuts storage by an order of magnitude.
 - **Dedup-aware accounting.** OCI layers are shared; report *unique* storage per team, not summed image sizes, or you'll chase phantom costs.
@@ -108,7 +133,8 @@ At fleet scale, registry cost is real and usually un-owned: storage grows monoto
 
 ## Core Concept 6 — Immutability, retention, and compliance as policy-as-code
 
-Ad-hoc retention rules and per-repo settings drift and create gaps. Express them as **reviewed, versioned policy-as-code**:
+- Ad-hoc retention rules and per-repo settings drift and create gaps.
+- Express them as **reviewed, versioned policy-as-code**:
 
 - **Immutable release tags** enforced registry-wide: a `v*` tag, once pushed, can never be repointed (configurable in ECR, Artifactory, GHCR). This makes "deploy by tag" almost as safe as digest and kills tag-mutation attacks.
 - **Retention rules in IaC**: lifecycle policies defined in Terraform, reviewed in PRs, applied uniformly — not clicked into a console where they silently differ across 200 repos.
@@ -130,7 +156,8 @@ resource "aws_ecr_lifecycle_policy" "api" {
 
 ## Core Concept 7 — Incident response for a bad or poisoned release
 
-When a release is bad — regression, leaked secret, or actively malicious — execute a rehearsed playbook, not improvisation. The right action depends on registry semantics ([middle.md](middle.md)) and *whether the bytes are dangerous*.
+- When a release is bad — regression, leaked secret, or actively malicious — execute a rehearsed playbook, not improvisation.
+- The right action depends on registry semantics ([middle.md](middle.md)) and *whether the bytes are dangerous*.
 
 1. **Contain.** Stop new adoption: yank (crates/PyPI), deprecate (npm), or pull the tag from rotation. Update admission policy to deny the bad digest immediately — admission control is your fastest org-wide kill switch.
 2. **Roll forward / back.** Ship a fixed version *now* (immutable registries leave you no other choice; mutable ones still shouldn't overwrite). Deploys pinned by digest roll back deterministically — see [Rollback & Roll-Forward](../07-rollback-and-roll-forward/professional.md).
@@ -143,7 +170,7 @@ When a release is bad — regression, leaked secret, or actively malicious — e
 
 ## Core Concept 8 — Rollout strategy and migration
 
-Introducing these controls into a live org is itself the hard part — break deploys and the program loses credibility.
+Introducing these controls into a live org is itself the hard part — break deploys and the program loses credibility:
 
 - **Sequence:** observability first (inventory tokens, images, egress, what *would* fail policy) → trusted publishing (no breakage, removes credentials) → provenance/SBOM generation (additive) → admission in *audit* mode → enforce in staging → enforce in production.
 - **Migrate registries carefully.** Moving from Docker Hub to GHCR/ECR, or consolidating onto Artifactory, means dual-publishing during transition, repointing consumers, and preserving digests (re-pushing an image to a new registry yields the *same* manifest digest if bytes are identical — pins survive if you keep the digest).
@@ -191,3 +218,7 @@ Introducing these controls into a live org is itself the hard part — break dep
 - Which team owns the full lifecycle and incident response?
 - What reversible increment produces the earliest useful evidence?
 - Which exit condition proves that migration or adoption is complete?
+- A teammate wants to "fix a typo" in a version that's already published — what do you say?
+- What is dependency confusion, and how do you defend against it at org scale?
+- A published library version leaks an API token in its build output — walk through your incident response.
+- An auditor asks which deployed services contain a specific vulnerable dependency — how fast can you answer, and what determines that?

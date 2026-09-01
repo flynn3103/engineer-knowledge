@@ -143,7 +143,13 @@ Always:
 - [Section overview](../) · [Engineering Thinking root](../../README.md)
 
 ---
-## Check your understanding
+## Use it today
+
+1. Turn recurring work into practice opportunities with clear feedback.
+2. Use mentors, reviews, and retrospectives to expose a specific gap.
+3. **Decision rule:** redesign practice when repetitions are easy but performance does not transfer.
+
+## Recall and apply
 
 Try to answer these questions from memory:
 

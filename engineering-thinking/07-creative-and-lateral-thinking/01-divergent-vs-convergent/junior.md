@@ -125,7 +125,15 @@ These two modes are the foundation of all the creative-thinking techniques in th
 **Takeaway:** Generate first, judge second, and never at the same time. The first idea is a starting point, not an answer.
 
 ---
-## Check your understanding
+## Use it today
+
+1. Write at least five options or hypotheses before evaluating any.
+2. Name the switch: **generate now; choose next**.
+3. Pick using written criteria and a short timebox.
+
+## Recall and apply
+
+Use these prompts to check your understanding and choose one action to try in your next task.
 
 Try to answer these questions from memory:
 

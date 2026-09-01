@@ -142,7 +142,13 @@ This phase discipline underlies the whole [creative & lateral thinking section](
 **Takeaway:** Seniority is mostly transition control — holding the design space open across genuine categories while it still pays, protecting that openness from premature judgment, then converging on pre-fixed criteria, on time, calibrated to how reversible the decision is.
 
 ---
-## Check your understanding
+## Use it today
+
+1. Start a high-stakes review with silent option writing.
+2. Keep generating until new categories stop appearing.
+3. **Decision rule:** spend more time exploring only when the decision is costly to reverse.
+
+## Recall and apply
 
 Try to answer these questions from memory:
 

@@ -6,6 +6,13 @@
 
 ---
 
+## Action card
+1. Choose a process control, not just awareness.
+2. Use outside-view estimates and pre-mortems for team decisions.
+3. Apply the same review checklist regardless of author.
+
+**Decision rule:** if a bias has high cost, put its countermeasure in the workflow.
+
 ## 1. Awareness is not a debiasing strategy
 
 The most important thing to internalize as a mid-level engineer: **knowing a bias exists does almost nothing to stop it.** Anchoring works on people who can define anchoring. Confirmation bias fools people who can spell it. This is one of the most robust findings in the literature — debiasing has to be built into *process and structure*, not left to individual willpower.
@@ -159,7 +166,7 @@ Next, the [senior level](./senior.md) covers hindsight bias in postmortems in de
 - Back to [critical thinking](../) · [engineering thinking overview](../../README.md).
 
 ---
-## Check your understanding
+## Recall and apply
 
 Try to answer these questions from memory:
 

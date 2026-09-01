@@ -154,7 +154,11 @@ Get good at this and you'll start predicting behavior before it happens: "this r
 **One sentence to keep:** find the loop, sign it, time it, and shorten it — that's most of the value before you ever touch control theory.
 
 ---
-## Check your understanding
+## Recall and apply
+
+**Practice loop:** Draw one feedback loop. Label the reinforcing or balancing effect, delay, and metric that would show it.
+
+Use these prompts to check your understanding and choose one action to try in your next task.
 
 Try to answer these questions from memory:
 

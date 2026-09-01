@@ -26,4 +26,4 @@ Memory profiling answers *what is alive in the heap right now, and what keeps it
 
 ## Status
 
-✅ Content-complete — all five tiers written ([junior](junior.md) / [middle](middle.md) / [senior](senior.md) / [professional](professional.md) / [interview](interview.md)).
+✅ Content-complete — all four tiers written ([junior](junior.md) / [middle](middle.md) / [senior](senior.md) / [professional](professional.md)).

@@ -6,6 +6,13 @@
 
 ---
 
+## Quick use
+1. Put common priors into runbooks and review checklists.
+2. Maintain reference classes for estimates and reliability work.
+3. Rank work by expected loss or value, then apply a no-ruin filter.
+
+**Decision rule:** the team should begin with a prior before arguing from anecdotes.
+
 ## 1. Base rates as institutional defaults
 
 A senior engineer's leverage is making the *team* reason from priors, not just themselves.
@@ -177,7 +184,7 @@ Note the schema row: its blast radius is *unbounded/irreversible*, so it's not a
 - Related: [reasoning under uncertainty](../01-reasoning-under-uncertainty/) · [risk and failure probabilities](../03-risk-and-failure-probabilities/) · [estimation under uncertainty](../04-estimation-under-uncertainty/) · [cognitive biases in code decisions](../../04-critical-thinking/03-cognitive-biases-in-code-decisions/) · [evaluating tradeoffs objectively](../../04-critical-thinking/04-evaluating-tradeoffs-objectively/) · [probabilistic thinking](../) · [engineering thinking](../../README.md).
 
 ---
-## Check your understanding
+## Recall and apply
 
 Try to answer these questions from memory:
 

@@ -187,7 +187,9 @@ The strong ask gets answered in minutes because it's *answerable*. The weak ask 
 The senior leap is doing this *under pressure and across systems* — recognizing your own thrashing in the moment, and getting *others* unstuck. Pair this with [debugging as problem-solving](../05-debugging-as-problem-solving/) for the systematic side and [debugging your own reasoning](../../10-metacognition-and-learning/02-debugging-your-own-reasoning/) for the metacognitive side. Master the diagnose-then-choose loop here and you stop fearing stuck-points — they become routine.
 
 ---
-## Check your understanding
+## Recall and apply
+
+**Practice loop:** Name the blocker, choose one technique, time-box it, and state what evidence would tell you to switch approaches.
 
 Try to answer these questions from memory:
 

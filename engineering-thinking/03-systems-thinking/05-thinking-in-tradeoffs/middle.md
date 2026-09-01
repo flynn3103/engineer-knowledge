@@ -153,7 +153,9 @@ For reversible tradeoffs, decide fast and adjust later. For irreversible ones, s
 **Next:** [senior.md](./senior.md) — CAP/PACELC, generality vs performance, and reasoning about tradeoffs across a whole system.
 
 ---
-## Check your understanding
+## Recall and apply
+
+**Practice loop:** Compare two options against the stated goal, name who pays each cost, and choose a metric to revisit the decision.
 
 Try to answer these questions from memory:
 

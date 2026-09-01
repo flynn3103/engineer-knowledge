@@ -158,7 +158,13 @@ Next, [senior.md](senior.md) covers deliberate practice in depth, transfer betwe
 **See also:** [Deliberate practice](../03-deliberate-practice/) · [Debugging your own reasoning](../02-debugging-your-own-reasoning/) · [Section overview](../) · [Roadmap root](../../README.md)
 
 ---
-## Check your understanding
+## Use it today
+
+1. Break a skill into concepts, examples, and practice tasks.
+2. Alternate retrieval, feedback, and spaced review.
+3. Keep a short log of what you can do unaided and what needs work.
+
+## Recall and apply
 
 Try to answer these questions from memory:
 

@@ -109,7 +109,15 @@ The mature instinct, which you're starting to build now, is summed up simply: **
 - [Engineering thinking roadmap](../../README.md) — the full map.
 
 ---
-## Check your understanding
+## Use it today
+
+1. Write the real constraint: time, cost, reliability, compatibility, or scope.
+2. Ask, “What becomes possible because this limit is fixed?”
+3. Try one smaller, simpler solution before asking to remove the constraint.
+
+## Recall and apply
+
+Use these prompts to check your understanding and choose one action to try in your next task.
 
 Try to answer these questions from memory:
 

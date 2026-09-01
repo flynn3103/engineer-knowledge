@@ -25,7 +25,6 @@ flowchart LR
 | 05 | [Release](release/README.md) | Turn a built artifact into a traceable, reversible delivery. |
 | 06 | [Monitoring](monitoring/README.md) | Know a system's health before a user reports it. |
 | 07 | [Observability](observability/README.md) | Answer questions about the system you didn't know to ask in advance. |
-| 08 | [Diagnostics](diagnostics/README.md) | Reason about a running system you cannot step through with a debugger. |
 | 09 | [SRE & Reliability](sre-reliability/README.md) | Own an error budget and respond to incidents deliberately. |
 | 10 | [Chaos Engineering](chaos-engineering/README.md) | Rehearse failure before it happens for real. |
 | 11 | [Security at Scale](security-at-scale/README.md) | Defend a system whose attack surface grows with its traffic. |

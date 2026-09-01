@@ -6,6 +6,13 @@
 
 ---
 
+## Quick use
+1. Map shared dependencies and correlated failures before multiplying numbers.
+2. Use fault trees and FMEA to expose single points and tail loss.
+3. Reduce blast radius as well as failure probability.
+
+**Decision rule:** independent-component math is invalid until common modes are addressed.
+
 ## 1. Why "Five-Nines Components" Don't Give a Five-Nines System
 
 Marketing math says: stack enough reliable parts and the system is reliable. Reality says the opposite, for two compounding reasons.
@@ -192,7 +199,7 @@ The base rate (most outages are change-induced) plus the correlation floor (you 
 - Related: [systems thinking](../../03-systems-thinking/), [evaluating tradeoffs objectively](../../04-critical-thinking/04-evaluating-tradeoffs-objectively/), the [section root](../), and the [Engineering Thinking overview](../../README.md).
 
 ---
-## Check your understanding
+## Recall and apply
 
 Try to answer these questions from memory:
 

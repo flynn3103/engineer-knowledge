@@ -122,7 +122,11 @@ When you've seen a symptom enough times, you stop debugging from scratch. You se
 **Next:** [abstraction and generalization](../03-abstraction-and-generalization/) — once you recognize a pattern, you can abstract it into something reusable. See also [decomposition](../01-decomposition/) and the [section overview](../).
 
 ---
-## Check your understanding
+## Recall and apply
+
+**Practice loop:** Apply one idea to a current task. State the signal you saw, the choice you made, and what happened.
+
+Use these prompts to check your understanding and choose one action to try in your next task.
 
 Try to answer these questions from memory:
 

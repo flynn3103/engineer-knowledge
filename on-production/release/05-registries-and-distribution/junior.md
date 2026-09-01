@@ -14,7 +14,11 @@ Use the smallest realistic scenario that exposes the decision and its failure be
 
 ## Core Concept 1 — What a registry is
 
-A registry is an HTTP service that does two jobs: **accept uploads** of artifacts and **serve downloads** of them. Different ecosystems have their own registries, but they all play the same role.
+A registry is an HTTP service with two jobs:
+
+- **Accept uploads** of artifacts.
+- **Serve downloads** of them.
+- Different ecosystems run their own registries, but they all play this same role.
 
 | Kind | Examples | Holds |
 |------|----------|-------|
@@ -23,7 +27,11 @@ A registry is an HTTP service that does two jobs: **accept uploads** of artifact
 | OS packages | apt repos, yum/dnf repos | `.deb` / `.rpm` system packages |
 | Generic | Artifactory, Nexus, S3 buckets | Any file: binaries, zips, installers |
 
-When you run `npm install express`, npm contacts the npm registry. When Kubernetes starts a pod, the node pulls the image from a container registry. The registry is the hand-off point between "we built it" and "someone runs it".
+The registry is the hand-off point between "we built it" and "someone runs it":
+
+- `npm install express` contacts the npm registry.
+- Starting a Kubernetes pod pulls the image from a container registry.
+- Every install you run, in any ecosystem, hits a registry the same way.
 
 ```bash
 # Every install you've ever run hits a registry under the hood
@@ -40,11 +48,13 @@ To fetch an artifact you need to *address* it. Three pieces matter:
 2. **Version** — which release: `4.18.2`, `1.25.3`.
 3. **Digest** — the exact bytes, as a hash: `sha256:e7c3f...`.
 
-A **tag** is a friendly pointer. `nginx:1.25` is a name + tag. But here's the crucial fact you'll meet everywhere:
+A **tag** is a friendly pointer — `nginx:1.25` is a name + tag. But here's the crucial fact you'll meet everywhere:
 
 > **Tags are mutable. Digests are immutable.**
 
-A tag like `latest` or `1.25` can be *moved* to point at new bytes tomorrow. A digest can never point at different bytes — change one byte and the hash changes. So when you want certainty about *exactly* what you're running, you reference the digest:
+- A tag like `latest` or `1.25` can be *moved* to point at new bytes tomorrow.
+- A digest can never point at different bytes — change one byte and the hash changes.
+- For certainty about *exactly* what you're running, reference the digest:
 
 ```bash
 # By tag — convenient, but the bytes can change later
@@ -127,7 +137,8 @@ git push origin v1.4.0
 
 ## Core Concept 5 — Pulling and authenticating
 
-Pulling public artifacts usually needs no auth. Private ones need a token.
+- Pulling public artifacts usually needs no auth.
+- Pulling private artifacts needs a token.
 
 ```bash
 # Public — just works
@@ -140,7 +151,9 @@ npm config set //registry.npmjs.org/:_authToken=$NPM_TOKEN
 pip install --index-url https://user:token@pypi.mycompany.com/simple/ mylib
 ```
 
-**Use tokens, not passwords.** A token can be scoped (read-only, or read+publish) and revoked without changing your password. In CI you set the token as a secret environment variable — never commit it to the repo.
+- **Use tokens, not passwords.**
+- A token can be scoped (read-only, or read+publish) and revoked without changing your password.
+- In CI, set the token as a secret environment variable — never commit it to the repo.
 
 Two permission levels you'll meet immediately:
 
@@ -186,3 +199,7 @@ Two permission levels you'll meet immediately:
 - Which input changes the observed result, and why?
 - What is the smallest useful success check?
 - Which beginner mistake would your evidence catch?
+- What is a registry, and what's the difference between a tag and a digest?
+- Why can't you republish the same version number to most registries?
+- Why is depending on the `latest` tag a problem?
+- Walk through how you'd publish a release to a container registry, npm, and Go's module system.

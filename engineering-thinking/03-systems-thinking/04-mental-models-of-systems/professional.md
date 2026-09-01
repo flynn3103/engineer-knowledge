@@ -119,7 +119,9 @@ Standardizing the lenses reduces model variance across the org for free: when ev
 - **Standardize the reusable lenses** (L=λW, stocks/flows, end-to-end argument, RED/USE) so models across teams diverge less and compose.
 
 ---
-## Check your understanding
+## Recall and apply
+
+**Practice loop:** State the model you are using, its assumptions, a competing model, and the observation that would change your mind.
 
 Try to answer these questions from memory:
 

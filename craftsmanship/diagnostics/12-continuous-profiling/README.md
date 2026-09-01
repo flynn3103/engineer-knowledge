@@ -2,9 +2,9 @@
 
 > *"A profile you took once on your laptop tells you how your laptop was slow. A profile that's always running in production tells you which line of code is burning a CPU right now, for a real customer, under real load."*
 
-This roadmap is about **always-on, low-overhead profiling of production systems** — sampling the CPU, heap, locks, and goroutines/threads of every process in the fleet, continuously, and storing the profiles time-indexed so you can ask "what was burning CPU during the 14:32 latency spike?" and "did this deploy regress allocations?" It is the emerging **fourth signal** of observability, sitting alongside [Logging](../02-logging/README.md), [Metrics](../04-metrics/README.md), and [Tracing](../05-tracing/README.md). The point-in-time, run-it-on-your-laptop counterpart lives in [Quality Engineering → Performance → Profiling](../../performance/01-profiling/README.md); this roadmap is about doing it *continuously, in prod, fleet-wide*.
+This roadmap is about **always-on, low-overhead profiling of production systems** — sampling the CPU, heap, locks, and goroutines/threads of every process in the fleet, continuously, and storing the profiles time-indexed so you can ask "what was burning CPU during the 14:32 latency spike?" and "did this deploy regress allocations?" It is the emerging **fourth signal** of observability, sitting alongside [Logging](../02-logging/README.md), [Metrics](../04-metrics/README.md), and [Tracing](../05-tracing/README.md). The point-in-time, run-it-on-your-laptop counterpart lives in [Quality Engineering → Performance → Profiling](../../../On-Production/performance/01-profiling/README.md); this roadmap is about doing it *continuously, in prod, fleet-wide*.
 
-> Looking for *how to optimise a hot function* once you've found it? That's [Performance → Profiling](../../performance/01-profiling/README.md). This section finds the hot function in production; that one teaches you to fix it.
+> Looking for *how to optimise a hot function* once you've found it? That's [Performance → Profiling](../../../On-Production/performance/01-profiling/README.md). This section finds the hot function in production; that one teaches you to fix it.
 >
 > Looking for the *kernel-level instrumentation* that makes language-agnostic profiling possible? See [Dynamic Instrumentation & eBPF](../13-dynamic-instrumentation-and-ebpf/README.md).
 
@@ -25,7 +25,7 @@ Most engineers profile *reactively, once, on a laptop, with synthetic input* —
 | [Metrics](../04-metrics/README.md) | What's the aggregate behaviour over time? |
 | [Tracing](../05-tracing/README.md) | What path did one request take across services? |
 | **Continuous Profiling** (this) | Which *line of code* is burning CPU / allocating / blocking, right now, in prod? |
-| [Point-in-time profiling](../../performance/01-profiling/README.md) | Why is *this function* slow, and how do I fix it? (one-off, on a laptop) |
+| [Point-in-time profiling](../../../On-Production/performance/01-profiling/README.md) | Why is *this function* slow, and how do I fix it? (one-off, on a laptop) |
 
 ---
 

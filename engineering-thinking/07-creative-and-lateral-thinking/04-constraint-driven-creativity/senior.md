@@ -119,7 +119,13 @@ The senior endpoint: you wield constraints as a scalpel — sharp enough to cut 
 - [Engineering thinking roadmap](../../README.md) — the full map.
 
 ---
-## Check your understanding
+## Use it today
+
+1. Turn constraints into design inputs early, before a preferred solution hardens.
+2. Challenge constraints that are assumptions, not requirements.
+3. **Decision rule:** relax a constraint only when its benefit exceeds the new cost or risk.
+
+## Recall and apply
 
 Try to answer these questions from memory:
 

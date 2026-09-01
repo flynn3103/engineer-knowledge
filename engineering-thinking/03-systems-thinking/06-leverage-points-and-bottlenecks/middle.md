@@ -151,7 +151,9 @@ If you can't name the constraint, you're guessing (go measure). If you can name 
 - [Reasoning from fundamentals](../../05-first-principles-thinking/01-reasoning-from-fundamentals/) — Amdahl's law is a first-principles bound you can derive, not memorize.
 
 ---
-## Check your understanding
+## Recall and apply
+
+**Practice loop:** Find the limiting step, state the evidence, try the smallest high-leverage change, and measure the whole-system result.
 
 Try to answer these questions from memory:
 

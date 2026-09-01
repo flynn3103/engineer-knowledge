@@ -6,6 +6,13 @@
 
 ---
 
+## Action card
+1. Read motivation, alternatives, risks, and metrics adversarially.
+2. Steelman the rejected option in the document.
+3. Block only high-blast-radius errors and include the repair.
+
+**Decision rule:** fix the durable decision artifact, not just the meeting thread.
+
 ## 1. The scale change: fallacies as institutional infrastructure
 
 A junior's fallacy convinces one reviewer for one PR. A principal's job is the failure mode where a fallacy gets *written down, reviewed, approved, and cited* — at which point it stops being an argument and becomes a premise. Nobody re-litigates an approved RFC; they build on it. A false dichotomy in the "Options Considered" section of a platform RFC can constrain a 40-engineer org for three years, and the people executing it will have no idea the foundational comparison was rigged.
@@ -160,7 +167,7 @@ The principal-level antidote is the norm above — **"name the goal, not the rit
 - The master organizational fallacy is cargo-culting; the standing antidote is **name the goal, not the ritual.**
 
 ---
-## Check your understanding
+## Recall and apply
 
 Try to answer these questions from memory:
 

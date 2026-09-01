@@ -19,9 +19,10 @@ A branching model chosen for one team becomes an *organizational standard* with 
 - **One uniform model** (everyone trunk-based + flags): maximal consistency, simplest mental model, but forces it onto teams whose constraints differ (e.g., the on-prem-shipping team).
 - **Federated models** (each domain picks within guardrails): respects real differences, but raises integration and audit complexity, and you must define the seams between models.
 
-The professional artifact is a **written branching standard**: the default model, the allowed exceptions, who approves a deviation, and the non-negotiables (e.g., "all production artifacts are immutable and signed regardless of model"). Without it, every team reinvents the policy, and cross-team releases become negotiation rather than process.
+- The professional artifact is a **written branching standard**: the default model, the allowed exceptions, who approves a deviation, and the non-negotiables (e.g., "all production artifacts are immutable and signed regardless of model"). Without it, every team reinvents the policy, and cross-team releases become negotiation rather than process.
 
-Decide explicitly: are releases **atomic** (the whole platform ships as one version — heavy coordination, simple reasoning) or **independent** (each service ships on its own train — high autonomy, hard to reason about combined state)? Most large orgs land on *independent services with contract/version compatibility guarantees*, because atomic release of many services doesn't scale.
+- Decide explicitly: are releases **atomic** (the whole platform ships as one version — heavy coordination, simple reasoning) or **independent** (each service ships on its own train — high autonomy, hard to reason about combined state)?
+  - Most large orgs land on *independent services with contract/version compatibility guarantees*, because atomic release of many services doesn't scale.
 
 ---
 
@@ -55,16 +56,22 @@ The cultural win: predictability. Downstream functions (support, marketing, sale
 
 In a microservices/multi-repo world, "the release branch" multiplies. Two viable patterns:
 
-**Per-service independent trains.** Each service owns its branch model, cadence, and versioning; compatibility is guaranteed by API/contract versioning, not by shipping together. This is the default at scale — it preserves team autonomy and avoids a global freeze. The cost is that "what's in production" is a *set* of versions, requiring strong observability and contract testing (see the `api-versioning` and `ci-cd-pipeline-design` skills, and contract testing under integration testing).
-
-**Coordinated platform train.** A subset of services that must ship together (a tightly coupled platform release) shares a synchronized branch point and freeze. Reserve this for genuinely coupled components — it's expensive and should be the exception.
+- **Per-service independent trains.**
+  - Each service owns its branch model, cadence, and versioning; compatibility is guaranteed by API/contract versioning, not by shipping together.
+  - This is the default at scale — it preserves team autonomy and avoids a global freeze.
+  - The cost is that "what's in production" is a *set* of versions, requiring strong observability and contract testing (see the `api-versioning` and `ci-cd-pipeline-design` skills, and contract testing under integration testing).
+- **Coordinated platform train.**
+  - A subset of services that must ship together (a tightly coupled platform release) shares a synchronized branch point and freeze.
+  - Reserve this for genuinely coupled components — it's expensive and should be the exception.
 
 ```
 Independent (default):  svc-a v3.2   svc-b v1.9   svc-c v5.0   (contracts hold)
 Coordinated (rare):     platform-2024.Q3 = {svc-x, svc-y, svc-z} branched together
 ```
 
-Professional guidance: **minimize coordinated trains**. Each one couples teams' schedules and reintroduces the global-freeze pain trunk-based was meant to escape. Push compatibility into contracts and flags so services can ship independently; coordinate only the irreducibly coupled core.
+- Professional guidance: **minimize coordinated trains**.
+  - Each one couples teams' schedules and reintroduces the global-freeze pain trunk-based was meant to escape.
+  - Push compatibility into contracts and flags so services can ship independently; coordinate only the irreducibly coupled core.
 
 ---
 
@@ -80,15 +87,20 @@ At org scale, a freeze affects many teams, so its governance must be unambiguous
 | What does an exception cost? | Re-soak, extra review, recorded justification |
 | How is break-glass logged? | Auto-ticketed, post-incident review mandatory |
 
-The principle: **freeze friction proportional to risk, authority proportional to blast radius.** A one-line typo fix during code freeze needs a light, fast exception; a schema change needs the full council. A **deploy freeze** during a peak business window (Black Friday, tax deadline) may have *higher* authority than a normal code freeze because the blast radius is revenue.
+- The principle: **freeze friction proportional to risk, authority proportional to blast radius.**
+  - A one-line typo fix during code freeze needs a light, fast exception; a schema change needs the full council.
+  - A **deploy freeze** during a peak business window (Black Friday, tax deadline) may have *higher* authority than a normal code freeze because the blast radius is revenue.
 
-**Break-glass** is the non-negotiable escape hatch: a pre-authorized emergency path that lets the right person ship a critical fix during any freeze, while *automatically* recording who, what, when, and why for mandatory post-hoc review. Safety and auditability must survive the emergency — speed cannot delete the paper trail. This mirrors break-glass in quality gates: the override exists, but it is loud and logged.
+- **Break-glass** is the non-negotiable escape hatch:
+  - A pre-authorized emergency path that lets the right person ship a critical fix during any freeze.
+  - It *automatically* records who, what, when, and why for mandatory post-hoc review.
+  - Safety and auditability must survive the emergency — speed cannot delete the paper trail. This mirrors break-glass in quality gates: the override exists, but it is loud and logged.
 
 ---
 
 ## Core Concept 5 — The release manager role and runbook
 
-Predictable trains need an accountable owner. The **release manager (RM)** — often a rotation, not a person — owns one train end to end.
+- Predictable trains need an accountable owner. The **release manager (RM)** — often a rotation, not a person — owns one train end to end.
 
 RM responsibilities:
 - Owns the calendar and communicates branch point / freeze / GA to all teams.
@@ -98,7 +110,9 @@ RM responsibilities:
 - Owns the rollback decision if GA goes wrong (with [Rollback & Roll-Forward](../07-rollback-and-roll-forward/README.md) procedures).
 - Runs the post-release retro feeding back into the model.
 
-The **runbook** turns the RM role into something a rotation can execute without tribal knowledge: a step-by-step for cutting the branch, building/promoting RCs, the RRR checklist, the exception procedure, the GA steps, and the rollback procedure. A good runbook means a new RM can run a train competently from the document — which is the whole point of professionalizing release engineering. Automate every step the runbook describes that doesn't require judgment ([Release Automation](../08-release-automation/README.md)).
+- The **runbook** turns the RM role into something a rotation can execute without tribal knowledge: a step-by-step for cutting the branch, building/promoting RCs, the RRR checklist, the exception procedure, the GA steps, and the rollback procedure.
+  - A good runbook means a new RM can run a train competently from the document — which is the whole point of professionalizing release engineering.
+  - Automate every step the runbook describes that doesn't require judgment ([Release Automation](../08-release-automation/README.md)).
 
 ---
 
@@ -196,3 +210,7 @@ Run a **retro after each major train** and feed findings back: shorten a freeze 
 - Which team owns the full lifecycle and incident response?
 - What reversible increment produces the earliest useful evidence?
 - Which exit condition proves that migration or adoption is complete?
+- Should the org run one uniform branching model or federated models with guardrails — how do you decide?
+- How would you coordinate a quarterly release across 30 teams without a global freeze?
+- What belongs in a release manager's runbook, and why does that matter for a rotation?
+- Which signals tell you the release model itself needs to change as the org grows?

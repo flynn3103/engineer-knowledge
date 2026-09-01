@@ -21,9 +21,15 @@ Trace what depends on a registry being up:
 - **CI** — every build pulls base images and dependencies.
 - **Developer machines** — `npm install`, `pip install`, `go get`.
 
-The dependency is worst at the worst time: a traffic spike triggers autoscaling, which triggers image pulls, which hammer the registry — and a registry outage during a spike means no new capacity. This is why the famous failure mode is *correlated*: the registry and your app fail together because the app's recovery depends on the registry.
+- The dependency is worst at the worst time: a traffic spike triggers autoscaling, which triggers image pulls, which hammer the registry — and a registry outage during a spike means no new capacity.
+- This is why the famous failure mode is *correlated*: the registry and your app fail together because the app's recovery depends on the registry.
 
-Mitigations (developed below): **local caching on nodes** (so a steady-state node doesn't need the registry), **pull-through caches/mirrors** (so you don't depend on a third party's uptime), **digest pinning** (so a cache hit is guaranteed-correct), and **`imagePullPolicy: IfNotPresent` with digests** (so cached images are reused safely).
+Mitigations (developed below):
+
+- **Local caching on nodes** — a steady-state node doesn't need the registry.
+- **Pull-through caches/mirrors** — you don't depend on a third party's uptime.
+- **Digest pinning** — a cache hit is guaranteed-correct.
+- **`imagePullPolicy: IfNotPresent` with digests** — cached images are reused safely.
 
 ```yaml
 # A node with the image already cached survives a registry outage
@@ -35,7 +41,12 @@ image: ghcr.io/acme/api@sha256:9b2c4e...a17
 
 ## Core Concept 2 — Mirrors, pull-through caches, and dependency proxies
 
-You rarely want every machine pulling directly from `docker.io` or `registry.npmjs.org`. Reasons: rate limits (Docker Hub's anonymous pull limits have bitten countless CI fleets), latency, egress cost, and third-party uptime.
+You rarely want every machine pulling directly from `docker.io` or `registry.npmjs.org`. Reasons:
+
+- Rate limits (Docker Hub's anonymous pull limits have bitten countless CI fleets).
+- Latency.
+- Egress cost.
+- Third-party uptime.
 
 **Pull-through cache (containers).** Run a registry that proxies an upstream and caches blobs locally. The first pull fetches from upstream; subsequent pulls are local.
 
@@ -59,7 +70,8 @@ npm config set registry https://npm.internal.acme.com
 pip config set global.index-url https://pypi.internal.acme.com/simple/
 ```
 
-Benefits beyond uptime: a single chokepoint where you can **scan, enforce policy, and audit** every dependency entering the org. The cost: you now operate that proxy and must keep it patched and available.
+- Benefit beyond uptime: a single chokepoint where you can **scan, enforce policy, and audit** every dependency entering the org.
+- Cost: you now operate that proxy and must keep it patched and available.
 
 ## Core Concept 3 — The public/private split and vendoring
 
@@ -82,11 +94,14 @@ go mod vendor
 go build -mod=vendor ./...
 ```
 
-Vendoring gives you a hermetic, network-free, perfectly reproducible build at the cost of bloat and update friction. A caching proxy gets you most of the resilience with far less friction and is the default for most organizations. The right answer scales with your assurance requirements.
+- Vendoring gives you a hermetic, network-free, perfectly reproducible build at the cost of bloat and update friction.
+- A caching proxy gets you most of the resilience with far less friction and is the default for most organizations.
+- The right answer scales with your assurance requirements.
 
 ## Core Concept 4 — Distribution at scale: CDNs and regional registries
 
-When consumers are global, a single-region registry means high latency for distant pulls and large cross-region/cross-cloud **egress bills**. Public registries already front their blob storage with CDNs (npm, PyPI, crates.io all serve tarballs from CDN edges); at scale you do the same internally.
+- When consumers are global, a single-region registry means high latency for distant pulls and large cross-region/cross-cloud **egress bills**.
+- Public registries already front their blob storage with CDNs (npm, PyPI, crates.io all serve tarballs from CDN edges); at scale you do the same internally.
 
 - **Regional replicas.** Replicate your registry (or its blob store) per region so pulls are local. ECR has cross-region replication; Artifactory has replication; cloud registries offer multi-region.
 - **CDN in front of blobs.** Image *layers* and package *tarballs* are immutable and content-addressed — ideal CDN cache keys. The mutable *manifest/index* is small and changes rarely. This is exactly the split the `cdn-design` skill describes: cache the immutable bytes aggressively, serve the small mutable pointer with short TTL.
@@ -101,7 +116,7 @@ client → regional pull-through cache (CDN-fronted) → upstream registry
 
 ## Core Concept 5 — HA and DR for a private registry
 
-If you run a private registry, it inherits production SLAs. Design it like any stateful service:
+If you run a private registry, it inherits production SLAs — design it like any stateful service:
 
 - **Stateless front, durable back.** The registry process is often stateless; the **blob storage** (S3/GCS/Azure Blob) and the **metadata DB** are the durable state. Make those HA, not the front-end pods.
 - **Replicated, durable storage.** Back blobs with object storage that has its own replication/durability. Replicate metadata.
@@ -125,7 +140,8 @@ If you run a private registry, it inherits production SLAs. Design it like any s
 
 ## Core Concept 6 — The registry as a supply-chain entry point
 
-Everything you deploy comes *through* the registry. That makes it the highest-leverage point for both attack and defense.
+- Everything you deploy comes *through* the registry.
+- That makes it the highest-leverage point for both attack and defense.
 
 Attack surface:
 - **Compromised public dependency** (typosquat, malicious version, hijacked maintainer account).
@@ -152,7 +168,7 @@ verifyImages:
 
 ## Core Concept 7 — Auth, scopes, and namespace ownership
 
-At scale, access control is where incidents are prevented or caused.
+At scale, access control is where incidents are prevented or caused:
 
 - **Separate read and publish.** The vast majority of consumers need read-only. Publish rights belong to CI service identities, not humans, and not broadly.
 - **Scoped, short-lived credentials.** Prefer OIDC / workload identity (CI authenticates per-run, no stored token) over long-lived publish tokens. A leaked long-lived publish token = attacker ships under your name.
@@ -168,7 +184,7 @@ At scale, access control is where incidents are prevented or caused.
 
 ## Core Concept 8 — Storage, GC, and cost at scale
 
-A busy org pushes thousands of images and packages daily. Without governance, storage grows unbounded and the bill follows.
+A busy org pushes thousands of images and packages daily. Without governance, storage grows unbounded and the bill follows:
 
 - **Untagged GC.** Run garbage collection that removes untagged manifests and unreferenced blobs (deduplicated by digest, so shared layers aren't deleted while still referenced).
 - **Retention by class.** Different rules for `pr-*` / CI-scratch tags (expire fast) vs `v*` release tags (keep long / forever). **Never** age-expire something production pins.
@@ -223,3 +239,8 @@ registry garbage-collect /etc/docker/registry/config.yml --delete-untagged
 - Where should recovery responsibility live, and why?
 - Which assumption deserves an experiment before implementation?
 - How can the design evolve without changing every consumer at once?
+- Why is a registry a single point of failure, and when is that failure worst?
+- What is a pull-through cache, and why would you run one?
+- How would you make a private registry highly available? What's the most critical thing to back up?
+- Half your Kubernetes nodes are running old code after a deploy, even though you pushed a new image — what happened?
+- CI suddenly fails org-wide with "too many requests" pulling base images — what's your fix?

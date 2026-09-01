@@ -20,10 +20,13 @@ Go's heap profile is a single dataset with **four sample types**, formed by cros
 | **alloc_**   | total bytes *ever* allocated here        | total *number* of allocations here         |
 | **inuse_**   | bytes from here *still live* now         | live *objects* from here now               |
 
-- **Axis 1 — `alloc_` vs `inuse_`.** `alloc_*` is **cumulative since the program started** (or since you reset counters): it counts everything that passed through, *including what the GC already freed*. `inuse_*` is a **snapshot of what is live right now**. Allocation profiling is the `alloc_*` column — that is the *rate* of churn. The `inuse_*` column is retained-memory profiling, the subject of the [memory-profiling](../02-memory-profiling/middle.md) page.
-- **Axis 2 — `space` vs `objects`.** `*_space` weights each sample by **bytes**; `*_objects` weights by **count**. They rank call sites *differently*, and the difference is the diagnosis:
+- **Axis 1 — `alloc_` vs `inuse_`.**
+  - `alloc_*` is **cumulative since the program started** (or since counters were reset): it counts everything that passed through, *including what the GC already freed*.
+  - `inuse_*` is a **snapshot of what is live right now**.
+  - Allocation profiling is the `alloc_*` column — the *rate* of churn. `inuse_*` is retained-memory profiling, the subject of [memory-profiling](../02-memory-profiling/middle.md).
+- **Axis 2 — `space` vs `objects`.** `*_space` weights each sample by **bytes**; `*_objects` weights by **count**. They rank call sites *differently*:
   - **`alloc_objects` finds many-small churn.** A function called 5M times allocating a 16-byte struct each call is invisible in `alloc_space` (80 MB total, modest) but screams in `alloc_objects` (5M allocations — 5M GC-scannable headers, 5M trips through the allocator fast path). High object *count* is what pressures the GC's mark phase and the allocator, regardless of bytes.
-  - **`alloc_space` finds few-big.** One function that allocates a 64 MB buffer ten times is trivial in `alloc_objects` (10 allocations) but dominates `alloc_space`. Big allocations are what blow your memory ceiling and trigger more frequent GC cycles by hitting the heap-growth trigger sooner.
+  - **`alloc_space` finds few-big.** One function allocating a 64 MB buffer ten times is trivial in `alloc_objects` (10 allocations) but dominates `alloc_space`. Big allocations blow your memory ceiling and trigger more frequent GC cycles by hitting the heap-growth trigger sooner.
 
 > **Key insight:** Always read **`alloc_objects` and `alloc_space` side by side.** If a call site tops `alloc_objects` but not `alloc_space`, you have a high-frequency small allocation — fix it by *reducing the count* (reuse, pooling, avoiding per-iteration allocation). If it tops `alloc_space` but not `alloc_objects`, you have a few large allocations — fix it by *right-sizing or streaming*. The two columns prescribe two different cures.
 
@@ -46,8 +49,10 @@ go test -run='^$' -bench=BenchmarkEncodeJSON -benchmem \
 BenchmarkEncodeJSON-8   210148   5712 ns/op   4096 B/op   47 allocs/op
 ```
 
-  `47 allocs/op` is the headline number. If a fix drops it to `3 allocs/op`, you've succeeded *before* opening `pprof`.
-- `-memprofilerate=1` records **every** allocation. The default (`512*1024` bytes — one sample per ~512 KB) is fine for a long-running server but will *miss* small high-frequency allocations in a short benchmark. For diagnosis, sample everything; for production, leave it at the default to keep overhead negligible.
+  - `47 allocs/op` is the headline number. If a fix drops it to `3 allocs/op`, you've succeeded *before* opening `pprof`.
+- `-memprofilerate=1` records **every** allocation.
+  - The default (`512*1024` bytes — one sample per ~512 KB) is fine for a long-running server but will *miss* small high-frequency allocations in a short benchmark.
+  - For diagnosis, sample everything; for production, leave it at the default to keep overhead negligible.
 
 **From a live server** — via `net/http/pprof`:
 
@@ -61,7 +66,8 @@ import _ "net/http/pprof"           // registers handlers on the default mux
 go tool pprof http://localhost:6060/debug/pprof/heap
 ```
 
-The HTTP heap profile is a *snapshot*: every counter is cumulative-since-start for `alloc_*` and live-now for `inuse_*`. To measure churn *over an interval* on a server, take two snapshots and diff them (`pprof -base old.out new.out`) — that isolates "what allocated during these 60 seconds" from the program's startup allocations.
+- The HTTP heap profile is a *snapshot*: every counter is cumulative-since-start for `alloc_*` and live-now for `inuse_*`.
+- To measure churn *over an interval* on a server, take two snapshots and diff them (`pprof -base old.out new.out`) — that isolates "what allocated during these 60 seconds" from the program's startup allocations.
 
 > **Key insight:** `-memprofilerate=1` is for *diagnosis on a benchmark*, never for production. At rate 1 every allocation takes a stack trace; on a hot server that is enormous overhead. Diagnose at rate 1 on an isolated benchmark, then ship with the default sampling rate.
 
@@ -87,7 +93,8 @@ Showing nodes accounting for 9876543, 98.21% of 10056789 total
     900000  8.95% 92.48%     900000  8.95%  strings.(*Builder).grow
 ```
 
-Read **flat vs cum** exactly as in a CPU profile: *flat* = allocations made *in this function's own body*; *cum* = allocations in this function **plus everything it calls**. A high-cum / low-flat frame (`marshalRow` above: cum 6.6M, flat 2.5M) is a *router* — the allocations happen downstream, in `json.string`. Chase the flat, not the cum, to find the actual allocating line.
+- Read **flat vs cum** exactly as in a CPU profile: *flat* = allocations made *in this function's own body*; *cum* = allocations in this function **plus everything it calls**.
+- A high-cum / low-flat frame (`marshalRow` above: cum 6.6M, flat 2.5M) is a *router* — the allocations happen downstream, in `json.string`. Chase the flat, not the cum, to find the actual allocating line.
 
 **2. Annotate the source — which line in that function.** This is the command that ends the hunt:
 
@@ -106,7 +113,9 @@ ROUTINE ======================== myapp/api.(*Handler).marshalRow
          .          .   46:}
 ```
 
-Now you have a *line number* and a *count next to it*. Line 43 makes 2.5M allocations on its own (the boxing of `r.ID` into `any`); line 44's allocations are all charged to `cum` because they happen inside `json.Marshal`.
+- Line 43 makes 2.5M allocations on its own (boxing `r.ID` into `any`).
+- Line 44's allocations are all charged to `cum` because they happen inside `json.Marshal`.
+- Now you have a *line number* and a *count next to it*.
 
 **3. The visual view — `web` / flame.** For a wide call graph, `web` (opens an SVG; boxes sized by allocation) or the flame view in `go tool pprof -http=:8080 mem.out` shows the *shape* — which subtree owns the churn — faster than reading text. Use it to choose *which* function to `list`, then `list` to get the line.
 
@@ -129,7 +138,11 @@ go build -gcflags='-m' ./...        # add a second -m for more detail: -gcflags=
 ./encode.go:90:13: make([]byte, n) escapes to heap
 ```
 
-Escape analysis is the compiler's static proof of whether a value's lifetime can be bounded by its function's stack frame. If the compiler can't *prove* the value dies when the function returns, it must **heap-allocate** it (it "escapes"). The profiler shows you the *consequence*; `-m` shows you the *cause*. The recurring causes:
+- Escape analysis is the compiler's static proof of whether a value's lifetime can be bounded by its function's stack frame.
+- If the compiler can't *prove* the value dies when the function returns, it must **heap-allocate** it (it "escapes").
+- The profiler shows you the *consequence*; `-m` shows you the *cause*.
+
+**The recurring causes:**
 
 - **Interface boxing.** Assigning a concrete value to an `interface{}`/`any` (or passing it to a variadic `...any`, like `fmt.Println`) boxes it — the value is copied to the heap so the interface can hold a pointer to it. `m["id"] = r.ID` above escapes for exactly this reason.
 - **Pointer escape (returning a pointer to a local).** `return &x` where `x` is a local forces `x` onto the heap — its address outlives the frame, so it can't live in the frame.
@@ -145,13 +158,18 @@ Escape analysis is the compiler's static proof of whether a value's lifetime can
 
 The "where/how-often do I allocate" question is universal; the tooling differs.
 
-**Java — JFR allocation events / async-profiler `--alloc`.** The JVM records allocations via two JFR events: `jdk.ObjectAllocationInNewTLAB` (the object started a fresh thread-local allocation buffer — i.e. it triggered a slow-path TLAB refill) and `jdk.ObjectAllocationOutsideTLAB` (the object was too big for a TLAB and went straight to the heap — your "few-big" signal). async-profiler renders these as an **allocation flame graph**:
+**Java — JFR allocation events / async-profiler `--alloc`.** The JVM records allocations via two JFR events:
+- `jdk.ObjectAllocationInNewTLAB` — the object started a fresh thread-local allocation buffer (i.e. it triggered a slow-path TLAB refill).
+- `jdk.ObjectAllocationOutsideTLAB` — the object was too big for a TLAB and went straight to the heap — your "few-big" signal.
+
+async-profiler renders these as an **allocation flame graph**:
 
 ```bash
 asprof -e alloc -d 30 -f alloc.html <pid>     # flame graph weighted by bytes allocated
 ```
 
-The flame is weighted by *allocated bytes per stack*, the direct analog of Go's `alloc_space` flame. **TLAB vs outside-TLAB** is the JVM's own "many-small vs few-big" split: a tower of `InNewTLAB` events is high-frequency churn; `OutsideTLAB` frames are the large allocations.
+- The flame is weighted by *allocated bytes per stack*, the direct analog of Go's `alloc_space` flame.
+- **TLAB vs outside-TLAB** is the JVM's own "many-small vs few-big" split: a tower of `InNewTLAB` events is high-frequency churn; `OutsideTLAB` frames are the large allocations.
 
 **Python — `tracemalloc`.** Built in, no external tool:
 
@@ -164,9 +182,10 @@ for stat in snap.statistics("lineno")[:5]:
     print(stat)        # file:line: size=12.3 MiB, count=45213, average=285 B
 ```
 
-`statistics("lineno")` is Python's flat top-list: `size` is the `alloc_space` analog, `count` the `alloc_objects` analog, both per source line. Diff two snapshots (`snap2.compare_to(snap1, "lineno")`) to find what allocated *between* two points — the leak/churn hunter's move.
+- `statistics("lineno")` is Python's flat top-list: `size` is the `alloc_space` analog, `count` the `alloc_objects` analog, both per source line.
+- Diff two snapshots (`snap2.compare_to(snap1, "lineno")`) to find what allocated *between* two points — the leak/churn hunter's move.
 
-**.NET — ETW allocation events.** `dotnet-trace` collects the `GCAllocationTick` ETW event (one event per ~100 KB allocated per type), and `dotnet-trace collect --providers Microsoft-Windows-DotNETRuntime:0x1 ...` or the Visual Studio / PerfView allocation view attributes bytes-by-type-by-call-stack — the same bytes-weighted allocation graph as the others.
+**.NET — ETW allocation events.** `dotnet-trace` collects the `GCAllocationTick` ETW event (one event per ~100 KB allocated per type). `dotnet-trace collect --providers Microsoft-Windows-DotNETRuntime:0x1 ...` or the Visual Studio / PerfView allocation view attributes bytes-by-type-by-call-stack — the same bytes-weighted allocation graph as the others.
 
 > **Key insight:** Every ecosystem gives you the *same two columns* — bytes-weighted and count-weighted allocations, attributed to a stack — under different names (`alloc_space`/`alloc_objects`, JFR TLAB events, `tracemalloc` size/count, ETW `GCAllocationTick`). Learn the shape once; the language only changes which command prints it.
 
@@ -331,3 +350,9 @@ BenchmarkFormat-8   2148630   546 ns/op   0 B/op   0 allocs/op
 - What constraint would make you choose the alternative design?
 - How would you isolate a local defect from an integration defect?
 - What evidence shows that the change remains maintainable?
+- A site tops `alloc_space` but barely registers in `alloc_objects`, and another is the reverse — how do the fixes differ?
+- Why does per-call-site attribution matter, and how do flat vs cumulative views differ?
+- `allocs/op` from a benchmark and a production allocation profile tell different stories — how do you reconcile them?
+- How do you see *why* a specific allocation escaped, and how do you confirm a fix removed it?
+- Is stack allocation always better than heap allocation, and what can defeat escape analysis even when it "should" work?
+- What does async-profiler's `--alloc` mode do, and how does it differ from a CPU profile of the same program?

@@ -14,11 +14,14 @@ Use the smallest realistic scenario that exposes the decision and its failure be
 
 ## Core Concept 1 — What "rollback" and "roll-forward" actually mean
 
-Imagine you deployed version `v2.4.0` and the checkout page started returning 500 errors.
+Scenario: you deployed `v2.4.0` and the checkout page started returning 500 errors.
 
-**Rollback** means: stop running `v2.4.0`, start running `v2.3.0` again — the version that worked an hour ago. The system returns to a state you *know* was healthy. You do this when the previous version is trustworthy and you want safety fast.
-
-**Roll-forward** means: keep `v2.4.0`, find the bug, fix it, and ship `v2.4.1`. The system never goes backward. You do this when going back is impossible or risky (for example, the data already changed in a way `v2.3.0` can't read), or when the fix is genuinely tiny and fast.
+- **Rollback** — stop running `v2.4.0`, start running `v2.3.0` again.
+  - Returns the system to a state you *know* was healthy.
+  - Use it when the previous version is trustworthy and you want safety fast.
+- **Roll-forward** — keep `v2.4.0`, find the bug, fix it, ship `v2.4.1`.
+  - The system never goes backward.
+  - Use it when going back is impossible or risky (e.g. data already changed in a way `v2.3.0` can't read), or when the fix is genuinely tiny and fast.
 
 ```
 Timeline:
@@ -28,7 +31,10 @@ Timeline:
                                   └──►  v2.4.1 (fixed)      = ROLL-FORWARD
 ```
 
-The instinct for a junior should usually be: **roll back first, debug later.** Restoring service is the priority; understanding the bug can happen once users are no longer affected. Roll-forward is for when rollback isn't safe (you'll learn to spot that in Concept 4).
+- **Junior default: roll back first, debug later.**
+  - Restoring service is the priority.
+  - Understanding the bug can happen once users are no longer affected.
+  - Roll-forward is for when rollback isn't safe (see Concept 4).
 
 ---
 
@@ -55,7 +61,8 @@ kubectl rollout undo deployment/checkout --to-revision=1
 kubectl rollout status deployment/checkout
 ```
 
-That's it. Kubernetes spins up pods running the previous image and drains the broken ones. Within seconds to a couple of minutes, you're back on `v2.3.0`.
+- Kubernetes spins up pods running the previous image and drains the broken ones.
+- Within seconds to a couple of minutes, you're back on `v2.3.0`.
 
 If you use **Helm**, the equivalent is:
 
@@ -73,7 +80,8 @@ Two things to internalize:
 
 ## Core Concept 3 — Roll back the binary, not the source
 
-A classic junior mistake under pressure: "the deploy is broken, let me `git revert` the commit and rebuild." That is the *slowest* possible rollback.
+- **Classic junior mistake under pressure:** "the deploy is broken, let me `git revert` the commit and rebuild."
+  - This is the *slowest* possible rollback.
 
 ```
 Slow (minutes to tens of minutes, can fail):
@@ -83,17 +91,24 @@ Fast (seconds):
   re-deploy the exact previous image that you already built and tested
 ```
 
-The previous artifact — say `myapp:v2.3.0` with digest `sha256:abc123…` — was already built, already tested, already proven in production. Rebuilding from source introduces a *new* artifact that has never run anywhere. A dependency could have moved, the base image could have changed, the build could fail at the worst moment.
+- The previous artifact — say `myapp:v2.3.0` with digest `sha256:abc123…` — was already built, already tested, already proven in production.
+- Rebuilding from source introduces a *new* artifact that has never run anywhere:
+  - a dependency could have moved
+  - the base image could have changed
+  - the build could fail at the worst moment
 
-**Rule of thumb: roll back to an artifact, not to a commit.** Pull the known-good image from the registry by its immutable tag or digest and deploy that. This is why immutable, retained artifacts in a registry matter — see [Registries & Distribution](../05-registries-and-distribution/middle.md).
+> **Rule of thumb: roll back to an artifact, not to a commit.** Pull the known-good image from the registry by its immutable tag or digest and deploy that. This is why immutable, retained artifacts in a registry matter — see [Registries & Distribution](../05-registries-and-distribution/middle.md).
 
 ---
 
 ## Core Concept 4 — The database does not roll back with the code
 
-This is the single most important idea on this page. **Code rolls back in seconds. The database does not.**
+> This is the single most important idea on this page: **Code rolls back in seconds. The database does not.**
 
-When you roll back `v2.4.0` → `v2.3.0`, you replace the running code. But if `v2.4.0` had a database migration — say it *dropped* a column — that column is **still gone** after rollback. Now the old `v2.3.0` code starts up, tries to read the column it expects, and crashes. You rolled back the code straight into a broken database.
+- When you roll back `v2.4.0` → `v2.3.0`, you replace the running code.
+- But if `v2.4.0` had a database migration — say it *dropped* a column — that column is **still gone** after rollback.
+- The old `v2.3.0` code starts up, tries to read the column it expects, and crashes.
+- You rolled back the code straight into a broken database.
 
 ```sql
 -- Migration shipped with v2.4.0 (DANGEROUS)
@@ -103,9 +118,11 @@ ALTER TABLE users DROP COLUMN legacy_email;   -- destructive!
 SELECT id, legacy_email FROM users;           -- ERROR: column does not exist
 ```
 
-The takeaway for now: **a destructive migration can make rollback impossible.** This is why senior engineers insist that schema changes be *backward-compatible* — the new code and the old code must both work against the same database. You'll learn the full technique (called expand/contract) in the middle tier, and you can read the `database-migration-patterns` skill for the deep version.
+- **A destructive migration can make rollback impossible.**
+- This is why senior engineers insist that schema changes be *backward-compatible* — the new code and the old code must both work against the same database.
+- You'll learn the full technique (expand/contract) in the middle tier, and can read the `database-migration-patterns` skill for the deep version.
 
-For now, just remember: **if a release changed the database in a way the old code can't handle, you cannot simply roll back — you must roll forward.**
+> **Remember:** if a release changed the database in a way the old code can't handle, you cannot simply roll back — you must roll forward.
 
 ---
 
@@ -121,9 +138,12 @@ A simple decision aid for your first year:
 | Fix is one line and you're confident | Either; often **roll forward** | But rollback is still safer if untested. |
 | Incident is escalating fast | **Roll back** | Time pressure favors the proven version. |
 
-The senior mantra: **"Roll back to recover, roll forward to fix."** Recovery first, root cause second.
+> The senior mantra: **"Roll back to recover, roll forward to fix."** Recovery first, root cause second.
 
-A second thing to internalize early: **rolling back is not an admission of failure.** It's a normal, healthy operation. The best teams roll back often and without drama, precisely because they treat it as a routine safety move rather than a confession. A team that *never* rolls back is usually either lucky, not shipping much, or quietly leaving users in pain because someone is embarrassed to hit undo. Reaching for rollback quickly is a sign of operational maturity, not weakness.
+- **Rolling back is not an admission of failure.** It's a normal, healthy operation.
+- The best teams roll back often and without drama — they treat it as a routine safety move, not a confession.
+- A team that *never* rolls back is usually either lucky, not shipping much, or quietly leaving users in pain because someone is embarrassed to hit undo.
+- Reaching for rollback quickly is a sign of operational maturity, not weakness.
 
 ---
 
@@ -131,7 +151,9 @@ A second thing to internalize early: **rolling back is not an admission of failu
 
 There's a rollback so fast it doesn't involve a deploy at all: the **feature-flag kill switch.**
 
-If the risky part of your release is wrapped in a feature flag, you can turn it *off* without touching the running code. The bad code is still installed on the servers — it's just dormant. No pods restart, no image changes, no traffic moves. The feature simply stops running.
+- If the risky part of your release is wrapped in a feature flag, you can turn it *off* without touching the running code.
+- The bad code is still installed on the servers — it's just dormant.
+- No pods restart, no image changes, no traffic moves. The feature simply stops running.
 
 ```python
 # Code shipped with a flag guard
@@ -141,17 +163,18 @@ else:
     return old_checkout(cart)     # the proven old path
 ```
 
-When `new-checkout` causes problems, you flip it off in the flag dashboard and *every* request immediately takes the old path — within seconds, globally. That is the single fastest way to recover from a bad feature.
-
-This is why feature flags and rollback are tightly linked. Wrapping a risky change in a flag gives you an instant "undo" that doesn't depend on `kubectl` or rebuilds at all. You'll go deep on this in [Feature Flags & Progressive Delivery](../06-feature-flags-and-progressive-delivery/junior.md), but the takeaway for now: **if a change is risky, putting it behind a flag buys you the cheapest possible rollback.**
-
-Note the limit: a kill switch only works for the parts of your change that are *behind a flag*. A bad library upgrade, a broken config, or a schema change can't be flipped off — those need a real rollback or roll-forward.
+- When `new-checkout` causes problems, you flip it off in the flag dashboard.
+- Every request immediately takes the old path — within seconds, globally.
+- That is the single fastest way to recover from a bad feature.
+- Wrapping a risky change in a flag gives you an instant "undo" that doesn't depend on `kubectl` or rebuilds at all. Go deep in [Feature Flags & Progressive Delivery](../06-feature-flags-and-progressive-delivery/junior.md).
+- **The limit:** a kill switch only works for parts of your change that are *behind a flag*. A bad library upgrade, a broken config, or a schema change can't be flipped off — those need a real rollback or roll-forward.
 
 ---
 
 ## Core Concept 7 — Know your last known-good version before you need it
 
-You cannot roll back to a version you can't name. The most embarrassing way to fail an incident is to decide "let's roll back" and then spend ten minutes figuring out *what to roll back to.*
+- You cannot roll back to a version you can't name.
+- The most embarrassing way to fail an incident: decide "let's roll back" and then spend ten minutes figuring out *what to roll back to.*
 
 Build the habit of knowing, at any moment, what the last known-good version is:
 
@@ -172,7 +195,8 @@ Two practices that make this painless:
 1. **Always set a change-cause** on every deploy so the history is human-readable, not a wall of hashes. A revision labeled `deploy v2.3.0 (release train 2026-W24)` tells you instantly what it is.
 2. **Tag releases meaningfully** so the version in `rollout history` maps to a real, findable artifact in your registry. See [Versioning & SemVer](../01-versioning-and-semver/junior.md).
 
-If you can answer "what's the last good version?" in five seconds, your rollback is five seconds from starting. If you can't, your rollback hasn't even begun — and the clock is running while users suffer.
+- If you can answer "what's the last good version?" in five seconds, your rollback is five seconds from starting.
+- If you can't, your rollback hasn't even begun — and the clock is running while users suffer.
 
 ---
 
@@ -215,3 +239,8 @@ If you can answer "what's the last good version?" in five seconds, your rollback
 - Which input changes the observed result, and why?
 - What is the smallest useful success check?
 - Which beginner mistake would your evidence catch?
+- What's the difference between rollback and roll-forward, and which is your default?
+- Which command rolls a Kubernetes Deployment back to a specific revision?
+- Why is rolling back to a previously built artifact safer than reverting the commit and rebuilding?
+- Why is the database "the hard part" of rollback?
+- What's the fastest possible rollback mechanism, and why?

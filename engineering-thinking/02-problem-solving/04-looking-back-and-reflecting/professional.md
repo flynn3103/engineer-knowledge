@@ -130,7 +130,9 @@ The outcome is not "three teams fixed a bug." It's a changed design-review stand
 Back to the [problem-solving section](../) · [engineering thinking roadmap](../../README.md). See also [check your understanding](#check-your-understanding) and [check your understanding](#check-your-understanding).
 
 ---
-## Check your understanding
+## Recall and apply
+
+**Practice loop:** After one task, record what you expected, what happened, what changed your mind, and one reusable lesson.
 
 Try to answer these questions from memory:
 

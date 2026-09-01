@@ -148,7 +148,13 @@ Knowing the sources keeps your reasoning grounded and credible in senior forums:
 Back to the section root: [Scientific & Hypothesis-Driven](../). Related: [hypothesis & falsifiability](../01-hypothesis-and-falsifiability/), [experiments & A/B testing](../02-experiments-and-ab-testing/), [measure before optimize](../03-measure-before-optimize/), and the [Engineering Thinking roadmap](../../README.md).
 
 ---
-## Check your understanding
+## Use it today
+
+1. Fund discovery work before teams commit to costly architecture or delivery plans.
+2. Make spike findings reusable through concise records and demos.
+3. Track whether resolved uncertainties improve roadmap and investment decisions.
+
+## Recall and apply
 
 Try to answer these questions from memory:
 

@@ -158,7 +158,9 @@ The staff engineer who can say "I was wrong about this approach, let's change co
 The arc of this topic runs from a junior's personal checklist to a principal shaping how an entire org handles being stuck. The through-line never changes: *stuck is information, pushing harder is usually wrong, and the fastest unblock is almost always a change of approach, representation, or person — sought early and asked for well.* Connect this to [looking back](../04-looking-back-and-reflecting/) to turn each team-level stuck-point into a durable improvement, and to the section root ([problem-solving](../)) and the broader [engineering-thinking roadmap](../../README.md) for the surrounding skills.
 
 ---
-## Check your understanding
+## Recall and apply
+
+**Practice loop:** Name the blocker, choose one technique, time-box it, and state what evidence would tell you to switch approaches.
 
 Try to answer these questions from memory:
 

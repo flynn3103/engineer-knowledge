@@ -5,6 +5,13 @@
 
 ---
 
+## Quick use
+1. Sketch what you would build from current requirements.
+2. Diff the sketch against the live code.
+3. Make only small, reversible changes after checking why differences exist.
+
+**Decision rule:** redesign freely on paper; do not treat the sketch as permission for a rewrite.
+
 ## 1. The three steps, and where this one fits
 
 First-principles thinking has a natural order, and this topic is the third beat:
@@ -178,7 +185,9 @@ But — Chesterton's Fence — check before swapping: does anything depend on th
 - Roadmap root: [Engineering Thinking](../../README.md)
 
 ---
-## Check your understanding
+## Recall and apply
+
+Use these prompts to check your understanding and choose one action to try in your next task.
 
 Try to answer these questions from memory:
 

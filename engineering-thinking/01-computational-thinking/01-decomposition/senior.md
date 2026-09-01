@@ -1,285 +1,106 @@
-# Decomposition — Senior
+# Decomposition - Senior
 
-At middle level, you learned to optimize cohesion and coupling. At senior level, focus on a deeper question:
+Choose boundaries that contain future change, preserve business rules, and cost less to reconnect than they save.
 
-> Which boundaries match the system's natural seams and contain future change?
+## Find natural seams
 
-A natural seam lets one side change without forcing unrelated changes on the other. Senior decomposition protects business rules, hides volatile decisions, and considers integration cost before splitting.
+A seam separates responsibilities, language, data, ownership, or change patterns.
 
----
-
-## 1. Find seams by looking for independent change
-
-A seam is a boundary where responsibilities, language, data, or change patterns naturally separate.
-
-### Seam vs. cohesion and coupling
-
-These concepts have different roles:
-
-| Concept | Question it answers |
-|---|---|
-| **Seam** | Where should we split the system? |
-| **Cohesion** | Do the responsibilities inside each piece belong together? |
-| **Coupling** | How strongly do the pieces depend on each other? |
-
-A seam is a **candidate boundary**. Cohesion and coupling help you decide whether that boundary is good.
-
-For example, suppose you place a seam between `Checkout` and `Pricing`:
-
-- `Pricing` contains only price, tax, and discount rules, so it has high cohesion.
-- `Checkout` sends items and a destination, then receives a price quote.
-- Neither side needs to know the other's internal implementation, so coupling is low.
-
-That is likely a useful seam. If `Pricing` also manages inventory, sends email, and creates orders, its cohesion is low. If every checkout change requires changing both modules, their coupling is high. In either case, reconsider the boundary.
-
-Use this process:
-
-1. Propose a seam based on responsibilities, language, data, or change patterns.
-2. Check cohesion inside each resulting piece.
+1. Propose a seam from evidence.
+2. Check cohesion within both resulting pieces.
 3. Check coupling across the boundary.
-4. Move or remove the seam if cohesion is low or coupling is unnecessarily high.
+4. Move or remove the seam if it creates unnecessary dependency.
 
-> A seam is the line you draw. Cohesion and coupling tell you whether you drew it in the right place.
+Use repository and team evidence:
 
-Look at repository history and team behavior:
-
-- Which files repeatedly change together?
+- Which files change together?
 - Which rules have different owners?
-- Where does vocabulary change meaning?
-- Which parts scale or fail independently?
-- Which third-party dependency changes frequently?
+- Where does a business term change meaning?
+- Which parts scale, fail, or release independently?
+- Which third-party detail changes frequently?
 
-A diagram can suggest a boundary. Change evidence validates it.
+## Hide volatile decisions
 
----
+Expose a stable capability, not a vendor or implementation detail.
 
-## 2. Hide volatile decisions
+- Checkout should request `quote(items, destination)` from tax calculation.
+- Checkout should not know the tax vendor endpoint, cache, or response shape.
+- Complete this sentence for each module: "This prevents the rest of the system from knowing ____."
 
-Information hiding means exposing a stable capability while keeping changeable details private.
+If no decision is hidden, the boundary may not be useful.
 
-Suppose checkout needs tax calculation. Callers should request a tax quote; they should not know vendor endpoints or response formats.
+## Use domain language and invariants
 
-```mermaid
-flowchart LR
-    Checkout["Checkout"] -->|"quote(items, destination)"| Tax["Tax module"]
-    Tax --> Provider["External tax provider"]
-    Tax --> Cache["Rate cache"]
-```
+- Map important terms with stakeholders. Different definitions are candidate context boundaries.
+- Keep one meaning of a term inside a boundary; translate explicitly between contexts.
+- Write each critical invariant in one sentence before splitting.
+- Keep data and state changes needed for that invariant together.
+- If distribution is unavoidable, design idempotency and compensation deliberately.
 
-When the provider changes, only the tax module should change.
+Example: do not confirm an order until payment is authorized and inventory is reserved.
 
-For every proposed module, complete this sentence:
+## Design recomposition first
 
-> This module prevents the rest of the system from knowing ______.
+Trace normal and partial-failure flows across every significant seam. Ask:
 
-If there is no meaningful answer, the boundary may only mirror an execution step rather than hide a decision.
-
----
-
-## 3. Use domain language to locate boundaries
-
-The same word can mean different things in different business areas.
-
-```mermaid
-flowchart TD
-    Product["Product"]
-    Product --> Catalog["Catalog context"]
-    Product --> Inventory["Inventory context"]
-    Product --> Pricing["Pricing context"]
-    Product --> Fulfillment["Fulfillment context"]
-```
-
-Forcing every area to share one giant `Product` model couples unrelated changes.
-
-Apply this during discovery:
-
-1. List important business terms.
-2. Ask different stakeholders to define each term.
-3. Mark where definitions or rules differ.
-4. Treat those language changes as candidate context boundaries.
-5. Define explicit translations between contexts.
-
-Domain boundaries are stronger than folders named `controllers`, `services`, and `repositories` because they organize code around business change.
-
----
-
-## 4. Keep invariants inside a boundary
-
-An invariant is a rule that must remain true. A boundary that cuts through an invariant creates coordination and consistency problems.
-
-Example invariant:
-
-> An order must not be confirmed unless payment is authorized and inventory is reserved.
-
-Before creating a module or service boundary:
-
-1. Write the invariant in one sentence.
-2. Trace every state change needed to protect it.
-3. Identify which data must be consistent together.
-4. Prefer keeping that logic and ownership together.
-5. If distribution is necessary, design idempotency and compensation explicitly.
-
-Do not choose a service split first and discover the distributed transaction later.
-
----
-
-## 5. Design recomposition before decomposition
-
-Every split adds a contract, failure point, and translation. Trace real operations across the boundary before approving it.
-
-```mermaid
-sequenceDiagram
-    participant Checkout
-    participant Pricing
-    participant Inventory
-    participant Payment
-
-    Checkout->>Pricing: request quote
-    Pricing-->>Checkout: total + quote ID
-    Checkout->>Inventory: reserve(items, key)
-    Inventory-->>Checkout: reservation ID
-    Checkout->>Payment: authorize(total, key)
-    Payment-->>Checkout: authorization ID
-    Checkout->>Checkout: confirm order
-```
-
-Review the trace:
-
-- How many synchronous round trips occur?
-- Who owns retries and timeouts?
-- Are requests idempotent?
+- How many synchronous calls are required?
+- Who owns timeout, retry, and idempotency behavior?
 - Which system owns each fact?
 - Can contracts evolve independently?
-- What happens when a dependency succeeds but the next one fails?
+- What happens if one dependency succeeds and the next fails?
 
-If ordinary operations require chatty calls or shared writes, the seam is weak.
+Chatty calls and shared writes are evidence that the seam is weak.
 
----
+## Choose the right lens
 
-## 6. Choose the decomposition lens deliberately
-
-| Lens | Best fit | Main risk |
+| Lens | Best fit | Risk |
 |---|---|---|
-| Functional | Pipelines and transformations | Stages share internal representations |
-| Data | Parallel work and scale | Cross-partition operations become expensive |
-| Domain | Business modules and services | Boundary ignores shared invariants |
+| Functional | Pipelines | Shared internal representations |
+| Data | Parallel scale | Expensive cross-partition work |
+| Domain | Business capabilities | Splitting shared invariants |
 
-These lenses can combine. Pricing may be a domain boundary, use a functional calculation pipeline internally, and partition data by region.
+Combine lenses when needed. A domain module may use an internal pipeline and regional data partitions.
 
----
+## Do not extract a service by default
 
-## 7. Worked scenario: notification platform
+Start with an in-process module. Add a network boundary only with evidence:
 
-Requirement:
+- Stable independent ownership.
+- Different scaling or release needs.
+- Valuable failure isolation.
+- Clear data ownership and contained invariants.
+- Acceptable operational and integration cost.
 
-> Send email, SMS, and push notifications for events such as password reset, shipment, and promotions.
-
-Splitting only by channel duplicates policy and rendering logic. Instead, hide independent decisions:
-
-```mermaid
-flowchart LR
-    Event["Domain event"] --> Policy["Policy"]
-    Policy --> Template["Template"]
-    Template --> Dispatch["Dispatch"]
-    Dispatch --> Email["Email adapter"]
-    Dispatch --> SMS["SMS adapter"]
-    Dispatch --> Push["Push adapter"]
-
-    Preferences["User preferences"] --> Policy
-```
-
-This design localizes change:
-
-| Change | Expected owner |
-|---|---|
-| Add quiet hours | Policy |
-| Rewrite shipment message | Template |
-| Replace SMS vendor | SMS adapter |
-| Add retry backoff | Dispatch |
-| Add WhatsApp | New channel adapter |
-
-### Actionable design exercise
-
-For each module, document:
-
-- The decision it hides.
-- Its stable public contract.
-- Data it owns.
-- Failure modes it contains.
-- Changes that should remain local.
-
-Then test the design against three likely future changes. If every change crosses several modules, revisit the boundaries.
-
----
-
-## 8. Decide whether a module should become a service
-
-Start with an in-process module because its boundary is cheap to move. Add a network boundary only when there is evidence.
-
-Evidence includes different scaling profiles, clear data ownership, separate release cadence, required failure isolation, or stable team ownership. “Microservices are modern” is not evidence.
-
-Keep the code as an in-process module unless several forces justify extraction:
-
-- Independent ownership is stable.
-- Scaling or release needs differ significantly.
-- Failure isolation is valuable.
-- Data and invariants fit inside the boundary.
-- The network and operational costs are acceptable.
-
----
-
-## 9. Senior boundary decision record
-
-Use this before a significant module or service split:
+## Boundary decision record
 
 ```markdown
-## Candidate boundary
-What responsibilities and data are inside?
+## Candidate boundary and seam evidence
+What responsibilities, data, language, and independent changes support it?
 
-## Seam evidence
-Which independent changes, language differences, or ownership patterns support it?
+## Hidden decision and invariants
+What volatility is contained, and which rules must remain inside?
 
-## Hidden decision
-What volatile detail is protected behind the interface?
-
-## Invariants
-Which rules must stay entirely inside? Does any rule cross the boundary?
-
-## Recomposition
-Trace one normal flow and one partial-failure flow.
-
-## Contract
-What data and operations cross? Who owns versioning?
+## Recomposition and contract
+Trace normal and failure flows; define data, operations, and version ownership.
 
 ## Alternatives
 Why is a smaller refactor or in-process module insufficient?
 ```
 
----
+## Checklist
 
-## 10. Senior checklist
+- [ ] Change, language, ownership, and invariant evidence support the seam.
+- [ ] Each boundary hides a concrete volatile decision.
+- [ ] Data ownership, contracts, retries, and failure recovery are explicit.
+- [ ] Integration cost is lower than the independence gained.
+- [ ] Distribution has a concrete benefit.
 
-- [ ] Repository and domain evidence support the seam.
-- [ ] Each module hides a specific volatile decision.
-- [ ] Business language is consistent inside each boundary.
-- [ ] Critical invariants do not accidentally cross boundaries.
-- [ ] Normal and failure flows have been traced end to end.
-- [ ] Data ownership and contract evolution are explicit.
-- [ ] The integration cost is lower than the independence gained.
-- [ ] A module remains a module unless distribution has a concrete benefit.
+> Cut where change and invariants naturally separate, then calculate the cost of reconnecting the pieces.
 
-The central lesson is:
+Next: [Professional level](professional.md)
 
-> Cut where change, language, ownership, and invariants naturally separate—and calculate the cost of reconnecting the pieces before making the cut.
-
-Next: [Professional level](professional.md) — align architecture, team ownership, and multi-stage delivery.
-
----
 ## Check your understanding
 
-Try to answer these questions from memory:
-
-1. Why is recomposition a design concern and not an afterthought?
-2. How is decomposition a debugging tool?
-3. How does decomposition relate to estimation?
-4. What's the connection between divide-and-conquer and decomposition?
+1. How are seams, cohesion, and coupling different?
+2. Why must invariants shape system boundaries?
+3. What evidence justifies service extraction?

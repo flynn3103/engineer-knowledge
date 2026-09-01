@@ -6,6 +6,13 @@
 
 ---
 
+## Quick use
+1. Report p50 and p90 with the assumptions behind the spread.
+2. Use three-point and outside-view estimates.
+3. Tell stakeholders which percentile supports the decision.
+
+**Decision rule:** never let a planning commitment silently become the optimistic estimate.
+
 ## 1. The unit of an estimate is a distribution
 
 A point estimate collapses a *distribution* of possible durations into one number and silently throws away everything you don't know. The professional move is to keep the distribution and report its key percentiles.
@@ -171,7 +178,7 @@ Script that works: **"Most likely 3 weeks. I'd commit to 5 to be safe — the ri
 5. Use **Fermi capacity estimates** to pick an architecture class before committing.
 
 ---
-## Check your understanding
+## Recall and apply
 
 Try to answer these questions from memory:
 

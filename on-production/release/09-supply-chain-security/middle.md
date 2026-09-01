@@ -14,21 +14,24 @@ Use the smallest realistic scenario that exposes the decision and its failure be
 
 ## Core Concept 1 — SBOMs: an inventory you can query
 
-An **SBOM** is a structured manifest of everything inside an artifact: every direct and transitive component, its version, ideally its license and a hash, each named with a stable identifier (a PURL). Think of it as the ingredients label on a food package — except machine-readable, so a tool can answer questions about it instantly.
-
-Two formats dominate, and good tools speak both:
+- An **SBOM** is a structured manifest of everything inside an artifact:
+  - every direct and transitive component
+  - its version, ideally its license and a hash
+  - each named with a stable identifier (a PURL)
+- Think of it as the ingredients label on a food package — except machine-readable, so a tool can answer questions about it instantly.
+- Two formats dominate, and good tools speak both:
 
 - **SPDX** — Linux Foundation, an ISO standard, strong on licensing and broad ecosystem adoption. Often required by procurement and government (see EO 14028).
 - **CycloneDX** — OWASP, security-first, with first-class support for vulnerabilities and **VEX** (statements about whether a CVE actually applies to you).
 
-The whole *point* of an SBOM is the queries it unlocks:
-
-- **"Am I affected by CVE-X?"** — match the CVE's affected PURLs against your SBOM. Minutes, not days.
-- **License audit** — "do we ship any GPL/AGPL code we shouldn't?" — answerable from the license field.
-- **Drift detection** — diff today's SBOM against last release's: what changed, and why?
-- **Reachability triage** — combine the SBOM with a scanner to see *which* components have known vulns.
-
-Crucially: **an SBOM is an inventory, not a guarantee.** It tells you what's *in* the box; it says nothing about whether those components are safe, whether the build that produced them was clean, or whether the SBOM itself is accurate (a generator that misses a component produces a confidently wrong inventory). The SBOM is the *map* — it makes the incident-response question answerable. It does not, by itself, prevent the incident.
+- The whole *point* of an SBOM is the queries it unlocks:
+  - **"Am I affected by CVE-X?"** — match the CVE's affected PURLs against your SBOM. Minutes, not days.
+  - **License audit** — "do we ship any GPL/AGPL code we shouldn't?" — answerable from the license field.
+  - **Drift detection** — diff today's SBOM against last release's: what changed, and why?
+  - **Reachability triage** — combine the SBOM with a scanner to see *which* components have known vulns.
+- Crucially: **an SBOM is an inventory, not a guarantee.**
+  - It tells you what's *in* the box; it says nothing about whether those components are safe, whether the build that produced them was clean, or whether the SBOM itself is accurate (a generator that misses a component produces a confidently wrong inventory).
+  - The SBOM is the *map* — it makes the incident-response question answerable. It does not, by itself, prevent the incident.
 
 ---
 
@@ -45,9 +48,11 @@ syft dir:. -o cyclonedx-json=sbom.cdx.json
 syft myorg/api:1.4.2 -o cyclonedx-json=sbom.cdx.json
 ```
 
-**When you generate matters.** Generating from source reflects what you *declared*; generating from the built image reflects what actually *shipped* (including OS packages baked into the base image — see the `docker-best-practices` skill). The image-level SBOM is closer to truth for "what's running in production." Best practice is to generate at build time and attach the SBOM to the artifact as an attestation (mechanics: [Artifact Signing & Provenance](../04-artifact-signing-and-provenance/README.md)).
-
-Then *use* it. `grype` consumes an SBOM directly, so you separate "what's in the artifact" (slow, do once at build) from "what's now known-vulnerable" (fast, re-run continuously as the advisory DB updates):
+- **When you generate matters:**
+  - Generating from source reflects what you *declared*.
+  - Generating from the built image reflects what actually *shipped* (including OS packages baked into the base image — see the `docker-best-practices` skill). This is closer to truth for "what's running in production."
+  - Best practice: generate at build time and attach the SBOM to the artifact as an attestation (mechanics: [Artifact Signing & Provenance](../04-artifact-signing-and-provenance/README.md)).
+- Then *use* it. `grype` consumes an SBOM directly, so you separate "what's in the artifact" (slow, do once at build) from "what's now known-vulnerable" (fast, re-run continuously as the advisory DB updates):
 
 ```bash
 # Scan the SBOM, not the filesystem — re-runnable as new CVEs land
@@ -58,17 +63,17 @@ grep -i "log4j" sbom.cdx.json
 osv-scanner --sbom=sbom.cdx.json
 ```
 
-This separation is the operational payoff: store the SBOM per release, and when a new CVE drops you re-scan the *stored* SBOMs of every deployed version without rebuilding anything.
+- This separation is the operational payoff: store the SBOM per release, and when a new CVE drops you re-scan the *stored* SBOMs of every deployed version without rebuilding anything.
 
 ---
 
 ## Core Concept 3 — Pinning vs ranges, and what hashes really buy
 
-A **version range** (`^1.2.0`, `>=2,<3`, `~=1.4`) delegates the choice of exact version to resolution time. Convenient — you get patches automatically — but it means a *new, unreviewed* release can enter your build the next time you resolve. That is precisely the channel event-stream used.
-
-**Pinning** fixes the exact version. **Hash pinning** goes further: it fixes the exact *content*, so even the same version number can't be swapped for tampered bytes.
-
-The ladder, weakest to strongest:
+- A **version range** (`^1.2.0`, `>=2,<3`, `~=1.4`) delegates the choice of exact version to resolution time.
+  - Convenient — you get patches automatically.
+  - But it means a *new, unreviewed* release can enter your build the next time you resolve. That is precisely the channel event-stream used.
+- **Pinning** fixes the exact version. **Hash pinning** goes further: it fixes the exact *content*, so even the same version number can't be swapped for tampered bytes.
+- The ladder, weakest to strongest:
 
 | Level | Example | What it stops |
 |-------|---------|---------------|
@@ -78,16 +83,24 @@ The ladder, weakest to strongest:
 | Hash-pinned manifest | `pip --require-hashes`, Go `go.sum` | Content tampering, verified on every install. |
 | Vendoring | `vendor/` committed to repo | Registry availability *and* tampering — you own the bytes. |
 
-What `go.sum` actually protects, precisely: it stores a hash of each module's files (`h1:`) and of its `go.mod`. On build, Go fetches the module (via the proxy and, by default, verifies against the **checksum database** `sum.golang.org`), then checks the bytes against `go.sum`. If anyone — the author, the proxy, a MITM — alters the module after the line was written, the hash mismatches and the build **fails**:
+- What `go.sum` actually protects, precisely:
+  - It stores a hash of each module's files (`h1:`) and of its `go.mod`.
+  - On build, Go fetches the module (via the proxy and, by default, verifies against the **checksum database** `sum.golang.org`), then checks the bytes against `go.sum`.
+  - If anyone — the author, the proxy, a MITM — alters the module after the line was written, the hash mismatches and the build **fails**:
 
 ```bash
 go mod verify        # re-verify the module cache against go.sum
 GOFLAGS=-mod=readonly go build ./...   # fail if go.mod/go.sum would change
 ```
 
-Say it once more because teams get it wrong: **a hash guarantees the bytes are identical to what was approved. It does not guarantee the bytes are good.** A backdoored module with a stable `go.sum` line sails through. Hash pinning defends against *tampering in transit and surprise updates* — not against an upstream that was malicious from the start. That residual risk is what review, scanning, and provenance (next concepts) address.
-
-**Vendoring** trades repo size and noisier diffs for two real wins: your build no longer depends on registry uptime (the left-pad failure mode disappears), and dependency *changes* show up as reviewable diffs in PRs. `go mod vendor`, `npm`'s offline mirror, or `cargo vendor` all support it.
+- Say it once more because teams get it wrong: **a hash guarantees the bytes are identical to what was approved. It does not guarantee the bytes are good.**
+  - A backdoored module with a stable `go.sum` line sails through.
+  - Hash pinning defends against *tampering in transit and surprise updates* — not against an upstream that was malicious from the start.
+  - That residual risk is what review, scanning, and provenance (next concepts) address.
+- **Vendoring** trades repo size and noisier diffs for two real wins:
+  - Your build no longer depends on registry uptime (the left-pad failure mode disappears).
+  - Dependency *changes* show up as reviewable diffs in PRs.
+  - `go mod vendor`, `npm`'s offline mirror, or `cargo vendor` all support it.
 
 ---
 

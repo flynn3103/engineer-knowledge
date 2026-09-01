@@ -33,7 +33,7 @@ A useful discipline: **for every breaking change, the changelog entry must let a
 
 That entry is a contract clause: it states what changed, the failure mode if ignored, and the remediation. Compare to "Made connect async" — technically true, contractually useless.
 
-> The senior reframing: review changelog entries for breaking changes with the same rigor as the API change itself. A correct API change with a vague changelog entry is an incomplete change.
+> **Senior reframing:** review changelog entries for breaking changes with the same rigor as the API change itself. A correct API change with a vague changelog entry is an incomplete change.
 
 ---
 
@@ -54,7 +54,7 @@ This changes the artifacts:
 - **Because users can't opt out, the release note carries more weight than for a library.** A library user who ignores your note can stay on the old version; a SaaS user who misses your note is broken at next login. So SaaS release notes must be *louder* about behavior changes and *earlier* (announce before, not after).
 - **Feature flags decouple "merged" from "released."** A feature behind a flag is in the codebase but not in any user's reality. Your changelog must describe *what users can now do*, which is gated by rollout, not by merge. This is why SaaS changelogs are often written at *flag-100%* time, not merge time. See [Feature Flags & Progressive Delivery](../06-feature-flags-and-progressive-delivery/README.md).
 
-> The principle: **the changelog's unit of change must match the user's unit of adoption.** For libraries that's a version; for SaaS it's a dated rollout. Forcing SaaS into per-tag changelogs produces noise no user reads.
+> **Principle:** the changelog's unit of change must match the user's unit of adoption — a version for libraries, a dated rollout for SaaS. Forcing SaaS into per-tag changelogs produces noise no user reads.
 
 ---
 
@@ -172,7 +172,7 @@ The promotion step is the whole game. Design it explicitly:
 
 - **Default to silence for noise.** `chore`, `refactor`, `test`, dependency bumps (except security) should be *excludable by default* and explicitly includable. The failure mode is the inverse: defaulting to include and asking humans to suppress noise — they won't, and the changelog rots into a commit dump.
 
-> The senior insight: automation doesn't remove the human; it *relocates* them from transcription to curation. If your process has no promotion step, you've automated the changelog and abandoned the release notes — the artifact users actually read.
+> **Senior insight:** automation doesn't remove the human; it *relocates* them from transcription to curation. If your process has no promotion step, you've automated the changelog and abandoned the release notes — the artifact users actually read.
 
 ---
 
@@ -262,3 +262,7 @@ For consumer-facing products in multiple markets, release notes are localized �
 - Where should recovery responsibility live, and why?
 - Which assumption deserves an experiment before implementation?
 - How can the design evolve without changing every consumer at once?
+- In what sense is a changelog an API contract?
+- Why must security fixes get their own changelog group, and why does publish timing matter?
+- Why might "version" be the wrong unit for a SaaS product's changelog?
+- A widely-used library needs to remove a long-standing API — walk through the full change-communication lifecycle.

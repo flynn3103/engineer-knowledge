@@ -1,26 +1,18 @@
 # Design
 
-> A progressive engineering roadmap for turning design principles into repeatable decisions, observable practices, and maintainable systems.
+## Purpose
 
-Use this section to move from correct execution in a small scope to design ownership, system-level trade-offs, and organization-scale practice. Each topic emphasizes concrete methods, failure modes, and evidence you can use to verify the result.
+This section covers design anti-patterns: recurring choices that make software harder to change, operate, or trust.
 
 ## Topics
 
-| # | Topic | Focus |
-|---|---|---|
-| 01 | [Oo Misuse](01-oo-misuse/junior.md) | Build practical judgment in oo misuse. |
-| 02 | [Coupling and State](02-coupling-and-state/junior.md) | Build practical judgment in coupling, state. |
-| 03 | [Abstraction Failures](03-abstraction-failures/junior.md) | Build practical judgment in abstraction failures. |
+- [OO Misuse Anti-Patterns](01-oo-misuse/junior.md): objects used as data bags, procedure holders, or inheritance shortcuts.
+- [Coupling & State Anti-Patterns](02-coupling-and-state/junior.md): hidden dependencies, temporal coupling, and state that leaks across boundaries.
+- [Abstraction Failures Anti-Patterns](03-abstraction-failures/junior.md): abstractions that hide essential choices or force unrelated cases together.
 
-## How to use this section
+## Learning path
 
-Follow the topics in order when the subject is new, or enter at the topic closest to your current problem. Every leaf topic contains four progressive guides:
-
-| Level | Scope | Expected outcome |
-|---|---|---|
-| Junior | A small, well-defined change | Apply the technique correctly with guidance. |
-| Middle | A real codebase or component | Make and explain local design trade-offs independently. |
-| Senior | A system boundary under change | Shape an approach, contain risk, and validate assumptions. |
-| Professional | Multiple teams and sustained delivery | Establish an operating model with measurable outcomes. |
-
-Each level ends with unanswered comprehension questions for active recall. Supporting `interview`, `tasks`, `find-bug`, `optimize`, and answer files are intentionally excluded.
+- **Junior:** recognize the smell and improve a small change safely.
+- **Middle:** diagnose the pattern in a component and explain the trade-off.
+- **Senior:** manage the pattern across a system boundary.
+- **Professional:** establish a measurable prevention practice across teams.

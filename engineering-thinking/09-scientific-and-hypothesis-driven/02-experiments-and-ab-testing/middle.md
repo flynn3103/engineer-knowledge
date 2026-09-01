@@ -145,7 +145,13 @@ With millions of users, a 0.05% lift can be wildly statistically significant and
 - [Section root](../) · [Engineering Thinking roadmap](../../README.md)
 
 ---
-## Check your understanding
+## Use it today
+
+1. Define population, control, treatment, duration, primary metric, and guardrails.
+2. Check assignment and instrumentation before trusting the result.
+3. Record the result, including an inconclusive one, and the next decision.
+
+## Recall and apply
 
 Try to answer these questions from memory:
 

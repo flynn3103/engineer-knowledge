@@ -6,6 +6,13 @@
 
 ---
 
+## Action card
+1. Identify the situation that invites the fallacy.
+2. Supply the missing comparison, base rate, mechanism, or control.
+3. Keep operational recovery separate from causal conclusions.
+
+**Decision rule:** a timeline identifies suspects; it does not prove a cause.
+
 ## 1. From spotting to anticipating
 
 A junior spots a fallacy after it's said. A mid-level engineer knows *where they grow*. Certain situations reliably breed certain fallacies:
@@ -230,7 +237,7 @@ Internalize the *transformation*, not the label. Each fallacy has a canonical re
 Next, at the senior level: the subtle, weaponizable fallacies — motte-and-bailey, nirvana fallacy, Goodhart's law — and how to defuse them in live architecture debates without making enemies.
 
 ---
-## Check your understanding
+## Recall and apply
 
 Try to answer these questions from memory:
 

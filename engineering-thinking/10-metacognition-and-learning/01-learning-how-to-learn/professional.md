@@ -110,7 +110,13 @@ At this level you must also learn about *your own* learning — meta-metacogniti
 **See also:** [Deliberate practice](../03-deliberate-practice/) · [Knowing what you don't know](../04-knowing-what-you-dont-know/) · [Debugging your own reasoning](../02-debugging-your-own-reasoning/) · [First-principles thinking](../../05-first-principles-thinking/) · [Section overview](../) · [Roadmap root](../../README.md)
 
 ---
-## Check your understanding
+## Use it today
+
+1. Create time, paths, and feedback loops for team learning.
+2. Connect learning investments to future technical and organizational needs.
+3. Measure capability growth through demonstrated work, not course completion alone.
+
+## Recall and apply
 
 Try to answer these questions from memory:
 

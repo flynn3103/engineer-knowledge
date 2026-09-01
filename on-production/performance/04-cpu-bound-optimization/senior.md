@@ -13,13 +13,21 @@ Use the smallest realistic scenario that exposes the decision and its failure be
 
 ## The Modern Core — Superscalar, Out-of-Order, Speculative
 
-The mental model most engineers carry — "the CPU executes my instructions one at a time, in order" — has been false for thirty years. A modern x86 core (Intel Golden Cove, AMD Zen 4) or a wide ARM core (Apple Firestorm) is a **superscalar, out-of-order, speculative** machine, and optimizing for it requires understanding three properties.
+The mental model most engineers carry — "the CPU executes my instructions one at a time, in order" — has been false for thirty years. A modern x86 core (Intel Golden Cove, AMD Zen 4) or a wide ARM core (Apple Firestorm) is a **superscalar, out-of-order, speculative** machine. Optimizing for it requires understanding three properties.
 
-**Superscalar (wide).** The core can decode, issue, and retire multiple instructions *per cycle*. Mainstream big cores are 4–6 wide on retire; Apple's cores are 8-wide. Each cycle the frontend tries to deliver up-to-N micro-ops (µops) to the backend. If your code only offers one independent instruction per cycle, you waste 3–7 of those slots — the machine is idle while looking 100% busy.
+**1. Superscalar (wide).**
+- The core can decode, issue, and retire multiple instructions *per cycle*.
+- Mainstream big cores are 4–6 wide on retire; Apple's cores are 8-wide.
+- Each cycle the frontend tries to deliver up-to-N micro-ops (µops) to the backend.
+- If your code only offers one independent instruction per cycle, you waste 3–7 of those slots — the machine is idle while looking 100% busy.
 
-**Out-of-order (OoO).** Instructions are decoded into µops, renamed onto a large physical register file (to break false dependencies), and dropped into a **scheduler / reservation station**. From there they execute *as soon as their inputs are ready*, not in program order, dispatched to **execution ports**. A µop only commits ("retires") in program order, from the **reorder buffer (ROB)** — which is hundreds of entries deep (Golden Cove: 512). That deep window is what lets the core keep working across a cache miss: it can run ~hundreds of instructions ahead of a stalled load, *if those instructions are independent of the load*.
+**2. Out-of-order (OoO).**
+- Instructions are decoded into µops, renamed onto a large physical register file (to break false dependencies), and dropped into a **scheduler / reservation station**.
+- From there they execute *as soon as their inputs are ready*, not in program order, dispatched to **execution ports**.
+- A µop only commits ("retires") in program order, from the **reorder buffer (ROB)** — which is hundreds of entries deep (Golden Cove: 512).
+- That deep window is what lets the core keep working across a cache miss: it can run ~hundreds of instructions ahead of a stalled load, *if those instructions are independent of the load*.
 
-**Ports are the real throughput limit.** Each port handles certain operations. A simplified Golden Cove layout:
+**3. Ports are the real throughput limit.** Each port handles certain operations. A simplified Golden Cove layout:
 
 | Port(s) | Handles |
 |---|---|
@@ -29,9 +37,10 @@ The mental model most engineers carry — "the CPU executes my instructions one 
 | p4, p9 + p7, p8 | stores (data + address) |
 | p0, p6 | branches |
 
-Two integer multiplies that could in principle run in parallel may both need p1 and serialize. This is **port pressure**, and it's why "fewer instructions" isn't always faster — six instructions spread across six ports beat four instructions all contending for one port.
+- Two integer multiplies that could in principle run in parallel may both need p1 and serialize.
+- This is **port pressure**, and it's why "fewer instructions" isn't always faster — six instructions spread across six ports beat four instructions all contending for one port.
 
-**Speculative.** The frontend doesn't wait to learn the outcome of a branch; it *predicts* it and runs ahead speculatively, squashing the work if wrong. This is the single most important property for the branch-prediction section below.
+**4. Speculative.** The frontend doesn't wait to learn the outcome of a branch; it *predicts* it and runs ahead speculatively, squashing the work if wrong. This is the single most important property for the branch-prediction section below.
 
 ```bash
 perf stat -e cycles,instructions,uops_retired.retire_slots ./app
@@ -74,7 +83,8 @@ toplev.py -l3 --no-desc ./app
 #  ... Backend_Bound.Memory_Bound.DRAM_Bound  41.7 %   ← it's waiting on main memory
 ```
 
-That last line is the payoff: a flame graph said "hot loop 64%"; TMA says the loop spends 42% of all pipeline slots stalled on DRAM. No amount of branchless cleverness will help — the fix is in the cache hierarchy (data layout, prefetch, blocking), which is exactly the [memory-layout and locality](../05-memory-and-allocation-profiling/senior.md) toolkit.
+- That last line is the payoff: a flame graph said "hot loop 64%"; TMA says the loop spends 42% of all pipeline slots stalled on DRAM.
+- No amount of branchless cleverness will help — the fix is in the cache hierarchy (data layout, prefetch, blocking), which is exactly the [memory-layout and locality](../05-memory-and-allocation-profiling/senior.md) toolkit.
 
 > **Key insight:** Top-down is a *decision tree*, not a dashboard. Each level tells you which subtree to expand. You don't read all the counters; you follow the dominant bucket down until it names a concrete resource — `DRAM_Bound`, `Ports_Utilization`, `Branch_Mispredicts` — and only then do you pick a transformation. Optimizing without doing this is how people spend a week vectorizing a loop that was memory-bound the whole time.
 
@@ -94,7 +104,9 @@ for (int i = 0; i < N; i++)
         sum += data[i];
 ```
 
-With **random** data, `data[i] >= 128` is true ~50% of the time in no pattern, so the predictor is wrong about half the time — a misprediction every other iteration. With the **same data sorted**, the branch is taken `false` for the whole first half and `true` for the whole second half: two long runs the predictor nails after one mispredict each. Same instructions, same cache behavior, same algorithm — the sorted version can run **5–6× faster** purely because of branch prediction. `perf` shows it directly:
+- With **random** data, `data[i] >= 128` is true ~50% of the time in no pattern, so the predictor is wrong about half the time — a misprediction every other iteration.
+- With the **same data sorted**, the branch is taken `false` for the whole first half and `true` for the whole second half: two long runs the predictor nails after one mispredict each.
+- Same instructions, same cache behavior, same algorithm — the sorted version can run **5–6× faster** purely because of branch prediction.
 
 ```bash
 perf stat -e branches,branch-misses ./sum_random
@@ -117,9 +129,13 @@ sum += data[i] & -(data[i] >= 128);   // mask is 0x00.. or 0xFF.., then AND
         add     rcx, rdx
 ```
 
-A `cmov` is ~1–2 cycles and *never mispredicts* — but it always has a data dependency on both operands, so it's not free: if the branch were highly predictable (say 99% one way), the *branch* is actually faster because the predictor lets the pipeline run ahead, whereas `cmov` serializes. **Branchless wins exactly when the branch is unpredictable.** This is the real lesson: don't blanket-replace branches with `cmov`; replace the *unpredictable* ones. Measure `branch-misses` first.
+- A `cmov` is ~1–2 cycles and *never mispredicts* — but it always has a data dependency on both operands, so it's not free: if the branch were highly predictable (say 99% one way), the *branch* is actually faster because the predictor lets the pipeline run ahead, whereas `cmov` serializes.
+- **Branchless wins exactly when the branch is unpredictable.** Don't blanket-replace branches with `cmov`; replace the *unpredictable* ones. Measure `branch-misses` first.
 
-In other languages the same physics applies with different controls. In **Java**, the C2 JIT profiles branches at runtime and will compile a never-taken branch as an *uncommon trap* (deoptimize if it ever fires) — so a branch that's biased in production but not during warm-up can deopt and stall; this is why JMH warm-up that doesn't match production branch bias gives lying numbers. In **Go**, you can hint with `[]bool` lookup tables or arithmetic, but the compiler's `cmov` generation is weaker than GCC/Clang, so reading the asm (`go build -gcflags=-S`) matters more.
+**Per-language notes:**
+
+- In **Java**, the C2 JIT profiles branches at runtime and will compile a never-taken branch as an *uncommon trap* (deoptimize if it ever fires) — so a branch that's biased in production but not during warm-up can deopt and stall; this is why JMH warm-up that doesn't match production branch bias gives lying numbers.
+- In **Go**, you can hint with `[]bool` lookup tables or arithmetic, but the compiler's `cmov` generation is weaker than GCC/Clang, so reading the asm (`go build -gcflags=-S`) matters more.
 
 > **Key insight:** A predictable branch is nearly free; an unpredictable one costs ~15–20 cycles. The transformation is not "branches are slow" — it's "*mispredictions* are slow." Sorting the data, hoisting the branch out of the loop, or going branchless are all the same move: give the predictor a pattern, or remove the prediction.
 
@@ -139,7 +155,15 @@ clang -O3 -Rpass=loop-vectorize -Rpass-missed=loop-vectorize -march=native -c ho
 gcc   -O3 -fopt-info-vec-missed -march=native -c hot.c   # GCC's equivalent
 ```
 
-Auto-vectorization commonly fails on: **loop-carried dependencies** (each iteration needs the previous result), **potential aliasing** (the compiler can't prove two pointers don't overlap — fix with `restrict`/`__restrict`), **unpredictable trip counts or early exits**, **function calls in the loop** (unless inlined), and **non-unit stride / gather patterns**. The most common real-world fix is telling the compiler pointers don't alias:
+Auto-vectorization commonly fails on:
+
+- **loop-carried dependencies** (each iteration needs the previous result)
+- **potential aliasing** (the compiler can't prove two pointers don't overlap — fix with `restrict`/`__restrict`)
+- **unpredictable trip counts or early exits**
+- **function calls in the loop** (unless inlined)
+- **non-unit stride / gather patterns**
+
+The most common real-world fix is telling the compiler pointers don't alias:
 
 ```c
 void axpy(float a, float * restrict y, const float * restrict x, int n) {
@@ -157,9 +181,14 @@ for (int i = 0; i < n; i += 8)
     acc = _mm256_add_ps(acc, _mm256_loadu_ps(&x[i]));   // _mm256_load_ps needs 32B alignment
 ```
 
-**Alignment matters.** `_mm256_load_ps` (aligned) faults on an unaligned address and is faster on older microarchitectures; `_mm256_loadu_ps` (unaligned) is safe and on modern cores nearly as fast *when the data happens to be aligned* — but a load that straddles a cache line still costs extra. Align hot SIMD buffers to the vector width (`alignas(32)` / `posix_memalign`) so loads never split a cache line.
+- **Alignment matters.** `_mm256_load_ps` (aligned) faults on an unaligned address and is faster on older microarchitectures; `_mm256_loadu_ps` (unaligned) is safe and on modern cores nearly as fast *when the data happens to be aligned* — but a load that straddles a cache line still costs extra. Align hot SIMD buffers to the vector width (`alignas(32)` / `posix_memalign`) so loads never split a cache line.
 
-**3. Per-language reality.** **C and C++** have the full intrinsics surface plus auto-vectorization; **Rust** has both (`std::arch` intrinsics, plus `std::simd` portable SIMD on nightly) and its aliasing rules make auto-vectorization *more* reliable than C because the borrow checker proves non-aliasing the compiler otherwise can't. **Java**'s C2 JIT auto-vectorizes simple loops (superword/SLP), and the **Vector API** (JEP 448, incubating) gives explicit, portable SIMD that the JIT lowers to AVX/NEON — the modern way to get reliable vectorization on the JVM. **Go is the outlier: it has no intrinsics and the compiler does essentially no auto-vectorization** — to get SIMD in Go you drop to hand-written assembly (`.s` files, the Plan 9 assembler) or call out to C via cgo (which has its own overhead). This is a genuine, deliberate limitation; for SIMD-heavy numeric kernels, Go is the wrong tool, and a senior recognizes that rather than fighting it.
+**3. Per-language reality.**
+
+- **C and C++** have the full intrinsics surface plus auto-vectorization.
+- **Rust** has both (`std::arch` intrinsics, plus `std::simd` portable SIMD on nightly) and its aliasing rules make auto-vectorization *more* reliable than C because the borrow checker proves non-aliasing the compiler otherwise can't.
+- **Java**'s C2 JIT auto-vectorizes simple loops (superword/SLP), and the **Vector API** (JEP 448, incubating) gives explicit, portable SIMD that the JIT lowers to AVX/NEON — the modern way to get reliable vectorization on the JVM.
+- **Go is the outlier: it has no intrinsics and the compiler does essentially no auto-vectorization** — to get SIMD in Go you drop to hand-written assembly (`.s` files, the Plan 9 assembler) or call out to C via cgo (which has its own overhead). This is a genuine, deliberate limitation; for SIMD-heavy numeric kernels, Go is the wrong tool, and a senior recognizes that rather than fighting it.
 
 > **Key insight:** Auto-vectorization is the right default *but you must verify it happened* — the gap between "should vectorize" and "did vectorize" is enormous and silent. Check `-Rpass`/`-fopt-info-vec`, and if it failed, decide consciously: fix the blocker (`restrict`, restructure the reduction), drop to intrinsics, or accept scalar. And know your language: Rust makes auto-vec reliable, Java gives you the Vector API, Go gives you assembly or nothing.
 
@@ -180,7 +209,10 @@ struct Particle parts[N];
 struct Particles { float x[N], y[N], z[N], vx[N], vy[N], vz[N]; int id[N]; char flags[N]; };
 ```
 
-A loop that updates only `x += vx` for every particle, over AoS, drags an entire 32-byte struct into cache per particle but uses 8 bytes of it — 75% of every cache line and of memory bandwidth is wasted, and it defeats vectorization (the `x` values aren't contiguous). The SoA version walks two dense `float` arrays: every byte fetched is used, and the loop auto-vectorizes cleanly because `x[i]` and `vx[i]` are unit-stride. For data-parallel hot loops, **SoA is usually 2–4× faster** purely on cache and vectorization grounds. The cost is ergonomics — "one particle" is now scattered across arrays — so it's a hot-path-only transformation, not a default.
+- A loop that updates only `x += vx` for every particle, over AoS, drags an entire 32-byte struct into cache per particle but uses 8 bytes of it — 75% of every cache line and of memory bandwidth is wasted, and it defeats vectorization (the `x` values aren't contiguous).
+- The SoA version walks two dense `float` arrays: every byte fetched is used, and the loop auto-vectorizes cleanly because `x[i]` and `vx[i]` are unit-stride.
+- For data-parallel hot loops, **SoA is usually 2–4× faster** purely on cache and vectorization grounds.
+- The cost is ergonomics — "one particle" is now scattered across arrays — so it's a hot-path-only transformation, not a default.
 
 **Hot/cold splitting.** Even within one struct, separate the fields the hot loop touches from the ones it rarely does:
 
@@ -202,7 +234,9 @@ pahole -C OrderHot ./app     # shows every field's offset, size, and padding hol
 gcc -Wpadded -c order.c      # warns where the compiler inserted padding
 ```
 
-Shrinking a hot struct from 24 to 16 bytes means 33% more elements per cache line and per DRAM fetch — directly fewer misses on a memory-bound walk. In **Go**, the same applies: field order changes struct size, `go vet` doesn't flag it but tools like `fieldalignment` do; in **Rust**, `#[repr(C)]` fixes layout (otherwise the compiler reorders for you, which is usually what you want), and `#[repr(packed)]` removes padding at the cost of unaligned-access penalties.
+- Shrinking a hot struct from 24 to 16 bytes means 33% more elements per cache line and per DRAM fetch — directly fewer misses on a memory-bound walk.
+- In **Go**, the same applies: field order changes struct size, `go vet` doesn't flag it but tools like `fieldalignment` do.
+- In **Rust**, `#[repr(C)]` fixes layout (otherwise the compiler reorders for you, which is usually what you want), and `#[repr(packed)]` removes padding at the cost of unaligned-access penalties.
 
 > **Key insight:** When you're memory-bound, you're paying full cache-line and DRAM-bandwidth cost regardless of how few bytes you use. AoS→SoA, hot/cold splitting, and field reordering are all the same move: **maximize the useful payload per 64-byte line you fetch.** This is the highest-leverage transformation for memory-bound code, and the asm/profile won't change — only the cache-miss counters will.
 
@@ -212,7 +246,9 @@ Shrinking a hot struct from 24 to 16 bytes means 33% more elements per cache lin
 
 The previous section was about a single core's cache. The moment you go parallel, the cache *coherence* protocol (MESI/MOESI) adds a failure mode that is invisible in the source and brutal in the numbers: **false sharing.**
 
-Cores keep coherent caches by line, not by byte. When core A writes any byte of a 64-byte line, the protocol invalidates that line in every *other* core's cache — even if core B was using a completely different byte of the same line. Two threads writing two *different* variables that happen to land in the same cache line will ping-pong that line between their L1 caches, each write triggering a coherence miss (~40–100+ cycles). The variables aren't shared; the *line* is — hence "false" sharing.
+- Cores keep coherent caches by line, not by byte. When core A writes any byte of a 64-byte line, the protocol invalidates that line in every *other* core's cache — even if core B was using a completely different byte of the same line.
+- Two threads writing two *different* variables that happen to land in the same cache line will ping-pong that line between their L1 caches, each write triggering a coherence miss (~40–100+ cycles).
+- The variables aren't shared; the *line* is — hence "false" sharing.
 
 ```c
 // classic false-sharing bug: per-thread counters packed together
@@ -221,7 +257,8 @@ struct { long count; } counters[NUM_THREADS];   // adjacent longs → same cache
 // → every increment by every thread bounces ONE cache line across all cores
 ```
 
-This can make a "parallel" loop *slower* than the single-threaded version, and it scales backwards: more cores = more contention on the line. The fix is to pad each thread's data onto its own cache line:
+- This can make a "parallel" loop *slower* than the single-threaded version, and it scales backwards: more cores = more contention on the line.
+- The fix is to pad each thread's data onto its own cache line:
 
 ```c
 struct alignas(64) Counter { long count; };      // C++: each on its own 64B line
@@ -234,7 +271,12 @@ perf c2c record ./app && perf c2c report
 #   → flags HITM (hit-modified) events and the exact cache line + offsets contended
 ```
 
-Language equivalents: **Rust** has `crossbeam_utils::CachePadded<T>`; **Java** has `@Contended` (with `-XX:-RestrictContended`) and the JDK's `LongAdder`/`@jdk.internal.vm.annotation.Contended` exist precisely to avoid this; **Go**'s `runtime` pads internal per-P structures, and you replicate it with `_ [64]byte` padding or `[64 - 8]byte` fillers around hot fields. The flip side — **true sharing** of a single hot counter — has the same symptom; the fix there is sharding (per-core counters summed at read time), which is the `LongAdder` strategy.
+**Language equivalents:**
+
+- **Rust** has `crossbeam_utils::CachePadded<T>`.
+- **Java** has `@Contended` (with `-XX:-RestrictContended`) and the JDK's `LongAdder`/`@jdk.internal.vm.annotation.Contended` exist precisely to avoid this.
+- **Go**'s `runtime` pads internal per-P structures, and you replicate it with `_ [64]byte` padding or `[64 - 8]byte` fillers around hot fields.
+- The flip side — **true sharing** of a single hot counter — has the same symptom; the fix there is sharding (per-core counters summed at read time), which is the `LongAdder` strategy.
 
 > **Key insight:** Coherence operates on cache lines, not variables. Two threads can contend fiercely over data they never logically share, because their unrelated variables sit in one 64-byte line. When a parallel loop scales worse than linearly — or *negatively* — suspect false sharing before lock contention, and reach for `perf c2c` to prove it. This is the bridge to [concurrency and contention](../06-concurrency-and-contention/senior.md).
 
@@ -251,7 +293,9 @@ The enemy of MLP is the **dependent load chain** — pointer chasing:
 while (node) { sum += node->val; node = node->next; }   // misses CANNOT overlap → ~200 cyc each
 ```
 
-The core cannot prefetch `node->next->next` because it doesn't know the address until `node->next` returns. This is why a linked list of 1M nodes can be **10× slower** to traverse than a contiguous array of the same data, despite identical algorithmic complexity — the array's accesses are independent and the hardware prefetcher streams them; the list serializes on the dependency chain. The structural fix is to use arrays / indices instead of pointers wherever traversal is hot.
+- The core cannot prefetch `node->next->next` because it doesn't know the address until `node->next` returns.
+- This is why a linked list of 1M nodes can be **10× slower** to traverse than a contiguous array of the same data, despite identical algorithmic complexity — the array's accesses are independent and the hardware prefetcher streams them; the list serializes on the dependency chain.
+- The structural fix is to use arrays / indices instead of pointers wherever traversal is hot.
 
 **Hardware prefetchers** detect sequential and strided access patterns and fetch ahead automatically — which is why a linear array scan rarely stalls. They fail on irregular access (hash tables, trees, gather). For those, **software prefetch** can help by issuing the load early:
 
@@ -262,7 +306,8 @@ for (int i = 0; i < n; i++) {
 }
 ```
 
-Software prefetch is a *sharp* tool: too short a distance and the data isn't back in time; too long and you evict it before use or pollute the cache; and on a regular pattern you just fight the hardware prefetcher and lose. It only wins on **irregular, latency-bound** access where you can compute the future address well ahead — the classic case being walking an index array into a large table, or a hash-join probe. Always measure; a wrong prefetch distance is a slowdown.
+- Software prefetch is a *sharp* tool: too short a distance and the data isn't back in time; too long and you evict it before use or pollute the cache; and on a regular pattern you just fight the hardware prefetcher and lose.
+- It only wins on **irregular, latency-bound** access where you can compute the future address well ahead — the classic case being walking an index array into a large table, or a hash-join probe. Always measure; a wrong prefetch distance is a slowdown.
 
 > **Key insight:** Memory latency is fixed at ~200 cycles, but memory *throughput* is governed by how many misses you keep in flight. Independent accesses overlap and approach bandwidth-bound; dependent accesses (pointer chasing) serialize and stay latency-bound. The single biggest MLP win is structural — arrays and indices instead of pointer chains — long before you reach for `__builtin_prefetch`.
 
@@ -280,9 +325,14 @@ llvm-profdata merge -o app.profdata *.profraw
 clang -O2 -fprofile-use=app.profdata -o app_optimized *.c
 ```
 
-With a real profile the compiler does what blind heuristics can't: lay out hot basic blocks contiguously (fewer I-cache misses and taken branches — directly attacking the *frontend-bound* TMA bucket), arrange branches so the common case falls through, inline the calls that actually dominate, and skip vectorizing genuinely cold loops. Typical wins are **5–20%** on large branchy applications (compilers, databases, browsers) — gains that come almost entirely from frontend and branch-layout improvements no amount of source tweaking achieves.
+- With a real profile the compiler does what blind heuristics can't: lay out hot basic blocks contiguously (fewer I-cache misses and taken branches — directly attacking the *frontend-bound* TMA bucket), arrange branches so the common case falls through, inline the calls that actually dominate, and skip vectorizing genuinely cold loops.
+- Typical wins are **5–20%** on large branchy applications (compilers, databases, browsers) — gains that come almost entirely from frontend and branch-layout improvements no amount of source tweaking achieves.
 
-**Go's PGO is exceptionally low-friction** and worth calling out: collect a `pprof` CPU profile from production, drop it in the package directory as `default.pgo`, and `go build` uses it automatically — no flags, no two-phase build. It primarily drives more aggressive inlining and devirtualization, typically **2–7%**, and because the profile comes from real production traffic it stays representative. **Java** does this *continuously and for free*: the C2 JIT is a profile-guided optimizer by nature — it profiles every branch and call at runtime and recompiles hot methods with that data, which is why warm JVM code can beat statically-compiled C on branchy workloads, and why warm-up and matching production behavior are everything. **Rust** uses the same LLVM PGO machinery as Clang via `-Cprofile-generate`/`-Cprofile-use`.
+**Per-language PGO:**
+
+- **Go's PGO is exceptionally low-friction**: collect a `pprof` CPU profile from production, drop it in the package directory as `default.pgo`, and `go build` uses it automatically — no flags, no two-phase build. It primarily drives more aggressive inlining and devirtualization, typically **2–7%**, and because the profile comes from real production traffic it stays representative.
+- **Java** does this *continuously and for free*: the C2 JIT is a profile-guided optimizer by nature — it profiles every branch and call at runtime and recompiles hot methods with that data, which is why warm JVM code can beat statically-compiled C on branchy workloads, and why warm-up and matching production behavior are everything.
+- **Rust** uses the same LLVM PGO machinery as Clang via `-Cprofile-generate`/`-Cprofile-use`.
 
 What PGO and the compiler **cannot** do: change your data layout, fix false sharing, vectorize across a real loop-carried dependency, or know a branch is unpredictable in a way it can fix without your help. Those are the human transformations from the sections above.
 
@@ -343,3 +393,11 @@ For Go specifically, `-gcflags=-m` reports **escape analysis** decisions — whe
 - Where should recovery responsibility live, and why?
 - Which assumption deserves an experiment before implementation?
 - How can the design evolve without changing every consumer at once?
+- Why do cache misses dominate runtime even when the instruction count is modest?
+- What is false sharing, and how do you detect and fix it?
+- What does a branch misprediction cost, and why?
+- Why is processing a sorted array faster than an unsorted one for the same code?
+- Explain superscalar and out-of-order execution, and why they matter for optimization.
+- Why does the auto-vectorizer often fail to vectorize a loop that "looks" vectorizable?
+- A service is pinned at 100% on one core while the others sit idle — walk through how you'd triage it.
+- A loop got slower after you "optimized" it — what are the usual culprits?

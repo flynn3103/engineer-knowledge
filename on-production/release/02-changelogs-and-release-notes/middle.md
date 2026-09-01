@@ -54,7 +54,8 @@ The common types:
 
 Two ways to signal a **breaking change**: a `!` after the type/scope (`feat(api)!:`) **or** a `BREAKING CHANGE:` footer. Either one forces a major version bump.
 
-> The payoff: once commits follow this format, a tool can read `git log`, classify every commit, decide the version bump, and render the changelog — with zero manual editing. The cost: discipline. Every contributor must write structured messages, usually enforced by a commit-lint hook in CI.
+> **Payoff:** once commits follow this format, a tool can read `git log`, classify every commit, decide the version bump, and render the changelog — with zero manual editing.
+> **Cost:** discipline. Every contributor must write structured messages, usually enforced by a commit-lint hook in CI.
 
 ---
 
@@ -152,7 +153,11 @@ Add a `<DatePicker>` component and fix a tree-shaking regression in core.
 
 At release time, `changeset version` consumes these files, bumps each package, and writes per-package changelogs. The intent file *is* the human-written changelog entry — automation handles only the bookkeeping.
 
-> Rule of thumb: **git-cliff** if you want a generator and keep control; **semantic-release** for fully hands-off single-package CI; **release-please** when you want generated-but-reviewable; **changesets** for monorepos and when you want authors to write prose.
+> Rule of thumb:
+> - **git-cliff** — you want a generator and keep control.
+> - **semantic-release** — fully hands-off single-package CI.
+> - **release-please** — generated-but-reviewable.
+> - **changesets** — monorepos, or you want authors to write prose.
 
 ---
 
@@ -185,7 +190,7 @@ Squash PR title:  feat(reports): add CSV export (#318)
 → becomes the single commit on main → feeds the generator
 ```
 
-> The deeper point: automation needs *some* structured input. The question is only *where* you make humans add structure — in commits, in PR titles, in labels, or in intent files. Pick the one with the least friction for your team and enforce it in CI.
+> The deeper point: automation needs *some* structured input. The only open question is *where* you make humans add it — commits, PR titles, labels, or intent files. Pick the one with the least friction for your team and enforce it in CI.
 
 ---
 
@@ -288,3 +293,9 @@ Release notes are not a changelog with a nicer header. They follow different rul
 - What constraint would make you choose the alternative design?
 - How would you isolate a local defect from an integration defect?
 - What evidence shows that the change remains maintainable?
+- How does Conventional Commits drive both the version bump and the changelog section?
+- Compare git-cliff, semantic-release, release-please, and Changesets — when would you pick each?
+- What goes wrong if you auto-generate the changelog from every single commit?
+- What makes a breaking-change changelog entry actionable rather than just accurate?
+- Which tool would you reach for in a monorepo, and why?
+- Your team merges 50 PRs a week and `CHANGELOG.md` edits keep causing merge conflicts — how would you redesign the process?

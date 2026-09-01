@@ -5,6 +5,13 @@
 
 ---
 
+## Quick use
+1. Surface assumptions with preconditions, inversion, or a pre-mortem.
+2. Sort them by load-bearing impact and validation cost.
+3. Validate now, defer, or make the decision reversible.
+
+**Decision rule:** never validate a scale claim on clean average-case data alone.
+
 ## 1. From "I noticed an assumption" to a repeatable process
 
 At junior level you spot assumptions reactively. At mid level you run them through a pipeline:
@@ -197,7 +204,7 @@ That comment does three jobs: it states the assumption, cites the evidence, and 
 - Where assumption-surfacing plugs into solving problems: [problem-solving](../../02-problem-solving/).
 
 ---
-## Check your understanding
+## Recall and apply
 
 Try to answer these questions from memory:
 

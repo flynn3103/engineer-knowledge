@@ -15,7 +15,9 @@ Use the smallest realistic scenario that exposes the decision and its failure be
 
 Before any CPU optimization, do the arithmetic. The unit that matters is **cost saved per engineer-time spent**, and it's almost always estimable to within a factor of two before you write a line of code.
 
-The model is simple. Take the service's steady-state core count (from your autoscaler or capacity dashboard), multiply by the effective per-core-hour cost (on-demand list price is the ceiling; with reserved/spot/committed-use discounts the *effective* rate is often $0.01–0.02/core-hour), and you have annual compute cost. A CPU reduction that lets the autoscaler hold the same SLO with fewer cores converts directly into that percentage of the bill — **but only if the service is actually CPU-bound at its scaling boundary.** If your autoscaler scales on memory, connection count, or a fixed replica floor, a CPU win buys you nothing on the bill; it buys headroom, which has value but is not cash.
+- Take the service's steady-state core count (from your autoscaler or capacity dashboard).
+- Multiply by the effective per-core-hour cost (on-demand list price is the ceiling; with reserved/spot/committed-use discounts the *effective* rate is often $0.01–0.02/core-hour) → annual compute cost.
+- A CPU reduction that lets the autoscaler hold the same SLO with fewer cores converts directly into that percentage of the bill — **but only if the service is actually CPU-bound at its scaling boundary.** If your autoscaler scales on memory, connection count, or a fixed replica floor, a CPU win buys you nothing on the bill; it buys headroom, which has value but is not cash.
 
 ```
 Annual compute  = cores × $/core-hour × 8760
@@ -45,7 +47,7 @@ CPU wins live at four altitudes, and the cost-to-benefit ratio is brutally non-l
 | **Memory layout** | AoS → SoA; pad to avoid [false sharing](../06-concurrency-and-contention/professional.md); arena allocation | 1.2×–3× | Higher — reads less obviously |
 | **Micro-architecture** | SIMD intrinsics, branch elimination, manual loop unrolling, prefetch hints | 1.1×–2× | Much higher — and fragile across CPUs |
 
-The reason to start high is that the top of this table dominates the bottom *and* costs less to maintain. An O(n²)→O(n log n) change at n=10⁴ is a 700× algorithmic win; the best hand-vectorized inner loop will get you maybe 4×. If you vectorize first, you've spent your hardest engineering on the quadratic loop — and the moment someone fixes the algorithm, your SIMD code is deleted, having earned nothing.
+The reason to start high: the top of this table dominates the bottom *and* costs less to maintain. An O(n²)→O(n log n) change at n=10⁴ is a 700× algorithmic win; the best hand-vectorized inner loop will get you maybe 4×. If you vectorize first, you've spent your hardest engineering on the quadratic loop — and the moment someone fixes the algorithm, your SIMD code is deleted, having earned nothing.
 
 The discipline:
 
@@ -243,3 +245,9 @@ Every optimization below the algorithmic altitude trades readability for speed, 
 - Which team owns the full lifecycle and incident response?
 - What reversible increment produces the earliest useful evidence?
 - Which exit condition proves that migration or adoption is complete?
+- You sped up a micro-benchmark 2x, but the production service got no faster — why?
+- Throughput is fine but tail latency (p99) is bad on a CPU-bound service — how do you reason about it?
+- What is Profile-Guided Optimization, and when is it worth the build complexity?
+- You've optimized a hot path in a managed-language service as far as it'll go — when do you drop to C/Rust, and what's the real cost?
+- How do you weigh a 15% speedup against the maintainability cost of the code that achieves it?
+- A teammate wants to rewrite a core module in branchless SIMD for performance — how do you evaluate the proposal?

@@ -13,26 +13,25 @@ Use the smallest realistic scenario that exposes the decision and its failure be
 
 ## How a Sampling Profiler Actually Works
 
-There are two families. **Instrumenting** profilers add code at every function entry/exit to count and time calls — exact, but they distort the very thing they measure (a 5 ns function with 20 ns of instrumentation reports nonsense, and inlining is defeated). Almost every profiler you'll use in production is the other kind: a **sampling** profiler.
+There are two families of profiler:
 
-A sampling profiler does one thing on a timer: **stop the program, walk the current call stack, record it, resume.** Do that a few thousand times a second and the resulting pile of stacks is a statistical portrait of where time is spent. Two mechanisms drive the timer:
+- **Instrumenting** profilers add code at every function entry/exit to count and time calls — exact, but they distort the very thing they measure (a 5 ns function with 20 ns of instrumentation reports nonsense, and inlining is defeated).
+- **Sampling** profilers are what you'll use in production almost every time. One thing, on a timer: **stop the program, walk the current call stack, record it, resume.** Do that a few thousand times a second and the resulting pile of stacks is a statistical portrait of where time is spent.
 
-**Signal/timer-driven (the classic Unix model).** The kernel is asked for a periodic timer that fires `SIGPROF`. The profiler's signal handler runs *in the context of whatever was executing*, captures that thread's stack, and returns. Go's runtime uses exactly this:
+Two mechanisms drive the sampling timer:
 
-```
-setitimer(ITIMER_PROF, every 10ms) → SIGPROF → runtime handler walks the
-goroutine stack → append to profile buffer
-```
+- **Signal/timer-driven (the classic Unix model).**
+  - The kernel is asked for a periodic timer that fires `SIGPROF`.
+  - The profiler's signal handler runs *in the context of whatever was executing*, captures that thread's stack, and returns.
+  - Go's runtime uses exactly this: `setitimer(ITIMER_PROF, every 10ms) → SIGPROF → runtime handler walks the goroutine stack → append to profile buffer`.
+  - Because `SIGPROF` is delivered against CPU time consumed (not real time), a thread that's *asleep* receives no ticks — which is precisely why this model measures **on-CPU** time. A blocked thread is, by construction, invisible to it.
 
-Because `SIGPROF` is delivered against CPU time consumed (not real time), a thread that's *asleep* receives no ticks — which is precisely why this model measures **on-CPU** time. A blocked thread is, by construction, invisible to it.
-
-**PMU / `perf_events` (hardware-assisted).** Modern CPUs have a Performance Monitoring Unit: hardware counters that can be programmed to raise an interrupt every *N* events. Set the event to `cpu-clock` and you get a time-based sampler; set it to `cache-misses` or `branch-misses` and you sample on *that* event instead — "show me the stacks where cache misses happen." Linux `perf` is the front end:
-
-```bash
-perf record -F 999 -g -- ./myprogram      # 999 Hz, with call graphs (-g)
-```
-
-`-F 999` requests 999 samples/sec. (999, not 1000, is a folk convention — an off-round frequency avoids *lock-step aliasing* with periodic work that happens to tick at exactly 1000 Hz.) The PMU approach can profile the whole machine, kernel included, and across all threads at once.
+- **PMU / `perf_events` (hardware-assisted).**
+  - Modern CPUs have a Performance Monitoring Unit: hardware counters that can be programmed to raise an interrupt every *N* events.
+  - Set the event to `cpu-clock` and you get a time-based sampler; set it to `cache-misses` or `branch-misses` and you sample on *that* event instead.
+  - Linux `perf` is the front end: `perf record -F 999 -g -- ./myprogram` (999 Hz, with call graphs `-g`).
+  - `-F 999`, not 1000, is a folk convention — an off-round frequency avoids *lock-step aliasing* with periodic work that happens to tick at exactly 1000 Hz.
+  - This approach can profile the whole machine, kernel included, and across all threads at once.
 
 > **Key insight:** A sampling profiler doesn't *measure* time spent in a function — it *counts how often that function was caught on the stack* and multiplies by the sample period. Every number you read is `sample_count × period`, an estimate. This single fact is the source of every "the profiler is lying" surprise later on the page.
 
@@ -54,7 +53,8 @@ Three forces pull against each other:
 - **Higher rate → more overhead.** Every sample is a stop-walk-resume. At 10 kHz on a deep stack, the act of profiling starts to show up *in the profile* — you measure the measurement.
 - **Higher rate → diminishing returns and aliasing risk.** Past a point you're paying overhead for samples that don't change the ranking, and round frequencies can resonate with periodic work.
 
-Go fixes its CPU profile rate at 100 Hz and deliberately won't let you raise it far — the maintainers decided the accuracy gain past that wasn't worth the distortion. `perf` lets you push to thousands but will warn (or silently cap, via `kernel.perf_event_max_sample_rate`) when you ask for more than the kernel allows.
+- Go fixes its CPU profile rate at 100 Hz and deliberately won't let you raise it far — the maintainers decided the accuracy gain past that wasn't worth the distortion.
+- `perf` lets you push to thousands but will warn (or silently cap, via `kernel.perf_event_max_sample_rate`) when you ask for more than the kernel allows.
 
 > **Key insight:** There is no "correct" sample rate, only a correct rate *for a question*. Always-on production wants low overhead and accepts coarse data; a 200 ms hot path you're trying to dissect wants a high rate for a short window and accepts the overhead. Pick the rate for the job, not a default you copied.
 
@@ -64,7 +64,11 @@ Go fixes its CPU profile rate at 100 Hz and deliberately won't let you raise it 
 
 Because a profile is a poll, it has a poll's **sampling error**. The rule of thumb: the relative error on a function's measured share is roughly `1/√n`, where `n` is the number of samples landing in that function.
 
-Work it out. A 30-second run at 100 Hz gives **3000 samples** total. A function that's truly 20% of CPU catches ~600 of them — `1/√600 ≈ 4%` error, so you'll read it as somewhere around 19–21%. Solid. But a function that's truly **1%** catches ~30 samples — `1/√30 ≈ 18%` error — so it reads anywhere from 0.8% to 1.2%, and its *rank* against its neighbours is basically noise. And a function that runs for 50 µs total over the whole run? Expected samples: **0.015**. It will almost certainly appear **nowhere in the profile at all.**
+Work it out for a 30-second run at 100 Hz — 3000 samples total:
+
+- A function truly **20%** of CPU catches ~600 samples — `1/√600 ≈ 4%` error, so you'll read it as somewhere around 19–21%. Solid.
+- A function truly **1%** catches ~30 samples — `1/√30 ≈ 18%` error — so it reads anywhere from 0.8% to 1.2%, and its *rank* against its neighbours is basically noise.
+- A function that runs for 50 µs total over the whole run has an expected sample count of **0.015**. It will almost certainly appear **nowhere in the profile at all.**
 
 This produces three concrete reading habits:
 
@@ -83,7 +87,7 @@ This is the distinction that separates people who read profiles from people who 
 - **On-CPU time** answers *"which code is burning CPU cycles?"* The clock only advances while a thread is actually running on a core. Time spent blocked — waiting on a mutex, a disk read, a network round-trip, a channel — does **not** count.
 - **Wall-clock time** answers *"where is real, elapsed time going?"* It counts everything from a function's entry to its exit, **including** time the thread spent parked, waiting.
 
-Why they disagree: a function can dominate *wall-clock* time while barely appearing in the *on-CPU* profile, because it spends its time **blocked, not computing.**
+They disagree when a function dominates *wall-clock* time while barely appearing in the *on-CPU* profile, because it spends its time **blocked, not computing**:
 
 ```go
 func handleRequest() {
@@ -92,11 +96,15 @@ func handleRequest() {
 }
 ```
 
-Profile this **on-CPU** (the default for `pprof` and `perf`) and `handleRequest` is nearly *absent* — it burned almost no cycles; it was asleep waiting for the database. Your CPU profile correctly says "the CPU isn't the problem here." Profile it **wall-clock** and `handleRequest` is 98% of the time — correctly saying "elapsed time is dominated by that query."
+- Profile this **on-CPU** (the default for `pprof` and `perf`) and `handleRequest` is nearly *absent* — it burned almost no cycles; it was asleep waiting for the database. Correctly says "the CPU isn't the problem here."
+- Profile it **wall-clock** and `handleRequest` is 98% of the time — correctly says "elapsed time is dominated by that query."
+- Both are right — they answer different questions. The catastrophe is pointing an on-CPU profiler at a latency problem, seeing your slow endpoint is "only 2% of CPU," and concluding it's fine — when the real story is a 95 ms blocking wait that an on-CPU profiler is *built to ignore*.
 
-Both are right. They answer different questions. The catastrophe is pointing an on-CPU profiler at a latency problem, seeing your slow endpoint is "only 2% of CPU," and concluding it's fine — when the real story is a 95 ms blocking wait that an on-CPU profiler is *built to ignore*.
+The off-CPU side has its own tools:
 
-The off-CPU side has its own tools: Go's **block** and **mutex** profiles (where goroutines wait on synchronization), and on Linux, **off-CPU profiling** via `perf`/eBPF that captures stacks at the moment a thread goes off-CPU. The senior move is to know *which* question you're asking before you capture.
+- Go's **block** and **mutex** profiles (where goroutines wait on synchronization).
+- On Linux, **off-CPU profiling** via `perf`/eBPF that captures stacks at the moment a thread goes off-CPU.
+- The senior move is to know *which* question you're asking before you capture.
 
 > **Key insight:** Default profilers (`pprof`, `perf record`) measure **on-CPU** time. If your symptom is *latency* (a slow request) rather than *throughput / high CPU*, the on-CPU profile may be nearly empty exactly where the problem is — because the problem is *waiting*, and waiting burns no CPU. Reach for wall-clock, block, or off-CPU profiling instead.
 
@@ -109,7 +117,7 @@ Every profile reports each function two ways, and confusing them is the single m
 - **Flat** (a.k.a. **self**): time spent executing *the instructions of this function itself* — its own loops and arithmetic, **not** its callees.
 - **Cumulative** (a.k.a. **total**): flat time **plus** everything its callees consumed. A function's cumulative time includes its whole subtree.
 
-`main` has tiny flat time (it mostly just calls things) but ~100% cumulative time (everything happens beneath it). A tight inner loop has high flat *and* high cumulative. Here's `pprof`'s top view, both columns side by side:
+`main` has tiny flat time (it mostly just calls things) but ~100% cumulative time (everything happens beneath it). A tight inner loop has high flat *and* high cumulative:
 
 ```
       flat  flat%   sum%        cum   cum%
@@ -119,7 +127,9 @@ Every profile reports each function two ways, and confusing them is the single m
      0.00s  0.00% 59.49%      3.10s 71.76%  http.ListenAndServe       ← pure pass-through
 ```
 
-Read this correctly: `ListenAndServe` is **71.76% cumulative** but **0% flat**. It is *not* slow — it does nothing itself; it just sits above all the work. `compress.deflate` is **42.59% flat** — *that* is where the CPU actually is. The classic blunder is sorting by cumulative, seeing `ListenAndServe`/`serve` at the top, and "optimizing" a wrapper that contains no hot instructions at all.
+- `ListenAndServe` is **71.76% cumulative** but **0% flat**. It is *not* slow — it does nothing itself; it just sits above all the work.
+- `compress.deflate` is **42.59% flat** — *that* is where the CPU actually is.
+- The classic blunder is sorting by cumulative, seeing `ListenAndServe`/`serve` at the top, and "optimizing" a wrapper that contains no hot instructions at all.
 
 The discipline:
 
@@ -157,11 +167,19 @@ Why it breaks, and the fix for each:
 
 This one is specific to managed runtimes (the JVM most of all), and it silently corrupts profiles produced by the "standard" tools.
 
-Many traditional JVM profilers (anything built on `GetAllStackTraces` via JVMTI — VisualVM, older commercial agents) can only capture a thread's stack when that thread is at a **safepoint**: a special checkpoint the JIT inserts where the heap is in a consistent, walkable state — typically at method returns and loop back-edges, *not* in the middle of a hot inlined loop. So when the profiler says "sample now," each thread doesn't stop where it *is*; it runs forward to the *next safepoint* and is sampled there.
+- Many traditional JVM profilers (anything built on `GetAllStackTraces` via JVMTI — VisualVM, older commercial agents) can only capture a thread's stack when that thread is at a **safepoint**: a special checkpoint the JIT inserts where the heap is in a consistent, walkable state — typically at method returns and loop back-edges, *not* in the middle of a hot inlined loop.
+- So when the profiler says "sample now," each thread doesn't stop where it *is*; it runs forward to the *next safepoint* and is sampled there.
 
-The result is **safepoint bias**: samples cluster at safepoint-rich locations and systematically *miss* tight, hot, inlined loops — which are exactly the code with *few* safepoints. Your real bottleneck — a CPU-bound numeric loop — can be under-reported, while the innocent method *after* it (where the safepoint is) gets the blame. You optimize the wrong method and the profile barely moves.
+The result is **safepoint bias**:
 
-The fix is to sample *without* waiting for safepoints. **async-profiler** uses `AsyncGetCallTrace` — an unofficial JVM API that captures the stack at the *actual* point of interrupt, plus `perf_events` for the kernel side — so it sees the real instruction pointer, inlined frames and all. **JFR** (Java Flight Recorder, built into the JDK) is the other strong choice: low-overhead, always-available, and not bound to JVMTI safepoints in the same way.
+- Samples cluster at safepoint-rich locations and systematically *miss* tight, hot, inlined loops — which are exactly the code with *few* safepoints.
+- Your real bottleneck — a CPU-bound numeric loop — can be under-reported, while the innocent method *after* it (where the safepoint is) gets the blame.
+- You optimize the wrong method and the profile barely moves.
+
+The fix is to sample *without* waiting for safepoints:
+
+- **async-profiler** uses `AsyncGetCallTrace` — an unofficial JVM API that captures the stack at the *actual* point of interrupt, plus `perf_events` for the kernel side — so it sees the real instruction pointer, inlined frames and all.
+- **JFR** (Java Flight Recorder, built into the JDK) is the other strong choice: low-overhead, always-available, and not bound to JVMTI safepoints in the same way.
 
 ```bash
 # async-profiler: attach to a running JVM, 30s CPU profile → flame graph
@@ -189,7 +207,11 @@ You'll use whichever the platform hands you; each has a thing it's best at.
 | **Instruments** | macOS | DTrace/`os_signpost` | GUI time-profiler, deep Apple-stack integration |
 | **cargo flamegraph** | Rust | wraps `perf`/dtrace | one-command native flame graph from a Cargo build |
 
-A few notes that matter in practice. `pprof`'s `-http=:8080` opens an interactive browser UI with flame graph, top, and source views — the fastest way to explore a Go profile. `py-spy` is special: it samples a Python process *from the outside* by reading its memory, so you can profile a stuck production service **without restarting it or adding a single line of code** (`py-spy dump --pid <pid>` even prints every thread's current stack — a profiler and a "what is it doing right now" debugger in one). `cargo flamegraph` collapses the whole `perf record` → fold → `flamegraph.pl` pipeline into one command for Rust binaries.
+A few notes that matter in practice:
+
+- `pprof`'s `-http=:8080` opens an interactive browser UI with flame graph, top, and source views — the fastest way to explore a Go profile.
+- `py-spy` is special: it samples a Python process *from the outside* by reading its memory, so you can profile a stuck production service **without restarting it or adding a single line of code** (`py-spy dump --pid <pid>` even prints every thread's current stack — a profiler and a "what is it doing right now" debugger in one).
+- `cargo flamegraph` collapses the whole `perf record` → fold → `flamegraph.pl` pipeline into one command for Rust binaries.
 
 ---
 
@@ -221,7 +243,10 @@ Showing nodes accounting for 4.12s, 95.37% of 4.32s total
      0.02s  0.46% 78.24%      4.10s 94.91%  net/http.(*conn).serve
 ```
 
-Read it: `serve` is 94.91% *cumulative* but **0.46% flat** — a wrapper, ignore it as a target. The real CPU leaf is `json.(*decodeState).object` at **42.59% flat**. `parseBody` (8.8% flat, 58% cum) is the path leading down into it. The story: this service spends nearly half its CPU decoding JSON.
+- `serve` is 94.91% *cumulative* but **0.46% flat** — a wrapper, ignore it as a target.
+- The real CPU leaf is `json.(*decodeState).object` at **42.59% flat**.
+- `parseBody` (8.8% flat, 58% cum) is the path leading down into it.
+- The story: this service spends nearly half its CPU decoding JSON.
 
 **3. `list` the hot function** to see *which lines* cost what — flat time attributed per source line:
 
@@ -236,7 +261,9 @@ ROUTINE ======================== encoding/json.(*decodeState).object
      0.32s      0.40s    448:		d.scanWhile(scanSkipSpace)
 ```
 
-Line 436 alone is **1.31s** — the recursive `value` decode dominates. *Now* you have something actionable: this isn't "JSON is slow," it's "this specific decode path is hot," which points at concrete fixes (a streaming decoder, `jsoniter`, avoiding `interface{}`, or caching the decoded result). The flame graph (`-http`) would show the same shape visually; `top` + `list` gets you there in two commands from the terminal.
+- Line 436 alone is **1.31s** — the recursive `value` decode dominates.
+- *Now* you have something actionable: not "JSON is slow," but "this specific decode path is hot" — which points at concrete fixes (a streaming decoder, `jsoniter`, avoiding `interface{}`, or caching the decoded result).
+- The flame graph (`-http`) would show the same shape visually; `top` + `list` gets you there in two commands from the terminal.
 
 > Note this is the **on-CPU** profile — it found CPU-bound work, which is what we suspected. Had `top` come back nearly empty (everything in `runtime.gopark` / blocking), that would have been the signal to switch to a **block** or **wall-clock** profile, per the section above.
 
@@ -245,17 +272,11 @@ Line 436 alone is **1.31s** — the recursive `value` decode dominates. *Now* yo
 ## Common Mistakes
 
 1. **Pointing an on-CPU profiler at a latency problem.** Your slow endpoint shows as 2% of CPU, so you call it fine — missing that it spends 95 ms *blocked* on a query, which the on-CPU profiler ignores by design. Use wall-clock / block / off-CPU profiling for latency.
-
 2. **Sorting by cumulative and optimizing the top.** That puts `main`, `ListenAndServe`, or your router on top — functions with ~0 flat time that do nothing themselves. Sort by **flat** to find real CPU; use cumulative only to navigate down to the hot leaf.
-
 3. **Trusting the long tail.** Below ~1% of CPU the sample count is too small for the ranking to mean anything (`1/√n`). Optimizing a 0.4% function is rearranging noise. Work the head of the profile.
-
 4. **Concluding "not in the profile" = "free."** A function called once for 8 ms expects under one sample at 100 Hz and may not appear at all. Sampling is blind to infrequent events; verify cost with a benchmark before dismissing it.
-
 5. **Profiling for two seconds.** ~200 samples total — enough to see the #1 item, not enough for anything below it. Capture 30–60 seconds of representative load.
-
 6. **Ignoring safepoint bias on the JVM.** A safepoint-biased profiler blames the method *after* your hot inlined loop. If the hotspot disagrees with a benchmark, re-profile with async-profiler or JFR before trusting it.
-
 7. **Re-capturing to fix `??` frames.** New captures of a stripped binary are still stripped. Fix *symbolication* — unstripped build, `-g`, frame pointers, a JIT `perf-map` — not the capture.
 
 ---
@@ -281,3 +302,10 @@ Line 436 alone is **1.31s** — the recursive `value` decode dominates. *Now* yo
 - What constraint would make you choose the alternative design?
 - How would you isolate a local defect from an integration defect?
 - What evidence shows that the change remains maintainable?
+- Walk through the trade-off between sample rate, overhead, and accuracy.
+- What's the difference between an on-CPU profile and a wall-clock profile, and why can the two disagree completely?
+- When would you choose an instrumenting profiler over a sampling one?
+- Why is `py-spy` low-overhead compared to `cProfile`, even though both profile Python?
+- When would you reach for `perf` instead of a language's built-in profiler like `pprof`?
+- In a flame graph, what does width mean, what does height mean, and what does the x-axis *not* mean?
+- What are the statistical blind spots of a sampling profiler?

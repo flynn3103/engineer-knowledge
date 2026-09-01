@@ -144,7 +144,11 @@ Back to the [engineering-thinking roadmap](../../README.md).
 - The **diagram is not the system**; it omits the emergent behavior that pages you.
 
 ---
-## Check your understanding
+## Recall and apply
+
+**Practice loop:** Map one system's parts, interactions, and whole-system behavior; identify one property no component owns alone.
+
+Use these prompts to check your understanding and choose one action to try in your next task.
 
 Try to answer these questions from memory:
 

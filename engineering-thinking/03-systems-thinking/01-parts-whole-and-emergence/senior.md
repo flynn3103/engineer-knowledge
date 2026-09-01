@@ -154,7 +154,9 @@ Back to the [engineering-thinking roadmap](../../README.md).
 - The diagram omits the dynamics; pair every architecture map with feedback/failure annotations and treat redundancy-on-paper as a claim, not a fact.
 
 ---
-## Check your understanding
+## Recall and apply
+
+**Practice loop:** Map one system's parts, interactions, and whole-system behavior; identify one property no component owns alone.
 
 Try to answer these questions from memory:
 

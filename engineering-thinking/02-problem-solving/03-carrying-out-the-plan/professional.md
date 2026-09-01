@@ -130,7 +130,9 @@ The deepest point: the principal who runs an incident *exactly like a normal pla
 > Next: [Looking Back and Reflecting](../04-looking-back-and-reflecting/) — turning a delivered program into compounding organizational learning. Related: [Debugging as Problem-Solving](../05-debugging-as-problem-solving/), [Techniques When You're Stuck](../06-techniques-when-you-are-stuck/), and the [Systems Thinking](../../03-systems-thinking/) view of feedback. Back to the [Problem-Solving section](../) or the [Engineering Thinking roadmap](../../README.md).
 
 ---
-## Check your understanding
+## Recall and apply
+
+**Practice loop:** Take the smallest safe step, check the agreed signal, and adjust the plan when evidence disagrees.
 
 Try to answer these questions from memory:
 

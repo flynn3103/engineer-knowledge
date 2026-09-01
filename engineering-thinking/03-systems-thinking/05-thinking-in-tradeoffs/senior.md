@@ -130,7 +130,9 @@ Pull it together on one decision. A feed needs to render in <200 ms at p99; user
 **Next:** [professional.md](./professional.md) — defending system-wide tradeoffs, teaching a team to surface hidden ones, and tradeoff-aware architecture.
 
 ---
-## Check your understanding
+## Recall and apply
+
+**Practice loop:** Compare two options against the stated goal, name who pays each cost, and choose a metric to revisit the decision.
 
 Try to answer these questions from memory:
 

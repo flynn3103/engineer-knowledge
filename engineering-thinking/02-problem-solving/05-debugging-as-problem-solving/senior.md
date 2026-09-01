@@ -137,7 +137,9 @@ Closing a bug well includes three things juniors skip:
 - Done = reproduce-on-demand + toggle on/off + a regression test that fails without the fix + the bug *class* eliminated.
 
 ---
-## Check your understanding
+## Recall and apply
+
+**Practice loop:** Write the symptom, a falsifiable cause, the smallest probe, and the result before changing production code.
 
 Try to answer these questions from memory:
 

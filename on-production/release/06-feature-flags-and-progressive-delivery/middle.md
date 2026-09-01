@@ -152,7 +152,13 @@ flags:
     jira: PAY-1423
 ```
 
-Mature teams enforce this mechanically: a CI check (or the flag platform itself) flags release toggles past their expiry, opens a cleanup ticket automatically, and maintains a **flag inventory** linking each flag to its owner, type, and the code that reads it. The cleanest moment to remove a flag is the day it hits 100% — defer it and it never happens.
+Mature teams enforce this mechanically:
+
+- A CI check (or the flag platform itself) flags release toggles past their expiry.
+- Overdue flags automatically open a cleanup ticket.
+- A **flag inventory** links each flag to its owner, type, and the code that reads it.
+
+The cleanest moment to remove a flag is the day it hits 100% — defer it and it never happens.
 
 ---
 
@@ -224,3 +230,8 @@ The `mocking-strategies` and `integration-testing` skills go deeper. The key hab
 - What constraint would make you choose the alternative design?
 - How would you isolate a local defect from an integration defect?
 - What evidence shows that the change remains maintainable?
+- Local vs remote flag evaluation — which should you use on the hot path, and why?
+- How do you test code that has flags without testing all 2ⁿ combinations?
+- How do feature flags relate to rollback speed, and what's the catch?
+- How do canary deploys, percentage rollouts, and ring deployments differ?
+- What do tools like Argo Rollouts and Flagger add over a manual percentage rollout?

@@ -174,7 +174,13 @@ Spike when the decision is **expensive to reverse** *and* the answer is **unknow
 Continue to [senior](./senior.md) for spike strategy across a roadmap, governing throwaway-vs-keep, and killing directions cheaply on spike evidence.
 
 ---
-## Check your understanding
+## Use it today
+
+1. Separate feasibility, UX, performance, and integration questions into focused spikes.
+2. Define success and failure outcomes before building.
+3. End with a short finding, recommendation, and explicit next step.
+
+## Recall and apply
 
 Try to answer these questions from memory:
 

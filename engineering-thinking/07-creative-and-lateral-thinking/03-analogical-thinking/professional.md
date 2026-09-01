@@ -111,7 +111,13 @@ ROUTING across teams/domains:
 - [Section root](../) · [Roadmap home](../../README.md)
 
 ---
-## Check your understanding
+## Use it today
+
+1. Create forums where teams share reusable patterns across domains.
+2. Require proposals to state both the source analogy and its limits.
+3. Reward adaptation of principles, not cargo-cult copies of another system.
+
+## Recall and apply
 
 Try to answer these questions from memory:
 

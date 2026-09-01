@@ -42,7 +42,8 @@ changesets configuration for independent versioning:
 }
 ```
 
-Note `linked` — a middle ground: a group bumps together *only when one of them changes* (unlike `fixed`, which bumps even untouched members). And `updateInternalDependencies: patch` is the lever that propagates a change through the release graph.
+- `linked` is a middle ground: a group bumps together *only when one of them changes* (unlike `fixed`, which bumps even untouched members).
+- `updateInternalDependencies: patch` is the lever that propagates a change through the release graph.
 
 > The choice is organizational, not just technical. Fixed suits tightly-coupled suites shipped as a unit; independent suits a platform of loosely-coupled libraries. Most large product monorepos land on independent with a few linked groups.
 
@@ -50,7 +51,10 @@ Note `linked` — a middle ground: a group bumps together *only when one of them
 
 ## Core Concept 2 — Affected-package detection and release graphs
 
-In a 40-package monorepo, a PR usually touches two or three packages. Releasing all 40 is wrong: wasted builds, phantom versions, noisy changelogs. You must release **only what changed — plus everything that depends on it.**
+In a 40-package monorepo, a PR usually touches two or three packages:
+
+- Releasing all 40 is wrong: wasted builds, phantom versions, noisy changelogs.
+- You must release **only what changed — plus everything that depends on it.**
 
 This is a two-part problem:
 
@@ -71,7 +75,8 @@ npx nx show projects --affected --base=origin/main --head=HEAD
      @org/ui      @org/client   ← all must release, in topological order
 ```
 
-changesets handles propagation via `updateInternalDependencies`: when you write a changeset bumping `@org/utils`, it bumps `@org/core`, `@org/ui`, etc., as patches and orders the publish topologically. For non-JS or custom setups, you compute the affected set yourself and feed a topologically-sorted publish list.
+- changesets handles propagation via `updateInternalDependencies`: when you write a changeset bumping `@org/utils`, it bumps `@org/core`, `@org/ui`, etc., as patches and orders the publish topologically.
+- For non-JS or custom setups, you compute the affected set yourself and feed a topologically-sorted publish list.
 
 > The release graph is why monorepo release tooling is genuinely harder than single-package: correctness requires a graph traversal, not a flag. Get the ordering wrong and a dependent publishes referencing a version that doesn't exist yet.
 
@@ -94,7 +99,8 @@ Audit each step for "what if this runs twice?":
 | Create GitHub Release | error: release exists | upsert: create-or-update by tag |
 | Notify | duplicate message | idempotency key, or accept the dup (cheap) |
 
-The pattern: **make the tag the lock.** A tag-driven pipeline where tag creation is the first irreversible act gives you a natural mutex — only one run can create a given tag, and that run owns the release. Everything downstream becomes "is this artifact already there? if so, skip; if not, do it." That conditional makes the entire pipeline safely re-runnable.
+- The pattern: **make the tag the lock.** A tag-driven pipeline where tag creation is the first irreversible act gives you a natural mutex — only one run can create a given tag, and that run owns the release.
+- Everything downstream becomes "is this artifact already there? if so, skip; if not, do it." That conditional makes the entire pipeline safely re-runnable.
 
 ```bash
 # Idempotent npm publish guard
@@ -132,9 +138,17 @@ Design for it deliberately:
 
 ## Core Concept 5 — Signing in automated pipelines (OIDC, no long-lived keys)
 
-Automation removes the human who used to hold the signing key. So *where does the key come from* in an unattended pipeline? The wrong answer — a long-lived private key stored as a CI secret — is a catastrophic single point of failure: leak it and an attacker signs malware as you, forever.
+Automation removes the human who used to hold the signing key. So *where does the key come from* in an unattended pipeline?
 
-The modern answer is **keyless signing via Sigstore**. The CI job proves its identity to Sigstore's Fulcio CA using its **OIDC token** (GitHub Actions mints one automatically). Fulcio issues a *short-lived* certificate (minutes) bound to that identity. cosign signs with an ephemeral key, logs the signature to the Rekor transparency log, and discards the key. There is no long-lived secret to leak.
+- The wrong answer — a long-lived private key stored as a CI secret — is a catastrophic single point of failure: leak it and an attacker signs malware as you, forever.
+- The modern answer is **keyless signing via Sigstore**.
+
+How it works:
+
+- The CI job proves its identity to Sigstore's Fulcio CA using its **OIDC token** (GitHub Actions mints one automatically).
+- Fulcio issues a *short-lived* certificate (minutes) bound to that identity.
+- cosign signs with an ephemeral key, logs the signature to the Rekor transparency log, and discards the key.
+- There is no long-lived secret to leak.
 
 ```yaml
 # Keyless cosign signing of a container image in GitHub Actions
@@ -171,9 +185,11 @@ cosign verify ghcr.io/myorg/app@sha256:... \
 
 ## Core Concept 6 — Trusted publishing to registries
 
-The same OIDC mechanism solves the *publish* credential problem. Historically you stored an `NPM_TOKEN` / registry password as a CI secret — a long-lived credential that, leaked, lets anyone publish as you (this is exactly how several supply-chain attacks happened).
+The same OIDC mechanism solves the *publish* credential problem:
 
-**Trusted publishing** (npm, PyPI, RubyGems, and others) replaces the stored token with OIDC. You configure the registry to trust a specific GitHub repo + workflow. At publish time, the workflow presents its OIDC token; the registry verifies it matches the configured trust and issues a short-lived publish grant. No token is stored anywhere.
+- Historically you stored an `NPM_TOKEN` / registry password as a CI secret — a long-lived credential that, leaked, lets anyone publish as you (this is exactly how several supply-chain attacks happened).
+- **Trusted publishing** (npm, PyPI, RubyGems, and others) replaces the stored token with OIDC.
+- You configure the registry to trust a specific GitHub repo + workflow. At publish time, the workflow presents its OIDC token; the registry verifies it matches the configured trust and issues a short-lived publish grant. No token is stored anywhere.
 
 ```yaml
 # npm trusted publishing — no NPM_TOKEN anywhere
@@ -249,11 +265,20 @@ You cannot operate what you cannot see. A senior-owned release pipeline emits si
 
 ## Real-World Examples
 
-**A 50-package design-system monorepo.** Independent versioning via changesets with three linked groups. A PR touching `@org/tokens` triggers, through the release graph, coordinated patch releases of the 12 components that consume tokens — published in topological order, each with its own changelog. The 38 untouched packages stay put. CI runs the affected build only.
+- **A 50-package design-system monorepo.**
+  - Independent versioning via changesets with three linked groups.
+  - A PR touching `@org/tokens` triggers, through the release graph, coordinated patch releases of the 12 components that consume tokens — published in topological order, each with its own changelog.
+  - The 38 untouched packages stay put. CI runs the affected build only.
 
-**A fintech with strict supply-chain requirements.** Every release is signed keyless via Sigstore, carries SLSA Level 3 provenance, and publishes to a private OCI registry via OIDC. Zero long-lived signing keys or registry tokens exist anywhere. A monthly audit verifies every published artifact's signer identity matches the org's release workflow regex.
+- **A fintech with strict supply-chain requirements.**
+  - Every release is signed keyless via Sigstore, carries SLSA Level 3 provenance, and publishes to a private OCI registry via OIDC.
+  - Zero long-lived signing keys or registry tokens exist anywhere.
+  - A monthly audit verifies every published artifact's signer identity matches the org's release workflow regex.
 
-**A library that crashed mid-release.** The runner died after npm publish but before the GitHub Release. PagerDuty fired on the partial-state alert. The on-call simply re-ran the workflow; the npm step skipped (version exists), the release-object step created the missing release, notify fired. Total recovery: one click, because every step was skip-if-done.
+- **A library that crashed mid-release.**
+  - The runner died after npm publish but before the GitHub Release. PagerDuty fired on the partial-state alert.
+  - The on-call simply re-ran the workflow; the npm step skipped (version exists), the release-object step created the missing release, notify fired.
+  - Total recovery: one click, because every step was skip-if-done.
 
 ---
 
@@ -290,3 +315,7 @@ You cannot operate what you cannot see. A senior-owned release pipeline emits si
 - Where should recovery responsibility live, and why?
 - Which assumption deserves an experiment before implementation?
 - How can the design evolve without changing every consumer at once?
+- How do you release a monorepo with 40 interdependent packages correctly?
+- The pipeline published to npm, then the runner crashed before creating the GitHub Release — what do you do, and how do you prevent it being painful next time?
+- How do you sign artifacts in a fully automated pipeline without a human holding the key?
+- How do you publish to npm or PyPI without a long-lived token sitting in CI?

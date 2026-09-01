@@ -6,6 +6,13 @@
 
 ---
 
+## Action card
+1. State the claim.
+2. Link the observed evidence.
+3. Explain why it supports the claim.
+
+**Decision rule:** no evidence means “hypothesis,” not “finding.”
+
 ## 1. The three parts of any argument
 
 Every technical statement you make is really a small argument with three movable parts. Confusing them is the single most common reason engineering discussions go in circles.
@@ -125,7 +132,9 @@ This reply accepts the claim *might* be true, names the missing evidence, and su
 - Back to [Critical Thinking](../) · [Engineering Thinking](../../README.md).
 
 ---
-## Check your understanding
+## Recall and apply
+
+Use these prompts to check your understanding and choose one action to try in your next task.
 
 Try to answer these questions from memory:
 

@@ -104,7 +104,9 @@ A principal is simply someone who asks those four questions about a *protocol* a
 - Related thinking pillars: [decomposition](../01-decomposition/), [abstraction and generalisation](../03-abstraction-and-generalization/), [modelling a problem in code](../05-modeling-a-problem-in-code/), and the broader [problem-solving](../../02-problem-solving/) method.
 
 ---
-## Check your understanding
+## Recall and apply
+
+**Practice loop:** For one task, write the input, output, and steps before coding; test the smallest and edge cases.
 
 Try to answer these questions from memory:
 

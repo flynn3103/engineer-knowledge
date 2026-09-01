@@ -155,7 +155,13 @@ flowchart TD
 - Back to [Metacognition & learning](../) · [Engineering Thinking](../../README.md)
 
 ---
-## Check your understanding
+## Use it today
+
+1. Model uncertainty openly in reviews, incidents, and design discussions.
+2. Invite dissent before a decision closes.
+3. **Decision rule:** reopen a conclusion when a material assumption or its evidence changes.
+
+## Recall and apply
 
 Try to answer these questions from memory:
 

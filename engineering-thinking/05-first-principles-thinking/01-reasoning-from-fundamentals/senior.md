@@ -5,6 +5,13 @@
 
 ---
 
+## Quick use
+1. Publish a floor model with assumptions and measured constants.
+2. Name the binding resource and the current-to-floor gap.
+3. Turn the resulting constraint into a priced business choice.
+
+**Decision rule:** a floor model without a production comparison is only a hypothesis.
+
 ## 1. Why seniors must own this, not juniors
 
 A junior who reasons from fundamentals makes better local decisions. A senior who does it changes what the *organization* believes is possible. The leverage is in **bounding the problem**: once you can state "the floor is 8 ms and we are at 400 ms," you have converted an open-ended optimization ("make it faster") into a closed gap-analysis ("explain the 50× factor"). That reframing is the senior's primary product.
@@ -154,7 +161,7 @@ Default to analogy for reversible, well-trodden, low-stakes choices. The senior 
 - **Ignoring the human floor.** Some constraints are organizational (Conway's law) and just as real as physics. A design that beats the latency floor but can't be operated by the team has hit a different wall.
 
 ---
-## Check your understanding
+## Recall and apply
 
 Try to answer these questions from memory:
 

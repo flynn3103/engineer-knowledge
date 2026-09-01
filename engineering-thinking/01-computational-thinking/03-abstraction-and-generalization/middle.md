@@ -167,7 +167,9 @@ Designing for the wrong audience is a real defect: an API that forces app develo
 - Section overview: [`../`](../) · Roadmap home: [`../../README.md`](../../README.md).
 
 ---
-## Check your understanding
+## Recall and apply
+
+**Practice loop:** Apply one idea to a current task. State the decision it hides, the variation it exposes, and the result.
 
 Try to answer these questions from memory:
 

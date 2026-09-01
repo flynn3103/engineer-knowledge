@@ -137,7 +137,11 @@ The decision *process* — how to weigh tradeoffs objectively with matrices and 
 **Next:** [middle.md](./middle.md) — Pareto frontiers, the dominant constraint, and how tradeoffs flip with scale.
 
 ---
-## Check your understanding
+## Recall and apply
+
+**Practice loop:** Compare two options against the stated goal, name who pays each cost, and choose a metric to revisit the decision.
+
+Use these prompts to check your understanding and choose one action to try in your next task.
 
 Try to answer these questions from memory:
 

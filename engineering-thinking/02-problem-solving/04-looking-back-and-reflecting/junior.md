@@ -148,7 +148,11 @@ Four lines. Two minutes. It is the highest-return habit in this entire problem-s
 Back to the [problem-solving section](../) · [engineering thinking roadmap](../../README.md).
 
 ---
-## Check your understanding
+## Recall and apply
+
+**Practice loop:** After one task, record what you expected, what happened, what changed your mind, and one reusable lesson.
+
+Use these prompts to check your understanding and choose one action to try in your next task.
 
 Try to answer these questions from memory:
 

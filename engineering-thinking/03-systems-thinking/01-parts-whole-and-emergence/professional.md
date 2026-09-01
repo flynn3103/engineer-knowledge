@@ -168,7 +168,9 @@ Back to the [engineering-thinking roadmap](../../README.md).
 - You steer emergent behavior by changing **couplings, constraints, and information flows** (high leverage), never by tuning components (low leverage).
 
 ---
-## Check your understanding
+## Recall and apply
+
+**Practice loop:** Map one system's parts, interactions, and whole-system behavior; identify one property no component owns alone.
 
 Try to answer these questions from memory:
 

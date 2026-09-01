@@ -13,9 +13,10 @@ Use the smallest realistic scenario that exposes the decision and its failure be
 
 ## Queueing Theory — Why Response Time Is Nonlinear
 
-Every server is a queue. Requests arrive, wait if the server is busy, get served, and leave. The single most important consequence of treating it as a queue is this: **response time does not grow linearly with load — it grows hyperbolically and has a vertical asymptote at 100% utilization.** Engineers who reason linearly ("we're at 50%, so doubling traffic is fine") get destroyed by this.
+- Every server is a queue: requests arrive, wait if the server is busy, get served, and leave.
+- The single most important consequence: **response time does not grow linearly with load — it grows hyperbolically and has a vertical asymptote at 100% utilization.** Engineers who reason linearly ("we're at 50%, so doubling traffic is fine") get destroyed by this.
 
-Start with the canonical model, **M/M/1**: Markovian (Poisson) arrivals at rate **λ**, Markovian (exponential) service at rate **μ**, one server. Define **utilization** ρ = λ/μ (the fraction of time the server is busy; the system is only stable if ρ < 1). The closed-form results:
+- Start with the canonical model, **M/M/1**: Markovian (Poisson) arrivals at rate **λ**, Markovian (exponential) service at rate **μ**, one server. Utilization ρ = λ/μ (fraction of time the server is busy; stable only if ρ < 1). The closed-form results:
 
 ```
 Utilization        ρ = λ / μ
@@ -24,7 +25,7 @@ Avg response time  W = (1/μ) / (1 − ρ) = Ws / (1 − ρ)      ← Ws = 1/μ 
 Avg wait in queue  Wq = ρ · Ws / (1 − ρ)
 ```
 
-The term that matters is the **1/(1 − ρ)** factor. It is the *amplification* the queue applies to your base service time. Tabulate it and the danger becomes visceral:
+- The term that matters is the **1/(1 − ρ)** factor — the *amplification* the queue applies to your base service time:
 
 | Utilization ρ | 1/(1−ρ) | Response time vs. service time |
 |---|---|---|
@@ -35,15 +36,18 @@ The term that matters is the **1/(1 − ρ)** factor. It is the *amplification* 
 | 0.95 | 20.0 | 20× |
 | 0.99 | 100.0 | 100× |
 
-A service whose base latency is 1 ms running at 50% utilization responds in ~2 ms. The *same code* at 90% responds in ~10 ms; at 99% it responds in ~100 ms. Nothing about the work changed — only the queue. This is why capacity planning that targets 80–90% CPU "to save money" is a tail-latency time bomb: you are buying a 5–10× latency multiplier.
+- A service whose base latency is 1 ms running at 50% utilization responds in ~2 ms. The *same code* at 90% responds in ~10 ms; at 99% it responds in ~100 ms. Nothing about the work changed — only the queue.
+- This is why capacity planning that targets 80–90% CPU "to save money" is a tail-latency time bomb: you are buying a 5–10× latency multiplier.
 
-Adding servers helps, but with diminishing geometry. The **M/M/c** model (c parallel servers, one shared queue — the correct model for a thread pool or a connection pool) replaces the simple factor with the **Erlang-C** probability **P_wait** that an arriving request must queue:
+- Adding servers helps, but with diminishing geometry. The **M/M/c** model (c parallel servers, one shared queue — the correct model for a thread pool or a connection pool) replaces the simple factor with the **Erlang-C** probability **P_wait** that an arriving request must queue:
 
 ```
 Wq = P_wait · Ws / (c · (1 − ρ))      where ρ = λ / (c · μ)   (per-server utilization)
 ```
 
-The crucial, counter-intuitive M/M/c result: **one big pool of c servers beats c independent pools of one server each**, because a single shared queue lets any idle server pick up any waiting request. This is the queueing-theory argument *against* sharding work into per-core or per-shard queues with no work-stealing — partitioned queues idle while a neighbor's queue backs up. (Go's runtime scheduler embodies the opposite lesson: per-P run queues *plus* work-stealing, to get partition locality without the partitioned-queue tail.)
+- The crucial, counter-intuitive M/M/c result: **one big pool of c servers beats c independent pools of one server each**, because a single shared queue lets any idle server pick up any waiting request.
+  - This is the queueing-theory argument *against* sharding work into per-core or per-shard queues with no work-stealing — partitioned queues idle while a neighbor's queue backs up.
+  - (Go's runtime scheduler embodies the opposite lesson: per-P run queues *plus* work-stealing, to get partition locality without the partitioned-queue tail.)
 
 > **Key insight:** Response time isn't linear in load — it's `Ws / (1 − ρ)`. The headroom you keep below 100% utilization isn't waste; it is the budget that pays for your tail latency. The difference between 70% and 95% utilization is the difference between a 3× and a 20× latency multiplier on identical code.
 
@@ -51,7 +55,8 @@ The crucial, counter-intuitive M/M/c result: **one big pool of c servers beats c
 
 ## Variability Kills Tails — Kingman's Approximation
 
-M/M/1 assumes exponential service times. Real service times are not exponential — they have *their own* variability, and that variability is the dominant driver of queue-induced latency. The result that captures this is **Kingman's formula** (the VUT equation), the approximation for the general **G/G/1** queue (general arrival distribution, general service distribution, one server):
+- M/M/1 assumes exponential service times. Real service times are not exponential — they have *their own* variability, and that variability is the dominant driver of queue-induced latency.
+- The result that captures this is **Kingman's formula** (the VUT equation), the approximation for the general **G/G/1** queue (general arrival distribution, general service distribution, one server):
 
 ```
               ρ        c_a² + c_s²
@@ -61,21 +66,26 @@ Wq  ≈   Ws · ─────  ·  ───────────
          └── Utilization ──┘   └── Variability ──┘
 ```
 
-Read the three factors — Kingman calls them **V·U·T**:
+- Read the three factors — Kingman calls them **V·U·T**:
+  - **T** = `Ws`, the base service **Time**.
+  - **U** = `ρ/(1−ρ)`, the **Utilization** amplifier — the same hyperbola as before.
+  - **V** = `(c_a² + c_s²)/2`, the **Variability** term, where `c_a` is the coefficient of variation of *inter-arrival* times and `c_s` the coefficient of variation of *service* times. (`c = σ/mean`; for an exponential distribution `c = 1`, which recovers M/M/1.)
 
-- **T** = `Ws`, the base service **Time**.
-- **U** = `ρ/(1−ρ)`, the **Utilization** amplifier — the same hyperbola as before.
-- **V** = `(c_a² + c_s²)/2`, the **Variability** term, where `c_a` is the coefficient of variation of *inter-arrival* times and `c_s` the coefficient of variation of *service* times. (`c = σ/mean`; for an exponential distribution `c = 1`, which recovers M/M/1.)
+- The variability term is the senior's lever: queue wait scales with the **square** of the coefficient of variation of your service time.
+  - Halve your service-time variance and you roughly halve the queueing delay at any given utilization.
+  - A service whose requests take a uniform 1 ms (`c_s ≈ 0`) queues *far* less than one averaging 1 ms but occasionally taking 50 ms (high `c_s`), even at identical mean throughput.
 
-The variability term is the senior's lever. It says queue wait scales with the **square** of the coefficient of variation of your service time. Halve your service-time variance and you roughly halve the queueing delay at any given utilization. Concretely: a service whose requests take a uniform 1 ms (`c_s ≈ 0`) queues *far* less than one averaging 1 ms but occasionally taking 50 ms (high `c_s`), even at identical mean throughput.
+- This is why these things destroy tails out of proportion to their average cost:
+  - **GC pauses** (a Java stop-the-world or a Go STW phase) inject occasional multi-millisecond service times into an otherwise sub-millisecond distribution — they spike `c_s`.
+  - **Cold caches, lock contention, occasional disk hits, TLS handshakes** — anything that makes *some* requests dramatically slower than the median.
+  - **Slow-path branches** (validation failures, retries, large payloads) that share the same server pool as fast requests.
 
-This is why these things destroy tails out of proportion to their average cost:
-
-- **GC pauses** (a Java stop-the-world or a Go STW phase) inject occasional multi-millisecond service times into an otherwise sub-millisecond distribution — they spike `c_s`.
-- **Cold caches, lock contention, occasional disk hits, TLS handshakes** — anything that makes *some* requests dramatically slower than the median.
-- **Slow-path branches** (validation failures, retries, large payloads) that share the same server pool as fast requests.
-
-The mitigation strategy follows directly: *reduce service-time variance*, not just the mean. Isolate slow work onto separate pools so it can't inject variance into the fast path; cap request work; use allocation-light hot paths to avoid GC; tune the GC for pause time over throughput when latency is the SLO (Go's GC, the JVM's ZGC/Shenandoah). You are managing the second moment of the distribution, not the first.
+- The mitigation strategy follows directly: *reduce service-time variance*, not just the mean.
+  - Isolate slow work onto separate pools so it can't inject variance into the fast path.
+  - Cap request work.
+  - Use allocation-light hot paths to avoid GC.
+  - Tune the GC for pause time over throughput when latency is the SLO (Go's GC, the JVM's ZGC/Shenandoah).
+  - You are managing the second moment of the distribution, not the first.
 
 > **Key insight:** At fixed throughput, the thing that determines your tail is service-time *variance*, and Kingman shows it enters quadratically (`c_s²`). A latency engineer's job is as much about making service times *uniform* as making them *fast* — a predictable 2 ms beats a 1 ms-average that occasionally hits 40 ms.
 
@@ -83,9 +93,9 @@ The mitigation strategy follows directly: *reduce service-time variance*, not ju
 
 ## The Tail at Scale — Why Fan-Out Amplifies p99
 
-Here is the result that reorganizes how you think about distributed latency. Dean & Barroso's observation: **in a service that fans out to many backends and waits for all of them, the latency of the *slowest* backend determines the response — so a rare slow event at the leaf becomes a common slow event at the root.**
+- Here is the result that reorganizes how you think about distributed latency. Dean & Barroso's observation: **in a service that fans out to many backends and waits for all of them, the latency of the *slowest* backend determines the response — so a rare slow event at the leaf becomes a common slow event at the root.**
 
-Make it arithmetic. Suppose each backend independently responds within its p99 latency 99% of the time (i.e., 1% chance of being "slow"). A root request that fans out to **N** backends and must wait for all N is fast only if *every* backend is fast:
+- Make it arithmetic. Suppose each backend independently responds within its p99 latency 99% of the time (i.e., 1% chance of being "slow"). A root request that fans out to **N** backends and must wait for all N is fast only if *every* backend is fast:
 
 ```
 P(root request is "fast")  = (0.99)^N
@@ -100,15 +110,15 @@ P(root hits a slow backend) = 1 − (0.99)^N
 | 100 | 63% |
 | 200 | 87% |
 
-At a fan-out of 100, a per-backend 1-in-100 tail event becomes a **63%** chance per root request. The leaf's p99 has become *worse than* the root's p50. This is not a bug in any one service — it is the statistics of "wait for the slowest of N." Modern services routinely fan out to dozens or hundreds of shards (a search query, a feed assembly, a fan-out write), so this is the *normal* operating regime, not an edge case.
+- At a fan-out of 100, a per-backend 1-in-100 tail event becomes a **63%** chance per root request. The leaf's p99 has become *worse than* the root's p50.
+- This is not a bug in any one service — it is the statistics of "wait for the slowest of N." Modern services routinely fan out to dozens or hundreds of shards (a search query, a feed assembly, a fan-out write), so this is the *normal* operating regime, not an edge case.
 
-A second amplifier compounds it: **the more components a request touches, the higher the chance of hitting *each component's* own tail.** A request that traverses 5 services in series, each with a 1% chance of a slow response, has a `1 − 0.99^5 ≈ 4.9%` chance of a slow leg somewhere — even though no single service degraded.
+- A second amplifier compounds it: **the more components a request touches, the higher the chance of hitting *each component's* own tail.** A request that traverses 5 services in series, each with a 1% chance of a slow response, has a `1 − 0.99^5 ≈ 4.9%` chance of a slow leg somewhere — even though no single service degraded.
 
-The structural consequences Dean & Barroso draw:
-
-- **Reducing component-level tail latency** is leveraged: shaving the leaf p99 helps the root p50 dramatically because of the exponent.
-- **You cannot eliminate tails by averaging more requests** — fan-out makes them *more* likely, not less.
-- **The right defenses are architectural**, treating tail latency as a property to be *tolerated* rather than *eliminated*, exactly as fault-tolerance treats failures.
+- The structural consequences Dean & Barroso draw:
+  - **Reducing component-level tail latency** is leveraged: shaving the leaf p99 helps the root p50 dramatically because of the exponent.
+  - **You cannot eliminate tails by averaging more requests** — fan-out makes them *more* likely, not less.
+  - **The right defenses are architectural**, treating tail latency as a property to be *tolerated* rather than *eliminated*, exactly as fault-tolerance treats failures.
 
 > **Key insight:** `(0.99)^N` is the whole story. A 1% per-backend tail is invisible at N=1 and catastrophic at N=100. In any fan-out system, the leaf's p99 is the budget that sets the root's *median*, which is why "just make the common case fast" is not enough — you must make the *tail* of every dependency bounded.
 
@@ -116,9 +126,11 @@ The structural consequences Dean & Barroso draw:
 
 ## Tail-Tolerance Techniques — Hedging, Tied Requests, Micro-Partitioning
 
-If you can't eliminate tails, you tolerate them. Dean & Barroso name a toolkit; each trades a little extra work for a much tighter tail.
+- If you can't eliminate tails, you tolerate them. Dean & Barroso name a toolkit; each trades a little extra work for a much tighter tail.
 
-**Hedged requests.** Send the request to one replica; if no response arrives within, say, the **p95** latency (a brief deferral, not immediate duplication), send a *second* copy to another replica and take whichever returns first. The first request covers the common case; the hedge covers the tail. Because you only hedge the slow ~5%, the extra load is small (~5%) but the tail improvement is large — the hedge wins whenever the original was about to be a tail event.
+- **Hedged requests.** Send the request to one replica; if no response arrives within, say, the **p95** latency (a brief deferral, not immediate duplication), send a *second* copy to another replica and take whichever returns first.
+  - The first request covers the common case; the hedge covers the tail.
+  - Because you only hedge the slow ~5%, the extra load is small (~5%) but the tail improvement is large — the hedge wins whenever the original was about to be a tail event.
 
 ```go
 // Hedged request: fire the backup only if the primary is slow.
@@ -140,13 +152,20 @@ func hedged(ctx context.Context, call func(context.Context) (Resp, error), hedge
 }
 ```
 
-**Tied requests.** Hedging still wastes work — both copies may run to completion. *Tied* requests enqueue the request on *two* replicas simultaneously, but each copy carries the identity of the other; when one replica *starts executing*, it sends a cancellation to its twin. The tie is broken by which queue drains first (cheap to detect), not by waiting out a timeout, so you get tail protection with minimal duplicated *execution* — only duplicated *queueing*. This requires cross-replica cancellation, which is why it lives in the data layer (Google's storage systems) rather than in application code.
+- **Tied requests.** Hedging still wastes work — both copies may run to completion. *Tied* requests enqueue the request on *two* replicas simultaneously, but each copy carries the identity of the other; when one replica *starts executing*, it sends a cancellation to its twin.
+  - The tie is broken by which queue drains first (cheap to detect), not by waiting out a timeout, so you get tail protection with minimal duplicated *execution* — only duplicated *queueing*.
+  - This requires cross-replica cancellation, which is why it lives in the data layer (Google's storage systems) rather than in application code.
 
-**Request cancellation / deadline propagation.** The dual of hedging: when a response is no longer needed (the winner returned, or the client's deadline passed), *cancel* the loser so it stops consuming capacity — capacity that would otherwise raise ρ and worsen everyone's tail (per Kingman). In gRPC this is automatic via **deadline propagation**: a deadline set at the edge flows through every downstream call, and an expired deadline cancels the in-flight RPC chain. Honor `ctx.Done()` everywhere; a request that keeps working after its deadline is pure tail-inflating waste.
+- **Request cancellation / deadline propagation.** The dual of hedging: when a response is no longer needed (the winner returned, or the client's deadline passed), *cancel* the loser so it stops consuming capacity — capacity that would otherwise raise ρ and worsen everyone's tail (per Kingman).
+  - In gRPC this is automatic via **deadline propagation**: a deadline set at the edge flows through every downstream call, and an expired deadline cancels the in-flight RPC chain.
+  - Honor `ctx.Done()` everywhere; a request that keeps working after its deadline is pure tail-inflating waste.
 
-**Micro-partitioning.** Slice data into many more partitions than machines (say 20× more), so each machine holds dozens of small partitions. When one machine is slow or hot, its partitions are cheaply redistributed in small increments rather than moving one giant shard — and load balances at fine granularity. Fine partitions also make recovery and rebalancing fast, which keeps transient hotspots from becoming sustained tail events.
+- **Micro-partitioning.** Slice data into many more partitions than machines (say 20× more), so each machine holds dozens of small partitions.
+  - When one machine is slow or hot, its partitions are cheaply redistributed in small increments rather than moving one giant shard — load balances at fine granularity.
+  - Fine partitions also make recovery and rebalancing fast, which keeps transient hotspots from becoming sustained tail events.
 
-**Good-enough / quorum responses.** When fan-out makes "wait for all N" untenable, return once a *quorum* (or "enough") of backends have replied, accepting slightly stale or incomplete results to escape the slowest backend's tail. A search root that has heard from 95% of its leaves can return rather than wait for the last 5% — trading a sliver of completeness for a bounded p99. The 5% of leaves still in flight are then *cancelled*.
+- **Good-enough / quorum responses.** When fan-out makes "wait for all N" untenable, return once a *quorum* (or "enough") of backends have replied, accepting slightly stale or incomplete results to escape the slowest backend's tail.
+  - A search root that has heard from 95% of its leaves can return rather than wait for the last 5% — trading a sliver of completeness for a bounded p99. The 5% of leaves still in flight are then *cancelled*.
 
 > **Key insight:** Every tail-tolerance technique is the same bet — spend a little extra capacity or accept a little staleness to cut the dependence on the slowest unit of work. Hedging duplicates ~5% of requests; tied requests duplicate queueing but not execution; quorums drop the slowest few percent of results. All of them attack the `(0.99)^N` exponent by making the root not wait on its slowest leaf.
 
@@ -154,9 +173,9 @@ func hedged(ctx context.Context, call func(context.Context) (Resp, error), hedge
 
 ## Coordinated Omission — How Load Tests Hide Latency
 
-This section will change how you trust every latency number you've ever seen. **Coordinated omission** is a systematic measurement error, named by Gil Tene, in which a load generator's *own* slowness causes it to *skip* sending requests during the exact periods the system is slowest — so the worst latencies are never recorded, and the reported tail is wildly optimistic.
+- This section will change how you trust every latency number you've ever seen. **Coordinated omission** is a systematic measurement error, named by Gil Tene, in which a load generator's *own* slowness causes it to *skip* sending requests during the exact periods the system is slowest — so the worst latencies are never recorded, and the reported tail is wildly optimistic.
 
-The mechanism, in the common synchronous-loop load generator:
+- The mechanism, in the common synchronous-loop load generator:
 
 ```
 loop:
@@ -166,15 +185,15 @@ loop:
     // immediately loop and send the next request
 ```
 
-The bug is "immediately loop and send the next request." If the server stalls for 1 second (a GC pause, a lock convoy, a failover), the loop *blocks* inside `send_request()` for that whole second. It records exactly **one** slow sample (~1000 ms). But during that stalled second, at the intended rate of, say, 1000 req/s, **1000 requests that should have been sent were never sent**. In the real world those 1000 requests *did* arrive — they queued behind the stall and each experienced part of that 1-second delay (1000 ms, 999 ms, 998 ms, …, down to ~1 ms). The load generator silently omitted all 1000, recording only the single straggler.
+- The bug is "immediately loop and send the next request." If the server stalls for 1 second (a GC pause, a lock convoy, a failover), the loop *blocks* inside `send_request()` for that whole second. It records exactly **one** slow sample (~1000 ms).
+  - But during that stalled second, at the intended rate of, say, 1000 req/s, **1000 requests that should have been sent were never sent**.
+  - In the real world those 1000 requests *did* arrive — they queued behind the stall and each experienced part of that 1-second delay (1000 ms, 999 ms, 998 ms, …, down to ~1 ms). The load generator silently omitted all 1000, recording only the single straggler.
 
-The damage to percentiles is enormous. Tene's canonical illustration: a system that runs at 0 ms for 100 seconds and then stalls for 100 seconds reports a naive p99.99 of essentially 0 ms — because the long stall produced only one giant sample — when the *true* p99.99, accounting for everyone who waited, is on the order of tens of seconds. **Coordinated omission can understate the tail by one to two orders of magnitude.** A reported p99 of 5 ms can hide a true p99 of 500 ms.
+- The damage to percentiles is enormous. Tene's canonical illustration: a system that runs at 0 ms for 100 seconds and then stalls for 100 seconds reports a naive p99.99 of essentially 0 ms — because the long stall produced only one giant sample — when the *true* p99.99, accounting for everyone who waited, is on the order of tens of seconds. **Coordinated omission can understate the tail by one to two orders of magnitude.** A reported p99 of 5 ms can hide a true p99 of 500 ms.
 
-There are two correct fixes, and good tools implement both:
-
-1. **Constant-rate (open-model) load.** Schedule each request at its *intended* send time (`start_time = i / rate`) regardless of when the previous one finished. If the response comes back late, the *intended-to-actual* gap is the real latency that request would have experienced. This is the **open model** (arrivals independent of completions) versus the buggy **closed model** (next arrival waits for previous completion). `wrk2` (Tene's fork of `wrk`) does exactly this — you specify a fixed `-R rate` and it measures from intended schedule.
-
-2. **Latency back-filling correction.** When a sample exceeds the expected inter-request interval, synthesize the omitted samples that *would* have queued during the stall, decaying from the observed latency down to the interval. **HdrHistogram**'s `recordValueWithExpectedInterval(value, expectedInterval)` does this: it records the real sample *and* the implied missing ones, reconstructing the true distribution.
+- There are two correct fixes, and good tools implement both:
+  1. **Constant-rate (open-model) load.** Schedule each request at its *intended* send time (`start_time = i / rate`) regardless of when the previous one finished. If the response comes back late, the *intended-to-actual* gap is the real latency that request would have experienced. This is the **open model** (arrivals independent of completions) versus the buggy **closed model** (next arrival waits for previous completion). `wrk2` (Tene's fork of `wrk`) does exactly this — you specify a fixed `-R rate` and it measures from intended schedule.
+  2. **Latency back-filling correction.** When a sample exceeds the expected inter-request interval, synthesize the omitted samples that *would* have queued during the stall, decaying from the observed latency down to the interval. **HdrHistogram**'s `recordValueWithExpectedInterval(value, expectedInterval)` does this: it records the real sample *and* the implied missing ones, reconstructing the true distribution.
 
 ```java
 // HdrHistogram with coordinated-omission correction built in.
@@ -188,10 +207,10 @@ long elapsed = System.nanoTime() - start;
 h.recordValueWithExpectedInterval(elapsed, expectedIntervalNanos);
 ```
 
-Practical rules that follow:
-- Use **`wrk2`, not `wrk`**; specify a target rate, not "as fast as possible." A "max throughput" run is *intrinsically* coordinated-omission-prone because there is no intended schedule to measure against.
-- Drive load **below saturation**. At ρ ≥ 1 the closed model degenerates entirely; the only meaningful latency numbers come from an open model at a sustainable rate.
-- Prefer tools and libraries that record into **HdrHistogram** (or a t-digest) with correction, and report the full distribution, not a single average.
+- Practical rules that follow:
+  - Use **`wrk2`, not `wrk`**; specify a target rate, not "as fast as possible." A "max throughput" run is *intrinsically* coordinated-omission-prone because there is no intended schedule to measure against.
+  - Drive load **below saturation**. At ρ ≥ 1 the closed model degenerates entirely; the only meaningful latency numbers come from an open model at a sustainable rate.
+  - Prefer tools and libraries that record into **HdrHistogram** (or a t-digest) with correction, and report the full distribution, not a single average.
 
 > **Key insight:** The cheap way to measure latency — a loop that sends the next request after the previous returns — *cannot see* the latencies it causes by stalling, because the load generator stalls in lockstep with the server. Honest latency measurement requires an *open model* (constant intended rate) and/or *back-filling* (HdrHistogram). If your tool doesn't do one of these, your tail numbers are fiction.
 
@@ -199,16 +218,21 @@ Practical rules that follow:
 
 ## Percentile Statistics Pitfalls — Don't Add, Can't Average
 
-Percentiles are the right summary for user-facing latency, but they obey rules that violate everyone's arithmetic instincts. Get these wrong and you will report numbers that are not just imprecise but *meaningless*.
+- Percentiles are the right summary for user-facing latency, but they obey rules that violate everyone's arithmetic instincts. Get these wrong and you will report numbers that are not just imprecise but *meaningless*.
 
-**Percentiles don't add.** The p99 of a request that traverses A then B is **not** `p99(A) + p99(B)`. That sum assumes both legs hit their p99 *simultaneously* on the same request, which is the rare case, not the typical one. For independent legs the true end-to-end p99 is *less* than the sum of the per-leg p99s (you'd need both tails to coincide), and computing it requires convolving the distributions, not adding quantiles. The only correct way to get an end-to-end percentile is to measure the *end-to-end* latency directly and take *its* percentile. Decomposing a budget into per-leg p99s that sum to the target is a useful *planning heuristic* but is conservative — it over-provisions.
+- **Percentiles don't add.** The p99 of a request that traverses A then B is **not** `p99(A) + p99(B)`.
+  - That sum assumes both legs hit their p99 *simultaneously* on the same request, which is the rare case, not the typical one.
+  - For independent legs the true end-to-end p99 is *less* than the sum of the per-leg p99s (you'd need both tails to coincide), and computing it requires convolving the distributions, not adding quantiles.
+  - The only correct way to get an end-to-end percentile is to measure the *end-to-end* latency directly and take *its* percentile. Decomposing a budget into per-leg p99s that sum to the target is a useful *planning heuristic* but is conservative — it over-provisions.
 
-**Percentiles can't be averaged.** You cannot average the p99 of three machines to get the fleet p99. `avg(p99_a, p99_b, p99_c)` is not the p99 of the combined population — averaging quantiles is statistically nonsense. If machine A served 1M requests and B served 1K, their p99s carry vastly different weight; and even with equal weight, the quantile of a mixture is not the mean of the components' quantiles. The same applies across *time*: you cannot average per-minute p99s to get an hourly p99.
+- **Percentiles can't be averaged.** You cannot average the p99 of three machines to get the fleet p99.
+  - `avg(p99_a, p99_b, p99_c)` is not the p99 of the combined population — averaging quantiles is statistically nonsense.
+  - If machine A served 1M requests and B served 1K, their p99s carry vastly different weight; and even with equal weight, the quantile of a mixture is not the mean of the components' quantiles.
+  - The same applies across *time*: you cannot average per-minute p99s to get an hourly p99.
 
-So how *do* you aggregate? You must aggregate the **distributions**, then compute the percentile from the merged distribution. This is exactly why mergeable sketches exist:
-
-- **HdrHistogram** uses fixed, log-linear buckets with a configured precision (significant digits). Two histograms with the same configuration **merge by summing bucket counts** — `a.add(b)` — and you compute any percentile from the merged counts. Mergeability with bounded relative error is the whole point: each machine emits a histogram, a central system sums them, and the true fleet p99 falls out.
-- **t-digest** (Dunning) is a mergeable sketch optimized for *extreme* quantiles — it keeps fine resolution at the tails (p99, p99.9) and coarse resolution in the middle, so it answers p99.9 accurately with little memory. Digests merge by combining and re-clustering their centroids. This is what powers tail-percentile estimates in many metrics backends.
+- So how *do* you aggregate? You must aggregate the **distributions**, then compute the percentile from the merged distribution. This is exactly why mergeable sketches exist:
+  - **HdrHistogram** uses fixed, log-linear buckets with a configured precision (significant digits). Two histograms with the same configuration **merge by summing bucket counts** — `a.add(b)` — and you compute any percentile from the merged counts. Mergeability with bounded relative error is the whole point: each machine emits a histogram, a central system sums them, and the true fleet p99 falls out.
+  - **t-digest** (Dunning) is a mergeable sketch optimized for *extreme* quantiles — it keeps fine resolution at the tails (p99, p99.9) and coarse resolution in the middle, so it answers p99.9 accurately with little memory. Digests merge by combining and re-clustering their centroids. This is what powers tail-percentile estimates in many metrics backends.
 
 ```
 // Correct fleet aggregation: merge distributions, THEN read the percentile.
@@ -218,7 +242,7 @@ for each machine m:
 fleet_p99 = fleet.percentile(99)  // computed from merged counts, not from per-machine p99s
 ```
 
-**Beware the average entirely for latency.** The mean is dominated by the body and blind to the tail; a service can hold a 2 ms mean while 1% of users wait 2 seconds. Report distributions and high percentiles (p99, p99.9), and remember that *which users* hit the tail matters — the tail is often concentrated on the heaviest, most valuable accounts.
+- **Beware the average entirely for latency.** The mean is dominated by the body and blind to the tail; a service can hold a 2 ms mean while 1% of users wait 2 seconds. Report distributions and high percentiles (p99, p99.9), and remember that *which users* hit the tail matters — the tail is often concentrated on the heaviest, most valuable accounts.
 
 > **Key insight:** A percentile is a property of a *distribution*, so you can only combine percentiles by combining the distributions they came from. Adding per-stage p99s over-counts (they rarely coincide); averaging per-machine p99s is meaningless. Emit mergeable histograms (HdrHistogram) or tail-accurate sketches (t-digest), merge those, and read the percentile from the merged result.
 
@@ -226,25 +250,21 @@ fleet_p99 = fleet.percentile(99)  // computed from merged counts, not from per-m
 
 ## USE and RED — Two Methods, Two Vantage Points
 
-Two complementary methodologies tell you *where* latency is being created. They answer different questions, and a senior uses both.
+- Two complementary methodologies tell you *where* latency is being created. They answer different questions, and a senior uses both.
 
-**USE — Utilization, Saturation, Errors** (Brendan Gregg) is a **resource-centric** checklist. For every resource — CPU, memory, disk, network, and *also* software resources like thread pools, connection pools, and lock-protected sections — ask:
+- **USE — Utilization, Saturation, Errors** (Brendan Gregg) is a **resource-centric** checklist. For every resource — CPU, memory, disk, network, and *also* software resources like thread pools, connection pools, and lock-protected sections — ask:
+  - **Utilization:** what fraction of time is it busy? (ρ from the queueing section.)
+  - **Saturation:** how much *queued, waiting* work has piled up? (run-queue length, pool wait count, socket backlog.)
+  - **Errors:** what is the error count?
+  - USE is how you *localize a bottleneck*: walk the resources, find the one that's saturated, and you've found the queue driving your `1/(1−ρ)` blow-up. The Saturation signal is the early warning — utilization can read 100% while still keeping up, but *growing* saturation means the queue is unbounded and latency is heading for the asymptote.
 
-- **Utilization:** what fraction of time is it busy? (ρ from the queueing section.)
-- **Saturation:** how much *queued, waiting* work has piled up? (run-queue length, pool wait count, socket backlog.)
-- **Errors:** what is the error count?
+- **RED — Rate, Errors, Duration** (Tom Wilkie) is a **request-centric** checklist, one set of signals per *service*:
+  - **Rate:** requests per second (λ).
+  - **Errors:** failed requests per second.
+  - **Duration:** the *distribution* of request latency — not a mean, a histogram.
+  - RED is how you *monitor user-facing health* and is the natural fit for microservices and dashboards: every service exports the same three signals, and Duration is your latency SLO surface. In a service mesh, **Envoy** emits exactly these (`upstream_rq_total`, `upstream_rq_xx`, `upstream_rq_time` histograms) per cluster, giving you RED for free at every hop.
 
-USE is how you *localize a bottleneck*: walk the resources, find the one that's saturated, and you've found the queue driving your `1/(1−ρ)` blow-up. The Saturation signal is the early warning — utilization can read 100% while still keeping up, but *growing* saturation means the queue is unbounded and latency is heading for the asymptote.
-
-**RED — Rate, Errors, Duration** (Tom Wilkie) is a **request-centric** checklist, one set of signals per *service*:
-
-- **Rate:** requests per second (λ).
-- **Errors:** failed requests per second.
-- **Duration:** the *distribution* of request latency — not a mean, a histogram.
-
-RED is how you *monitor user-facing health* and is the natural fit for microservices and dashboards: every service exports the same three signals, and Duration is your latency SLO surface. In a service mesh, **Envoy** emits exactly these (`upstream_rq_total`, `upstream_rq_xx`, `upstream_rq_time` histograms) per cluster, giving you RED for free at every hop.
-
-The two compose: **RED tells you a service's latency is bad; USE tells you which resource inside it is the cause.** A spiking RED Duration on service X, cross-referenced with a saturated thread pool (USE Saturation) inside X, is a complete diagnosis: requests are queueing for threads, and `Wq` is climbing per Kingman. The USE Saturation signal is the one that lets you act *before* the RED Duration crosses the SLO — which is the entire point of [backpressure](#latency-budgets-and-backpressure-as-latency-protection).
+- The two compose: **RED tells you a service's latency is bad; USE tells you which resource inside it is the cause.** A spiking RED Duration on service X, cross-referenced with a saturated thread pool (USE Saturation) inside X, is a complete diagnosis: requests are queueing for threads, and `Wq` is climbing per Kingman. The USE Saturation signal is the one that lets you act *before* the RED Duration crosses the SLO — which is the entire point of [backpressure](#latency-budgets-and-backpressure-as-latency-protection).
 
 > **Key insight:** RED watches the request stream (Rate/Errors/Duration) from the user's side; USE watches the resources (Utilization/Saturation/Errors) from the machine's side. Latency *symptoms* show up in RED Duration; latency *causes* show up in USE Saturation — and Saturation rising is your only pre-SLO-breach warning.
 
@@ -252,7 +272,7 @@ The two compose: **RED tells you a service's latency is bad; USE tells you which
 
 ## Latency Budgets and Backpressure as Latency Protection
 
-A **latency budget** allocates an end-to-end SLO across the components of a request path so that each owner knows their slice. If the user-facing SLO is "p99 ≤ 200 ms," you decompose it down the call tree:
+- A **latency budget** allocates an end-to-end SLO across the components of a request path so that each owner knows their slice. If the user-facing SLO is "p99 ≤ 200 ms," you decompose it down the call tree:
 
 ```
 End-to-end p99 budget: 200 ms
@@ -267,13 +287,20 @@ End-to-end p99 budget: 200 ms
 └─ Network + headroom ............. 15 ms
 ```
 
-Two caveats keep this honest. First — from the percentile section — **the budget legs do not literally sum**, because per-leg p99s rarely coincide; summing them is a *conservative* allocation, which is fine for planning (it over-provisions) but means the real end-to-end p99 will usually beat the sum. Second, the budget is also a **deadline**: propagate it as a gRPC deadline from the edge so each hop knows how much time *remains*, and any hop that has already blown its slice can fail fast rather than do doomed work. A budget you don't enforce as a deadline is just a spreadsheet.
+- Two caveats keep this honest:
+  1. From the percentile section — **the budget legs do not literally sum**, because per-leg p99s rarely coincide; summing them is a *conservative* allocation, which is fine for planning (it over-provisions) but means the real end-to-end p99 will usually beat the sum.
+  2. The budget is also a **deadline**: propagate it as a gRPC deadline from the edge so each hop knows how much time *remains*, and any hop that has already blown its slice can fail fast rather than do doomed work. A budget you don't enforce as a deadline is just a spreadsheet.
 
-When demand exceeds capacity, the queueing math is merciless: ρ → 1, `Wq → ∞`, the queue grows without bound, and latency runs to the asymptote for *everyone*. The defenses are **backpressure** and **load shedding**, and the senior framing is that they are *latency-protection* mechanisms, not just availability mechanisms.
+- When demand exceeds capacity, the queueing math is merciless: ρ → 1, `Wq → ∞`, the queue grows without bound, and latency runs to the asymptote for *everyone*. The defenses are **backpressure** and **load shedding**, and the senior framing is that they are *latency-protection* mechanisms, not just availability mechanisms.
 
-**Backpressure** propagates "I'm full" upstream so producers slow down instead of piling work into an unbounded queue. The enabling principle is **bounded queues**: an unbounded queue converts overload into *latency* (every request waits behind the backlog) and then into OOM; a *bounded* queue converts overload into *rejection* (fast, explicit) so the requests that *are* admitted keep meeting their SLO. gRPC flow control (HTTP/2 windows) and Go's bounded channels are backpressure primitives — a full channel blocks the producer by design.
+- **Backpressure** propagates "I'm full" upstream so producers slow down instead of piling work into an unbounded queue.
+  - The enabling principle is **bounded queues**: an unbounded queue converts overload into *latency* (every request waits behind the backlog) and then into OOM; a *bounded* queue converts overload into *rejection* (fast, explicit) so the requests that *are* admitted keep meeting their SLO.
+  - gRPC flow control (HTTP/2 windows) and Go's bounded channels are backpressure primitives — a full channel blocks the producer by design.
 
-**Load shedding** is the active form: when saturation crosses a threshold, *reject* excess requests immediately (HTTP 429 / gRPC `RESOURCE_EXHAUSTED`) rather than admitting them into a growing queue. The latency logic is precise: admitting a request you can't serve within its deadline doesn't help that request *and* it raises ρ, inflating `Wq` for every other request (Kingman again). Shedding it early keeps utilization in the sane region of the `1/(1−ρ)` curve. Envoy's adaptive concurrency and circuit breakers, and the **CoDel**/PID-controller admission schemes (drop requests that have already queued past a target latency), are this principle in production. The advanced version sheds *by priority* — drop the cheap, low-value, or already-late work first, protecting the requests that still have budget.
+- **Load shedding** is the active form: when saturation crosses a threshold, *reject* excess requests immediately (HTTP 429 / gRPC `RESOURCE_EXHAUSTED`) rather than admitting them into a growing queue.
+  - Admitting a request you can't serve within its deadline doesn't help that request *and* it raises ρ, inflating `Wq` for every other request (Kingman again). Shedding it early keeps utilization in the sane region of the `1/(1−ρ)` curve.
+  - Envoy's adaptive concurrency and circuit breakers, and the **CoDel**/PID-controller admission schemes (drop requests that have already queued past a target latency), are this principle in production.
+  - The advanced version sheds *by priority* — drop the cheap, low-value, or already-late work first, protecting the requests that still have budget.
 
 ```
                  admit                    serve
@@ -330,3 +357,8 @@ When demand exceeds capacity, the queueing math is merciless: ρ → 1, `Wq → 
 - Where should recovery responsibility live, and why?
 - Which assumption deserves an experiment before implementation?
 - How can the design evolve without changing every consumer at once?
+- p50 is fine (8 ms) but p99 is 800 ms — walk through what you check, in order.
+- Throughput climbed with load, then suddenly collapsed at peak. Why, and what's the fix?
+- A downstream dependency has a fat p99.9 and you fan out to 50 of its shards per request. What's your latency exposure, and what do you do about it?
+- Name a technique to reduce tail latency specifically, and explain its trade-off.
+- Why does latency explode near saturation instead of rising linearly with load?

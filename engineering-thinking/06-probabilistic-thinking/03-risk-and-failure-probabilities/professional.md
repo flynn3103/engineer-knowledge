@@ -6,6 +6,13 @@
 
 ---
 
+## Quick use
+1. Maintain a risk register with probability, impact, owner, and residual risk.
+2. Set error budgets from user impact and use them to guide releases.
+3. Fund mitigations with correlated-failure and tail-risk evidence.
+
+**Decision rule:** an unowned accepted risk is not managed risk.
+
 ## 1. From Component Math to Org Risk
 
 A single service's availability is arithmetic. *Organizational* risk is a portfolio: dozens of services, shared platforms, vendors, and humans, each with failure modes, interacting. The staff engineer's job is to make that portfolio **legible and prioritized**.
@@ -155,7 +162,7 @@ Numbers persuade leadership; fear doesn't. Translate every risk into the units t
 - Related: [systems thinking](../../03-systems-thinking/), [evaluating tradeoffs objectively](../../04-critical-thinking/04-evaluating-tradeoffs-objectively/), the [section root](../), and the [Engineering Thinking overview](../../README.md).
 
 ---
-## Check your understanding
+## Recall and apply
 
 Try to answer these questions from memory:
 

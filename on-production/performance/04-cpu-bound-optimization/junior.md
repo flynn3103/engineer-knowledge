@@ -13,13 +13,15 @@ Use the smallest realistic scenario that exposes the decision and its failure be
 
 ## Core Concept 1 — CPU-Bound vs I/O-Bound
 
-Before you optimize anything, answer one question: **is the CPU busy, or is it waiting?** Everything downstream depends on the answer, and the two cases need opposite fixes.
+Before you optimize anything, answer one question: **is the CPU busy, or is it waiting?** The two cases need opposite fixes.
 
-**CPU-bound** means the processor is the limiting resource. The program is actively computing — looping, sorting, hashing, parsing, doing math — and it would go faster on a faster CPU. The telltale sign: **one CPU core pinned at 100%** for the whole duration of the slow operation.
+- **CPU-bound** — the processor is the limiting resource. The program is actively computing (looping, sorting, hashing, parsing, doing math) and would go faster on a faster CPU.
+  - Telltale sign: **one CPU core pinned at 100%** for the whole slow operation.
+- **I/O-bound** — the program is *waiting* on something external (a file, a database, an API). The CPU is mostly idle during the wait.
+  - Telltale sign: the operation takes seconds but CPU usage stays **low** (5–10%) the whole time.
+  - A faster CPU wouldn't help at all — the program is blocked on disk or network.
 
-**I/O-bound** means the program is *waiting* on something external — reading a file, querying a database, calling an API. The CPU is mostly idle during the wait. A faster CPU wouldn't help at all; the program is blocked on disk or network. The telltale sign: the operation takes seconds but CPU usage stays **low** (5%, 10%) the whole time.
-
-How to tell, practically:
+**How to tell, practically:**
 
 ```
 Open a system monitor (top / Activity Monitor / Task Manager) and run the slow operation.
@@ -28,7 +30,7 @@ Open a system monitor (top / Activity Monitor / Task Manager) and run the slow o
   CPU near idle, but it's still slow  → I/O-BOUND   (a different problem entirely)
 ```
 
-A concrete check on the command line:
+**A concrete check on the command line:**
 
 ```bash
 # Run your program under `time` and watch the breakdown:
@@ -42,7 +44,8 @@ time ./myprogram
 # user ≪ real  → most of the wait was idle   → I/O-BOUND (waiting on something)
 ```
 
-In the example above `user` (7.6s) is almost the whole `real` (8.0s) — the CPU was working the entire time. That's CPU-bound, and the rest of this page applies. If instead `real` were 8.0s but `user` were 0.3s, the CPU did almost nothing for 8 seconds: you're waiting on I/O, and no algorithm change will help — you'd look at caching the I/O, parallelizing the waits, or fixing a slow query (see the [Diagnostics](../../../diagnostics/) and database skills instead).
+- In the example above, `user` (7.6s) is almost the whole `real` (8.0s) — the CPU worked the entire time. That's CPU-bound, and the rest of this page applies.
+- If instead `real` were 8.0s but `user` were 0.3s, the CPU did almost nothing for 8 seconds: you're waiting on I/O. No algorithm change will help — look at caching the I/O, parallelizing the waits, or fixing a slow query (see [Diagnostics](../../../diagnostics/) and database skills instead).
 
 > **Key insight:** A faster algorithm only helps a CPU-bound program. If your code is I/O-bound, you can rewrite the math to be 100× faster and the program will be *exactly* as slow, because the CPU was never the thing you were waiting on. Diagnose the *type* of slow before you spend a minute fixing it.
 
@@ -52,7 +55,8 @@ In the example above `user` (7.6s) is almost the whole `real` (8.0s) — the CPU
 
 You've confirmed you're CPU-bound. The next temptation is to read the code, spot something that *looks* expensive, and "fix" it. Resist. **Where the time goes is almost never where you think.**
 
-A **profiler** runs your program and reports, function by function, where the CPU actually spent its cycles. It replaces your guess with a measurement. In Go, profiling is built in:
+- A **profiler** runs your program and reports, function by function, where the CPU actually spent its cycles. It replaces your guess with a measurement.
+- In Go, profiling is built in:
 
 ```go
 import (
@@ -69,7 +73,7 @@ func main() {
 }
 ```
 
-Then inspect the result:
+- Then inspect the result:
 
 ```bash
 go tool pprof cpu.prof
@@ -77,16 +81,23 @@ go tool pprof cpu.prof
 (pprof) list slowFunc   # line-by-line time inside one function
 ```
 
-The `top` output ranks functions by how much CPU time they consumed. The function at the top is your target — and it is *routinely* a surprise. Python's equivalent is just as easy:
+- `top` ranks functions by CPU time consumed. The function at the top is your target — and it is *routinely* a surprise.
+- Python's equivalent is just as easy:
 
 ```bash
 python -m cProfile -s tottime myscript.py
 # Prints every function, sorted by total time spent inside it.
 ```
 
-The output's `tottime` column is "time spent in this function itself." The biggest number is where to start.
+- The `tottime` column is "time spent in this function itself." The biggest number is where to start.
 
-The reason this matters so much is the **80/20 rule of performance**: roughly 80% of the time is spent in about 20% of the code — often a single loop. Optimizing anything *outside* that 20% is wasted effort no matter how clever it is. A 10× speedup on code that accounts for 2% of runtime saves you 1.8% overall. A 2× speedup on the code that accounts for 80% saves you 40%. The profiler tells you which code is which.
+**Why this matters so much — the 80/20 rule of performance:**
+
+- Roughly 80% of the time is spent in about 20% of the code — often a single loop.
+- Optimizing anything *outside* that 20% is wasted effort no matter how clever it is.
+- A 10× speedup on code that accounts for 2% of runtime saves 1.8% overall.
+- A 2× speedup on code that accounts for 80% saves 40%.
+- The profiler tells you which code is which.
 
 > **Key insight:** Optimization without profiling is gambling with your own time. The profiler is not a "nice to have" — it is the *first* tool you reach for, before reading a single line with intent to change it. Find the 20% that matters; ignore the 80% that doesn't.
 
@@ -94,7 +105,7 @@ The reason this matters so much is the **80/20 rule of performance**: roughly 80
 
 ## Core Concept 3 — The Algorithm Dominates (Big-O Beats Micro-Tricks)
 
-Once the profiler points at the hot function, the first thing to examine is its **algorithm** — its Big-O — not its individual lines. Why? Because algorithmic improvements scale with your data, and micro-optimizations don't.
+Once the profiler points at the hot function, examine its **algorithm** — its Big-O — before its individual lines. Algorithmic improvements scale with your data; micro-optimizations don't.
 
 Consider checking, for each item in a list, whether it appears in another list:
 
@@ -114,7 +125,7 @@ func countMatches(items, lookup []string) int {
 }
 ```
 
-With 10,000 items and a 10,000-element lookup, that inner scan runs up to 100,000,000 times. Now the same logic with the right data structure:
+- With 10,000 items and a 10,000-element lookup, that inner scan runs up to 100,000,000 times.
 
 ```go
 // FAST — O(n + m): build a set once, then each check is O(1).
@@ -133,9 +144,11 @@ func countMatches(items, lookup []string) int {
 }
 ```
 
-This goes from ~100,000,000 operations to ~20,000 — roughly **5,000× less work**. No micro-trick exists that can rescue the first version; the *shape* of the work was wrong. Compare that to the kind of "optimization" beginners reach for first — caching a length, swapping `i++` for `++i`, inlining a tiny call. Those might shave 5–10% off a single line. The data-structure change shaved off 99.98%.
+- This goes from ~100,000,000 operations to ~20,000 — roughly **5,000× less work**.
+- No micro-trick can rescue the first version; the *shape* of the work was wrong.
+- Compare to the "optimizations" beginners reach for first — caching a length, swapping `i++` for `++i`, inlining a tiny call. Those shave 5–10% off a single line. The data-structure change shaved off 99.98%.
 
-The lesson generalizes. Reach for the right container before anything else:
+**Reach for the right container before anything else:**
 
 | Need | Slow choice | Right choice | Why |
 |---|---|---|---|
@@ -150,9 +163,9 @@ The lesson generalizes. Reach for the right container before anything else:
 
 ## Core Concept 4 — Reducing Work Beats Doing Work Faster
 
-The deepest principle in CPU optimization is almost philosophical: **the fastest work is the work you never do.** Before making a computation faster, ask whether it needs to happen at all, or that *many* times.
+The deepest principle in CPU optimization: **the fastest work is the work you never do.** Before making a computation faster, ask whether it needs to happen at all, or that *many* times.
 
-**Hoist work out of loops.** If something inside a loop produces the same answer every iteration, compute it *once* before the loop:
+**1. Hoist work out of loops.** If something inside a loop produces the same answer every iteration, compute it *once* before the loop:
 
 ```go
 // SLOW — len(data) and the regexp compile run every single iteration.
@@ -169,9 +182,9 @@ for i := 0; i < n; i++ {
 }
 ```
 
-Compiling that regular expression is expensive; doing it 10,000 times instead of once is 9,999 wasted compilations.
+- Compiling that regular expression is expensive; doing it 10,000 times instead of once is 9,999 wasted compilations.
 
-**Memoize repeated computation.** If you compute the same expensive answer for the same input more than once, cache it:
+**2. Memoize repeated computation.** If you compute the same expensive answer for the same input more than once, cache it:
 
 ```python
 from functools import lru_cache
@@ -183,9 +196,11 @@ def fib(n):
     return fib(n - 1) + fib(n - 2)
 ```
 
-Without the cache, `fib(35)` recomputes the same sub-values billions of times — it can take seconds. With one decorator line, each `fib(k)` is computed exactly once and the call returns almost instantly. You didn't make the math faster; you made it *happen far fewer times*.
+- Without the cache, `fib(35)` recomputes the same sub-values billions of times — it can take seconds.
+- With one decorator line, each `fib(k)` is computed exactly once and the call returns almost instantly.
+- You didn't make the math faster; you made it *happen far fewer times*.
 
-**Batch instead of per-item.** Doing one operation per item often carries fixed overhead each time. Doing it once over all items pays that overhead once:
+**3. Batch instead of per-item.** Doing one operation per item often carries fixed overhead each time. Doing it once over all items pays that overhead once:
 
 ```go
 // SLOW — a string grows by copying its whole contents every += .  O(n²) total.
@@ -208,17 +223,16 @@ result := b.String()
 
 ## Core Concept 5 — The Hot Loop and How to Find It
 
-At the machine level, a CPU does one thing: it executes instructions in a loop, one after another, billions per second. So when a program is CPU-bound, the time is being spent in *some loop* executing *some instructions* over and over. Performance work is largely the art of finding **the hot loop** — the one place where the iteration count and the per-iteration cost multiply into most of your runtime — and shrinking that product.
-
-The math is simple and worth internalizing:
+A CPU executes instructions in a loop, one after another, billions per second. When a program is CPU-bound, the time is spent in *some loop* executing *some instructions* over and over. Performance work is largely the art of finding **the hot loop** and shrinking it.
 
 ```
 loop cost  ≈  (number of iterations)  ×  (work done per iteration)
 ```
 
-You can attack either factor. Fewer iterations (a better algorithm, Concept 3) or cheaper iterations (less work each pass, Concept 4). A loop running 1,000,000 times doing a tiny bit of needless work — an allocation, a recompile, a redundant lookup — is where junior-level wins hide, because that needless work gets *multiplied a million times*.
+- You can attack either factor: fewer iterations (a better algorithm, Concept 3) or cheaper iterations (less work each pass, Concept 4).
+- A loop running 1,000,000 times doing a tiny bit of needless work — an allocation, a recompile, a redundant lookup — is where junior-level wins hide, because that needless work gets *multiplied a million times*.
 
-This is why **allocating inside a hot loop** is such a classic mistake. Each allocation is cheap in isolation, but multiplied across millions of iterations it dominates:
+**Allocating inside a hot loop is a classic mistake.** Each allocation is cheap in isolation, but multiplied across millions of iterations it dominates:
 
 ```go
 // SLOW — allocates a fresh slice every iteration; the garbage collector
@@ -246,7 +260,12 @@ func sumRows(rows [][]int) int {
 }
 ```
 
-How do you *find* the hot loop? You already have the tool: the profiler from Concept 2. After `go tool pprof` shows you the top function, `list <funcName>` shows the time spent on each line *inside* it — and the line with the biggest number, almost always inside a loop, is exactly where to focus. Python's `cProfile` plus a line-level profiler (`line_profiler`) does the same. The workflow is always: profile → find the hot function → find the hot line/loop → reduce its iterations or its per-iteration cost.
+**How to find the hot loop:** you already have the tool — the profiler from Concept 2.
+
+- After `go tool pprof` shows the top function, `list <funcName>` shows time spent per line *inside* it.
+- The line with the biggest number, almost always inside a loop, is exactly where to focus.
+- Python's `cProfile` plus a line-level profiler (`line_profiler`) does the same.
+- The workflow is always: profile → find the hot function → find the hot line/loop → reduce its iterations or its per-iteration cost.
 
 > **Key insight:** A CPU-bound program's time lives inside a loop, and `cost ≈ iterations × work-per-iteration`. The profiler points you at the loop; then you have exactly two levers — fewer passes or cheaper passes. Anything that wouldn't change one of those two numbers isn't optimization, it's decoration.
 
@@ -254,11 +273,23 @@ How do you *find* the hot loop? You already have the tool: the profiler from Con
 
 ## Real-World Examples
 
-**1. The dashboard that got slower every month.** A reporting page loaded fine at launch, then crept toward 30 seconds over a year. The team assumed the database was slow (an I/O-bound assumption). A `time` check showed `user` time nearly equal to `real` time — the CPU was pinned. The profiler pointed at a function that, for each of N users, scanned the full list of N transactions: an O(n²) loop hiding in plain sight. As the data grew, n² exploded. Replacing the inner scan with a pre-built map (Concept 3) took the page from 30 seconds back to under a second. The "database problem" was never a database problem.
+**1. The dashboard that got slower every month.**
+- Symptom: a reporting page loaded fine at launch, then crept toward 30 seconds over a year.
+- Wrong assumption: the team blamed the database (an I/O-bound assumption).
+- Diagnosis: `time` showed `user` nearly equal to `real` — the CPU was pinned. The profiler pointed at a function that, for each of N users, scanned the full list of N transactions — an O(n²) loop hiding in plain sight.
+- Fix: replacing the inner scan with a pre-built map (Concept 3) took the page from 30 seconds back to under a second.
+- Lesson: the "database problem" was never a database problem.
 
-**2. The image pipeline that allocated itself to death.** A batch image processor spent 60% of its CPU time in garbage collection — visible immediately in the profile. The cause: a buffer allocated fresh inside the per-pixel-row loop, millions of times (Concept 5). Hoisting the allocation out and reusing one buffer cut total runtime by more than half. No algorithm changed; the program simply stopped creating millions of throwaway objects.
+**2. The image pipeline that allocated itself to death.**
+- Symptom: a batch image processor spent 60% of its CPU time in garbage collection — visible immediately in the profile.
+- Cause: a buffer allocated fresh inside the per-pixel-row loop, millions of times (Concept 5).
+- Fix: hoisting the allocation out and reusing one buffer cut total runtime by more than half.
+- Lesson: no algorithm changed; the program simply stopped creating millions of throwaway objects.
 
-**3. The "optimization" that fixed nothing.** A developer was sure a string-formatting function was the bottleneck and spent a day hand-optimizing it. It got 3× faster — and the program's overall runtime didn't move. A profiler, run *afterward*, showed that function accounted for 1.5% of runtime; the real cost was a redundant sort being run inside a loop. A day of work bought a 0.5% improvement. Five minutes with a profiler first would have pointed straight at the sort.
+**3. The "optimization" that fixed nothing.**
+- A developer was sure a string-formatting function was the bottleneck and spent a day hand-optimizing it. It got 3× faster — and overall runtime didn't move.
+- A profiler run *afterward* showed that function accounted for 1.5% of runtime; the real cost was a redundant sort run inside a loop.
+- A day of work bought a 0.5% improvement. Five minutes with a profiler first would have pointed straight at the sort.
 
 ---
 
@@ -301,3 +332,9 @@ How do you *find* the hot loop? You already have the tool: the profiler from Con
 - Which input changes the observed result, and why?
 - What is the smallest useful success check?
 - Which beginner mistake would your evidence catch?
+- How do you tell whether a workload is CPU-bound or I/O-bound?
+- What did Knuth mean by "premature optimization is the root of all evil," and how should you apply it?
+- Why is profiling before optimizing non-negotiable rather than just good practice?
+- If a function looks inefficient in code review, is that enough reason to rewrite it for speed?
+- Given a slow function, where do you look first — the algorithm or micro-optimizations?
+- What is the first step for any CPU performance problem?

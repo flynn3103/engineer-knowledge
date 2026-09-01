@@ -163,7 +163,9 @@ Back to the [engineering-thinking roadmap](../../README.md).
 - Engineer for good emergence with interaction-level mechanisms (backoff+jitter, bulkheads, load shedding).
 
 ---
-## Check your understanding
+## Recall and apply
+
+**Practice loop:** Map one system's parts, interactions, and whole-system behavior; identify one property no component owns alone.
 
 Try to answer these questions from memory:
 

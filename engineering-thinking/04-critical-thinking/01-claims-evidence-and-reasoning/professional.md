@@ -6,6 +6,13 @@
 
 ---
 
+## Action card
+1. Set the proof bar from blast radius and reversibility.
+2. Require evidence, warrant, rebuttal, confidence, and reversal in decision records.
+3. Make verification cheap with observability and experiments.
+
+**Decision rule:** authority never lowers the evidence bar.
+
 ## 1. Standard of proof is a design parameter, not a constant
 
 Courts use different standards — "preponderance of evidence," "clear and convincing," "beyond reasonable doubt" — depending on the stakes. Engineering organizations should too, explicitly. A principal's job is to set the standard of proof *per decision class* so the org neither over-investigates trivia nor under-investigates catastrophe.
@@ -117,7 +124,7 @@ The end state you're building: an organization where the strongest evidence wins
 - Back to [Critical Thinking](../) · [Engineering Thinking](../../README.md).
 
 ---
-## Check your understanding
+## Recall and apply
 
 Try to answer these questions from memory:
 

@@ -117,7 +117,13 @@ The principal endpoint: you treat constraints as the org's steering wheel. The f
 - [Engineering thinking roadmap](../../README.md) — the full map.
 
 ---
-## Check your understanding
+## Use it today
+
+1. Make organizational constraints and their owners visible in planning.
+2. Use constraints to focus investment instead of treating every limit as a blocker.
+3. Reassess constraints when strategy, scale, or team capability changes.
+
+## Recall and apply
 
 Try to answer these questions from memory:
 

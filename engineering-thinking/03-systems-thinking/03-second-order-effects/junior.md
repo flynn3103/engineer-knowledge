@@ -158,7 +158,11 @@ That last one is your safety net: when you *can't* predict the ripples (and at j
 - Practice tracing ripples: [check your understanding](#check-your-understanding). Interview-style drills: [check your understanding](#check-your-understanding).
 
 ---
-## Check your understanding
+## Recall and apply
+
+**Practice loop:** For one proposed change, list the direct effect, one delayed effect, one affected group, and a guardrail.
+
+Use these prompts to check your understanding and choose one action to try in your next task.
 
 Try to answer these questions from memory:
 

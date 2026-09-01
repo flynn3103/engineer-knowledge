@@ -88,7 +88,9 @@ A final, load-bearing point. At this level, *protecting the time to understand t
 **Connected ideas:** A framed org-level problem feeds [devising a plan](../02-devising-a-plan/) and is validated after the fact in [looking back and reflecting](../04-looking-back-and-reflecting/). When a team is stuck, reframing is often the unlock — see [techniques for when you're stuck](../06-techniques-when-you-are-stuck/). Catching solution-shaped goals draws on [questioning assumptions](../../05-first-principles-thinking/02-questioning-assumptions/); splitting a framed problem across teams is [decomposition](../../01-computational-thinking/01-decomposition/). Back to the [problem-solving section](../) and the [roadmap root](../../README.md).
 
 ---
-## Check your understanding
+## Recall and apply
+
+**Practice loop:** Restate one live problem, list its constraints and unknowns, then confirm them with the right person or evidence.
 
 Try to answer these questions from memory:
 

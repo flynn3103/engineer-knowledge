@@ -13,16 +13,17 @@ Use the smallest realistic scenario that exposes the decision and its failure be
 
 ## Core Concept 1 — The API Surface Is the Unit of Versioning
 
-You cannot decide a bump until you have defined *what you are versioning*. The naive answer — "the exported functions" — is wrong, because consumers depend on far more. The real API surface includes:
+- You cannot decide a bump until you have defined *what you are versioning*.
+- The naive answer — "the exported functions" — is wrong, because consumers depend on far more. The real API surface includes:
+  - Signatures, types, and exported constants.
+  - Default values and the *observable behavior* of every code path.
+  - Error types, error messages, and exit codes (when documented or relied upon).
+  - Serialization formats and field ordering where they leak.
+  - Side effects: files written, env vars read, ports opened, logs emitted with stable formats.
+  - Performance characteristics, once they become a documented guarantee.
 
-- Signatures, types, and exported constants.
-- Default values and the *observable behavior* of every code path.
-- Error types, error messages, and exit codes (when documented or relied upon).
-- Serialization formats and field ordering where they leak.
-- Side effects: files written, env vars read, ports opened, logs emitted with stable formats.
-- Performance characteristics, once they become a documented guarantee.
-
-**Hyrum's Law** is the governing reality: *with a sufficient number of users, it does not matter what you promise in the contract; all observable behaviors of your system will be depended on by somebody.* This means "breaking" is partly empirical, not purely definitional. A senior engineer narrows the surface deliberately:
+- **Hyrum's Law** is the governing reality: *with a sufficient number of users, it does not matter what you promise in the contract; all observable behaviors of your system will be depended on by somebody.*
+- This means "breaking" is partly empirical, not purely definitional. A senior engineer narrows the surface deliberately:
 
 ```go
 // Shrink the surface so versioning decisions stay decidable.
@@ -35,7 +36,8 @@ func New(opts Options) *Widget { ... }
 // You may change this freely without a MAJOR bump.
 ```
 
-The discipline: **make the surface as small and explicit as the language allows** (`internal/` in Go, `__all__`/underscore prefixes in Python, `pub(crate)` in Rust, module exports in JS, JPMS `exports` in Java). The smaller the surface, the cheaper SemVer compliance becomes.
+- The discipline: **make the surface as small and explicit as the language allows** (`internal/` in Go, `__all__`/underscore prefixes in Python, `pub(crate)` in Rust, module exports in JS, JPMS `exports` in Java).
+- The smaller the surface, the cheaper SemVer compliance becomes.
 
 ## Core Concept 2 — Diamond Dependencies and Conflict Resolution
 
@@ -68,7 +70,7 @@ The senior takeaways:
 
 Two philosophies, with opposite failure modes.
 
-**SAT-style resolution (npm, Cargo, pip, Bundler).** Treat constraints as a boolean-satisfiability problem and search for *some* assignment of versions that satisfies all ranges, usually preferring the newest. This is flexible but:
+**SAT-style resolution (npm, Cargo, pip, Bundler).** Treat constraints as a boolean-satisfiability problem and search for *some* assignment of versions that satisfies all ranges, usually preferring the newest.
 
 - Resolution is **non-deterministic over time** — re-running tomorrow can pick newer versions, which is why lockfiles exist.
 - It can be **NP-hard** in pathological graphs; resolvers ship timeouts and heuristics.
@@ -83,9 +85,10 @@ C requires D v1.3.0
 → MVS selects D v1.4.0   (deterministic, no network "latest" lookup needed)
 ```
 
-Properties: **reproducible by construction** (the build today equals the build next year given the same `go.mod`), **high-fidelity** (you get the lowest version that satisfies everyone, so upgrades are intentional), and **fast** (no solver). The cost is ergonomic: you bump minimums by hand, and you never "float" to the latest.
+- Properties: **reproducible by construction** (the build today equals the build next year given the same `go.mod`), **high-fidelity** (you get the lowest version that satisfies everyone, so upgrades are intentional), and **fast** (no solver).
+- The cost is ergonomic: you bump minimums by hand, and you never "float" to the latest.
 
-The senior judgment: **prefer determinism for anything you ship.** Whatever the ecosystem, commit a lockfile and treat un-pinned floating ranges as a CI/CD anti-pattern. MVS is what floating-range ecosystems approximate with lockfiles.
+- The senior judgment: **prefer determinism for anything you ship.** Whatever the ecosystem, commit a lockfile and treat un-pinned floating ranges as a CI/CD anti-pattern. MVS is what floating-range ecosystems approximate with lockfiles.
 
 ## Core Concept 4 — SemVer's Social-Contract Failure Modes
 
@@ -106,7 +109,8 @@ Mitigations a senior puts in place:
 
 ## Core Concept 5 — Automated SemVer Derivation from API Diffs
 
-The reliable way to classify a structural change is to compute it from the code, not ask a human. Mature ecosystems have tools that diff the public API of two revisions and emit the *minimum required bump*.
+- The reliable way to classify a structural change is to compute it from the code, not ask a human.
+- Mature ecosystems have tools that diff the public API of two revisions and emit the *minimum required bump*.
 
 ```bash
 # Go — apidiff / gorelease compares the module's exported API across two versions
@@ -133,7 +137,8 @@ The pattern to build into a release pipeline:
 3. Compare it to the bump the author *declared* (via Conventional Commits, a label, or a changelog entry).
 4. **Fail the build if the declared bump is smaller than the derived one.** (Declaring a larger bump is allowed — humans know about behavioral breaks the diff cannot see.)
 
-This converts SemVer from an honor system into a checked invariant for the structural cases, while leaving room for human judgment on behavioral ones. It is the single highest-leverage investment in version trustworthiness.
+- This converts SemVer from an honor system into a checked invariant for the structural cases, while leaving room for human judgment on behavioral ones.
+- It is the single highest-leverage investment in version trustworthiness.
 
 ## Core Concept 6 — Versioning the Wire: Schemas, Protos, Events
 
@@ -154,13 +159,14 @@ message User {
 }
 ```
 
-Field numbers are the real contract; field *names* matter for JSON mappings. Never reuse a number. Reserve removed ones.
+- Field numbers are the real contract; field *names* matter for JSON mappings. Never reuse a number. Reserve removed ones.
 
 **Avro / schema registries.** Compatibility is enforced *by the registry* at publish time (`BACKWARD`, `FORWARD`, `FULL`). The registry rejects a schema that would break consumers — versioning becomes a gate, not a convention.
 
 **Events.** An event schema is a contract with every current *and historical* consumer, because events may be replayed from a log. Treat additive-only as the default and use an explicit `schema_version` field or a new topic for breaking changes.
 
-The senior principle: **version the contract, version it explicitly, and prefer additive evolution so you rarely need a breaking bump at all.** A breaking wire change usually means running both versions in parallel during migration (see [Rollback & Roll-Forward](../07-rollback-and-roll-forward/README.md)). The `api-versioning` skill covers the request/response side of this in depth.
+- The senior principle: **version the contract, version it explicitly, and prefer additive evolution so you rarely need a breaking bump at all.**
+- A breaking wire change usually means running both versions in parallel during migration (see [Rollback & Roll-Forward](../07-rollback-and-roll-forward/README.md)). The `api-versioning` skill covers the request/response side of this in depth.
 
 ## Core Concept 7 — Monorepo Versioning Strategies
 
@@ -184,11 +190,13 @@ npx changeset
 # CI later consumes accumulated changesets to compute versions + changelogs.
 ```
 
-The decision hinges on **coupling**: tightly-coupled packages released together favor lockstep; loosely-coupled, independently-consumed packages favor independent. Most large orgs converge on independent versioning with strong tooling, because lockstep's MAJOR-amplification becomes intolerable past a few dozen packages.
+- The decision hinges on **coupling**: tightly-coupled packages released together favor lockstep; loosely-coupled, independently-consumed packages favor independent.
+- Most large orgs converge on independent versioning with strong tooling, because lockstep's MAJOR-amplification becomes intolerable past a few dozen packages.
 
 ## Core Concept 8 — Versioning and Deprecation Windows
 
-Versioning and deprecation are two halves of one policy. A MAJOR bump is the *removal* event; deprecation is the *warning* that must precede it. The senior question is not "can I remove this?" but "have I given consumers a contracted runway?"
+- Versioning and deprecation are two halves of one policy. A MAJOR bump is the *removal* event; deprecation is the *warning* that must precede it.
+- The senior question is not "can I remove this?" but "have I given consumers a contracted runway?"
 
 A coherent policy ties them together:
 
@@ -249,3 +257,8 @@ Key design rules:
 - Where should recovery responsibility live, and why?
 - Which assumption deserves an experiment before implementation?
 - How can the design evolve without changing every consumer at once?
+- What are three changes that look non-breaking but actually are, and what do they have in common?
+- What is a Go pseudo-version, and when do you see one?
+- A diamond dependency has A→B needing `D ^1.2` and A→C needing `D ^2.0`. How does this resolve in npm vs Go, and what's the real risk?
+- You published a version with a leaked credential and people have already pinned it. What do you do?
+- Your team bumps a transitive dependency's major with no code changes on your side — is that breaking for your consumers?

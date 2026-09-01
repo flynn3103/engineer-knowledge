@@ -124,7 +124,9 @@ A senior library is broad, *cross-domain*, and kept current:
 - Build the library from **post-mortems, cross-org code, and catalogs**, and refactor it as the world changes.
 
 ---
-## Check your understanding
+## Recall and apply
+
+**Practice loop:** Apply one idea to a current task. State the signal you saw, the choice you made, and what happened.
 
 Try to answer these questions from memory:
 

@@ -16,18 +16,18 @@ Use the smallest realistic scenario that exposes the decision and its failure be
 
 There is no single right answer; there is a decision with explicit trade-offs.
 
-**Keyless (Sigstore public good).** No keys to manage; identity-bound; transparency by default; free.
-*Costs:* dependency on external Sigstore availability and OIDC; public Rekor reveals *that* you released (metadata exposure); requires trusting the public trust root.
-
-**Self-hosted Sigstore (private Fulcio/Rekor).** Same model, internal control; works air-gapped; no public metadata leak.
-*Costs:* you now operate a CA and a transparency log — real SRE burden, your own root-of-trust to protect.
-
-**Long-lived keys in KMS/HSM.** Familiar; works offline; fine for a small set of high-value, infrequently-rotated release keys (e.g. an OS distro's master key).
-*Costs:* the very key-management failure modes Sigstore was built to avoid — rotation, custody, the "who can sign" sprawl. GPG-era pain (lost keys, unverified web-of-trust) is the cautionary history.
-
-A common professional pattern is **hybrid**: keyless (public or private) for the high-volume CI-built artifacts, plus a small number of **KMS-backed keys** for a few sensitive boundaries (e.g. the policy that admits third-party software, signed by a platform-team key). Pin **identities, not key files**, wherever possible — an identity (`release.yml@tag` from the org's IdP) is far harder to misuse than a portable secret.
-
-Decision drivers to write down: air-gap requirement, metadata-exposure tolerance, regulatory scope, team maturity, and acceptable external dependencies.
+- **Keyless (Sigstore public good).**
+  - Benefits: no keys to manage; identity-bound; transparency by default; free.
+  - Costs: dependency on external Sigstore availability and OIDC; public Rekor reveals *that* you released (metadata exposure); requires trusting the public trust root.
+- **Self-hosted Sigstore (private Fulcio/Rekor).**
+  - Benefits: same model, internal control; works air-gapped; no public metadata leak.
+  - Costs: you now operate a CA and a transparency log — real SRE burden, your own root-of-trust to protect.
+- **Long-lived keys in KMS/HSM.**
+  - Benefits: familiar; works offline; fine for a small set of high-value, infrequently-rotated release keys (e.g. an OS distro's master key).
+  - Costs: the very key-management failure modes Sigstore was built to avoid — rotation, custody, the "who can sign" sprawl. GPG-era pain (lost keys, unverified web-of-trust) is the cautionary history.
+- A common professional pattern is **hybrid**: keyless (public or private) for the high-volume CI-built artifacts, plus a small number of **KMS-backed keys** for a few sensitive boundaries (e.g. the policy that admits third-party software, signed by a platform-team key).
+- Pin **identities, not key files**, wherever possible — an identity (`release.yml@tag` from the org's IdP) is far harder to misuse than a portable secret.
+- Decision drivers to write down: air-gap requirement, metadata-exposure tolerance, regulatory scope, team maturity, and acceptable external dependencies.
 
 ---
 
@@ -35,13 +35,11 @@ Decision drivers to write down: air-gap requirement, metadata-exposure tolerance
 
 Whatever the strategy, define the **root of trust** explicitly and govern its lifecycle.
 
-**For keyless:** the roots are Fulcio's CA, Rekor's key, and your OIDC issuer. Sigstore rotates these via **TUF**; your responsibility is to pin and refresh the TUF root reliably across all verifiers, and to *constrain accepted identities* tightly.
-
-**For self-hosted/KMS:** you own the root. Apply standard high-assurance custody:
-
-- Root key in an **HSM**, offline, with **M-of-N** quorum to use (no single human can sign with it).
-- The root signs only **intermediate/signing identities**, rarely; day-to-day signing uses short-lived or scoped keys.
-- **Rotation is pre-planned**: publish the new root, allow an overlap window where both are trusted, then retire the old. Never a flag-day swap.
+- **For keyless:** the roots are Fulcio's CA, Rekor's key, and your OIDC issuer. Sigstore rotates these via **TUF**; your responsibility is to pin and refresh the TUF root reliably across all verifiers, and to *constrain accepted identities* tightly.
+- **For self-hosted/KMS:** you own the root. Apply standard high-assurance custody:
+  - Root key in an **HSM**, offline, with **M-of-N** quorum to use (no single human can sign with it).
+  - The root signs only **intermediate/signing identities**, rarely; day-to-day signing uses short-lived or scoped keys.
+  - **Rotation is pre-planned**: publish the new root, allow an overlap window where both are trusted, then retire the old. Never a flag-day swap.
 
 ```bash
 # KMS-backed signing (no private key on the box)
@@ -52,7 +50,7 @@ cosign verify --key awskms:///alias/release-signing IMG@sha256:...
 cosign initialize --mirror https://tuf-mirror.internal --root root.json
 ```
 
-**Identity strategy** is the higher-leverage half. Maintain a governed registry of "who may sign what":
+- **Identity strategy** is the higher-leverage half. Maintain a governed registry of "who may sign what":
 
 | Artifact class | Required signer identity | Required provenance |
 |----------------|--------------------------|---------------------|
@@ -60,7 +58,7 @@ cosign initialize --mirror https://tuf-mirror.internal --root root.json
 | Internal base images | platform-team workflow identity | SLSA L3 |
 | Vetted third-party | platform-team *attestation* identity | re-attested "approved" predicate |
 
-This table *is* your acceptance policy. Changes to it go through review like any production change.
+- This table *is* your acceptance policy. Changes to it go through review like any production change.
 
 ---
 
@@ -68,20 +66,11 @@ This table *is* your acceptance policy. Changes to it go through review like any
 
 The fastest way to discredit a signing program is to switch on hard enforcement and block legitimate deploys. Sequence it.
 
-**Phase 0 — Sign everything (no enforcement).**
-Turn on signing + provenance in every pipeline. Nothing is blocked. Goal: achieve *coverage* and find pipelines that cannot yet sign.
-
-**Phase 1 — Observe (audit mode).**
-Deploy admission policy in `Audit`/`warn`. Emit metrics: how many workloads *would* be blocked, and why (unsigned, wrong identity, missing provenance). This is your gap list.
-
-**Phase 2 — Enforce on a beachhead.**
-Flip `Enforce` for one low-risk namespace/cluster or one mature team. Keep escape hatches and watch closely.
-
-**Phase 3 — Expand by ring.**
-Roll enforcement outward ring by ring (dev → staging → prod; team by team), each ring gated on a clean audit signal from the previous.
-
-**Phase 4 — Tighten requirements.**
-Only after signature enforcement is stable do you add *provenance* requirements, then *source/builder* constraints. Each is its own audit→enforce cycle.
+- **Phase 0 — Sign everything (no enforcement).** Turn on signing + provenance in every pipeline. Nothing is blocked. Goal: achieve *coverage* and find pipelines that cannot yet sign.
+- **Phase 1 — Observe (audit mode).** Deploy admission policy in `Audit`/`warn`. Emit metrics: how many workloads *would* be blocked, and why (unsigned, wrong identity, missing provenance). This is your gap list.
+- **Phase 2 — Enforce on a beachhead.** Flip `Enforce` for one low-risk namespace/cluster or one mature team. Keep escape hatches and watch closely.
+- **Phase 3 — Expand by ring.** Roll enforcement outward ring by ring (dev → staging → prod; team by team), each ring gated on a clean audit signal from the previous.
+- **Phase 4 — Tighten requirements.** Only after signature enforcement is stable do you add *provenance* requirements, then *source/builder* constraints. Each is its own audit→enforce cycle.
 
 ```yaml
 # The single most important rollout lever lives in policy:
@@ -90,20 +79,19 @@ spec:
   # validationFailureAction: Enforce  # Phase 2+, ring by ring
 ```
 
-Treat enforcement like a feature flag rollout (see Feature Flags & Progressive Delivery): measurable, reversible, ringed. The **quality-gates** topic covers the gate-design discipline this mirrors.
+- Treat enforcement like a feature flag rollout (see Feature Flags & Progressive Delivery): measurable, reversible, ringed. The **quality-gates** topic covers the gate-design discipline this mirrors.
 
 ---
 
 ## Core Concept 4 — Break-glass and incident response
 
-Enforcement *will* eventually block a legitimate, urgent deploy — a critical hotfix when Sigstore is degraded, or a pipeline gap during an incident. A program without a sanctioned bypass invites unsanctioned ones (disable the controller cluster-wide), which is far worse.
-
-Design break-glass to be **possible, narrow, loud, and audited**:
-
-- **Possible:** a documented procedure (e.g. an exception annotation/label admitted only by a separate, tightly-scoped policy, or a temporary policy carve-out via PR).
-- **Narrow:** scoped to one image digest / one namespace / a time-boxed window, never "disable verification."
-- **Loud:** firing an alert and creating a ticket automatically; visible to security in real time.
-- **Audited:** who invoked it, for what digest, when, why, and an expiry. Reviewed post-incident.
+- Enforcement *will* eventually block a legitimate, urgent deploy — a critical hotfix when Sigstore is degraded, or a pipeline gap during an incident.
+- A program without a sanctioned bypass invites unsanctioned ones (disable the controller cluster-wide), which is far worse.
+- Design break-glass to be **possible, narrow, loud, and audited**:
+  - **Possible:** a documented procedure (e.g. an exception annotation/label admitted only by a separate, tightly-scoped policy, or a temporary policy carve-out via PR).
+  - **Narrow:** scoped to one image digest / one namespace / a time-boxed window, never "disable verification."
+  - **Loud:** firing an alert and creating a ticket automatically; visible to security in real time.
+  - **Audited:** who invoked it, for what digest, when, why, and an expiry. Reviewed post-incident.
 
 ```yaml
 # Example: a narrowly-scoped exception, itself reviewed and time-boxed
@@ -113,7 +101,7 @@ metadata:
     policy.acme.io/break-glass-expires: "2026-06-23T06:00:00Z"
 ```
 
-Tie this to the **rollback** plan: if you cannot verify a roll-forward fix in time, rolling back to a *previously verified* digest is often the safer break-glass than admitting an unverified image. See Rollback & Roll-Forward. The **secrets-management** discipline applies to any KMS bypass credentials.
+- Tie this to the **rollback** plan: if you cannot verify a roll-forward fix in time, rolling back to a *previously verified* digest is often the safer break-glass than admitting an unverified image. See Rollback & Roll-Forward. The **secrets-management** discipline applies to any KMS bypass credentials.
 
 ---
 
@@ -128,7 +116,8 @@ Sell and run the program with honest numbers. The recurring burdens:
 - **Reproducibility engineering** — if you pursue it, real toolchain work and ongoing drift control.
 - **Cognitive load** on developers when a deploy is blocked — invest in *clear failure messages* ("blocked: image not signed by an approved identity; see runbook X").
 
-The payoffs to weigh against this: closed transport/storage attack surface, auditable provenance for compliance, faster incident forensics (Rekor shows exactly what shipped), and a precondition for several regulatory regimes. Make the trade explicit; do not let it be discovered as surprise toil.
+- The payoffs to weigh against this: closed transport/storage attack surface, auditable provenance for compliance, faster incident forensics (Rekor shows exactly what shipped), and a precondition for several regulatory regimes.
+- Make the trade explicit; do not let it be discovered as surprise toil.
 
 ---
 
@@ -141,7 +130,8 @@ Much of this work is funded by compliance, and a professional should map control
 - **CISA Secure Software Development Attestation Form** asks vendors to *attest* (literally) that they follow SSDF practices — produced provenance, hardened builds, etc.
 - **SLSA** is the de facto technical yardstick procurement and auditors reference for "build integrity level."
 
-Practically, this means your signing/provenance program should be able to **produce evidence**: "every prod artifact in scope has a SLSA L3 provenance attestation, signed by an approved builder identity, recorded in Rekor, retained for N years." Design the attestation store and retention to answer auditor questions directly, and align your control descriptions to SSDF practice IDs so the mapping is mechanical, not narrative.
+- Practically, this means your signing/provenance program should be able to **produce evidence**: "every prod artifact in scope has a SLSA L3 provenance attestation, signed by an approved builder identity, recorded in Rekor, retained for N years."
+- Design the attestation store and retention to answer auditor questions directly, and align your control descriptions to SSDF practice IDs so the mapping is mechanical, not narrative.
 
 ---
 
@@ -171,7 +161,7 @@ cosign verify-attestation --type slsaprovenance \
 rekor-cli search --email release@acme.io
 ```
 
-These numbers drive the rollout (when to enforce the next ring), justify the spend, and produce the audit evidence in Concept 6. A signing program you cannot measure is one you cannot defend in a review or an incident.
+- These numbers drive the rollout (when to enforce the next ring), justify the spend, and produce the audit evidence in Concept 6. A signing program you cannot measure is one you cannot defend in a review or an incident.
 
 ---
 
@@ -218,3 +208,8 @@ These numbers drive the rollout (when to enforce the next ring), justify the spe
 - Which team owns the full lifecycle and incident response?
 - What reversible increment produces the earliest useful evidence?
 - Which exit condition proves that migration or adoption is complete?
+- Design an admission gate so a Kubernetes cluster only runs images your release pipeline produced.
+- Enforcement just blocked an urgent prod hotfix because Sigstore was degraded — what do you do, and how do you prevent a repeat?
+- A vendor ships an image you can't require your own identity for — how do you bring it under your trust model?
+- Leadership wants signing enforced org-wide by next week — how do you push back constructively?
+- Name two regulatory drivers behind artifact signing and provenance work.

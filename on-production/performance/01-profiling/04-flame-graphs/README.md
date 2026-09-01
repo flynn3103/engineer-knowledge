@@ -2,7 +2,12 @@
 
 > *"Once you can read a flame graph, you can debug performance in any language whose profiler emits stacks."*
 
-Flame graphs are the visualisation Brendan Gregg invented to make sampled stack profiles tractable to read. Width = time spent (or allocations, or any sampled metric); stack depth = call depth; colour is usually meaningless (just contrast). They work for CPU, allocations, off-CPU, lock contention — anything that emits stacks.
+Flame graphs are the visualisation Brendan Gregg invented to make sampled stack profiles tractable to read.
+
+- **Width** = time spent (or allocations, or any sampled metric).
+- **Stack depth** = call depth.
+- **Colour** is usually meaningless (just contrast).
+- They work for CPU, allocations, off-CPU, lock contention — anything that emits stacks.
 
 ---
 
@@ -25,4 +30,4 @@ Flame graphs are the visualisation Brendan Gregg invented to make sampled stack 
 
 ## Status
 
-✅ Content-complete — all five tiers written ([junior](junior.md) / [middle](middle.md) / [senior](senior.md) / [professional](professional.md) / [interview](interview.md)).
+✅ Content-complete — all four tiers written ([junior](junior.md) / [middle](middle.md) / [senior](senior.md) / [professional](professional.md)).

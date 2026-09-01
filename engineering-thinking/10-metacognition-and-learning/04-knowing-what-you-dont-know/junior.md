@@ -156,7 +156,15 @@ Start now, while the stakes are small and "I don't know yet" is fully expected o
 - Feynman, R. (1974). *Cargo Cult Science* (Caltech commencement address).
 
 ---
-## Check your understanding
+## Use it today
+
+1. Before coding, list what you know, assume, and need to check.
+2. Verify an unknown with docs, a test, or a small example.
+3. Ask early when an unknown blocks safe progress.
+
+## Recall and apply
+
+Use these prompts to check your understanding and choose one action to try in your next task.
 
 Try to answer these questions from memory:
 

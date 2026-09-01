@@ -6,6 +6,13 @@
 
 ---
 
+## Action card
+1. Collect positions independently before discussion.
+2. Assign and rotate dissent.
+3. Record what was knowable then and what would reverse the choice.
+
+**Decision rule:** design the conversation so the bias cannot win by default.
+
 ## 1. The senior shift: from debiasing yourself to debiasing the room
 
 A junior fights their own confirmation bias. A senior walks into a design review where eight people have *collective* confirmation bias, an anchor someone dropped in the first slide, a status-quo pull toward the existing architecture, and a quiet bikeshed forming around the API naming — and has to extract a good decision anyway.
@@ -160,7 +167,7 @@ Two pieces deserve emphasis:
 - Back to [critical thinking](../) · [engineering thinking overview](../../README.md).
 
 ---
-## Check your understanding
+## Recall and apply
 
 Try to answer these questions from memory:
 

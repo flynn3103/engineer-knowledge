@@ -51,7 +51,7 @@ The knowledge required for modern software development is scattered across count
 
     ---
 
-    Pipelines, storage, batch & streaming processing, orchestration, and data quality. *(Coming soon)*
+    Build reliable data systems with databases, distributed systems, event streaming, workflow orchestration, and storage foundations.
 
     [:octicons-arrow-right-24: Browse Data Engineering](Data-Engineering/README.md)
 

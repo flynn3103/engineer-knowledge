@@ -131,7 +131,9 @@ Note step 2: the riskiest assumption (network reachability) was tested *third* â
 > Next: [Looking Back and Reflecting](../04-looking-back-and-reflecting/) â€” what to review once it works. Sideways: [Debugging as Problem-Solving](../05-debugging-as-problem-solving/) for when a step fails and you can't see why. Back to the [Problem-Solving section](../) or the [Engineering Thinking roadmap](../../README.md).
 
 ---
-## Check your understanding
+## Recall and apply
+
+**Practice loop:** Take the smallest safe step, check the agreed signal, and adjust the plan when evidence disagrees.
 
 Try to answer these questions from memory:
 

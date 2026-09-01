@@ -167,7 +167,9 @@ Outcome: cache *grants* (safe to be stale) but check *revocations* live, or push
 - Drills: [check your understanding](#check-your-understanding) · [check your understanding](#check-your-understanding).
 
 ---
-## Check your understanding
+## Recall and apply
+
+**Practice loop:** For one proposed change, list the direct effect, one delayed effect, one affected group, and a guardrail.
 
 Try to answer these questions from memory:
 

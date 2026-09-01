@@ -1,30 +1,31 @@
 # Object Thinking
 
-> A progressive engineering roadmap for turning object thinking principles into repeatable decisions, observable practices, and maintainable systems.
+## Purpose
 
-Use this section to move from correct execution in a small scope to design ownership, system-level trade-offs, and organization-scale practice. Each topic emphasizes concrete methods, failure modes, and evidence you can use to verify the result.
+This roadmap turns object-oriented design ideas into decisions you can use during implementation, review, and refactoring. Work through topics in order when the area is new; otherwise start with the design pressure you are seeing.
 
 ## Topics
 
-| # | Topic | Focus |
-|---|---|---|
-| 01 | [Behavior First Mindset](01-behavior-first-mindset/junior.md) | Build practical judgment in behavior first mindset. |
-| 02 | [Anthropomorphism](02-anthropomorphism/junior.md) | Build practical judgment in anthropomorphism. |
-| 03 | [Tell Dont Ask](03-tell-dont-ask/junior.md) | Build practical judgment in tell dont ask. |
-| 04 | [Responsibility Driven Design](04-responsibility-driven-design/junior.md) | Build practical judgment in responsibility driven design. |
-| 05 | [CRC Cards Technique](05-crc-cards-technique/junior.md) | Build practical judgment in crc cards technique. |
-| 06 | [Domain Modeling from Requirements](06-domain-modeling-from-requirements/junior.md) | Build practical judgment in domain modeling from requirements. |
-| 07 | [When Object Thinking Fails](07-when-object-thinking-fails/junior.md) | Build practical judgment in when object thinking fails. |
+| Topic | Use it when |
+| --- | --- |
+| [Behavior-First Mindset](01-behavior-first-mindset/junior.md) | You see callers manipulate fields and coordinate rules themselves. |
+| [Anthropomorphism](02-anthropomorphism/junior.md) | You see nouns become passive records and verbs become giant services. |
+| [Tell, Don’t Ask](03-tell-dont-ask/junior.md) | You see getters feed conditional logic in distant callers. |
+| [Responsibility-Driven Design](04-responsibility-driven-design/junior.md) | You see classes are named by data or framework role rather than a reason to act. |
+| [CRC Cards Technique](05-crc-cards-technique/junior.md) | You see a design is hard to explain or one card owns every scenario. |
+| [Domain Modeling from Requirements](06-domain-modeling-from-requirements/junior.md) | You see requirements map directly to tables, endpoints, or CRUD handlers. |
+| [When Object Thinking Fails](07-when-object-thinking-fails/junior.md) | You see tiny transformations acquire layers, factories, and speculative hierarchies. |
 
-## How to use this section
+## Learning path
 
-Follow the topics in order when the subject is new, or enter at the topic closest to your current problem. Every leaf topic contains four progressive guides:
+- **Junior:** recognize the concern and make one safe local improvement.
+- **Middle:** explain a component-level design trade-off.
+- **Senior:** manage boundaries, migration, and system risk.
+- **Professional:** establish team practices and measure outcomes.
 
-| Level | Scope | Expected outcome |
-|---|---|---|
-| Junior | A small, well-defined change | Apply the technique correctly with guidance. |
-| Middle | A real codebase or component | Make and explain local design trade-offs independently. |
-| Senior | A system boundary under change | Shape an approach, contain risk, and validate assumptions. |
-| Professional | Multiple teams and sustained delivery | Establish an operating model with measurable outcomes. |
+## How to study
 
-Each level ends with unanswered comprehension questions for active recall. Supporting `interview`, `tasks`, `find-bug`, `optimize`, and answer files are intentionally excluded.
+1. Pick a real change, not a hypothetical class diagram.
+2. Read the level that matches the scope you own.
+3. Use the “Practical move” as a review or pairing prompt.
+4. Capture evidence from code, tests, and change history before declaring success.

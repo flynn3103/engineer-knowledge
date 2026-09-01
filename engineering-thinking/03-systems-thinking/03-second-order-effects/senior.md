@@ -125,7 +125,9 @@ When you simplify, the question isn't "is this used on the happy path?" — it's
 - Section root: [../](../) · Roadmap: [../../README.md](../../README.md).
 
 ---
-## Check your understanding
+## Recall and apply
+
+**Practice loop:** For one proposed change, list the direct effect, one delayed effect, one affected group, and a guardrail.
 
 Try to answer these questions from memory:
 

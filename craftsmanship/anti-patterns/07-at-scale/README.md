@@ -1,30 +1,22 @@
-# at Scale
+# At Scale
 
-> A progressive engineering roadmap for turning at scale principles into repeatable decisions, observable practices, and maintainable systems.
+## Purpose
 
-Use this section to move from correct execution in a small scope to design ownership, system-level trade-offs, and organization-scale practice. Each topic emphasizes concrete methods, failure modes, and evidence you can use to verify the result.
+This section covers at scale anti-patterns: recurring choices that make software harder to change, operate, or trust.
 
 ## Topics
 
-| # | Topic | Focus |
-|---|---|---|
-| 01 | [Architecture Fitness Functions](01-architecture-fitness-functions/junior.md) | Build practical judgment in architecture fitness functions. |
-| 02 | [Anti Pattern Budgets and Ratcheting](02-anti-pattern-budgets-and-ratcheting/junior.md) | Build practical judgment in anti pattern budgets, ratcheting. |
-| 03 | [Hotspot Analysis](03-hotspot-analysis/junior.md) | Build practical judgment in hotspot analysis. |
-| 04 | [Automated Large Scale Refactoring](04-automated-large-scale-refactoring/junior.md) | Build practical judgment in automated large scale refactoring. |
-| 05 | [Strangler Fig and Seams](05-strangler-fig-and-seams/junior.md) | Build practical judgment in strangler fig, seams. |
-| 06 | [Expand Contract Refactors](06-expand-contract-refactors/junior.md) | Build practical judgment in expand contract refactors. |
-| 07 | [Premature Abstraction at Scale](07-premature-abstraction-at-scale/junior.md) | Build practical judgment in premature abstraction at scale. |
+- [Architecture Fitness Functions](01-architecture-fitness-functions/junior.md): important architectural qualities that are discussed but never checked.
+- [Anti-Pattern Budgets & Ratcheting](02-anti-pattern-budgets-and-ratcheting/junior.md): known debt that grows because no limit or improvement rule exists.
+- [Hotspot Analysis](03-hotspot-analysis/junior.md): refactoring chosen by taste instead of change and complexity evidence.
+- [Automated Large-Scale Refactoring](04-automated-large-scale-refactoring/junior.md): repetitive edits performed manually or automated edits shipped without safeguards.
+- [Strangler Fig & Seams](05-strangler-fig-and-seams/junior.md): a legacy system is replaced in one risky move instead of gradually at a controlled boundary.
+- [Expand-Contract Refactors](06-expand-contract-refactors/junior.md): a shared interface or data shape changes in a single breaking deployment.
+- [Premature Abstraction at Scale](07-premature-abstraction-at-scale/junior.md): a shared platform or common layer is created before stable common needs exist.
 
-## How to use this section
+## Learning path
 
-Follow the topics in order when the subject is new, or enter at the topic closest to your current problem. Every leaf topic contains four progressive guides:
-
-| Level | Scope | Expected outcome |
-|---|---|---|
-| Junior | A small, well-defined change | Apply the technique correctly with guidance. |
-| Middle | A real codebase or component | Make and explain local design trade-offs independently. |
-| Senior | A system boundary under change | Shape an approach, contain risk, and validate assumptions. |
-| Professional | Multiple teams and sustained delivery | Establish an operating model with measurable outcomes. |
-
-Each level ends with unanswered comprehension questions for active recall. Supporting `interview`, `tasks`, `find-bug`, `optimize`, and answer files are intentionally excluded.
+- **Junior:** recognize the smell and improve a small change safely.
+- **Middle:** diagnose the pattern in a component and explain the trade-off.
+- **Senior:** manage the pattern across a system boundary.
+- **Professional:** establish a measurable prevention practice across teams.

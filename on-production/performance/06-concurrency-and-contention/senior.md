@@ -13,7 +13,9 @@ Use the smallest realistic scenario that exposes the decision and its failure be
 
 ## The Universal Scalability Law — Why Throughput Retrogrades
 
-Amdahl's Law (middle.md) tells you a serial fraction caps speedup. It is optimistic: it assumes the only cost of parallelism is the serial work itself. Real systems pay a *second* tax — **coherency / crosstalk** — that *grows* with the number of workers, because workers must coordinate with each other, not just queue behind a serial section. Neil Gunther's **Universal Scalability Law (USL)** captures both:
+- Amdahl's Law (middle.md) tells you a serial fraction caps speedup. It is optimistic: it assumes the only cost of parallelism is the serial work itself.
+- Real systems pay a *second* tax — **coherency / crosstalk** — that *grows* with the number of workers, because workers must coordinate with each other, not just queue behind a serial section.
+- Neil Gunther's **Universal Scalability Law (USL)** captures both:
 
 ```
               N
@@ -25,7 +27,8 @@ C(N) = ────────────────────────�
 - `α` (**contention**) = the serial fraction — Amdahl's term. Cost grows linearly with `N`.
 - `β` (**coherency**) = the crosstalk / coherence cost — pairwise coordination. Cost grows as `N²`.
 
-The `β·N²` term is the whole story of this page. When `β = 0`, USL collapses to Amdahl. When `β > 0`, `C(N)` does not merely flatten — it has a **maximum** and then **decreases**. That is *retrograde scaling*: past a point, each added worker spends more on coherence traffic than it contributes in work.
+- The `β·N²` term is the whole story of this page. When `β = 0`, USL collapses to Amdahl.
+- When `β > 0`, `C(N)` does not merely flatten — it has a **maximum** and then **decreases**. That is *retrograde scaling*: past a point, each added worker spends more on coherence traffic than it contributes in work.
 
 **The optimal worker count** is where `dC/dN = 0`:
 
@@ -33,7 +36,9 @@ The `β·N²` term is the whole story of this page. When `β = 0`, USL collapses
 N_max = sqrt( (1 − α) / β )
 ```
 
-This is the single most actionable number in capacity planning for a contended service. If your fit gives `α = 0.03, β = 0.0001`, then `N_max ≈ sqrt(0.97 / 0.0001) ≈ 98` — scale past ~98 workers and you *lose* throughput. A tiny `β` matters enormously because it is multiplied by `N²`.
+- This is the single most actionable number in capacity planning for a contended service.
+- If your fit gives `α = 0.03, β = 0.0001`, then `N_max ≈ sqrt(0.97 / 0.0001) ≈ 98` — scale past ~98 workers and you *lose* throughput.
+- A tiny `β` matters enormously because it is multiplied by `N²`.
 
 **Fitting α and β to measured data.** This is real engineering, not theory. Procedure:
 
@@ -57,7 +62,8 @@ print(f"alpha={alpha:.4f} beta={beta:.6f} N_max={n_max:.1f}")
 # alpha=0.0250 beta=0.000420 N_max≈48.4  → matches the C=12.5 peak at N=32–48
 ```
 
-The data above *peaks* near `N = 32` and is already retrograde at `N = 64` — exactly the signature of nonzero `β`. The fit tells you the peak is ~48 and quantifies *why*: `β = 4.2e-4` is the coherence cost per pair of workers fighting over shared state.
+- The data above *peaks* near `N = 32` and is already retrograde at `N = 64` — exactly the signature of nonzero `β`.
+- The fit tells you the peak is ~48 and quantifies *why*: `β = 4.2e-4` is the coherence cost per pair of workers fighting over shared state.
 
 > **Key insight:** Amdahl explains why speedup flattens; the USL's `β·N²` term explains why it *reverses*. If you ever see throughput drop as you add cores, you are not looking at a scheduling glitch — you are looking at coherency cost, and the fix is to lower `β` (reduce shared mutable state), not to add hardware.
 
@@ -67,7 +73,10 @@ What lowers `β`? Everything in the rest of this page: removing false sharing, s
 
 ## Cache Coherence Is the Root Cost — MESI and the Contended Atomic
 
-A multicore CPU is a distributed system. Each core has private L1/L2 caches; they share an L3. When two cores read and write the *same* 64-byte cache line, the hardware must keep them consistent — that is the **cache coherence protocol**, and on x86 it is a variant of **MESI**. Every cache line, in every core's cache, is in one of four states:
+- A multicore CPU is a distributed system. Each core has private L1/L2 caches; they share an L3.
+- When two cores read and write the *same* 64-byte cache line, the hardware must keep them consistent — that is the **cache coherence protocol**, and on x86 it is a variant of **MESI**.
+
+Every cache line, in every core's cache, is in one of four states:
 
 | State | Meaning | Can read? | Can write? |
 |---|---|---|---|
@@ -76,7 +85,9 @@ A multicore CPU is a distributed system. Each core has private L1/L2 caches; the
 | **S** hared | Multiple cores may hold a clean copy | yes | no (must invalidate others first) |
 | **I** nvalid | This core's copy is stale/absent | no | no |
 
-The rule that costs you money: **a core cannot write a line unless it holds it in M or E.** To write a line that other cores hold in S, it must first send an invalidation (a *Request For Ownership*) over the interconnect, wait for every other core to drop the line to I, and only then transition to M. To *read* a line another core holds in M, it must force that core to write back / share, transitioning M→S.
+- The rule that costs you money: **a core cannot write a line unless it holds it in M or E.**
+- To write a line that other cores hold in S, it must first send an invalidation (a *Request For Ownership*) over the interconnect, wait for every other core to drop the line to I, and only then transition to M.
+- To *read* a line another core holds in M, it must force that core to write back / share, transitioning M→S.
 
 Now consider a "contended atomic" — say an atomic counter incremented by many cores:
 
@@ -89,7 +100,9 @@ Core 1: wants to increment → its copy is I
 Core 2: wants to increment → repeat, bouncing the line off Core 1
 ```
 
-The line **ping-pongs** between caches. Each transfer is not a local L1 hit (~4 cycles) — it is a *cross-core cache-line transfer*: tens of cycles if the line comes from a sibling core sharing L3, **hundreds of cycles** if it must traverse the interconnect, and *worse across sockets* (next section). This is why a single contended atomic counter — code that looks trivially cheap — can become the dominant cost in a 32-core service. Each `atomic.Add` is not "one instruction"; it is "acquire the line in M, which may cost 100–300 cycles of coherence traffic under contention."
+- The line **ping-pongs** between caches.
+- Each transfer is not a local L1 hit (~4 cycles) — it is a *cross-core cache-line transfer*: tens of cycles if the line comes from a sibling core sharing L3, **hundreds of cycles** if it must traverse the interconnect, and *worse across sockets* (next section).
+- This is why a single contended atomic counter — code that looks trivially cheap — can become the dominant cost in a 32-core service. Each `atomic.Add` is not "one instruction"; it is "acquire the line in M, which may cost 100–300 cycles of coherence traffic under contention."
 
 ```go
 // The classic scaling killer: one global atomic counter, N goroutines.
@@ -99,7 +112,7 @@ func worker() { for { atomic.AddInt64(&ops, 1) /* ... */ } }
 // got slower, but because the cache line bounces across 32 cores. Pure β.
 ```
 
-The hardware mechanism is the same whether you write Go's `atomic.AddInt64`, Java's `AtomicLong.incrementAndGet`, or C++'s `std::atomic<long>::fetch_add`. The contended cache line is language-agnostic; it is silicon.
+- The hardware mechanism is the same whether you write Go's `atomic.AddInt64`, Java's `AtomicLong.incrementAndGet`, or C++'s `std::atomic<long>::fetch_add`. The contended cache line is language-agnostic; it is silicon.
 
 > **Key insight:** A contended atomic is expensive not because the *instruction* is slow but because it forces a cache line into Modified state on one core, invalidating every other core's copy. The cost is the coherence traffic, and it scales with the number of contending cores — this *is* the USL's `β` term, made physical.
 
@@ -109,9 +122,8 @@ The hardware mechanism is the same whether you write Go's `atomic.AddInt64`, Jav
 
 Coherence traffic comes in two flavors, and only one is a real data dependency.
 
-**True sharing:** two cores genuinely read/write the same variable. The ping-pong is inherent; the only fix is algorithmic (shard the variable, use per-CPU data, batch updates).
-
-**False sharing:** two cores touch *different* variables that happen to live on the *same 64-byte cache line*. There is no logical dependency, but the hardware tracks coherence at cache-line granularity, so writing one variable invalidates the other core's copy of the unrelated variable. Pure waste.
+- **True sharing:** two cores genuinely read/write the same variable. The ping-pong is inherent; the only fix is algorithmic (shard the variable, use per-CPU data, batch updates).
+- **False sharing:** two cores touch *different* variables that happen to live on the *same 64-byte cache line*. There is no logical dependency, but the hardware tracks coherence at cache-line granularity, so writing one variable invalidates the other core's copy of the unrelated variable. Pure waste.
 
 ```go
 // FALSE SHARING: two counters, adjacent in memory → same cache line.
@@ -128,14 +140,19 @@ type PaddedCounters struct {
 }
 ```
 
-The measured effect is dramatic and counterintuitive: padding — *wasting* 56 bytes per counter — can make the program **5–10x faster** under contention, because it eliminates coherence traffic that was invisible in the source. Java offers `@Contended` (with `-XX:-RestrictContended`) to do the padding for you; C++ exposes `std::hardware_destructive_interference_size` (the cache-line size for padding apart) and `std::hardware_constructive_interference_size` (for packing together).
+- The measured effect is dramatic and counterintuitive: padding — *wasting* 56 bytes per counter — can make the program **5–10x faster** under contention, because it eliminates coherence traffic that was invisible in the source.
+- Java offers `@Contended` (with `-XX:-RestrictContended`) to do the padding for you; C++ exposes `std::hardware_destructive_interference_size` (the cache-line size for padding apart) and `std::hardware_constructive_interference_size` (for packing together).
 
 ```java
 @jdk.internal.vm.annotation.Contended
 static volatile long counterA;   // JVM pads it onto its own cache line
 ```
 
-**The cost of a memory fence.** Atomics don't only move cache lines; depending on the memory model they also emit *barriers* that constrain instruction and store-buffer reordering. On x86 (a strong, TSO model), most atomics are nearly free *in barrier terms*: plain loads are acquire, plain stores are release, and only a full **sequentially-consistent** operation needs a real fence. A sequentially-consistent store compiles to a locked instruction or an explicit `mfence`, draining the store buffer — **~20–100 cycles** depending on store-buffer occupancy:
+**The cost of a memory fence.**
+
+- Atomics don't only move cache lines; depending on the memory model they also emit *barriers* that constrain instruction and store-buffer reordering.
+- On x86 (a strong, TSO model), most atomics are nearly free *in barrier terms*: plain loads are acquire, plain stores are release, and only a full **sequentially-consistent** operation needs a real fence.
+- A sequentially-consistent store compiles to a locked instruction or an explicit `mfence`, draining the store buffer — **~20–100 cycles** depending on store-buffer occupancy:
 
 ```asm
 ; C++  std::atomic<int> x;  x.store(1, std::memory_order_seq_cst);  on x86-64:
@@ -146,7 +163,8 @@ mfence                       ; ~20-100 cycles: drains the store buffer
 mov     dword ptr [x], 1     ; a plain store IS a release on TSO
 ```
 
-On weakly-ordered ARM64 the picture differs: acquire/release are not free — they compile to `ldar`/`stlr` (load-acquire / store-release) instructions, and seq-cst adds `dmb ish` data-memory barriers. This is why memory-ordering choices that are "free" on x86 carry real cost on ARM (and why x86-tuned lock-free code sometimes regresses on Graviton/Apple Silicon).
+- On weakly-ordered ARM64 the picture differs: acquire/release are not free — they compile to `ldar`/`stlr` (load-acquire / store-release) instructions, and seq-cst adds `dmb ish` data-memory barriers.
+- This is why memory-ordering choices that are "free" on x86 carry real cost on ARM (and why x86-tuned lock-free code sometimes regresses on Graviton/Apple Silicon).
 
 > **Key insight:** False sharing is true coherence cost paid for a *false* logical dependency — the fix is padding, not algorithm change. And the cost of a fence is model-dependent: nearly free on x86 TSO, a real instruction (`dmb`) on ARM. Always know which memory model your hot path will actually run on.
 
@@ -163,7 +181,8 @@ lock cmpxchg qword ptr [rdi], rsi   ; the LOCK prefix asserts cache-line ownersh
                                     ; 100-300+ cycles under heavy contention
 ```
 
-The **`LOCK` prefix** is the whole cost. On modern x86 it does not lock the bus (that would be catastrophic); it locks the *cache line* via the coherence protocol — exactly the M-state acquisition from the MESI section. Uncontended, `lock cmpxchg` is ~15–25 cycles. Under contention it inherits the full cache-line-transfer cost, and worse: a CAS *loop* (the standard lock-free idiom) spins, and every failed iteration is a wasted RFO that re-bounces the line.
+- The **`LOCK` prefix** is the whole cost. On modern x86 it does not lock the bus (that would be catastrophic); it locks the *cache line* via the coherence protocol — exactly the M-state acquisition from the MESI section.
+- Uncontended, `lock cmpxchg` is ~15–25 cycles. Under contention it inherits the full cache-line-transfer cost, and worse: a CAS *loop* (the standard lock-free idiom) spins, and every failed iteration is a wasted RFO that re-bounces the line.
 
 ```go
 // Lock-free increment via CAS loop. Each iteration acquires the line in M.
@@ -176,7 +195,13 @@ for {
 // because failed CAS retries keep re-acquiring the contended line.
 ```
 
-**The ABA problem.** CAS checks the *value*, not whether it *changed and changed back*. Thread 1 reads value `A`; before its CAS, Thread 2 changes `A→B→A`. Thread 1's CAS succeeds — the value is `A` again — but the world underneath may have changed (the node it pointed to was freed and reallocated). This corrupts lock-free stacks/queues built on pointer CAS. Fixes:
+**The ABA problem.**
+
+- CAS checks the *value*, not whether it *changed and changed back*.
+- Thread 1 reads value `A`; before its CAS, Thread 2 changes `A→B→A`.
+- Thread 1's CAS succeeds — the value is `A` again — but the world underneath may have changed (the node it pointed to was freed and reallocated). This corrupts lock-free stacks/queues built on pointer CAS.
+
+Fixes:
 
 - **Tagged pointers / version counters:** CAS a `(pointer, counter)` pair (double-width CAS, `lock cmpxchg16b` on x86-64) so any reuse bumps the counter.
 - **Hazard pointers** or **epoch-based reclamation:** prevent freeing memory another thread might still CAS against — the hard part of lock-free isn't the algorithm, it's *safe memory reclamation*.
@@ -189,7 +214,8 @@ for {
 | `acquire` (load) / `release` (store) | A release-store *happens-before* the acquire-load that reads it → publishes a payload safely | free (TSO) | `ldar` / `stlr` |
 | `seq_cst` | Single global total order across all seq-cst ops | `mfence` / locked op | `dmb ish` |
 
-The canonical pattern is **acquire/release for publication**: write the data, then `release`-store a "ready" flag; the reader `acquire`-loads the flag and is guaranteed to see the data. You almost never need `seq_cst` — it is the default in C++ and Java precisely because it's the *safest*, but it is also the most expensive, and senior code downgrades to acquire/release where the algorithm allows.
+- The canonical pattern is **acquire/release for publication**: write the data, then `release`-store a "ready" flag; the reader `acquire`-loads the flag and is guaranteed to see the data.
+- You almost never need `seq_cst` — it is the default in C++ and Java precisely because it's the *safest*, but it is also the most expensive, and senior code downgrades to acquire/release where the algorithm allows.
 
 ```cpp
 std::atomic<bool> ready{false};
@@ -202,7 +228,7 @@ while (!ready.load(std::memory_order_acquire)) {}  // sees payload once true
 use(payload);
 ```
 
-In Java the same is expressed with `VarHandle` (`setRelease` / `getAcquire`) or `volatile` (which is seq-cst); Go's `sync/atomic` gives you sequentially-consistent atomics only — there is no relaxed/acquire/release knob, a deliberate simplicity choice that occasionally leaves performance on the table versus C++/Java.
+- In Java the same is expressed with `VarHandle` (`setRelease` / `getAcquire`) or `volatile` (which is seq-cst); Go's `sync/atomic` gives you sequentially-consistent atomics only — there is no relaxed/acquire/release knob, a deliberate simplicity choice that occasionally leaves performance on the table versus C++/Java.
 
 > **Key insight:** A CAS loop is not automatically faster than a lock — under contention each failed retry is another cache-line bounce, and you still have to solve safe memory reclamation (ABA). Lock-free buys you *progress guarantees* and *no scheduler interaction*, not free performance.
 
@@ -230,7 +256,9 @@ The honest middle ground that most real systems should reach for first: **don't 
 
 ## NUMA — When Sharing Across Sockets Collapses
 
-On a single-socket machine, all cores share one memory controller and one L3; the coherence costs above are bounded. On a **multi-socket** (or multi-die, like AMD's chiplets) machine, memory is **Non-Uniform**: each socket has its own memory controller and *local* DRAM. Accessing your socket's local memory is fast; accessing the *other* socket's memory crosses the inter-socket interconnect (Intel UPI, AMD Infinity Fabric):
+- On a single-socket machine, all cores share one memory controller and one L3; the coherence costs above are bounded.
+- On a **multi-socket** (or multi-die, like AMD's chiplets) machine, memory is **Non-Uniform**: each socket has its own memory controller and *local* DRAM.
+- Accessing your socket's local memory is fast; accessing the *other* socket's memory crosses the inter-socket interconnect (Intel UPI, AMD Infinity Fabric):
 
 | Access | Approximate latency |
 |---|---|
@@ -240,7 +268,9 @@ On a single-socket machine, all cores share one memory controller and one L3; th
 | **Remote DRAM (other socket)** | **~120–200 ns (1.5–2x local)** |
 | **Remote cache (coherence miss to other socket)** | **~200–300+ ns** |
 
-The killer is not just remote *data* — it's remote *coherence*. A cache line contended across sockets must bounce over the interconnect on every transfer. The same atomic counter that costs ~100 cycles within a socket can cost ~300+ cycles when the contending cores live on different sockets. This is why a service that scales fine to 16 cores on one socket can *collapse* at 32 cores spanning two sockets — you crossed a NUMA boundary and every shared line now pays interconnect latency.
+- The killer is not just remote *data* — it's remote *coherence*. A cache line contended across sockets must bounce over the interconnect on every transfer.
+- The same atomic counter that costs ~100 cycles within a socket can cost ~300+ cycles when the contending cores live on different sockets.
+- This is why a service that scales fine to 16 cores on one socket can *collapse* at 32 cores spanning two sockets — you crossed a NUMA boundary and every shared line now pays interconnect latency.
 
 **Placement is the fix:**
 
@@ -265,8 +295,7 @@ Coordination cost isn't only hardware — the runtime scheduler decides whether 
 - **G** = goroutine (cheap, ~2 KB initial stack).
 - **M** = OS thread (the actual kernel-scheduled entity).
 - **P** = processor / scheduling context; there are exactly `GOMAXPROCS` of them. A G must hold a P (via an M) to run Go code.
-
-Each P has a **local run queue** (256 goroutines) plus a shared **global run queue**. When a P's local queue empties, it **work-steals** half of another P's queue — keeping cores busy without a global lock on the common path. This is why Go scales well by default: scheduling is mostly P-local, contention-free.
+- Each P has a **local run queue** (256 goroutines) plus a shared **global run queue**. When a P's local queue empties, it **work-steals** half of another P's queue — keeping cores busy without a global lock on the common path. This is why Go scales well by default: scheduling is mostly P-local, contention-free.
 
 ```go
 runtime.GOMAXPROCS(0)   // read current P count (defaults to runtime.NumCPU())
@@ -278,7 +307,7 @@ Where it goes wrong:
 - **Thread oversubscription.** More runnable threads than cores means the OS time-slices them; every slice is a context switch (~1–5 μs) plus cold caches (TLB + L1/L2 reload — often the bigger cost). A thread pool sized to `2 × cores` "to be safe" can be *slower* than `1 × cores` for CPU-bound work. Size pools to cores for CPU-bound work; oversubscribe only for I/O-bound work where threads block.
 - **Parking vs spinning.** When a goroutine blocks on a contended mutex, the runtime spins briefly (cheap, stays warm) then parks via a futex (frees the P, but waking later costs a syscall + reschedule + cold cache). Go's runtime tunes this; in your own code, a tight spin-wait on a multi-tenant machine *steals* cycles from the very thread holding the lock — the classic spinlock-in-userspace anti-pattern. Prefer `sync.Mutex` (which spins *then* parks) over hand-rolled spins.
 
-Java's analog: the ForkJoinPool / common pool also work-steals; `Thread.onSpinWait()` (→ `pause` on x86, `yield`/`isb` on ARM) hints the CPU during a spin to reduce power and contention. Virtual threads (Project Loom) move Java toward Go's M:N model, parking cheaply on blocking I/O.
+- Java's analog: the ForkJoinPool / common pool also work-steals; `Thread.onSpinWait()` (→ `pause` on x86, `yield`/`isb` on ARM) hints the CPU during a spin to reduce power and contention. Virtual threads (Project Loom) move Java toward Go's M:N model, parking cheaply on blocking I/O.
 
 > **Key insight:** The scheduler decides whether a blocked worker burns a core (spin) or frees it but pays to wake (park) — and oversubscription multiplies context-switch and cache-reload cost. In containers, the single highest-impact fix is matching `GOMAXPROCS` (or the thread-pool size) to the *cgroup quota*, not the host core count.
 
@@ -288,21 +317,21 @@ Java's analog: the ForkJoinPool / common pool also work-steals; `Thread.onSpinWa
 
 When contention is the bottleneck, the senior toolkit is about *removing* it, not making locks faster.
 
-**Sharded / striped structures.** Split one hot variable into `K` independent ones (one per shard, padded to a cache line), so cores hit different lines. Java's `LongAdder` is the canonical example: instead of one contended `AtomicLong`, it keeps a per-thread-ish cell array and sums on `sum()`. Writes are contention-free; reads pay an O(K) sum. Use it for monotonic counters where exact instantaneous reads don't matter.
+- **Sharded / striped structures.** Split one hot variable into `K` independent ones (one per shard, padded to a cache line), so cores hit different lines. Java's `LongAdder` is the canonical example: instead of one contended `AtomicLong`, it keeps a per-thread-ish cell array and sums on `sum()`. Writes are contention-free; reads pay an O(K) sum. Use it for monotonic counters where exact instantaneous reads don't matter.
 
-```java
-LongAdder hits = new LongAdder();
-hits.increment();   // hits a thread-local cell — no global cache-line bounce
-long total = hits.sum();   // O(cells), reads all shards
-```
+  ```java
+  LongAdder hits = new LongAdder();
+  hits.increment();   // hits a thread-local cell — no global cache-line bounce
+  long total = hits.sum();   // O(cells), reads all shards
+  ```
 
-**Per-CPU data.** The extreme of sharding: one instance per core, accessed without any atomic on the write path (the Linux kernel's `percpu` variables, or `restartable sequences` in userspace). Reads aggregate across CPUs. Zero coherence traffic on writes — the gold standard for stats counters.
+- **Per-CPU data.** The extreme of sharding: one instance per core, accessed without any atomic on the write path (the Linux kernel's `percpu` variables, or `restartable sequences` in userspace). Reads aggregate across CPUs. Zero coherence traffic on writes — the gold standard for stats counters.
 
-**RCU (Read-Copy-Update).** For read-mostly data (config, routing tables): readers take *no lock and no atomic* — they just dereference the current pointer, paying nothing on the read path. A writer makes a *copy*, mutates it, and atomically swaps the pointer; old readers keep using the old copy until they finish (a *grace period*), after which the old copy is freed. Readers are effectively free; the cost moves entirely to the (rare) writer and the reclamation machinery. Ubiquitous in the Linux kernel; available in userspace via `liburcu`.
+- **RCU (Read-Copy-Update).** For read-mostly data (config, routing tables): readers take *no lock and no atomic* — they just dereference the current pointer, paying nothing on the read path. A writer makes a *copy*, mutates it, and atomically swaps the pointer; old readers keep using the old copy until they finish (a *grace period*), after which the old copy is freed. Readers are effectively free; the cost moves entirely to the (rare) writer and the reclamation machinery. Ubiquitous in the Linux kernel; available in userspace via `liburcu`.
 
-**Seqlocks (sequence locks).** For small, frequently-read, occasionally-written data (e.g., a timestamp or a coordinate pair): a writer bumps a sequence counter (odd = write in progress), writes, bumps again (even). A reader reads the counter, reads the data, re-reads the counter; if it changed or was odd, it retries. Readers never block writers and take no lock — but readers may *spin/retry* under write pressure, so it's for read-heavy, write-rare data only.
+- **Seqlocks (sequence locks).** For small, frequently-read, occasionally-written data (e.g., a timestamp or a coordinate pair): a writer bumps a sequence counter (odd = write in progress), writes, bumps again (even). A reader reads the counter, reads the data, re-reads the counter; if it changed or was odd, it retries. Readers never block writers and take no lock — but readers may *spin/retry* under write pressure, so it's for read-heavy, write-rare data only.
 
-**Flat combining.** Counterintuitive but powerful under *high* contention: instead of every thread fighting for the lock, threads publish their operation to a shared list; *one* thread becomes the "combiner," acquires the lock once, and executes everyone's operations in a batch. This trades many contended lock acquisitions for one, and exploits cache locality (the combiner has the data hot). It can beat lock-free structures when contention is extreme because it eliminates the cache-line ping-pong of many CASs.
+- **Flat combining.** Counterintuitive but powerful under *high* contention: instead of every thread fighting for the lock, threads publish their operation to a shared list; *one* thread becomes the "combiner," acquires the lock once, and executes everyone's operations in a batch. This trades many contended lock acquisitions for one, and exploits cache locality (the combiner has the data hot). It can beat lock-free structures when contention is extreme because it eliminates the cache-line ping-pong of many CASs.
 
 The selection logic: **read-mostly → RCU or seqlock; write-heavy counter → sharded/per-CPU; extreme contention on a complex structure → flat combining; everything else → a plain mutex with a small critical section.**
 
@@ -325,8 +354,7 @@ runtime.SetBlockProfileRate(1)       // sample every blocking event (chan, selec
 
 - **mutex profile** = time spent *waiting to acquire* a mutex → true lock contention.
 - **block profile** = time blocked on any sync primitive (channel send/recv, select, `WaitGroup`) → often reveals an under-provisioned channel or a serialization point you didn't see as a "lock."
-
-Java's analog: async-profiler with `-e lock` (lock contention profiling) and JFR's `jdk.JavaMonitorEnter` events.
+- Java's analog: async-profiler with `-e lock` (lock contention profiling) and JFR's `jdk.JavaMonitorEnter` events.
 
 **`perf c2c` — cache-to-cache, the false-sharing finder.** This is the tool that *names the contended cache line* and shows which CPUs and which source-level fields are fighting over it:
 
@@ -338,7 +366,8 @@ perf c2c report -NN -d lcl     # shows HITM (hit-modified) events per cache line
 #   The report breaks down the offending cache line by byte offset → which fields collide.
 ```
 
-A high **HITM** (load-that-hit-modified-remotely) count on a single cache line, with two different *fields* of a struct at different offsets, is the unambiguous fingerprint of **false sharing** — go add padding. If it's the *same* field, it's true sharing — go shard or remove the contention.
+- A high **HITM** (load-that-hit-modified-remotely) count on a single cache line, with two different *fields* of a struct at different offsets, is the unambiguous fingerprint of **false sharing** — go add padding.
+- If it's the *same* field, it's true sharing — go shard or remove the contention.
 
 **`perf lock` — kernel-level lock contention:**
 
@@ -399,3 +428,9 @@ perf stat -e context-switches,cpu-migrations,cache-misses,LLC-load-misses ./app
 - Where should recovery responsibility live, and why?
 - Which assumption deserves an experiment before implementation?
 - How can the design evolve without changing every consumer at once?
+- Your throughput-vs-concurrency curve rises, flattens, then falls — what causes each region?
+- Walk through what a single contended atomic increment costs across cores, in MESI terms.
+- How do you fix false sharing, and how do you confirm it was actually the problem before applying the fix?
+- What is the ABA problem, and how do you defend against it?
+- Explain acquire, release, and sequentially-consistent memory ordering — why not always use the strongest one?
+- Under load, p99 latency spikes badly while CPU sits at 60% utilization — is this contention, and how would you confirm it?

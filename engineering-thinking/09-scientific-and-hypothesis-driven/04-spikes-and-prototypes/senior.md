@@ -157,7 +157,13 @@ This connects to [questioning assumptions](../../05-first-principles-thinking/02
 Continue to [professional](./professional.md) for spike *budgets* across a roadmap, portfolio-level de-risking, and governing exploration as an organizational practice.
 
 ---
-## Check your understanding
+## Use it today
+
+1. Use spikes to retire the riskiest assumption first.
+2. Set a budget, owner, decision date, and evidence standard.
+3. **Decision rule:** extend a spike only if the added evidence can change the decision.
+
+## Recall and apply
 
 Try to answer these questions from memory:
 

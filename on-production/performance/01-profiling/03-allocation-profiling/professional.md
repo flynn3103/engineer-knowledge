@@ -13,11 +13,16 @@ Use the smallest realistic scenario that exposes the decision and its failure be
 
 ## Continuous Allocation Profiling in Production
 
-The earlier tiers profiled *on demand*: reproduce load, grab a profile, read it. That works for a known-bad function. It fails for the question that actually matters at scale — *"across the whole fleet, right now, where is the garbage coming from?"* — because the worst allocator is rarely the function you'd think to profile, and synthetic load rarely reproduces the real allocation shape (next section).
+- The earlier tiers profiled *on demand*: reproduce load, grab a profile, read it. That works for a known-bad function.
+- It fails for the question that actually matters at scale — *"across the whole fleet, right now, where is the garbage coming from?"* — because the worst allocator is rarely the function you'd think to profile, and synthetic load rarely reproduces the real allocation shape (next section).
 
-**Continuous profiling** runs a low-overhead allocation profiler always, on every instance, and ships the profiles to a central store you can query and diff over time. The two pillars:
+**Continuous profiling** runs a low-overhead allocation profiler always, on every instance, and ships the profiles to a central store you can query and diff over time. Two pillars:
 
-- **Sampling, not tracing.** You do not record every allocation — that would be ruinous overhead. You sample: Go's runtime records a stack every `MemProfileRate` bytes allocated (default 512 KB); the JVM's JFR `ObjectAllocationSample` event samples allocations against a throughput target; async-profiler's `--alloc` samples on a byte interval. The sampled profile is statistically faithful for the *hot* sites — which is exactly what you want — at single-digit-percent or sub-percent overhead.
+- **Sampling, not tracing.** You do not record every allocation — that would be ruinous overhead.
+  - Go's runtime records a stack every `MemProfileRate` bytes allocated (default 512 KB).
+  - The JVM's JFR `ObjectAllocationSample` event samples allocations against a throughput target.
+  - async-profiler's `--alloc` samples on a byte interval.
+  - The sampled profile is statistically faithful for the *hot* sites — exactly what you want — at single-digit-percent or sub-percent overhead.
 - **Always-on, fleet-wide, queryable.** Pyroscope, Parca, Datadog Continuous Profiler, and Google Cloud Profiler scrape these profiles continuously and let you slice by service, version, host, and (critically) custom labels. The flame graph you look at is *aggregated across the fleet over a time window*, not one host's lucky sample.
 
 **Go** exposes this for free via `net/http/pprof`; a continuous profiler scrapes `/debug/pprof/allocs`:
@@ -67,7 +72,9 @@ java -XX:StartFlightRecording=settings=profile,maxsize=512m,name=alloc \
 
 This is the single most important reason to invest in continuous profiling, and it is widely underappreciated: **allocation is driven by the size and shape of real payloads, which synthetic benchmarks almost never reproduce.**
 
-A microbenchmark or a load test runs a fixed, usually *small*, usually *uniform* input. Production runs the long tail: the one tenant whose API responses are 4 MB instead of 4 KB, the request with 10,000 line items instead of 10, the deeply nested document that triggers a recursive marshaler, the user whose name has an emoji that forces a slow Unicode path that allocates. Allocation tracks data volume and data shape, so the profile from prod is *quantitatively and qualitatively different* from the one from your laptop:
+- A microbenchmark or a load test runs a fixed, usually *small*, usually *uniform* input.
+- Production runs the long tail: the one tenant whose API responses are 4 MB instead of 4 KB, the request with 10,000 line items instead of 10, the deeply nested document that triggers a recursive marshaler, the user whose name has an emoji that forces a slow Unicode path that allocates.
+- Allocation tracks data volume and data shape, so the profile from prod is *quantitatively and qualitatively different* from the one from your laptop:
 
 - **Real payload sizes drive real allocation.** A JSON decoder that allocates `O(document size)` shows up as a rounding error in a benchmark with a 1 KB fixture and as the #1 allocator in prod where the p99 document is 2 MB. You cannot find this with synthetic load unless you happened to synthesize the p99 document — and you didn't.
 - **Real distributions surface the tail.** The handler that allocates fine on average but explodes for the 0.5% of requests with a huge `expand=` parameter is invisible in a uniform load test and dominant in a fleet aggregate that includes those requests.
@@ -92,15 +99,19 @@ This is the origin of the canonical pattern: **"we halved p99 by cutting allocat
 
 > **The business case, written for the cost review:** *"Service X spends 32% of CPU in GC (measured: Go `runtime/metrics gc/cpu`, or JVM GC logs). The production allocation profile attributes 60% of allocations to one JSON re-marshaling path. Removing it (stream instead of buffer) is projected to cut allocation rate ~55%, GC CPU to ~15%, and let us run ~25 fewer instances ($22k/yr), with a p99 improvement we'll verify against the SLO."* That sentence — a measured GC cost, an attributed cause from a prod profile, a projected rate cut, and a dollar/latency outcome — is the entire reason allocation profiling is a production lever and not a microbenchmark hobby.
 
-The *measurement* of GC cost is the load-bearing input. In Go, read `runtime/metrics` (`/gc/cpu/...`, `/gc/heap/allocs:bytes`) or `GODEBUG=gctrace=1`. In Java, read GC logs (`-Xlog:gc*`) or the JFR GC events. Never argue from "it feels like a lot of GC" — argue from the percentage.
+The *measurement* of GC cost is the load-bearing input:
+- In Go, read `runtime/metrics` (`/gc/cpu/...`, `/gc/heap/allocs:bytes`) or `GODEBUG=gctrace=1`.
+- In Java, read GC logs (`-Xlog:gc*`) or the JFR GC events.
+- Never argue from "it feels like a lot of GC" — argue from the percentage.
 
 ---
 
 ## Attributing Allocation Cost to Endpoints and Tenants
 
-A fleet-wide flame graph tells you *which function* allocates. It does not, by itself, tell you *which request* drove it there — and that's the question that lets you fix the right thing. A flame graph that says `encoding/json.Marshal` is your top allocator is true and useless; *every* endpoint marshals JSON. You need to know that 70% of that marshaling allocation comes from `GET /reports/export`, and within that, from one tenant exporting daily.
-
-The mechanism is **profile labels**: tags attached to samples so you can group and filter the allocation flame graph by dimensions that matter to *you*, not just by call stack.
+- A fleet-wide flame graph tells you *which function* allocates. It does not, by itself, tell you *which request* drove it there — and that's the question that lets you fix the right thing.
+- A flame graph that says `encoding/json.Marshal` is your top allocator is true and useless; *every* endpoint marshals JSON.
+- You need to know that 70% of that marshaling allocation comes from `GET /reports/export`, and within that, from one tenant exporting daily.
+- The mechanism is **profile labels**: tags attached to samples so you can group and filter the allocation flame graph by dimensions that matter to *you*, not just by call stack.
 
 **Go — `pprof.Labels`** attach to the goroutine and ride along on every allocation sample it takes:
 
@@ -220,7 +231,7 @@ go tool pprof -alloc_objects current.pb.gz # counts → "many small" suspects
 #    (slice the flame graph by endpoint / tenant in Pyroscope/Parca)
 ```
 
-The three culprits that cause the overwhelming majority of allocation incidents:
+**The three culprits that cause the overwhelming majority of allocation incidents:**
 
 1. **A serialization storm.** A change makes the service marshal/unmarshal more, or on bigger payloads, or redundantly (encode, log the encoded form, encode again). JSON is the usual offender; `encoding/json` allocates per field and reflects per type. The flame graph lights up under `Marshal`/`Unmarshal`/reflection.
 2. **A logging hot path.** A log line on a per-request (or per-*item*) path that builds strings, boxes arguments (`interface{}`/varargs), or — worst — does expensive work *inside the log call* that runs even when the level is disabled. This is insidious because logging "isn't the real code," so nobody profiles it; multiplied fleet-wide it can be the #1 allocator. (See War Stories.)
@@ -290,3 +301,8 @@ The three culprits that cause the overwhelming majority of allocation incidents:
 - Which team owns the full lifecycle and incident response?
 - What reversible increment produces the earliest useful evidence?
 - Which exit condition proves that migration or adoption is complete?
+- A teammate "optimized" by adding `sync.Pool` everywhere and allocations didn't drop — what likely went wrong?
+- Would you gate `allocs/op` in CI? How, and what are the failure modes?
+- When is continuous allocation profiling in production worth it, and how do you keep the overhead acceptable?
+- What allocation culprits would you look for first in a code review, before any profiler runs?
+- How do you decide an allocation is "worth keeping" versus worth eliminating?

@@ -6,7 +6,7 @@ This roadmap is about **emitting numeric signals from a running program** — co
 
 > Looking for *system-level* observability (Prometheus stack, Grafana, alert design)? See [Backend → Observability](../../../Backend/backend/09-observability/02-metrics/).
 >
-> Looking for *profiling* (CPU / memory / lock contention)? See [Quality Engineering → Performance → Profiling](../../performance/01-profiling/README.md).
+> Looking for *profiling* (CPU / memory / lock contention)? See [Quality Engineering → Performance → Profiling](../../../On-Production/performance/01-profiling/README.md).
 >
 > This section is the **language-level** discipline — what your code emits, not what your monitoring stack ingests.
 

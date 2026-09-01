@@ -129,7 +129,13 @@ The failure mode of institutionalised inversion is **bureaucratic pessimism** â€
 - [Section overview](../) Â· [Engineering-thinking roadmap](../../README.md)
 
 ---
-## Check your understanding
+## Use it today
+
+1. Build pre-mortems and failure-mode review into planning templates.
+2. Make owners and follow-up dates visible for material risks.
+3. Revisit the risk register when assumptions, scale, or dependencies change.
+
+## Recall and apply
 
 Try to answer these questions from memory:
 

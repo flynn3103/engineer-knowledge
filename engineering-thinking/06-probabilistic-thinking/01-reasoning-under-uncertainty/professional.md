@@ -6,6 +6,13 @@
 
 ---
 
+## Quick use
+1. Encode tolerance for wrong bets with error budgets, canaries, and reversibility.
+2. Build forecasting and calibration feedback loops.
+3. Translate probabilities into decision-ready cost, risk, and time.
+
+**Decision rule:** never turn ignorance into a precise-looking executive promise.
+
 ## 1. The job changes: from estimating to governing uncertainty
 
 A senior engineer reasons well about uncertainty in their own work. A staff/principal engineer **shapes how an entire organization handles it.** The leverage shifts from "make a good probabilistic call" to:
@@ -133,7 +140,7 @@ The deepest principal move is making the *architecture itself* assume uncertaint
 | Section overview | [Probabilistic Thinking](../) · [Engineering Thinking](../../README.md) |
 
 ---
-## Check your understanding
+## Recall and apply
 
 Try to answer these questions from memory:
 

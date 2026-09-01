@@ -14,7 +14,8 @@ Use the smallest realistic scenario that exposes the decision and its failure be
 
 ## Core Concept 1 — Immutability is the contract
 
-The single most important property of a good registry: **a published version is immutable.** Once `express@4.18.2` exists, those exact bytes are what `4.18.2` means — forever, for everyone.
+- The single most important property of a good registry: **a published version is immutable.**
+- Once `express@4.18.2` exists, those exact bytes are what `4.18.2` means — forever, for everyone.
 
 Why this is non-negotiable:
 
@@ -30,12 +31,13 @@ cargo publish      # crates.io: "crate version X.Y.Z already exists"
 mvn deploy         # Maven Central: a released version can never be overwritten or deleted
 ```
 
-The fix is never "force overwrite." It's **publish a new version**. Immutability is a feature, not an obstacle.
+- The fix is never "force overwrite." It's **publish a new version**.
+- Immutability is a feature, not an obstacle.
 
 ## Core Concept 2 — Tags vs digests, in practice
 
-OCI registries layer a *mutable* naming system (tags) on top of *immutable* content (digests). Understanding the split is what separates reliable deployments from flaky ones.
-
+- OCI registries layer a *mutable* naming system (tags) on top of *immutable* content (digests).
+- Understanding the split is what separates reliable deployments from flaky ones.
 - An image's true identity is its **manifest digest**: `sha256:9b2c...`.
 - A **tag** (`1.4.0`, `latest`, `prod`) is just a pointer in a table: tag → digest. You can repoint it any time.
 
@@ -65,11 +67,13 @@ The same idea exists in language ecosystems via integrity hashes:
 github.com/acme/toolkit v0.5.0 h1:abc123...=
 ```
 
-If the bytes ever changed, the recorded hash would no longer match and the tool would refuse the download. The hash *is* a digest by another name.
+- If the bytes ever changed, the recorded hash would no longer match and the tool would refuse the download.
+- The hash *is* a digest by another name.
 
 ## Core Concept 3 — The `latest` trap
 
-`latest` is not "the newest version." It is a **plain tag with no special meaning** that, by convention, people repoint to whatever they consider current. Three traps follow:
+- `latest` is not "the newest version." It is a **plain tag with no special meaning**.
+- By convention, people repoint it to whatever they consider current — which creates three traps:
 
 1. **It moves.** `docker pull app:latest` today and tomorrow can return different bytes. Caches make it worse — a node may have an old `latest` and never re-pull because the tag name didn't change.
 2. **It hides what's running.** `kubectl describe pod` showing `image: app:latest` tells you nothing about *which* build is live. You lose the ability to correlate an incident with a commit.
@@ -84,30 +88,49 @@ kubectl set image deploy/app app=myapp:latest
 kubectl set image deploy/app app=myapp@sha256:9b2c4e...a17
 ```
 
-Use `latest` (or no tag) only for throwaway local experiments. Production references a specific version, ideally a digest. Configure `imagePullPolicy: IfNotPresent` *only* with digests or immutable tags — never with a moving tag, or you'll get inconsistent nodes.
+- Use `latest` (or no tag) only for throwaway local experiments.
+- Production references a specific version, ideally a digest.
+- Configure `imagePullPolicy: IfNotPresent` *only* with digests or immutable tags — never with a moving tag, or you'll get inconsistent nodes.
 
 ## Core Concept 4 — Yank, deprecate, unpublish: not the same thing
 
-When a release is bad — a regression, a leaked secret, a vulnerable dependency — you need to pull it back. The mechanism differs sharply by ecosystem, and **picking the wrong one either breaks everyone or fails to protect anyone.**
+- When a release is bad — a regression, a leaked secret, a vulnerable dependency — you need to pull it back.
+- The mechanism differs sharply by ecosystem.
+- **Picking the wrong one either breaks everyone or fails to protect anyone.**
 
-**Yank (crates.io, PyPI).** A yank is *soft*. The version stays downloadable, so **existing builds and lockfiles keep working**, but it can no longer be *newly selected* by a resolver.
+**Yank (crates.io, PyPI).** A yank is *soft*:
+
+- The version stays downloadable, so **existing builds and lockfiles keep working**.
+- It can no longer be *newly selected* by a resolver.
 
 ```bash
 cargo yank --version 1.2.3          # can't be added as a new dependency
 cargo yank --version 1.2.3 --undo   # reverse it
 ```
-PyPI's equivalent is **PEP 592 yank**: a yanked release is ignored by resolvers *unless* a pin requests it exactly (`==1.2.3`). This is the right tool for "this version is broken, stop new adoption, don't break existing users."
+- PyPI's equivalent is **PEP 592 yank**: a yanked release is ignored by resolvers *unless* a pin requests it exactly (`==1.2.3`).
+- This is the right tool for "this version is broken, stop new adoption, don't break existing users."
 
-**Deprecate (npm).** Deprecation is *advisory*. The package still installs, but every install prints your warning. Nothing breaks.
+**Deprecate (npm).** Deprecation is *advisory*:
+
+- The package still installs, but every install prints your warning.
+- Nothing breaks.
 
 ```bash
 npm deprecate mypkg@"<1.2.4" "Has a memory leak; upgrade to 1.2.4+"
 npm deprecate mypkg "Whole package unmaintained; use @scope/new-pkg"
 ```
 
-**Unpublish (npm) — the dangerous one.** Unpublish actually *removes* the bytes. This is the [left-pad incident](https://en.wikipedia.org/wiki/Npm_left-pad_incident) of March 2016: a single developer unpublished `left-pad`, an 11-line package, and broke thousands of builds worldwide because everyone's installs suddenly 404'd. npm responded by **heavily restricting unpublish**: you can only fully unpublish within **72 hours** of publishing, and only if nothing depends on it; older versions require contacting support and meeting strict criteria. The lesson: deletion breaks the immutability contract that other people's builds rely on, so registries make it nearly impossible.
+**Unpublish (npm) — the dangerous one.** Unpublish actually *removes* the bytes.
 
-**Maven Central — immutable, period.** You *cannot* delete or overwrite a released artifact on Maven Central. A bad release is fixed only by publishing a new version (e.g. `1.2.4`) and, if needed, marking the old one deprecated in docs. There is no yank, no unpublish.
+- This is the [left-pad incident](https://en.wikipedia.org/wiki/Npm_left-pad_incident) of March 2016: a single developer unpublished `left-pad`, an 11-line package, and broke thousands of builds worldwide because everyone's installs suddenly 404'd.
+- npm responded by **heavily restricting unpublish**: you can only fully unpublish within **72 hours** of publishing, and only if nothing depends on it; older versions require contacting support and meeting strict criteria.
+- The lesson: deletion breaks the immutability contract that other people's builds rely on, so registries make it nearly impossible.
+
+**Maven Central — immutable, period.**
+
+- You *cannot* delete or overwrite a released artifact on Maven Central.
+- A bad release is fixed only by publishing a new version (e.g. `1.2.4`) and, if needed, marking the old one deprecated in docs.
+- There is no yank, no unpublish.
 
 | Mechanism | Existing builds | New adoption | Bytes removed? | Use when |
 |-----------|-----------------|--------------|----------------|----------|
@@ -120,14 +143,19 @@ npm deprecate mypkg "Whole package unmaintained; use @scope/new-pkg"
 
 ## Core Concept 5 — Publish mechanics with provenance and 2FA
 
-Real publishing in a team adds three things on top of the bare command: **two-factor auth**, **scoped packages/namespaces**, and **provenance**.
+Real publishing in a team adds three things on top of the bare command:
+
+- **Two-factor auth**
+- **Scoped packages/namespaces**
+- **Provenance**
 
 **npm with provenance and 2FA:**
 ```bash
 # Scoped package: name is @acme/widgets, owned by the acme org's namespace
 npm publish --access public --provenance   # provenance requires a supported CI (e.g. GitHub Actions w/ OIDC)
 ```
-`--provenance` makes npm attach a signed statement linking the tarball to the exact GitHub repo, commit, and workflow that built it — visible as a "published via" badge. 2FA (or an automation token with 2FA policy) gates who may publish at all.
+- `--provenance` makes npm attach a signed statement linking the tarball to the exact GitHub repo, commit, and workflow that built it — visible as a "published via" badge.
+- 2FA (or an automation token with 2FA policy) gates who may publish at all.
 
 **PyPI with trusted publishing (OIDC):** instead of a long-lived `twine` token, configure a *trusted publisher* so CI authenticates via short-lived OIDC and uploads with no stored secret:
 ```yaml
@@ -135,15 +163,23 @@ npm publish --access public --provenance   # provenance requires a supported CI 
 - uses: pypa/gh-action-pypi-publish@release/v1   # no password — uses OIDC trusted publishing
 ```
 
-**Maven Central staging → release:** `mvn deploy` uploads to a *staging* repository (a temporary, private holding area). You then **close** the staging repo (Sonatype runs validation: signatures, POM completeness, javadoc/sources) and **release** it, which promotes it to Central. This two-phase flow exists precisely because Central is immutable — staging is your last chance to catch a bad artifact before it becomes permanent.
+**Maven Central staging → release:**
+
+- `mvn deploy` uploads to a *staging* repository (a temporary, private holding area).
+- You then **close** the staging repo (Sonatype runs validation: signatures, POM completeness, javadoc/sources) and **release** it, which promotes it to Central.
+- This two-phase flow exists precisely because Central is immutable — staging is your last chance to catch a bad artifact before it becomes permanent.
 
 These all connect to signing — see [Artifact Signing & Provenance](../04-artifact-signing-and-provenance/middle.md). Provenance answers "where did this come from"; signing answers "prove it wasn't tampered with."
 
 ## Core Concept 6 — Retention, untagged layers, and garbage collection
 
-Registries fill up. Every CI run pushes new image tags; old layers pile up; storage bills climb. Two cleanup concepts:
+- Registries fill up: every CI run pushes new image tags, old layers pile up, and storage bills climb.
+- Two cleanup concepts matter: untagged manifests and retention policies.
 
-**Untagged manifests.** When you repoint a tag (e.g. push a new `1.4.0`... which you shouldn't, but `latest` you do), the old manifest may become *untagged* — no tag references it, but it's still stored. Untagged manifests and their layers are GC candidates.
+**Untagged manifests.**
+
+- When you repoint a tag (e.g. push a new `1.4.0`... which you shouldn't, but `latest` you do), the old manifest may become *untagged* — no tag references it, but it's still stored.
+- Untagged manifests and their layers are GC candidates.
 
 **Retention policies.** Most registries let you auto-delete by rule. Example GHCR / generic patterns:
 
@@ -205,3 +241,9 @@ aws ecr put-lifecycle-policy --repository-name api --lifecycle-policy-text '{
 - What constraint would make you choose the alternative design?
 - How would you isolate a local defect from an integration defect?
 - What evidence shows that the change remains maintainable?
+- How do you deploy so you're certain exactly which bytes are running?
+- How does trusted publishing work, and why is it safer than a long-lived publish token?
+- What's the difference between provenance and an SBOM, and where do they live?
+- Explain the difference between yank, deprecate, and unpublish.
+- What happened in the left-pad incident, and what did it change?
+- Can you delete a release from Maven Central? What do you do instead?

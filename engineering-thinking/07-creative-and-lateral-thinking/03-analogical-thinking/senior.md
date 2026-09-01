@@ -119,7 +119,13 @@ An analogy that passes all eight is a genuine design asset. One that fails the l
 - [Section root](../) · [Roadmap home](../../README.md)
 
 ---
-## Check your understanding
+## Use it today
+
+1. Use an analogy to widen options, not to win an argument.
+2. Write the structural match and the known mismatch in the design record.
+3. **Decision rule:** validate the analogy with data or a small test before relying on it.
+
+## Recall and apply
 
 Try to answer these questions from memory:
 

@@ -175,7 +175,11 @@ Notice that "try the same thing again, harder" is *not* on the list. That's the 
 These moves are the same ones you'll use forever — they just get sharper. As you grow, link this skill to [debugging as problem-solving](../05-debugging-as-problem-solving/), [devising a plan](../02-devising-a-plan/), and [looking back](../04-looking-back-and-reflecting/) so each stuck-point also teaches you *how you get stuck*. Build the checklist into a habit now and you'll spend your whole career getting unstuck faster than the people who only know how to grind.
 
 ---
-## Check your understanding
+## Recall and apply
+
+**Practice loop:** Name the blocker, choose one technique, time-box it, and state what evidence would tell you to switch approaches.
+
+Use these prompts to check your understanding and choose one action to try in your next task.
 
 Try to answer these questions from memory:
 

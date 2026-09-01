@@ -23,13 +23,14 @@ A SemVer version has three required numbers separated by dots:
    └────────────── MAJOR  → breaking changes
 ```
 
-Read it left to right, most-significant first. `2.4.1` is newer than `2.4.0`, which is newer than `2.3.9`, which is newer than `1.99.99`. A bigger MAJOR always wins, no matter how big the other numbers are: `2.0.0` beats `1.50.7`.
-
-The numbers do **not** behave like decimals. `1.10.0` is **newer** than `1.9.0`, because `10` is greater than `9`. Each component is its own integer, not a digit after a decimal point.
+- Read left to right, most-significant first.
+- `2.4.1` is newer than `2.4.0`, which is newer than `2.3.9`, which is newer than `1.99.99`.
+- A bigger MAJOR always wins, no matter how big the other numbers are: `2.0.0` beats `1.50.7`.
+- The numbers do **not** behave like decimals. `1.10.0` is **newer** than `1.9.0`, because `10 > 9`. Each component is its own integer, not a digit after a decimal point.
 
 ## Core Concept 2 — What Each Bump Means
 
-The whole point of SemVer is that the *number you bump* tells your users what kind of change shipped.
+The number you bump tells your users what kind of change shipped:
 
 | You changed... | Bump | Example |
 | --- | --- | --- |
@@ -42,7 +43,7 @@ Two rules trip up beginners:
 - **When you bump MINOR, reset PATCH to 0.** `1.4.3` + a feature → `1.5.0`, not `1.5.3`.
 - **When you bump MAJOR, reset MINOR and PATCH to 0.** `1.5.0` + a break → `2.0.0`.
 
-Concrete example. You maintain a small Go library:
+Concrete example — a small Go library:
 
 ```go
 // v1.2.0
@@ -57,7 +58,7 @@ func Hello(name string) string { return "Hi " + name }
 
 ## Core Concept 3 — Pre-release and Build Metadata
 
-Before a final release, you often publish test versions. SemVer supports this with a **pre-release** suffix after a hyphen:
+- Before a final release, teams publish test versions using a **pre-release** suffix after a hyphen:
 
 ```
 1.0.0-alpha          earliest, expect bugs
@@ -67,20 +68,20 @@ Before a final release, you often publish test versions. SemVer supports this wi
 1.0.0                the real thing
 ```
 
-The key precedence rule: **a pre-release is always *older* than the same version without a suffix.** So `1.0.0-rc.1` < `1.0.0`. This is the opposite of intuition for some people — `1.0.0` is the *finished* product, so it sorts last.
-
-**Build metadata** comes after a `+` and is ignored when comparing versions:
+- **Key precedence rule:** a pre-release is always *older* than the same version without a suffix, so `1.0.0-rc.1 < 1.0.0`.
+- This is counter-intuitive at first: `1.0.0` is the *finished* product, so it sorts last, not first.
+- **Build metadata** comes after a `+` and is ignored when comparing versions:
 
 ```
 1.0.0+20240601           a build date
 1.0.0+sha.5114f85         the commit it was built from
 ```
 
-`1.0.0+sha.aaa` and `1.0.0+sha.bbb` are considered **the same version** for ordering — the `+` part is informational only.
+- `1.0.0+sha.aaa` and `1.0.0+sha.bbb` are considered **the same version** for ordering — the `+` part is informational only.
 
 ## Core Concept 4 — Where the Version Lives
 
-The version string is usually stored in one place per project and read from there everywhere else:
+- The version string is usually stored in one place per project and read from there everywhere else:
 
 ```jsonc
 // package.json (Node)
@@ -101,14 +102,14 @@ name = "my-app"
 version = "1.4.1"
 ```
 
-For many tools you also create a **Git tag** so the exact source for a release is recoverable:
+- For many tools you also create a **Git tag** so the exact source for a release is recoverable:
 
 ```bash
 git tag v1.4.1
 git push origin v1.4.1
 ```
 
-Go is special: it has no version field in a file. The version *is* the Git tag, and the module path encodes the major version (more on that in higher tiers).
+- **Go is special:** it has no version field in a file. The version *is* the Git tag, and the module path encodes the major version (more on that in higher tiers).
 
 ## Core Concept 5 — Pinning a Dependency
 
@@ -137,7 +138,8 @@ requests>=2.31.0     # 2.31.0 or anything newer
 serde = "1.4.1"
 ```
 
-For applications, prefer a **lockfile** (`package-lock.json`, `Cargo.lock`, `poetry.lock`, `go.sum`) committed to Git. The lockfile records the *exact* versions you actually installed, so teammates and CI build the same thing you did.
+- For applications, prefer a **lockfile** (`package-lock.json`, `Cargo.lock`, `poetry.lock`, `go.sum`) committed to Git.
+- The lockfile records the *exact* versions you actually installed, so teammates and CI build the same thing you did.
 
 ## Real-World Examples
 
@@ -176,3 +178,7 @@ For applications, prefer a **lockfile** (`package-lock.json`, `Cargo.lock`, `poe
 - Which input changes the observed result, and why?
 - What is the smallest useful success check?
 - Which beginner mistake would your evidence catch?
+- In one breath, what does `MAJOR.MINOR.PATCH` mean, and which part do beginners usually get wrong?
+- Is `1.0.0-rc.1` newer or older than `1.0.0`?
+- Does build metadata like `+build.55` affect version ordering?
+- Adding a new optional parameter with a default value — what kind of bump is that?

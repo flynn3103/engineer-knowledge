@@ -109,7 +109,13 @@ Organizational phase design is the scaled form of the [section's](../) core disc
 **Takeaway:** At principal scale you stop optimizing your own diverge/converge cycle and start designing the org's — templates and forums that force genuine option-generation, decision rights and deadlines that close the loop, reversibility-graded rigor so the divergence budget lands where reversal is costly, and the culture (safety for divergence, trust for convergence) that lets both phases actually function.
 
 ---
-## Check your understanding
+## Use it today
+
+1. Put problem, criteria, alternatives, decider, deadline, and reopen trigger in the RFC template.
+2. Separate option-generation from approval in design reviews.
+3. **Decision rule:** fast-track reversible decisions; broaden review for costly-to-reverse ones.
+
+## Recall and apply
 
 Try to answer these questions from memory:
 

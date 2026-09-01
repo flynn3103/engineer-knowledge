@@ -8,6 +8,13 @@
 
 [junior.md](./junior.md) established the discipline: criteria first, baseline always, rigor proportional to reversibility, write down the *because*. This level makes the matrix sharper and the cost analysis honest.
 
+## Action card
+1. Turn must-haves into pass/fail gates.
+2. Weight remaining criteria before scoring.
+3. Check TCO and test whether small weight changes flip the result.
+
+**Decision rule:** a fragile matrix result is a tie, not proof.
+
 ## 1. Find the dominant axis; ignore the noise
 
 Most tradeoff matrices have one or two criteria that actually decide the outcome and several that barely move it. Spreading equal attention across all of them is a way to *feel* thorough while diluting the thing that matters.
@@ -160,7 +167,7 @@ Spending one-way-door rigor on a two-way-door decision is **analysis paralysis**
 **Next:** [senior.md](./senior.md) — cost of delay, one-way-door calls under uncertainty, and weighing the cost of being wrong.
 
 ---
-## Check your understanding
+## Recall and apply
 
 Try to answer these questions from memory:
 

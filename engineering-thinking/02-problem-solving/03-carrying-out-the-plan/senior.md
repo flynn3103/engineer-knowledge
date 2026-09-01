@@ -137,7 +137,9 @@ The senior who runs an incident *exactly like* a normal plan — small verified 
 > Next: [Looking Back and Reflecting](../04-looking-back-and-reflecting/) — turning a finished execution into durable lessons. Related: [Debugging as Problem-Solving](../05-debugging-as-problem-solving/), [Techniques When You're Stuck](../06-techniques-when-you-are-stuck/). Back to the [Problem-Solving section](../) or the [Engineering Thinking roadmap](../../README.md).
 
 ---
-## Check your understanding
+## Recall and apply
+
+**Practice loop:** Take the smallest safe step, check the agreed signal, and adjust the plan when evidence disagrees.
 
 Try to answer these questions from memory:
 

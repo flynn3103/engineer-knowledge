@@ -152,7 +152,15 @@ Log: one line per day — what you tried, what you learned.
 - [Engineering Thinking root](../../README.md)
 
 ---
-## Check your understanding
+## Use it today
+
+1. Choose one narrow subskill, not a broad topic.
+2. Do a focused repetition with immediate feedback.
+3. Write the next adjustment before starting another repetition.
+
+## Recall and apply
+
+Use these prompts to check your understanding and choose one action to try in your next task.
 
 Try to answer these questions from memory:
 

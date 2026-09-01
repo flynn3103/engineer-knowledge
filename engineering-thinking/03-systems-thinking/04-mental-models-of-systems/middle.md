@@ -152,7 +152,9 @@ When a team shares an accurate model, design discussions converge fast — every
 - The team's **shared diagram is the onboarding**; divergent models surface as incidents.
 
 ---
-## Check your understanding
+## Recall and apply
+
+**Practice loop:** State the model you are using, its assumptions, a competing model, and the observation that would change your mind.
 
 Try to answer these questions from memory:
 

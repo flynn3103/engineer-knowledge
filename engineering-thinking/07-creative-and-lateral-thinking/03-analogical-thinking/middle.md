@@ -122,7 +122,13 @@ The quality of your analogies is bounded by the domains you know. An engineer wh
 - [Section root](../) · [Roadmap home](../../README.md)
 
 ---
-## Check your understanding
+## Use it today
+
+1. Generate analogies from at least two different domains.
+2. Map actors, flows, constraints, and failure modes explicitly.
+3. Keep only the transferable mechanism; do not import irrelevant details.
+
+## Recall and apply
 
 Try to answer these questions from memory:
 

@@ -13,7 +13,7 @@ Use the smallest realistic scenario that exposes the decision and its failure be
 
 ## Reading a CPU Profile — Flat vs Cumulative
 
-A CPU profile is a histogram of where the program was when the profiler sampled the stack — typically ~100 times per second per core. Every profiler, regardless of tool, exposes two numbers per function, and confusing them sends you optimising the wrong code.
+A CPU profile is a histogram of where the program was when the profiler sampled the stack — typically ~100 times per second per core. Every profiler exposes two numbers per function, and confusing them sends you optimising the wrong code.
 
 - **Flat (self) time** — samples landed *directly inside this function's own instructions*, not in something it called. This is the work the function itself does.
 - **Cumulative (total) time** — samples landed in this function *or anything it called, transitively*. This is the cost of the whole subtree rooted here.
@@ -26,9 +26,14 @@ A CPU profile is a histogram of where the program was when the profiler sampled 
  0.40s   9.4%  0.55s  13%   runtime.mapaccess2    ← map lookups, real self cost
 ```
 
-`processBatch` has 89% cumulative but 1.2% flat — it's a dispatcher; optimising its body buys nothing. `scoreRecord` has 68% *flat* — the actual work lives there. **Optimise on flat time; navigate with cumulative time.** Cumulative tells you which call path to descend; flat tells you where to stop and start editing.
+- `processBatch` has 89% cumulative but 1.2% flat — it's a dispatcher; optimising its body buys nothing.
+- `scoreRecord` has 68% *flat* — the actual work lives there.
+- **Optimise on flat time; navigate with cumulative time.** Cumulative tells you which call path to descend; flat tells you where to stop and start editing.
 
-Two refinements make this sharper. First, use the flame graph (`go tool pprof -http=:8080`) to *see* the call tree — width is cumulative time, and a wide plateau with no children on top of it is pure self time, your prime target. Second, watch for `runtime.*` frames bubbling up: a big `runtime.mallocgc` or `runtime.gcBgMarkWorker` means your "CPU" problem is really an *allocation* problem in disguise (see [05 — Memory & Allocation Profiling](../05-memory-and-allocation-profiling/middle.md)).
+Two refinements make this sharper:
+
+1. Use the flame graph (`go tool pprof -http=:8080`) to *see* the call tree — width is cumulative time, and a wide plateau with no children on top of it is pure self time, your prime target.
+2. Watch for `runtime.*` frames bubbling up: a big `runtime.mallocgc` or `runtime.gcBgMarkWorker` means your "CPU" problem is really an *allocation* problem in disguise (see [05 — Memory & Allocation Profiling](../05-memory-and-allocation-profiling/middle.md)).
 
 > **Key insight:** Flat time is *where the cycles burn*; cumulative time is *the route to get there*. A function can dominate the profile (high cumulative) and contain nothing worth fixing (low flat). Always confirm a function's *own* code is hot before you touch it — otherwise you're polishing a hallway.
 
@@ -36,7 +41,7 @@ Two refinements make this sharper. First, use the flame graph (`go tool pprof -h
 
 ## The Memory Hierarchy — Why Cache Misses Dominate
 
-Here is the single fact that reframes most CPU optimisation: **the CPU is not waiting on arithmetic — it's waiting on memory.** A modern core executes several integer operations *per nanosecond*, but fetching a value that isn't in cache can stall it for ~100 nanoseconds. The arithmetic was never the bottleneck; the *data movement* was.
+The single fact that reframes most CPU optimisation: **the CPU is not waiting on arithmetic — it's waiting on memory.** A modern core executes several integer operations *per nanosecond*, but fetching a value that isn't in cache can stall it for ~100 nanoseconds. The arithmetic was never the bottleneck; the *data movement* was.
 
 Rough latencies, in CPU cycles (≈0.3 ns each on a 3 GHz core):
 
@@ -48,9 +53,11 @@ Rough latencies, in CPU cycles (≈0.3 ns each on a 3 GHz core):
 | L3 cache | ~40 | ~13 | ~40× |
 | Main memory (RAM) | ~200 | ~65 | ~**200×** |
 
-An L1 hit and an `add` are roughly the same cost. A trip to RAM is **~100× a single arithmetic operation.** This is why "reduce the number of operations" is often the *wrong* optimisation and "reduce the number of cache misses" is the right one.
+- An L1 hit and an `add` are roughly the same cost.
+- A trip to RAM is **~100× a single arithmetic operation.**
+- This is why "reduce the number of operations" is often the *wrong* optimisation and "reduce the number of cache misses" is the right one.
 
-Two hardware behaviours you can exploit:
+**Two hardware behaviours you can exploit:**
 
 1. **Cache lines.** Memory moves in 64-byte lines, not single bytes. Touch one `int`, and the 7 neighbours on its line come along free. Lay data so the bytes you use next are *on the same line* and you get those accesses essentially for free.
 2. **The hardware prefetcher.** The CPU detects *sequential* access patterns and fetches lines ahead of you. Walk an array forward → the prefetcher hides the latency. Chase pointers to random heap addresses → it can't predict, and you eat the full ~200-cycle miss every time.
@@ -61,7 +68,7 @@ Two hardware behaviours you can exploit:
 
 ## Data-Oriented Design — Layout Is Performance
 
-If cache misses dominate, then **how you arrange data in memory is a first-class performance decision** — often bigger than any algorithmic tweak. The canonical lever is *array-of-structs* (AoS) vs *struct-of-arrays* (SoA).
+If cache misses dominate, **how you arrange data in memory is a first-class performance decision** — often bigger than any algorithmic tweak. The canonical lever is *array-of-structs* (AoS) vs *struct-of-arrays* (SoA).
 
 Suppose you score a million particles using only their `x` and `y`, but each particle also carries 48 bytes of other state:
 
@@ -82,7 +89,7 @@ func sumX(ps []Particle) (s float64) {
 }
 ```
 
-Each `Particle` is ~64 bytes — one whole cache line. To sum `x`, every iteration loads a full line but uses 8 of its 64 bytes. You're paying a memory miss to fetch mostly garbage. Restructure so the hot fields live contiguously:
+- Each `Particle` is ~64 bytes — one whole cache line. To sum `x`, every iteration loads a full line but uses 8 of its 64 bytes. You're paying a memory miss to fetch mostly garbage.
 
 ```go
 // Struct of Arrays (SoA) — hot fields packed together
@@ -99,9 +106,15 @@ func sumX(p *Particles) (s float64) {
 }
 ```
 
-Now one cache line holds 8 `x` values, all of which you use, and the prefetcher sees a perfect sequential stream. Same arithmetic, ~6–8× fewer cache misses on the hot field. A typical measured result: **AoS ~4.1 ms, SoA ~0.6 ms** for the million-element sum — a 6–7× win with zero change to the math.
+- Now one cache line holds 8 `x` values, all of which you use, and the prefetcher sees a perfect sequential stream.
+- Same arithmetic, ~6–8× fewer cache misses on the hot field.
+- A typical measured result: **AoS ~4.1 ms, SoA ~0.6 ms** for the million-element sum — a 6–7× win with zero change to the math.
 
-The deeper principle is **reduce pointer chasing.** A `[]*Node` linked list scatters nodes across the heap; traversing it is a sequence of unpredictable misses. A `[]Node` slice (or an index-based "linked list" inside one array) keeps them contiguous and prefetchable. Prefer indices over pointers and contiguous slices over node graphs whenever you traverse hot data.
+The deeper principle: **reduce pointer chasing.**
+
+- A `[]*Node` linked list scatters nodes across the heap; traversing it is a sequence of unpredictable misses.
+- A `[]Node` slice (or an index-based "linked list" inside one array) keeps nodes contiguous and prefetchable.
+- Prefer indices over pointers and contiguous slices over node graphs whenever you traverse hot data.
 
 > **Key insight:** The compiler optimises your *instructions*; only you can optimise your *data layout*. Group the fields you touch together so a 64-byte cache line carries 64 bytes of *useful* data. AoS→SoA is the highest-leverage CPU optimisation that most code never tries.
 
@@ -111,7 +124,10 @@ The deeper principle is **reduce pointer chasing.** A `[]*Node` linked list scat
 
 Every heap allocation in a hot loop costs three ways: the allocation itself, the eventual garbage-collection cost of reclaiming it, and the cache pollution of touching fresh memory. In Go and Java, an allocation-heavy loop often shows up as "CPU time in `runtime.mallocgc`" or "time in GC" — a CPU symptom with an allocation cause.
 
-The fix is **escape analysis awareness** plus **buffer reuse.** Go's compiler tries to keep allocations on the stack (free) rather than the heap (GC-managed); a value *escapes* to the heap when its lifetime outlives the function. Ask the compiler what it decided:
+The fix is **escape analysis awareness** plus **buffer reuse**.
+
+- Go's compiler tries to keep allocations on the stack (free) rather than the heap (GC-managed); a value *escapes* to the heap when its lifetime outlives the function.
+- Ask the compiler what it decided:
 
 ```bash
 go build -gcflags='-m' ./...
@@ -150,14 +166,16 @@ func format(rows []Row) []string {
 }
 ```
 
-`buf[:0]` keeps the backing array and resets length — no new allocation. Benchmark with `-benchmem` to see it land:
+- `buf[:0]` keeps the backing array and resets length — no new allocation.
+- Benchmark with `-benchmem` to see it land:
 
 ```
 BEFORE  1240 ns/op   1056 B/op   17 allocs/op
 AFTER    410 ns/op    192 B/op    1 allocs/op
 ```
 
-A 3× speedup, none of it from changing the algorithm — purely from not asking the allocator and GC to run on the hot path. The same pattern in Java is object pooling or, better, primitive arrays instead of boxed `Integer[]`; in C++ it's reserving `std::vector` capacity and reusing it rather than reallocating per call.
+- A 3× speedup, none of it from changing the algorithm — purely from not asking the allocator and GC to run on the hot path.
+- The same pattern in Java is object pooling or, better, primitive arrays instead of boxed `Integer[]`; in C++ it's reserving `std::vector` capacity and reusing it rather than reallocating per call.
 
 > **Key insight:** Allocation is hidden CPU work. Each `make`/`new` in a hot loop schedules future GC, pollutes cache, and is itself non-trivial. `-gcflags=-m` shows what escapes; reuse buffers (`buf[:0]`, `sync.Pool`, preallocated arrays) to take the allocator off the hot path entirely.
 
@@ -167,7 +185,9 @@ A 3× speedup, none of it from changing the algorithm — purely from not asking
 
 A function call is not free: arguments go into registers or onto the stack, the return address is saved, control jumps, and on return everything unwinds. For a tiny function called millions of times, this prologue/epilogue can rival the body's own work — *and* it blocks other optimisations, because the compiler can't reason across a call boundary it doesn't inline.
 
-**Inlining** is the cure: the compiler copies a small callee's body into the caller, eliminating the call overhead and, crucially, exposing the merged code to further optimisation (constant folding, dead-code elimination, bounds-check removal across the seam). Go inlines automatically based on a function's cost budget; check what it decided with the same flag:
+**Inlining** is the cure: the compiler copies a small callee's body into the caller, eliminating the call overhead and exposing the merged code to further optimisation (constant folding, dead-code elimination, bounds-check removal across the seam).
+
+- Go inlines automatically based on a function's cost budget; check what it decided:
 
 ```bash
 go build -gcflags='-m' ./...
@@ -182,7 +202,9 @@ func dist(ax, ay, bx, by float64) float64 {   // tiny → inlined
 }
 ```
 
-When `dist` is inlined into a hot loop, the call vanishes *and* the compiler can keep `dx, dy` in registers across what used to be a boundary. The reverse trap: a function that's *almost* small enough but trips the budget (often by containing a `defer`, a closure, or a `panic`/`recover`) silently stops inlining and gets slow. If `-m` says `cannot inline ... too complex`, splitting out the hot path into a separate tiny function can restore inlining.
+- When `dist` is inlined into a hot loop, the call vanishes *and* the compiler can keep `dx, dy` in registers across what used to be a boundary.
+- The reverse trap: a function that's *almost* small enough but trips the budget (often by containing a `defer`, a closure, or a `panic`/`recover`) silently stops inlining and gets slow.
+- If `-m` says `cannot inline ... too complex`, splitting out the hot path into a separate tiny function can restore inlining.
 
 > **Key insight:** Inlining is worth more than the call overhead it removes — it *unlocks* optimisations across the former boundary. Keep hot leaf functions small and free of `defer`/closures so they stay under the inline budget. Don't manually inline by hand first; check `-gcflags=-m` and only intervene where the compiler refuses.
 
@@ -206,7 +228,9 @@ func sum(a []int) (s int) {
 }
 ```
 
-The idiomatic `range` form is the most reliable way to get bounds checks removed in Go. When you must index, a single `a = a[:n]` reslice or a `_ = a[n-1]` assertion before the loop can give the compiler the fact it needs to elide every check inside. Inspect what's left:
+- The idiomatic `range` form is the most reliable way to get bounds checks removed in Go.
+- When you must index, a single `a = a[:n]` reslice or a `_ = a[n-1]` assertion before the loop can give the compiler the fact it needs to elide every check inside.
+- Inspect what's left:
 
 ```bash
 go build -gcflags='-d=ssa/check_bce/debug=1' ./...
@@ -225,7 +249,9 @@ idx := 0
 for i := 0; i < n; i++ { out[i] = data[i] >> shift; _ = idx; idx += stride }
 ```
 
-Division is one of the slowest integer ops; a power-of-two divide becomes a shift. A loop-variable multiply (`i*stride`) becomes a running addition. Compilers do much of this automatically, but hoisting *invariant* computation (anything not depending on the loop variable) out of the loop is squarely your job — recomputing `len(s)` or a struct-field lookup every iteration is pure waste.
+- Division is one of the slowest integer ops; a power-of-two divide becomes a shift.
+- A loop-variable multiply (`i*stride`) becomes a running addition.
+- Compilers do much of this automatically, but hoisting *invariant* computation (anything not depending on the loop variable) out of the loop is squarely your job — recomputing `len(s)` or a struct-field lookup every iteration is pure waste.
 
 > **Key insight:** Memory-safe languages tax you with a hidden branch per index; write loops the compiler can prove safe (`range`, single hoisted assertion) and that tax disappears. Then strip redundant work: hoist loop invariants, replace divide-by-constant with shifts, and let strength reduction turn multiplies into adds.
 
@@ -247,7 +273,7 @@ func sumAbove(a []int, t int) (s int) {
 // unsorted input: ~3.2 ms   |   same data sorted first: ~0.9 ms  (≈3.5× from prediction alone)
 ```
 
-Two ways to help the predictor:
+**Two ways to help the predictor:**
 
 1. **Make branches predictable** — sort or partition data so the common case dominates, or hoist a condition out of the loop so it's decided once instead of per element.
 2. **Make branches disappear (branchless code)** — compute both sides and select arithmetically, so there's no branch to mispredict. This wins *only* when the branch was genuinely unpredictable; for a well-predicted branch, the branchful version is faster because the predictor already made it free.
@@ -266,7 +292,7 @@ func maxBranchless(a, b int) int {
 
 ## Worked Example — Reading `perf stat` Before and After
 
-`perf stat` gives you the hardware view a flame graph can't: instructions-per-cycle (IPC), cache misses, branch mispredictions. These are the numbers that tell you *which* of the techniques above to reach for. Take the AoS particle sum from earlier and measure it before and after the SoA rewrite.
+`perf stat` gives you the hardware view a flame graph can't: instructions-per-cycle (IPC), cache misses, branch mispredictions. These numbers tell you *which* technique above to reach for. Take the AoS particle sum from earlier and measure it before and after the SoA rewrite.
 
 ```bash
 # BEFORE — AoS layout: summing one field out of a 64-byte struct
@@ -280,7 +306,9 @@ perf stat -e cycles,instructions,cache-references,cache-misses,branch-misses ./s
 #         4.12 ms   time elapsed
 ```
 
-IPC of **0.69** is the headline: less than one instruction retired per cycle means the core spends most of its time *waiting*, and the 48% cache-miss rate says it's waiting on memory. This is not a "do less arithmetic" problem — it's a layout problem. Apply SoA so the hot field is contiguous, then re-measure:
+- IPC of **0.69** is the headline: less than one instruction retired per cycle means the core spends most of its time *waiting*, and the 48% cache-miss rate says it's waiting on memory. This is a layout problem, not a "do less arithmetic" problem.
+
+Apply SoA so the hot field is contiguous, then re-measure:
 
 ```bash
 # AFTER — SoA layout: x[] packed contiguously
@@ -294,9 +322,15 @@ perf stat -e cycles,instructions,cache-references,cache-misses,branch-misses ./s
 #         0.61 ms   time elapsed
 ```
 
-Almost the *same instruction count* (~6 billion), but **6.8× faster wall time** — entirely because IPC jumped from 0.69 to 4.56 and cache misses fell from 48% to 5%. The CPU was always able to do the work; it was starved for data. This is the central lesson made measurable: **on CPU-bound code, the win usually comes from feeding the CPU, not from reducing its arithmetic.**
+- Almost the *same instruction count* (~6 billion), but **6.8× faster wall time** — entirely because IPC jumped from 0.69 to 4.56 and cache misses fell from 48% to 5%.
+- The CPU was always able to do the work; it was starved for data. **On CPU-bound code, the win usually comes from feeding the CPU, not from reducing its arithmetic.**
 
-The diagnostic loop: low IPC + high cache-misses → fix data layout (SoA, contiguity); high IPC but high branch-misses → fix branch predictability; lots of time in `mallocgc`/GC frames → fix allocations. Read the counters first; they tell you which chapter of this page applies.
+**The diagnostic loop:**
+
+- Low IPC + high cache-misses → fix data layout (SoA, contiguity).
+- High IPC but high branch-misses → fix branch predictability.
+- Lots of time in `mallocgc`/GC frames → fix allocations.
+- Read the counters first; they tell you which chapter of this page applies.
 
 ---
 
@@ -339,3 +373,9 @@ The diagnostic loop: low IPC + high cache-misses → fix data layout (SoA, conti
 - What constraint would make you choose the alternative design?
 - How would you isolate a local defect from an integration defect?
 - What evidence shows that the change remains maintainable?
+- When is a micro-optimization the right move instead of an algorithmic one?
+- State Amdahl's law and explain how it decides which hot path to attack.
+- A profile shows time spread evenly across 20 functions with no clear hot spot — what does that tell you?
+- What's the rough cost, in cycles, of an L1 hit vs an L2 hit vs an LLC hit vs a main-memory access, and why do these numbers dominate optimization?
+- Explain AoS vs SoA and when SoA wins.
+- Why is pointer chasing (e.g., a linked list) often dramatically slower than iterating an array, even at the same Big-O?

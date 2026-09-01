@@ -131,7 +131,9 @@ When you design a subsystem, the most durable artifact you can leave is its **in
 - Related: [abstraction and generalisation](../03-abstraction-and-generalization/) (finding the reusable procedure) and [problem-solving](../../02-problem-solving/).
 
 ---
-## Check your understanding
+## Recall and apply
+
+**Practice loop:** For one task, write the input, output, and steps before coding; test the smallest and edge cases.
 
 Try to answer these questions from memory:
 

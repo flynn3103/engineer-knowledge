@@ -6,6 +6,13 @@
 
 ---
 
+## Quick use
+1. Maintain shared base-rate data and outside-view estimation policy.
+2. Rank the portfolio by expected value and expected loss.
+3. Apply firm-wide ruin and blast-radius constraints.
+
+**Decision rule:** local positive EV cannot justify an organization-threatening tail risk.
+
 ## 1. From personal heuristic to organizational instrument
 
 Staff impact is not making better individual EV calls — it's ensuring **the org makes consistently sound probabilistic decisions without you in the room**. Three systems:
@@ -175,7 +182,7 @@ Ruin items are **never summed into the EV** — they're driven to structural imp
 - Related: [reasoning under uncertainty](../01-reasoning-under-uncertainty/) · [risk and failure probabilities](../03-risk-and-failure-probabilities/) · [estimation under uncertainty](../04-estimation-under-uncertainty/) · [cognitive biases in code decisions](../../04-critical-thinking/03-cognitive-biases-in-code-decisions/) · [evaluating tradeoffs objectively](../../04-critical-thinking/04-evaluating-tradeoffs-objectively/) · [probabilistic thinking](../) · [engineering thinking](../../README.md).
 
 ---
-## Check your understanding
+## Recall and apply
 
 Try to answer these questions from memory:
 

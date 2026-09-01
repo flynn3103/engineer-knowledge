@@ -13,9 +13,11 @@ Use the smallest realistic scenario that exposes the decision and its failure be
 
 ## Core Concept 1 — What a CPU Profile Actually Is
 
-A CPU profile answers one question: **of all the CPU time my program used, what fraction went to each function?**
+A CPU profile answers **one** question: of all the CPU time my program used, what fraction went to each function?
 
-That's it. Not "how many times was `add` called" (that's a different measurement). Not "how long did one request take" (that's a trace). A CPU profile is a **distribution of CPU time across your code**, usually presented as a ranked list:
+- It is **not** "how many times was `add` called" — that's a different measurement (a call count).
+- It is **not** "how long did one request take" — that's a trace.
+- It **is** a distribution of CPU time across your code, usually shown as a ranked list:
 
 ```
 flat  flat%   function
@@ -26,9 +28,12 @@ flat  flat%   function
 ...
 ```
 
-Read the first line as: *"38.2% of all the CPU time this program burned was spent inside the JSON object decoder."* That single number is worth more than a week of staring at code. It tells you, unambiguously, that if you want this program to be faster, JSON decoding is where to look — and that `processOrder`, the function you suspected, accounts for a mere 3.5%.
-
-The key property of a profile is that it's **relative and ranked**. You don't usually care about absolute seconds; you care about *proportion*. A function at the top is worth your attention because shrinking it shrinks the whole program. A function near the bottom is not, no matter how ugly its code is.
+- Read the first line as: *"38.2% of all the CPU time this program burned was spent inside the JSON object decoder."*
+- That one number tells you, unambiguously, where to look — and that `processOrder`, the function you suspected, accounts for a mere 3.5%.
+- The key property of a profile is that it's **relative and ranked**:
+  - You don't usually care about absolute seconds; you care about *proportion*.
+  - A function at the top is worth your attention because shrinking it shrinks the whole program.
+  - A function near the bottom is not, no matter how ugly its code is.
 
 > **Key insight:** A CPU profile is a *priority list*, not a bug report. It doesn't tell you what's wrong — it tells you where the time is, so you can decide where it's *worth* being right. The whole value is in the ranking.
 
@@ -36,9 +41,12 @@ The key property of a profile is that it's **relative and ranked**. You don't us
 
 ## Core Concept 2 — Sampling: How the Profiler Watches
 
-How does a profiler know that JSON decoding took 38%? There are two strategies, and the one you'll use 95% of the time is **sampling**.
+How does a profiler know that JSON decoding took 38%? There are two strategies, and you'll use **sampling** 95% of the time.
 
-A **sampling profiler** works like a wildlife photographer with a fast shutter. It doesn't follow every animal all day. Instead, at a fixed rate — Go's default is **100 times per second** — it interrupts your program, looks at the current **call stack** (which function is running right now, and who called it), writes that stack down, and lets the program continue. Each interrupt is one **sample**.
+- A **sampling profiler** works like a wildlife photographer with a fast shutter:
+  - At a fixed rate — Go's default is **100 times per second** — it interrupts your program.
+  - It looks at the current **call stack** (which function is running right now, and who called it).
+  - It writes that stack down as one **sample**, then lets the program continue.
 
 ```
 time →
@@ -50,15 +58,21 @@ time →
   ...        (100 of these per second)
 ```
 
-After running for, say, 6 seconds, the profiler has ~600 stack snapshots. Now it just *counts*. If `json.object` appeared in 229 of 600 samples, then the program was inside `json.object` roughly 229/600 ≈ **38% of the time**. The function seen most often is, by definition, the **hottest**.
-
-This is a beautifully cheap trick. The profiler isn't timing anything — it's taking a statistical poll. The cost of one interrupt is tiny, so sampling adds very little overhead (typically a few percent), which means **the profile reflects how your program really behaves**, not a distorted, slowed-down version of it.
-
-The trade-off is *statistical*: with samples, rare events may be missed, and small numbers are noisy. A function at 0.2% might really be 0.1% or 0.4% — you can't tell from a short run. But a function at 38% is *unmistakably* hot, and that's the one you care about. Sampling is fuzzy at the bottom and razor-sharp at the top, which is exactly where you need it to be.
+- After 6 seconds, the profiler has ~600 stack snapshots. Now it just *counts*: if `json.object` appeared in 229 of 600 samples, the program was inside it roughly 229/600 ≈ **38% of the time**.
+- The function seen most often is, by definition, the **hottest**.
+- This is a cheap trick — the profiler isn't timing anything, it's taking a statistical poll:
+  - One interrupt costs almost nothing, so sampling adds very little overhead (typically a few percent).
+  - The profile therefore reflects how your program *really* behaves, not a distorted, slowed-down version of it.
+- The trade-off is **statistical**:
+  - Rare events may be missed, and small numbers are noisy — a function at 0.2% might really be 0.1% or 0.4%.
+  - A function at 38% is *unmistakably* hot — sampling is fuzzy at the bottom and razor-sharp at the top, exactly where you need it to be.
 
 > **Key insight:** Sampling trades perfect precision for near-zero distortion. It can't reliably measure a function that's 0.1% of the program — but it nails the function that's 40%, and that's the only one worth your time. Cheap-and-honest beats precise-and-misleading.
 
-The other strategy, **instrumentation**, inserts a stopwatch at the entry and exit of *every* function. It's exact about call counts but can slow the program 10–50×, and that slowdown changes which parts dominate — so the profile may no longer describe the real program. Junior rule: **reach for the sampling profiler first.** Every tool below is a sampling profiler by default.
+- The other strategy, **instrumentation**, inserts a stopwatch at the entry and exit of *every* function:
+  - It's exact about call counts.
+  - It can slow the program 10–50×, and that slowdown changes which parts dominate — so the profile may no longer describe the real program.
+- **Junior rule:** reach for the sampling profiler first. Every tool below is a sampling profiler by default.
 
 ---
 
@@ -68,15 +82,17 @@ This is the one law of performance work, and it overrides every instinct you hav
 
 **Do not guess where the time goes. Measure it.**
 
-The reason is empirical and brutal: the hot spot is almost never where you'd guess. There's even a name for the engineering folklore here — **Amdahl's argument** — but you don't need theory. You need one experience of confidently optimising the wrong function to internalise it forever.
-
-Why is intuition so bad at this? A few reasons:
+The hot spot is almost never where you'd guess. Why is intuition so bad at this?
 
 - **The expensive code is invisible.** A single line like `data := strings.ToLower(huge)` or `json.Unmarshal(body, &v)` looks cheap — one function call — but does enormous work inside. Loops *look* expensive; library calls *are* expensive, and they don't look like anything.
 - **Call frequency hides in plain sight.** A trivial 5-line function is irrelevant — until you learn it's called 50 million times inside a loop you forgot about. The profiler counts the calls you can't see.
 - **You optimise what's satisfying, not what matters.** Rewriting a clever algorithm feels productive. The profiler doesn't care about your feelings; it points at the boring 38% and says "here."
 
-The discipline is simple to state and hard to follow: **before you change a single line for performance, capture a profile. After you change it, capture another and compare.** If you skip the first profile, you're guessing. If you skip the second, you don't actually know your change helped — it might have done nothing, or made things worse.
+The discipline:
+
+1. Before you change a single line for performance, capture a profile.
+2. After you change it, capture another and compare.
+3. Skip step 1 and you're guessing. Skip step 2 and you don't know your change helped — it might have done nothing, or made things worse.
 
 > **Key insight:** The first profile tells you *where* to work; it routinely contradicts your intuition, and the intuition is what's wrong. The second profile (after your fix) tells you whether the work *helped*. Skip either and you're back to guessing — which is how afternoons disappear into functions that were never the problem.
 
@@ -84,12 +100,12 @@ The discipline is simple to state and hard to follow: **before you change a sing
 
 ## Core Concept 4 — Reading the Top List: Flat vs Cumulative
 
-Every profiler shows you a **top list** — functions ranked by time. But there are *two* times per function, and confusing them is the single most common beginner mistake. They are **flat** (also called *self*) and **cumulative**.
+Every profiler shows you a **top list** — functions ranked by time. There are *two* times per function, and confusing them is the single most common beginner mistake.
 
 - **Flat (self) time** = time spent inside *this function's own body*, not counting the functions it calls.
 - **Cumulative time** = time spent in this function *plus everything it called* — the entire subtree underneath it.
 
-A picture makes it concrete. Suppose `handleRequest` does almost nothing itself but calls `parseJSON`, which is where the real work happens:
+Suppose `handleRequest` does almost nothing itself but calls `parseJSON`, which is where the real work happens:
 
 ```
 function          flat    flat%   cum     cum%
@@ -101,14 +117,14 @@ runtime.mallocgc  0.78s   12.4%   0.78s   12.4%   ← leaf: self == cumulative
 
 Read it carefully:
 
-- `handleRequest` has **0.3% flat** but **81% cumulative**. It personally does almost nothing — but everything expensive happens *below* it. Optimising `handleRequest`'s own body would be pointless; its body is empty. Its high cumulative just means "the slow stuff is somewhere in here."
-- `json.object` has **38% flat** *and* high cumulative. High flat means **the cost is right here, in this function's own code**. This is the one to attack — shrinking its body directly removes 38%.
+- `handleRequest` has **0.3% flat** but **81% cumulative**. It personally does almost nothing — everything expensive happens *below* it. Optimising its own body would be pointless; its body is empty. High cumulative just means "the slow stuff is somewhere in here."
+- `json.object` has **38% flat** *and* high cumulative. High flat means **the cost is right here, in this function's own code**. This is the one to attack.
 - `runtime.mallocgc` is a **leaf** (it calls nothing of interest), so its flat and cumulative are equal.
 
 The rule of thumb:
 
-- **Sort by cumulative** to *navigate* — to find which area of the program (which subtree) contains the cost. High cumulative = "the time is in here, keep digging."
-- **Sort by flat** to *act* — to find the specific function whose own code you should change. High flat = "the time is *right here*; fix this."
+- **Sort by cumulative** to *navigate* — find which subtree contains the cost. High cumulative = "the time is in here, keep digging."
+- **Sort by flat** to *act* — find the specific function whose own code you should change. High flat = "the time is *right here*; fix this."
 
 > **Key insight:** Cumulative tells you *which branch* of the program to follow; flat tells you *where to stop and fix*. A function with 90% cumulative and 1% flat is just a corridor — the expensive room is further down. Optimise functions with high **flat** time; use high **cumulative** only to find them.
 
@@ -116,7 +132,7 @@ The rule of thumb:
 
 ## Core Concept 5 — Capturing Your First Profile
 
-Enough theory. Here's a real, complete first profile in Go — the fastest way to *see* everything above. Suppose you have a benchmark for a function `Tokenize`:
+Here's a real, complete first profile in Go. Suppose you have a benchmark for a function `Tokenize`:
 
 ```go
 // tokenize_test.go
@@ -133,13 +149,14 @@ func BenchmarkTokenize(b *testing.B) {
 }
 ```
 
-Run the benchmark and tell Go to write a CPU profile while it runs:
+Run the benchmark and write a CPU profile while it runs:
 
 ```bash
 go test -run=^$ -bench=BenchmarkTokenize -cpuprofile=cpu.out
 ```
 
-(`-run=^$` skips normal tests so only the benchmark runs.) This produces a file, `cpu.out` — the raw profile. Now open it with `pprof`:
+- `-run=^$` skips normal tests so only the benchmark runs. This produces `cpu.out`, the raw profile.
+- Open it with `pprof`:
 
 ```bash
 go tool pprof cpu.out
@@ -158,7 +175,11 @@ Showing nodes accounting for 5.30s, 92.0% of 5.76s total
      0.30s  5.2%  87.6%      4.20s 72.9%  text.Tokenize
 ```
 
-There it is, in five lines. `scanRune` is **41.8% flat** — it's the hot function, and the time is in its own body. `Tokenize` has high *cumulative* (72.9%) but low *flat* (5.2%) — it's the corridor; the work is below it in `scanRune`. And `runtime.mallocgc` at 13.5% is a hint that you're allocating a lot.
+Read it, in five lines:
+
+- `scanRune` is **41.8% flat** — the hot function, and the time is in its own body.
+- `Tokenize` has high *cumulative* (72.9%) but low *flat* (5.2%) — it's the corridor; the work is below it in `scanRune`.
+- `runtime.mallocgc` at 13.5% is a hint that you're allocating a lot.
 
 Want to know *which lines* inside `scanRune` are hot? Use `list`:
 
@@ -169,7 +190,7 @@ Want to know *which lines* inside `scanRune` are hot? Use `list`:
      0.90s      0.90s    39:         tokens = append(...)  // ← allocation hotspot
 ```
 
-For a visual call tree in your browser (covered in depth in [Flame Graphs](../04-flame-graphs/junior.md)):
+For a visual call tree in your browser (covered in [Flame Graphs](../04-flame-graphs/junior.md)):
 
 ```bash
 go tool pprof -http=:8080 cpu.out
@@ -194,26 +215,21 @@ The tool changes; the mental model — *interrupt, record the stack, count, rank
 
 ## Real-World Examples
 
-**1. The 38% nobody suspected.** A team's order-import endpoint was slow. Everyone blamed the database query (it *looked* heavy — a big join). The first CPU profile showed the database call at 4% and `json.Unmarshal` at 38% — they were re-parsing a 2 MB config blob on *every* request instead of once at startup. The fix was three lines (parse once, cache it) and cut endpoint CPU by a third. Total time spent guessing about the database beforehand: two days. Time to find the truth with a profile: ninety seconds.
+1. **The 38% nobody suspected.** A team's order-import endpoint was slow. Everyone blamed the database query (it *looked* heavy — a big join). The first CPU profile showed the database call at 4% and `json.Unmarshal` at 38% — they were re-parsing a 2 MB config blob on *every* request instead of once at startup. The fix was three lines (parse once, cache it) and cut endpoint CPU by a third. Time spent guessing beforehand: two days. Time to find the truth with a profile: ninety seconds.
 
-**2. The trivial function called 50 million times.** A Python data job took 40 minutes. `py-spy top` showed 60% of time in a five-line `normalize_key()` helper. The function wasn't slow — it was *called* inside a triple-nested loop, 50 million times, each call re-compiling a regex. Hoisting the regex compile out of the function (compile once, reuse) dropped the job to 9 minutes. No clever code was rewritten; the profile just revealed *frequency* the eye couldn't see.
+2. **The trivial function called 50 million times.** A Python data job took 40 minutes. `py-spy top` showed 60% of time in a five-line `normalize_key()` helper. The function wasn't slow — it was *called* inside a triple-nested loop, 50 million times, each call re-compiling a regex. Hoisting the regex compile out of the function dropped the job to 9 minutes. No clever code was rewritten; the profile just revealed *frequency* the eye couldn't see.
 
-**3. The satisfying rewrite that did nothing.** A developer spent a day replacing a recursive tree-walk with a slick iterative version "because recursion is slow." The before/after benchmark showed **zero** improvement — the tree-walk was 0.4% of the profile. The actual hot spot, untouched, was string formatting at 31%. This is the cautionary tale behind the golden rule: the change felt productive and measured nothing, because it was never profiled first.
+3. **The satisfying rewrite that did nothing.** A developer spent a day replacing a recursive tree-walk with a slick iterative version "because recursion is slow." The before/after benchmark showed **zero** improvement — the tree-walk was 0.4% of the profile. The actual hot spot, untouched, was string formatting at 31%. The change felt productive and measured nothing, because it was never profiled first.
 
 ---
 
 ## Common Mistakes
 
-1. **Optimising before profiling.** The cardinal sin. You rewrite the function you *suspect*, not the one that's actually hot. The fix is mechanical: capture a profile *first*, every time, even when you're "sure." You're not.
-
+1. **Optimising before profiling.** The cardinal sin — you rewrite the function you *suspect*, not the one that's actually hot. Fix: capture a profile *first*, every time, even when you're "sure." You're not.
 2. **Confusing flat and cumulative.** Seeing `main` or `handleRequest` at 95% cumulative and concluding "the problem is in `main`." It isn't — that's just the top of the tree; *everything* is under `main`. Look at **flat** time to find the function whose own code is expensive.
-
 3. **Optimising the 0.3% function.** Spending a day shaving a function that's a rounding error in the profile, because the change was interesting or satisfying. Apply the 30%/0.3% test: if it's tiny, leave it, no matter how much you want to fix it.
-
 4. **Not comparing before and after.** Making a change and *assuming* it helped. Without a second profile (or benchmark), you don't know — your "optimisation" may have done nothing or regressed. Measure, change, measure again.
-
 5. **Profiling a toy input.** Running the profiler against a 10-row test fixture and trusting the result. With tiny input, startup and fixed costs dominate and the profile lies. Profile with a **realistic, large** workload — the one whose slowness you actually care about.
-
 6. **Trusting tiny percentages.** Treating a 0.2% sampled number as precise. Sampling is statistically noisy at the bottom; that 0.2% could be 0.1% or 0.4%. Only act on numbers that are unambiguously large, or run longer to firm up the small ones.
 
 ---
@@ -239,3 +255,8 @@ The tool changes; the mental model — *interrupt, record the stack, count, rank
 - Which input changes the observed result, and why?
 - What is the smallest useful success check?
 - Which beginner mistake would your evidence catch?
+- Why is "profile, don't guess" the golden rule of performance work?
+- What's the difference between a function that's called often and a function that's "hot" in a profile?
+- Mechanically, how does a sampling profiler capture what your program is doing?
+- What's the difference between flat (self) time and cumulative time, and why does mixing them up lead you astray?
+- Why might a sampling profiler completely miss a function that only runs for a few microseconds?

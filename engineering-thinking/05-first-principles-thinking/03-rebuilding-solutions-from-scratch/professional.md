@@ -5,6 +5,13 @@
 
 ---
 
+## Quick use
+1. Require a re-derivation and classified diff before funding replacement.
+2. Set kill criteria and migrate the most uncertain, high-risk slice early.
+3. Enforce parity first and record the decision in an ADR.
+
+**Decision rule:** a big-bang replacement is an explicit last-resort risk, never the default.
+
 ## 1. The decision you actually own
 
 Individual engineers re-derive functions. Staff/principal engineers own the *class of decision*: **"this load-bearing system is painful — do we modernize, replace, or keep refactoring, and on what timeline?"** Getting this wrong is one of the most expensive mistakes an engineering org makes — a sanctioned big-bang rewrite can consume tens of engineer-years and ship a system that is, net, *worse*, while the market and the roadmap move on. The Netscape story (Spolsky) is the canonical example, but every large org has its own.
@@ -140,7 +147,7 @@ flowchart LR
 - The upstream first-principles steps — [Reasoning from fundamentals](../01-reasoning-from-fundamentals/) · [Questioning assumptions](../02-questioning-assumptions/)
 
 ---
-## Check your understanding
+## Recall and apply
 
 Try to answer these questions from memory:
 

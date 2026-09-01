@@ -155,7 +155,13 @@ Weekly: re-read your log. What's no longer hard? Raise the bar there.
 - [Section overview](../) · [Engineering Thinking root](../../README.md)
 
 ---
-## Check your understanding
+## Use it today
+
+1. Define a stretch goal and a way to measure improvement.
+2. Practice the weak component deliberately, then get specific feedback.
+3. Keep difficulty just beyond automatic performance.
+
+## Recall and apply
 
 Try to answer these questions from memory:
 

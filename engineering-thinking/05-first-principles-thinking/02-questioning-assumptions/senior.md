@@ -5,6 +5,13 @@
 
 ---
 
+## Quick use
+1. Rank assumptions by probability of failure times cost of failure.
+2. Validate cheap high-risk bets first.
+3. For costly tests, reduce blast radius, add monitors, or create reversibility.
+
+**Decision rule:** validate against the tail and representative dirtiness, not the mean.
+
 ## 0. The senior shift: from "spotting" to "ranking"
 
 Middle engineers can list assumptions. The senior shift is *triage under finite budget*. You will never validate everything — there isn't time, and most assumptions are harmless. The skill is allocating scarce validation effort by expected damage, and then choosing the *right response* per assumption: validate it, design around it, monitor it, or knowingly accept it. The rest of this page is that allocation discipline.
@@ -230,7 +237,7 @@ Three things make this senior-grade rather than box-ticking: each assumption car
 - The org-scale version of this discipline: [professional](./professional.md).
 
 ---
-## Check your understanding
+## Recall and apply
 
 Try to answer these questions from memory:
 

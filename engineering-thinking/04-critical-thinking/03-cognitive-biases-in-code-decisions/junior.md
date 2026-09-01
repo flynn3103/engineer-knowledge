@@ -6,6 +6,13 @@
 
 ---
 
+## Action card
+1. List at least two hypotheses.
+2. Run the cheapest test that could disprove your first guess.
+3. Check data before trusting a vivid memory or estimate.
+
+**Decision rule:** treat your first answer as a hypothesis, not a verdict.
+
 ## 1. Why a working brain still ships wrong decisions
 
 A bias is not stupidity. It is a *fast* answer that is right often enough that evolution kept it — and wrong in exactly the structured, low-feedback situations software is full of. Daniel Kahneman, in *Thinking, Fast and Slow* (2011), splits thinking into **System 1** (fast, automatic, intuitive) and **System 2** (slow, effortful, deliberate). Most bias errors are System 1 firing when the situation actually needed System 2.
@@ -151,7 +158,9 @@ These four cover the biases that actually cost juniors time. The deeper catalogu
 > **The one line to remember:** A bias is a fast answer that's usually right and occasionally, predictably, expensively wrong. You can't delete it — but you can install a cheap counter-move at the exact moment it fires.
 
 ---
-## Check your understanding
+## Recall and apply
+
+Use these prompts to check your understanding and choose one action to try in your next task.
 
 Try to answer these questions from memory:
 

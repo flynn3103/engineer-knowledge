@@ -14,14 +14,19 @@ Use the smallest realistic scenario that exposes the decision and its failure be
 
 ## Core Concept 1 — Why manual releases hurt
 
-Picture the manual release. It is Friday. You open the project, edit `package.json` to bump `1.3.2` → `1.3.3`, paste a hand-written changelog, run `npm publish`, then tag git and push. It works — until it doesn't:
+The manual release ritual: it's Friday, you edit `package.json` to bump `1.3.2` → `1.3.3`, paste a hand-written changelog, run `npm publish`, then tag git and push. It works — until it doesn't:
 
 - **It is slow.** Twenty minutes of careful clicking that you dread, so you batch up changes and release rarely. Rare releases are huge, and huge releases are scary.
 - **It is error-prone.** You forgot to bump the version. You published before tagging. You wrote the changelog from memory and missed three fixes. You ran the build on your laptop with a different Node version than CI.
 - **It is irreproducible.** "How did we build 1.3.2?" Nobody knows. The exact commands lived in your terminal history, now gone.
 - **It gates on one person.** The one engineer who knows the ritual is on vacation. Now nobody can ship a hotfix.
 
-Automation fixes all four at once. The steps are written down (as code), they run the same way every time (on CI, not a laptop), anyone can trigger them, and the machine never forgets to tag.
+Automation fixes all four at once:
+
+- The steps are written down (as code).
+- They run the same way every time (on CI, not a laptop).
+- Anyone can trigger them.
+- The machine never forgets to tag.
 
 > The deepest benefit is psychological: **automation makes releasing frequent because it makes releasing boring.** Frequent small releases are the single biggest lever for safe delivery.
 
@@ -50,15 +55,16 @@ Two properties make this trustworthy:
 - **Each step is observable.** When step 6 fails, you see *which* step and why in the CI logs.
 - **The pipeline is idempotent.** Re-running a release that already published version `1.4.0` must not publish it again. Tools enforce this by checking "does this version already exist?" before publishing.
 
-As a junior, you do not need to build this pipeline from scratch. You pick a tool that does it for you. Your job is to feed it good input (clean commit messages) and wire it into CI.
+As a junior, you do not need to build this pipeline from scratch:
+
+- Pick a tool that does it for you.
+- Your job is to feed it good input (clean commit messages) and wire it into CI.
 
 ---
 
 ## Core Concept 3 — Conventional commits as the input
 
-How does a tool know whether your change is a `1.3.3` (a bugfix) or a `1.4.0` (a new feature) or a `2.0.0` (a breaking change)? It reads your **commit messages** — *if* you write them in a structured format called **Conventional Commits**.
-
-The format is a one-line prefix:
+A tool learns whether your change is a `1.3.3` (bugfix), a `1.4.0` (new feature), or a `2.0.0` (breaking change) by reading your **commit messages** — *if* they follow the **Conventional Commits** format:
 
 ```
 <type>(<optional scope>): <description>
@@ -86,7 +92,9 @@ docs: fix typo in README
 feat(api)!: rename `userId` field to `accountId`
 ```
 
-That last one — the `!` — signals a breaking change and forces a MAJOR bump. The tool reads all commits since the last release, finds the *highest* bump implied, and that becomes your new version. The same commits become your changelog, grouped by type.
+- The `!` signals a breaking change and forces a MAJOR bump.
+- The tool reads all commits since the last release, finds the *highest* bump implied, and that becomes your new version.
+- The same commits become your changelog, grouped by type.
 
 > This is the input contract. The discipline cost is real: everyone on the team has to write commits this way. The payoff is that the version and changelog become free, automatic, and never wrong. See [Changelogs and Release Notes](../02-changelogs-and-release-notes/README.md) for how the changelog gets shaped.
 
@@ -94,7 +102,9 @@ That last one — the `!` — signals a breaking change and forces a MAJOR bump.
 
 ## Core Concept 4 — Your first semantic-release run
 
-[`semantic-release`](https://semantic-release.gitbook.io/) is the canonical fully-automated tool for the JavaScript ecosystem. You write conventional commits; it does *everything else* with zero version numbers ever typed by a human.
+[`semantic-release`](https://semantic-release.gitbook.io/) is the canonical fully-automated tool for the JavaScript ecosystem:
+
+- You write conventional commits; it does *everything else* with zero version numbers ever typed by a human.
 
 **Step 1 — install:**
 
@@ -146,7 +156,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-Now merge a PR whose commit is `feat: add CSV export`. On push to `main`, semantic-release runs, sees the `feat:`, bumps `1.3.0` → `1.4.0`, writes the changelog, tags `v1.4.0`, publishes to npm, and creates the GitHub release. You typed no version number anywhere. That is the whole point.
+What happens next:
+
+- Merge a PR whose commit is `feat: add CSV export`.
+- On push to `main`, semantic-release runs, sees the `feat:`, bumps `1.3.0` → `1.4.0`.
+- It writes the changelog, tags `v1.4.0`, publishes to npm, and creates the GitHub release.
+- You typed no version number anywhere. That is the whole point.
 
 > Note `fetch-depth: 0`: a forgotten setting that causes the single most common first-time failure. The tool needs the *entire* git history to find the last release and read all commits since.
 
@@ -154,7 +169,10 @@ Now merge a PR whose commit is `feat: add CSV export`. On push to `main`, semant
 
 ## Core Concept 5 — Your first goreleaser run
 
-For Go projects, [`goreleaser`](https://goreleaser.com/) is the standard. It is tag-driven: *you* create the tag (often the only manual step you keep at first), and goreleaser cross-compiles, archives, signs, and publishes.
+For Go projects, [`goreleaser`](https://goreleaser.com/) is the standard:
+
+- It is tag-driven: *you* create the tag (often the only manual step you keep at first).
+- goreleaser cross-compiles, archives, signs, and publishes.
 
 **Step 1 — install and init:**
 
@@ -220,7 +238,11 @@ git tag v1.4.0
 git push origin v1.4.0
 ```
 
-CI sees the tag, goreleaser builds six binaries (3 OSes × 2 architectures), archives them, generates release notes from your commits, and uploads everything to a GitHub Release. Before pushing a real tag, run `goreleaser release --snapshot --clean` locally to do a dry run — it builds everything but publishes nothing.
+What CI does:
+
+- Sees the tag, and goreleaser builds six binaries (3 OSes × 2 architectures).
+- Archives them, generates release notes from your commits, and uploads everything to a GitHub Release.
+- Before pushing a real tag, run `goreleaser release --snapshot --clean` locally to do a dry run — it builds everything but publishes nothing.
 
 > The difference in trigger style matters. semantic-release decides the version *for* you from commits (push-to-main triggered). goreleaser expects *you* to decide the version by tagging. Both are valid; you'll learn when each fits at the middle tier.
 
@@ -228,11 +250,19 @@ CI sees the tag, goreleaser builds six binaries (3 OSes × 2 architectures), arc
 
 ## Real-World Examples
 
-**A solo npm library.** You maintain a small utility package. You set up semantic-release once. From then on, every merged PR with a `fix:` or `feat:` automatically ships a new version to npm with a clean changelog. You never run `npm publish` again, never touch `package.json`'s version, never forget to tag.
+- **A solo npm library.**
+  - You maintain a small utility package and set up semantic-release once.
+  - Every merged PR with a `fix:` or `feat:` automatically ships a new version to npm with a clean changelog.
+  - You never run `npm publish` again, never touch `package.json`'s version, never forget to tag.
 
-**A CLI tool written in Go.** Your team ships a developer CLI. With goreleaser, a single `git tag v2.1.0 && git push --tags` produces binaries for macOS, Linux, and Windows on both Intel and ARM, plus a Homebrew formula so users can `brew install yourtool`. The release that used to take an afternoon now takes four minutes of CI.
+- **A CLI tool written in Go.**
+  - Your team ships a developer CLI. With goreleaser, `git tag v2.1.0 && git push --tags` produces binaries for macOS, Linux, and Windows on both Intel and ARM, plus a Homebrew formula so users can `brew install yourtool`.
+  - The release that used to take an afternoon now takes four minutes of CI.
 
-**The vacation test.** The one person who knew the manual release is away. A critical bug needs a hotfix. Because releasing is now `merge a PR with a fix: commit`, *anyone* on the team ships the patch. The bus factor went from one to everyone.
+- **The vacation test.**
+  - The one person who knew the manual release is away, and a critical bug needs a hotfix.
+  - Because releasing is now `merge a PR with a fix: commit`, *anyone* on the team ships the patch.
+  - The bus factor went from one to everyone.
 
 ---
 
@@ -267,3 +297,7 @@ CI sees the tag, goreleaser builds six binaries (3 OSes × 2 architectures), arc
 - Which input changes the observed result, and why?
 - What is the smallest useful success check?
 - Which beginner mistake would your evidence catch?
+- What is release automation, and why does it matter?
+- What does an automated release pipeline do, step by step?
+- How does a tool decide whether to bump major, minor, or patch?
+- What is an idempotent release, and why do you need one?

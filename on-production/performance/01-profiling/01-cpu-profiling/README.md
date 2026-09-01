@@ -24,4 +24,4 @@ CPU profiles attribute *where the CPU spent its cycles* — wall-clock vs on-CPU
 
 ## Status
 
-✅ Content-complete — all five tiers written ([junior](junior.md) / [middle](middle.md) / [senior](senior.md) / [professional](professional.md) / [interview](interview.md)).
+✅ Content-complete — all four tiers written ([junior](junior.md) / [middle](middle.md) / [senior](senior.md) / [professional](professional.md)).

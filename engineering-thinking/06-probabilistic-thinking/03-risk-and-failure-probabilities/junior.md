@@ -6,6 +6,13 @@
 
 ---
 
+## Quick use
+1. Name the failure window and estimate probability.
+2. State the impact in user, money, data, or downtime terms.
+3. Fix the highest probability-times-impact item first.
+
+**Decision rule:** “might break” is not enough—state likelihood and consequence.
+
 ## 1. Risk = Probability × Impact
 
 Every risk has two independent dials:
@@ -171,7 +178,9 @@ This connects to [base rates](../02-base-rates-and-expected-value/): before you 
 - Back to the [Engineering Thinking overview](../../README.md).
 
 ---
-## Check your understanding
+## Recall and apply
+
+Use these prompts to check your understanding and choose one action to try in your next task.
 
 Try to answer these questions from memory:
 

@@ -150,7 +150,15 @@ Five minutes of writing turns a private experiment into team knowledge. This is 
 Next, [middle](./middle.md) goes deeper into running spikes well, throwaway vs evolutionary prototyping, and the walking-skeleton / tracer-bullet techniques. See also the section root [Scientific & Hypothesis-Driven](../) and the [Engineering Thinking roadmap](../../README.md).
 
 ---
-## Check your understanding
+## Use it today
+
+1. Write the one question the spike must answer.
+2. Timebox it and define the evidence you need.
+3. Label the code as throwaway unless you intentionally harden it.
+
+## Recall and apply
+
+Use these prompts to check your understanding and choose one action to try in your next task.
 
 Try to answer these questions from memory:
 

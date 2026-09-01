@@ -108,7 +108,9 @@ A six-month upfront plan for a domain that's still being validated is waterfall 
 - Back to the **[roadmap root](../../README.md)**.
 
 ---
-## Check your understanding
+## Recall and apply
+
+**Practice loop:** Compare a direct plan with one alternative. Record the next step, success signal, risk, and fallback.
 
 Try to answer these questions from memory:
 

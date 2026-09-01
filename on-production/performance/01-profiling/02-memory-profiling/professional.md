@@ -13,11 +13,14 @@ Use the smallest realistic scenario that exposes the decision and its failure be
 
 ## Detecting a Slow Leak Before It OOMs
 
-A fast leak announces itself — the pod dies in minutes, the graph is a wall. The dangerous one is slow: 5–30 MB/hour, invisible inside the normal sawtooth of a healthy heap, surfacing only after days when the floor finally reaches the limit. The entire game is **separating the leak signal from GC noise**, and the single most important idea is this:
+- A fast leak announces itself — the pod dies in minutes, the graph is a wall.
+- The dangerous one is slow: 5–30 MB/hour, invisible inside the normal sawtooth of a healthy heap, surfacing only after days when the floor finally reaches the limit.
+- The entire game is **separating the leak signal from GC noise**, and the single most important idea is this:
 
 **Alert on the heap *after* GC, not on instantaneous heap.**
 
-A healthy heap is a sawtooth: it climbs as the app allocates, drops sharply when GC runs, climbs again. Instantaneous heap (or RSS) bounces between the trough and the peak constantly — alerting on it gives you false pages every time traffic spikes. The leak signature is not a high peak; it's a **rising floor**: the *post-GC* low point creeps up release over release, hour over hour. That floor is the live set — memory the collector tried to reclaim and *couldn't*, because something still references it. A rising post-GC floor is the definition of a leak.
+- A healthy heap is a sawtooth: it climbs as the app allocates, drops sharply when GC runs, climbs again. Instantaneous heap (or RSS) bounces between the trough and the peak constantly — alerting on it gives false pages every time traffic spikes.
+- The leak signature is not a high peak; it's a **rising floor**: the *post-GC* low point creeps up release over release, hour over hour. That floor is the live set — memory the collector tried to reclaim and *couldn't*, because something still references it. A rising post-GC floor is the definition of a leak.
 
 ```
 heap
@@ -51,7 +54,8 @@ jvm_memory_pool_collection_usage_bytes{pool=~"G1 Old Gen|Tenured Gen"}
     summary: "Post-GC old-gen floor rising on {{ $labels.app }} — probable leak"
 ```
 
-For Go there's no generational GC, but the same principle applies to the live heap: alert on `go_memstats_heap_inuse_bytes` *floor* trend, or better, on `runtime.MemStats.HeapAlloc` sampled right after a GC cycle. `runtime/metrics` exposes `/gc/heap/live:bytes` (the live set at the last mark-termination) — that is Go's equivalent of the post-GC floor, and the cleanest leak signal the runtime gives you.
+- For Go there's no generational GC, but the same principle applies to the live heap: alert on `go_memstats_heap_inuse_bytes` *floor* trend, or better, on `runtime.MemStats.HeapAlloc` sampled right after a GC cycle.
+- `runtime/metrics` exposes `/gc/heap/live:bytes` (the live set at the last mark-termination) — that is Go's equivalent of the post-GC floor, and the cleanest leak signal the runtime gives you.
 
 ```promql
 # Go: live heap after the last GC. Slope, not level.
@@ -60,7 +64,8 @@ deriv(go_gc_heap_live_bytes[6h]) > 5e6 / 3600
 
 > **The professional reality:** instantaneous-heap alerts get silenced within a week because they cry wolf on every traffic spike, and then nobody is watching when the real leak arrives. Alerting on the **post-GC floor slope** gives you a clean signal with days of lead time — enough to capture a dump under controlled conditions instead of doing forensics on a corpse. The metric you choose is the difference between a planned investigation and a 3 a.m. page.
 
-A second, cheaper signal worth wiring up: **`GC frequency` and `time-in-GC`**. As the live set grows toward the limit, the collector runs more often and reclaims less each time — `time-in-GC` climbs from 1–2% toward 20%+ in a death spiral well before the actual OOM. A rising GC-overhead percentage is often the *first* externally visible symptom of a leak, before the floor trend is even obvious.
+- A second, cheaper signal worth wiring up: **`GC frequency` and `time-in-GC`**. As the live set grows toward the limit, the collector runs more often and reclaims less each time — `time-in-GC` climbs from 1–2% toward 20%+ in a death spiral well before the actual OOM.
+- A rising GC-overhead percentage is often the *first* externally visible symptom of a leak, before the floor trend is even obvious.
 
 ---
 
@@ -78,13 +83,13 @@ The default JVM behavior on `OutOfMemoryError` is to die with a stack trace and 
 -XX:+ExitOnOutOfMemoryError                # don't limp on in a corrupted state — die clean
 ```
 
-The trap in Kubernetes: the dump lands on the pod's *ephemeral* filesystem, and the OOMKill + restart **deletes the pod and the dump with it**. You captured the evidence and then threw it away. The fix is to get the file *off the pod before it dies*:
+- The trap in Kubernetes: the dump lands on the pod's *ephemeral* filesystem, and the OOMKill + restart **deletes the pod and the dump with it**. You captured the evidence and then threw it away. The fix is to get the file *off the pod before it dies*:
 
-- **Mount a persistent volume at `/dumps`** (or an `emptyDir` backed by a node disk that survives the container restart but not the pod — so really, a PVC or object-store sidecar).
-- **Run a sidecar / `preStop` hook** that uploads `/dumps/*.hprof` to S3/GCS before the pod terminates. A `preStop` hook buys you `terminationGracePeriodSeconds` (default 30 s) to copy a multi-GB file — raise the grace period if your dumps are large.
-- **Size the volume.** A heap dump is roughly the size of the live heap — an 8 GB heap makes an ~8 GB file; a 20 GB heap makes a 20 GB file. If `/dumps` is 10 GB and the heap is 20 GB, the dump fails half-written and you have nothing.
+  - **Mount a persistent volume at `/dumps`** (or an `emptyDir` backed by a node disk that survives the container restart but not the pod — so really, a PVC or object-store sidecar).
+  - **Run a sidecar / `preStop` hook** that uploads `/dumps/*.hprof` to S3/GCS before the pod terminates. A `preStop` hook buys you `terminationGracePeriodSeconds` (default 30 s) to copy a multi-GB file — raise the grace period if your dumps are large.
+  - **Size the volume.** A heap dump is roughly the size of the live heap — an 8 GB heap makes an ~8 GB file; a 20 GB heap makes a 20 GB file. If `/dumps` is 10 GB and the heap is 20 GB, the dump fails half-written and you have nothing.
 
-Go's equivalent: there's no automatic heap dump on OOM, but you can register a `runtime/debug.WriteHeapDump` (low-level, for the runtime team) or, far more useful, have your service write a pprof heap profile on a `SIGUSR1` or panic path and ship it the same way.
+- Go's equivalent: there's no automatic heap dump on OOM, but you can register a `runtime/debug.WriteHeapDump` (low-level, for the runtime team) or, far more useful, have your service write a pprof heap profile on a `SIGUSR1` or panic path and ship it the same way.
 
 ### 2. On-demand capture from a live process
 
@@ -99,7 +104,7 @@ go tool pprof -inuse_space http://localhost:6060/debug/pprof/heap
 curl -s http://localhost:6060/debug/pprof/heap > heap-$(date +%s).pb.gz
 ```
 
-`-inuse_space` is the retention view (what's alive now); `-inuse_objects` counts live objects (catches "millions of tiny things"). These are the leak-hunting views. (`-alloc_space`/`-alloc_objects` are the *rate* side — that's [allocation profiling](../../05-memory-and-allocation-profiling/professional.md), not retention.)
+- `-inuse_space` is the retention view (what's alive now); `-inuse_objects` counts live objects (catches "millions of tiny things"). These are the leak-hunting views. (`-alloc_space`/`-alloc_objects` are the *rate* side — that's [allocation profiling](../../05-memory-and-allocation-profiling/professional.md), not retention.)
 
 **JVM — capture is heavier, plan for the pause.** A live heap dump via `jmap` or `jcmd` triggers a **full, stop-the-world pause** while it walks and writes the entire heap:
 
@@ -108,11 +113,13 @@ jcmd <pid> GC.heap_dump /dumps/live.hprof      # preferred; stop-the-world for t
 jmap -dump:live,format=b,file=/dumps/live.hprof <pid>   # 'live' = full GC first, then dump
 ```
 
-The `live` option runs a full GC before dumping (so you see only reachable objects — good for leak hunting, since it strips garbage), but that compounds the pause. **A 20 GB heap can pause the JVM for 10–30 seconds and write a 20 GB file** — long enough to trip liveness probes, drop the pod from the load balancer, and cause the very outage you were trying to avoid. Capture from a **canary or a deliberately drained instance** when you can, never blindly from a latency-critical node at peak.
+- The `live` option runs a full GC before dumping (so you see only reachable objects — good for leak hunting, since it strips garbage), but that compounds the pause. **A 20 GB heap can pause the JVM for 10–30 seconds and write a 20 GB file** — long enough to trip liveness probes, drop the pod from the load balancer, and cause the very outage you were trying to avoid.
+- Capture from a **canary or a deliberately drained instance** when you can, never blindly from a latency-critical node at peak.
 
 ### 3. Always-on sampling: JFR old-object-sample
 
-The JVM's best-kept leak-hunting secret is **JDK Flight Recorder's old-object sample**. JFR tracks a sample of objects that have *survived* and reports, for each, the **allocation stack trace and the GC root that retains it** — exactly the two facts you need, captured continuously at ~1% overhead, with no stop-the-world dump:
+- The JVM's best-kept leak-hunting secret is **JDK Flight Recorder's old-object sample**.
+- JFR tracks a sample of objects that have *survived* and reports, for each, the **allocation stack trace and the GC root that retains it** — exactly the two facts you need, captured continuously at ~1% overhead, with no stop-the-world dump:
 
 ```bash
 # Always-on recording with the leak profile; old-object sampling captures retained-object roots.
@@ -123,7 +130,8 @@ The JVM's best-kept leak-hunting secret is **JDK Flight Recorder's old-object sa
 jcmd <pid> JFR.dump name=leak filename=/dumps/leak.jfr
 ```
 
-Open the `.jfr` in JDK Mission Control → **Memory → Old Object Sample**, and you get a table of leaking objects with their retention paths — the same answer a heap dump gives, but without the 20 GB file or the multi-second freeze. For slow production leaks this is usually the *first* tool to reach for, with a full `hprof` dump as the fallback when you need to walk the whole object graph.
+- Open the `.jfr` in JDK Mission Control → **Memory → Old Object Sample**, and you get a table of leaking objects with their retention paths — the same answer a heap dump gives, but without the 20 GB file or the multi-second freeze.
+- For slow production leaks this is usually the *first* tool to reach for, with a full `hprof` dump as the fallback when you need to walk the whole object graph.
 
 > **The capture cost is real and asymmetric.** A Go pprof heap profile is nearly free; a JVM full heap dump is a multi-second stop-the-world freeze and a heap-sized file that can fill a disk. Know which world you're in *before* the incident: expose `/debug/pprof` in every Go service, and run JFR old-object-sample always-on in every JVM service, so that when the trend climbs you reach for the cheap continuous source first and only pay for a full dump when you truly need the complete graph.
 
@@ -133,13 +141,13 @@ Open the `.jfr` in JDK Mission Control → **Memory → Old Object Sample**, and
 
 Point-in-time capture answers "what's retained *now*." Continuous profiling answers the more useful production question: **"which function's retained (or allocated) memory has been growing over the last week?"** — a flame graph with a time axis.
 
-Tools like **Pyroscope**, **Parca**, **Grafana's continuous profiling**, and **Datadog's heap profiler** scrape the same `/debug/pprof/heap` (Go) or JFR/async-profiler stream (JVM) on a schedule — every 10–60 s — and store it as a queryable time series of stacks. You then ask:
+- Tools like **Pyroscope**, **Parca**, **Grafana's continuous profiling**, and **Datadog's heap profiler** scrape the same `/debug/pprof/heap` (Go) or JFR/async-profiler stream (JVM) on a schedule — every 10–60 s — and store it as a queryable time series of stacks. You then ask:
 
-- **A heap flame graph of `inuse_space` *right now*** — where retained bytes live, by call stack. The widest frame at the leak's retention site is your suspect.
-- **A diff flame graph between *last Tuesday* and *now*** — frames that *grew* are highlighted. A steadily widening frame across days, while traffic was flat, is the leak's signature drawn for you automatically.
-- **A single function's retained bytes over time** — pick the suspect frame, plot it; a monotonic climb confirms it.
+  - **A heap flame graph of `inuse_space` *right now*** — where retained bytes live, by call stack. The widest frame at the leak's retention site is your suspect.
+  - **A diff flame graph between *last Tuesday* and *now*** — frames that *grew* are highlighted. A steadily widening frame across days, while traffic was flat, is the leak's signature drawn for you automatically.
+  - **A single function's retained bytes over time** — pick the suspect frame, plot it; a monotonic climb confirms it.
 
-This is the production-native replacement for "SSH in and run pprof by hand." Instead of needing to *predict* when to capture, you have continuous history and can look *backward* from the moment the trend alert fired — diffing the flame graph from before the leak started against now, which points straight at the responsible call path.
+- This is the production-native replacement for "SSH in and run pprof by hand." Instead of needing to *predict* when to capture, you have continuous history and can look *backward* from the moment the trend alert fired — diffing the flame graph from before the leak started against now, which points straight at the responsible call path.
 
 ```bash
 # Pyroscope: a Go service push-or-pull profiling memory continuously.
@@ -149,15 +157,14 @@ This is the production-native replacement for "SSH in and run pprof by hand." In
 
 > **The professional shift:** continuous profiling changes leak hunting from *reactive forensics* (capture after the trend alarms) to *retrospective diff* (the history is already there; compare two points in time). The cost is modest (~1–2% overhead, plus storage), and the payoff is that "which code path grew its retained footprint since the last deploy?" becomes a query, not an expedition. For any service where OOMs have ever hurt, this is worth the overhead.
 
-A practical caveat: continuous heap profiles are *sampled* and aggregate by stack, so they're excellent at pointing you at the *function* and *call path* but not at telling you *which specific object instance* leaked or *why* it's still referenced. For the final "what GC root holds this?" step you still drop to a full heap dump (MAT) or JFR old-object-sample. Continuous profiling narrows the haystack from the whole heap to one call path; the dump finds the needle.
+- A practical caveat: continuous heap profiles are *sampled* and aggregate by stack, so they're excellent at pointing you at the *function* and *call path* but not at telling you *which specific object instance* leaked or *why* it's still referenced. For the final "what GC root holds this?" step you still drop to a full heap dump (MAT) or JFR old-object-sample. Continuous profiling narrows the haystack from the whole heap to one call path; the dump finds the needle.
 
 ---
 
 ## Triaging the OOMKill — RSS vs Heap vs Native
 
-The most confusing production memory incident is the one where **the JVM heap looks fine and the pod died anyway**. `kubectl describe pod` shows `Reason: OOMKilled`, exit code `137` (128 + SIGKILL) — but your heap dashboards are flat and well under `-Xmx`. The leak is real; it's just not in the place you're looking.
-
-The crux: **the kernel's OOM killer counts the container's *RSS* (resident set size) against the cgroup memory limit. The JVM heap is only one part of that RSS.** A Java process's total memory is:
+- The most confusing production memory incident is the one where **the JVM heap looks fine and the pod died anyway**. `kubectl describe pod` shows `Reason: OOMKilled`, exit code `137` (128 + SIGKILL) — but your heap dashboards are flat and well under `-Xmx`. The leak is real; it's just not in the place you're looking.
+- The crux: **the kernel's OOM killer counts the container's *RSS* (resident set size) against the cgroup memory limit. The JVM heap is only one part of that RSS.** A Java process's total memory is:
 
 ```
 container RSS  =  JVM heap (-Xmx)                 ← your heap dashboards show THIS
@@ -170,7 +177,8 @@ container RSS  =  JVM heap (-Xmx)                 ← your heap dashboards show 
               +  ... all of which the OOM killer counts, and -Xmx does NOT bound
 ```
 
-So the killer can fire while the heap is half-empty, because Metaspace ballooned (a classloader leak), or thread count exploded, or — most commonly — **off-heap direct memory** grew unbounded. **A heap dump will not show any of this**, because by definition it's outside the Java heap. This is the single biggest source of "I profiled the heap and found nothing" wasted days.
+- So the killer can fire while the heap is half-empty, because Metaspace ballooned (a classloader leak), or thread count exploded, or — most commonly — **off-heap direct memory** grew unbounded.
+- **A heap dump will not show any of this**, because by definition it's outside the Java heap. This is the single biggest source of "I profiled the heap and found nothing" wasted days.
 
 **Triage tree for an OOMKill:**
 
@@ -195,9 +203,9 @@ jcmd <pid> VM.native_memory baseline ; sleep 3600 ; jcmd <pid> VM.native_memory 
 # the diff after an hour shows WHICH native category grew — Metaspace? Thread? Internal? Direct?
 ```
 
-When NMT points at native allocations outside the JVM's own categories (JNI libraries, a leaking C dependency, glibc `malloc` arena fragmentation), drop to a native allocation profiler: **`jemalloc` with profiling** (`MALLOC_CONF=prof:true,...` + `jeprof`) or **`jcmd ... System.dump_map` / pmap** to see the address-space growth, or run under **`heaptrack`/`valgrind --tool=massif`** in staging. glibc's per-thread `malloc` arenas are a classic culprit: a high thread count fragments native memory; setting `MALLOC_ARENA_MAX=2` (or switching to jemalloc) often "fixes" a mysterious RSS climb that no heap tool could see.
-
-For Go, the analogue is RSS vs `go_memstats_heap_inuse_bytes`: Go's runtime can hold freed memory as RSS before returning it to the OS (controlled by `GOMEMLIMIT` and the scavenger), and **cgo / off-heap allocations don't show in pprof's heap profile at all** — a cgo leak looks exactly like the JVM off-heap case: RSS climbs, the pprof heap is flat. Same triage: compare RSS to the runtime's reported heap; if they diverge, the leak is outside the managed heap.
+- When NMT points at native allocations outside the JVM's own categories (JNI libraries, a leaking C dependency, glibc `malloc` arena fragmentation), drop to a native allocation profiler: **`jemalloc` with profiling** (`MALLOC_CONF=prof:true,...` + `jeprof`) or **`jcmd ... System.dump_map` / pmap** to see the address-space growth, or run under **`heaptrack`/`valgrind --tool=massif`** in staging.
+- glibc's per-thread `malloc` arenas are a classic culprit: a high thread count fragments native memory; setting `MALLOC_ARENA_MAX=2` (or switching to jemalloc) often "fixes" a mysterious RSS climb that no heap tool could see.
+- For Go, the analogue is RSS vs `go_memstats_heap_inuse_bytes`: Go's runtime can hold freed memory as RSS before returning it to the OS (controlled by `GOMEMLIMIT` and the scavenger), and **cgo / off-heap allocations don't show in pprof's heap profile at all** — a cgo leak looks exactly like the JVM off-heap case: RSS climbs, the pprof heap is flat. Same triage: compare RSS to the runtime's reported heap; if they diverge, the leak is outside the managed heap.
 
 > **The professional discipline:** *before* opening a heap dump for an OOMKill, compare **container RSS** (`container_memory_working_set_bytes`) to the managed-heap limit (`-Xmx` / `GOMEMLIMIT`). If RSS is far above the heap limit, **stop — the leak is off-heap, and a heap dump is the wrong tool.** Reach for NMT (JVM) or RSS-vs-runtime-heap divergence (Go) first. This one check saves the most common multi-day wild-goose chase in production memory work.
 
@@ -215,7 +223,7 @@ Finding the leak is half the job; the other half is *fixing it for good* and *pr
 4. Force a GC again, take **snapshot B**.
 5. **Diff them.** In Eclipse MAT: open both, *Histogram → Compare to another Heap Dump* — objects whose count/retained size *grew* between A and B, with traffic steady, are the leak. In Go: `go tool pprof -base=A.pb.gz B.pb.gz` shows only the *delta* in retained memory, attributed by stack.
 
-The diff is powerful precisely because it cancels out the steady-state: anything that's the same size in A and B is just the working set; only the *growth* is suspicious. A growing collection (an unbounded cache, a listener list nobody unregisters, a `ThreadLocal` never cleared) lights up immediately.
+- The diff is powerful precisely because it cancels out the steady-state: anything that's the same size in A and B is just the working set; only the *growth* is suspicious. A growing collection (an unbounded cache, a listener list nobody unregisters, a `ThreadLocal` never cleared) lights up immediately.
 
 **Endurance / soak testing to catch slow leaks pre-release.** A unit test runs for seconds and will *never* catch a 5 MB/hour leak. The discipline that catches leaks *before* they ship is the **soak test** (a.k.a. endurance test): run the service under steady, realistic load for hours-to-days in CI/staging and **assert the post-GC heap floor is flat** at the end.
 
@@ -227,7 +235,8 @@ Soak test, run nightly or pre-release:
   • FAIL  if the floor slopes up  →  a leak, caught before launch, with the test load that triggers it
 ```
 
-This is the inverse of fixing a leak in prod: instead of detecting a rising floor on a live fleet, you detect the same rising floor in a controlled run *before* the code is released — and because you control the load, you already have a reproduction. A soak test that fails *is* your repro; attach a profiler to the same run and diff snapshots A and B to attribute it.
+- This is the inverse of fixing a leak in prod: instead of detecting a rising floor on a live fleet, you detect the same rising floor in a controlled run *before* the code is released — and because you control the load, you already have a reproduction.
+- A soak test that fails *is* your repro; attach a profiler to the same run and diff snapshots A and B to attribute it.
 
 > **The closing-the-loop principle:** a leak isn't fixed when you find it — it's fixed when a **snapshot diff under load shows the growth is gone** and a **soak test in CI will fail if it ever comes back**. Production detection (post-GC floor slope) and pre-release prevention (soak test asserting a flat floor) are the *same measurement* applied at two ends of the lifecycle. Wire up both and slow leaks stop reaching production.
 
@@ -260,17 +269,11 @@ This is the inverse of fixing a leak in prod: instead of detecting a rising floo
 ## Common Mistakes
 
 1. **Alerting on instantaneous heap or RSS.** It bounces between the GC trough and peak, fires on every traffic spike, and gets muted within a week — so nobody's watching when the real leak lands. Alert on the **post-GC floor slope** (`*_collection_usage` / `/gc/heap/live`) instead.
-
 2. **Configuring `HeapDumpOnOutOfMemoryError` but losing the dump.** The dump lands on the pod's ephemeral disk and the OOMKill + restart deletes it. Mount a PVC, ship it off in a `preStop`/sidecar before termination, and size the volume ≥ the heap.
-
 3. **Taking a live heap dump from a latency-critical node at peak.** A 20 GB dump is a 10–30 s stop-the-world freeze that trips liveness probes and causes the outage you were preventing. Dump a canary or drained instance, or use JFR old-object-sample.
-
 4. **Opening a heap dump for an off-heap OOM.** "OOMKilled, heap flat" almost always means off-heap (Metaspace, threads, direct buffers, native). A heap dump shows nothing because the leak is *outside the heap*. Compare RSS to `-Xmx` first; if RSS is far higher, go to NMT.
-
 5. **Forgetting that Metaspace and direct memory are unbounded by default.** A classloader leak fills Metaspace; a `ByteBuf` leak fills direct memory; neither is capped by `-Xmx`. Set `-XX:MaxMetaspaceSize` and `-XX:MaxDirectMemorySize` so the leak fails *loud and early* and attributably, instead of as a mysterious RSS creep.
-
 6. **Confusing allocation rate with retention.** `-alloc_space` (Go) / a high allocation flame graph tells you what *churns*, not what *leaks*. For a leak you want `-inuse_space`/`-inuse_objects` and the *retained* size in a dominator tree. (Allocation-rate work is [05 — Memory and Allocation Profiling](../../05-memory-and-allocation-profiling/professional.md).)
-
 7. **Declaring victory without a soak test.** A fix verified only by a unit test is unverified for leaks — units run for seconds. Prove it with a snapshot diff under load and lock it in with a soak test that fails on a rising floor.
 
 ---
@@ -296,3 +299,8 @@ This is the inverse of fixing a leak in prod: instead of detecting a rising floo
 - Which team owns the full lifecycle and incident response?
 - What reversible increment produces the earliest useful evidence?
 - Which exit condition proves that migration or adoption is complete?
+- Design a production heap-capture playbook for a fleet of JVM services — what goes in place *before* an incident?
+- How do you soak-test for memory leaks, and what exactly do you measure?
+- You can alert on only one memory metric — which one, and why not just "heap usage > 90%"?
+- When are weak or soft references the right tool, and how can they themselves cause a leak?
+- A container is OOMKilled but the heap dump you captured is healthy — walk through the triage.

@@ -27,4 +27,4 @@ Allocation profiling attributes *where allocations happen*, not what stays alive
 
 ## Status
 
-✅ Content-complete — all five tiers written ([junior](junior.md) / [middle](middle.md) / [senior](senior.md) / [professional](professional.md) / [interview](interview.md)).
+✅ Content-complete — all four tiers written ([junior](junior.md) / [middle](middle.md) / [senior](senior.md) / [professional](professional.md)).

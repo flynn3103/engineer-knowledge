@@ -125,7 +125,13 @@ See the [section overview](../) for how the sibling techniques — [inversion](.
 **Takeaway:** Sequence the modes — diverge then converge, twice. Measure your divergence by flexibility, not just count, and keep convergence honest by fixing the criteria before you ever see the options.
 
 ---
-## Check your understanding
+## Use it today
+
+1. Run both diamonds: widen and define the problem, then widen and choose a solution.
+2. Require options from different categories, not minor variants.
+3. Set criteria, weights, and a decision time before the comparison.
+
+## Recall and apply
 
 Try to answer these questions from memory:
 

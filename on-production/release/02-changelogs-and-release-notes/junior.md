@@ -28,7 +28,11 @@ A concrete example. Suppose you renamed a configuration key from `timeout` to `r
 - **Release notes** line: `Timeouts are now specified in milliseconds for clarity.`
 - **Migration guide** step: `1. In your config file, rename timeout: 30 to request_timeout_ms: 30000. 2. Restart the service.`
 
-Same change, three audiences. The CHANGELOG reader wants completeness. The release-notes reader wants the headline. The migration reader wants a recipe they can follow without thinking.
+Same change, three audiences:
+
+- The CHANGELOG reader wants completeness.
+- The release-notes reader wants the headline.
+- The migration reader wants a recipe they can follow without thinking.
 
 > At small scale these may live in the same file or even the same release post. That is fine — but you should still know *which sentence is doing which job*. Conflating them fails when an entry like "refactored the timeout subsystem" is useless to a user and dangerous to someone upgrading.
 
@@ -88,7 +92,13 @@ Keep a Changelog defines exactly six categories. Memorize them; they cover every
 | **Fixed** | Bug fixes. |
 | **Security** | Vulnerability fixes. Always call these out separately. |
 
-Why these six and not free-form headings? Because a reader scanning a release wants to answer specific questions fast: *Did anything break (Removed/Changed)? Do I need to patch urgently (Security)? Is something I rely on going away (Deprecated)?* Fixed-vocabulary groups make that scan instant.
+Why these six and not free-form headings? A reader scanning a release wants to answer specific questions fast:
+
+- Did anything break? (Removed/Changed)
+- Do I need to patch urgently? (Security)
+- Is something I rely on going away? (Deprecated)
+
+Fixed-vocabulary groups make that scan instant.
 
 ```markdown
 ## [2.0.0] - 2026-06-01
@@ -156,7 +166,7 @@ Conventions:
 
 - **Issue or PR number** in parentheses at the end: `(#327)`. On GitHub/GitLab, `#327` autolinks inside the repo.
 - **Security entries link to the CVE or advisory:** `(CVE-2026-12345)` or a `GHSA-xxxx` GitHub Security Advisory.
-- **Diff links per version.** Many changelogs put compare links at the bottom so a reader can see the full diff between two releases:
+- **Diff links per version.** Put compare links at the bottom so a reader can see the full diff between two releases:
 
 ```markdown
 [Unreleased]: https://github.com/acme/app/compare/v1.4.0...HEAD
@@ -198,7 +208,10 @@ These links make the version headers (`## [1.4.0]`) clickable and turn the chang
 > **v3.2.0 — YAML config and quieter logs**
 > You can now write your configuration in YAML. We also switched the default log level to `info`, so your logs will be much cleaner out of the box. The old `--verbose` flag still works for now but will be removed in v4.
 
-Same release. The changelog is exhaustive and links every PR. The release note picks two highlights and speaks to the user's benefit.
+Same release, two documents:
+
+- The changelog is exhaustive and links every PR.
+- The release note picks two highlights and speaks to the user's benefit.
 
 ---
 
@@ -256,3 +269,8 @@ Entry rules:
 - Which input changes the observed result, and why?
 - What is the smallest useful success check?
 - Which beginner mistake would your evidence catch?
+- What's the difference between a changelog, release notes, and a migration guide?
+- What are the required parts of a Keep a Changelog entry (sections, date format, ordering)?
+- Why should changelog dates be ISO format and listed newest-first?
+- What tense and language should a changelog entry use, and why?
+- Where and when in the development process should you add a changelog entry?

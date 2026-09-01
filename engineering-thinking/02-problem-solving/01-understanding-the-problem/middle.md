@@ -132,7 +132,9 @@ Only after step 7 do you move on to [devising a plan](../02-devising-a-plan/).
 **Connected ideas:** Breaking a now-understood problem into parts is [decomposition](../../01-computational-thinking/01-decomposition/). When the problem is a defect, understanding *is* reproduction — see [debugging as problem-solving](../05-debugging-as-problem-solving/). After solving, you check whether you understood it correctly all along in [looking back and reflecting](../04-looking-back-and-reflecting/). Back to the [problem-solving section](../) and the [roadmap root](../../README.md).
 
 ---
-## Check your understanding
+## Recall and apply
+
+**Practice loop:** Restate one live problem, list its constraints and unknowns, then confirm them with the right person or evidence.
 
 Try to answer these questions from memory:
 

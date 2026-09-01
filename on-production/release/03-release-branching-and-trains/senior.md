@@ -25,9 +25,10 @@ Don't start from "GitFlow vs trunk-based." Start from constraints and derive the
 | Large team, high parallel WIP | Trunk-based + flags (NOT more long-lived branches) |
 | Hardware/firmware long cycle | Longer-lived stabilization branches are acceptable |
 
-The single best predictor is **deploy frequency relative to how long features take**. If you deploy faster than features complete, you *cannot* gate releases on feature completion — you must decouple deploy from release using flags, and your branch model collapses toward trunk-based. If you ship infrequently to many fixed installations, isolation matters more and explicit release/maintenance branches earn their keep.
-
-A common senior mistake is importing a model from a previous company whose constraints differed. Re-derive it.
+- The single best predictor is **deploy frequency relative to how long features take**.
+  - If you deploy faster than features complete, you *cannot* gate releases on feature completion — you must decouple deploy from release using flags, and your branch model collapses toward trunk-based.
+  - If you ship infrequently to many fixed installations, isolation matters more and explicit release/maintenance branches earn their keep.
+- A common senior mistake is importing a model from a previous company whose constraints differed. Re-derive it.
 
 ---
 
@@ -43,7 +44,10 @@ flowchart LR
   D --> E[Late, surprising bugs]
 ```
 
-The mechanism: while the branch lives, `main` changes underneath it. Every change on either side is a potential conflict at merge time — semantic, not just textual (the famous case where neither side conflicts in `git` but the combined behavior is wrong). Worse, the *testing* you did on the branch was against a stale `main`, so you re-test from scratch after merge. This is **merge debt**, and like financial debt it compounds.
+- The mechanism:
+  - While the branch lives, `main` changes underneath it.
+  - Every change on either side is a potential conflict at merge time — semantic, not just textual (the famous case where neither side conflicts in `git` but the combined behavior is wrong).
+  - Worse, the *testing* you did on the branch was against a stale `main`, so you re-test from scratch after merge. This is **merge debt**, and like financial debt it compounds.
 
 Concrete senior heuristics:
 - **Cap branch lifetime.** A release branch should live from branch point to GA + hotfix window — weeks, not quarters.
@@ -54,20 +58,22 @@ Concrete senior heuristics:
 
 ## Core Concept 3 — Feature flags as a branch replacement
 
-The reason trunk-based works at scale is that **feature flags replace long-lived feature branches**. Instead of isolating incomplete work on a branch, you merge it to `main` *disabled* and integrate continuously.
+- The reason trunk-based works at scale is that **feature flags replace long-lived feature branches**.
+- Instead of isolating incomplete work on a branch, you merge it to `main` *disabled* and integrate continuously.
 
 ```
 Old way:  feature/big-thing lives 6 weeks ──► giant risky merge
 Flag way: merge daily to main, code OFF behind flag, flip on when ready
 ```
 
-This converts a *branch-management* problem (divergence, merge debt) into a *runtime-configuration* problem (flag lifecycle, flag debt) — generally a better trade because flags are observable, reversible at runtime, and don't block others' integration. Key senior considerations:
+- This converts a *branch-management* problem (divergence, merge debt) into a *runtime-configuration* problem (flag lifecycle, flag debt) — generally a better trade because flags are observable, reversible at runtime, and don't block others' integration.
 
+Key senior considerations:
 - **Branch by abstraction** for changes too invasive for a simple boolean: introduce an interface, build the new implementation behind it on `main`, switch over, delete the old path.
 - **Dark launches**: ship code to production off, then enable per-cohort — this is also your rollback mechanism (flip the flag, not the deploy).
 - **Flags are debt too.** Stale flags rot; you need a flag-retirement discipline. (See [Feature Flags & Progressive Delivery](../06-feature-flags-and-progressive-delivery/README.md).)
 
-The strategic insight: in a flag-driven org, the *release branch shrinks or disappears*, because the thing it used to provide — a way to ship a stable subset while risky work continues elsewhere — is now provided at runtime by flags.
+- The strategic insight: in a flag-driven org, the *release branch shrinks or disappears*, because the thing it used to provide — a way to ship a stable subset while risky work continues elsewhere — is now provided at runtime by flags.
 
 ---
 
@@ -94,7 +100,7 @@ The payoff: GA is "flip the pointer to the already-soaked digest," a near-zero-r
 
 ## Core Concept 5 — Cherry-pick governance at scale
 
-On a small repo, cherry-pick policy is a convention. On a large/regulated repo it's **governance**: a documented, enforced, auditable process.
+- On a small repo, cherry-pick policy is a convention. On a large/regulated repo it's **governance**: a documented, enforced, auditable process.
 
 ```bash
 # Common pattern: PRs labeled for backport, automation opens the cherry-pick PR
@@ -143,10 +149,10 @@ A freeze is a deliberate restriction on what can change, and a senior owns both 
 | Code freeze | All but critical fixes | Final validation window |
 | Deploy freeze | Production deploys | High-risk window (peak sales, holidays) |
 
-A freeze without an **exception process** is either ignored or paralyzing. Design the exception path explicitly:
-- **Who can grant an exception** (release manager / on-call lead), and on what evidence (severity, blast radius, rollback plan).
-- **What an exception costs**: extra review, re-soak, a recorded justification — friction proportional to risk, so exceptions stay rare.
-- **Break-glass** for emergencies: a pre-authorized fast path that *still* logs everything, so safety and auditability survive even when speed is essential. (This mirrors break-glass in quality gates — the override must be observable.)
+- A freeze without an **exception process** is either ignored or paralyzing. Design the exception path explicitly:
+  - **Who can grant an exception** (release manager / on-call lead), and on what evidence (severity, blast radius, rollback plan).
+  - **What an exception costs**: extra review, re-soak, a recorded justification — friction proportional to risk, so exceptions stay rare.
+  - **Break-glass** for emergencies: a pre-authorized fast path that *still* logs everything, so safety and auditability survive even when speed is essential. (This mirrors break-glass in quality gates — the override must be observable.)
 
 The goal is a freeze that's a real constraint but not a brick wall: predictable by default, overridable with accountability.
 
@@ -154,7 +160,7 @@ The goal is a freeze that's a real constraint but not a brick wall: predictable 
 
 ## Core Concept 8 — Automating the release branch
 
-Manual release branching is where tribal knowledge and 2 a.m. mistakes live. Senior teams automate the mechanics so humans only make *decisions*.
+- Manual release branching is where tribal knowledge and 2 a.m. mistakes live. Senior teams automate the mechanics so humans only make *decisions*.
 
 ```yaml
 # Conceptual: a scheduled job cuts the train branch every cadence
@@ -221,3 +227,8 @@ Leave to humans: go/no-go on gates, exception decisions, and "is this the releas
 - Where should recovery responsibility live, and why?
 - Which assumption deserves an experiment before implementation?
 - How can the design evolve without changing every consumer at once?
+- Why does merge debt grow non-linearly with branch lifetime, and what heuristics keep it bounded?
+- How would you design a promotion pipeline so rebuilding is impossible by construction?
+- Walk through a sev-1 security bug found during code freeze, affecting three supported versions.
+- How do you design freeze governance so an exception process doesn't become either ignored or paralyzing?
+- What should be automated in a release branch workflow, and what must stay a human decision?

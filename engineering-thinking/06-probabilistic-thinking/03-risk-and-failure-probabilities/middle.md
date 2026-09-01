@@ -6,6 +6,13 @@
 
 ---
 
+## Quick use
+1. Draw the request path and calculate series and parallel availability.
+2. Measure MTBF and MTTR.
+3. Compare reducing failure frequency with reducing recovery time.
+
+**Decision rule:** improve the cheaper lever that most reduces user-visible unavailability.
+
 ## 1. Recap: Series Multiplies Down
 
 For components that *all* must work (a series chain), availabilities multiply:
@@ -178,7 +185,7 @@ When asked "how available is this?", do this:
 - Related: [evaluating tradeoffs objectively](../../04-critical-thinking/04-evaluating-tradeoffs-objectively/), [systems thinking](../../03-systems-thinking/), the [section root](../), and the [Engineering Thinking overview](../../README.md).
 
 ---
-## Check your understanding
+## Recall and apply
 
 Try to answer these questions from memory:
 

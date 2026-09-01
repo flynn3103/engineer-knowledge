@@ -16,14 +16,18 @@ Use the smallest realistic scenario that exposes the decision and its failure be
 
 SLSA's value is that each level is defined by the *attacks it forecloses*. Reason about it as a ladder, not a score.
 
-**Build L1 — provenance exists, build is scripted.**
-The build runs from a script (no manual `docker build` on a laptop) and emits provenance describing how. Defeats: *"nobody knows how this was built."* It gives you a record. It does **not** stop tampering — the provenance can be forged because nothing authoritative signs it.
-
-**Build L2 — provenance is signed by a hosted build service.**
-A hosted, version-controlled build platform generates and *signs* provenance. The provenance is now authenticated, tied to a builder identity. Defeats: *forged provenance* and *"I built it on my machine and lied about it."* It does **not** stop a build that is itself influenced by the thing being built (a malicious `Makefile`, a poisoned dependency executing at build time).
-
-**Build L3 — hardened, isolated builder; non-falsifiable provenance.**
-The builder runs each build in isolation so one build cannot influence another or forge another's provenance; secret material used to sign provenance is inaccessible to user-defined build steps. Defeats: *cross-build contamination*, *provenance forgery by the build itself*, *exfiltration of the provenance-signing key by build code.* This is the level where provenance becomes genuinely *non-falsifiable by the user*.
+- **Build L1 — provenance exists, build is scripted.**
+  - The build runs from a script (no manual `docker build` on a laptop) and emits provenance describing how.
+  - Defeats: *"nobody knows how this was built."*
+  - Does **not** stop tampering — the provenance can be forged because nothing authoritative signs it.
+- **Build L2 — provenance is signed by a hosted build service.**
+  - A hosted, version-controlled build platform generates and *signs* provenance, tied to a builder identity.
+  - Defeats: *forged provenance* and *"I built it on my machine and lied about it."*
+  - Does **not** stop a build that is itself influenced by the thing being built (a malicious `Makefile`, a poisoned dependency executing at build time).
+- **Build L3 — hardened, isolated builder; non-falsifiable provenance.**
+  - The builder runs each build in isolation so one build cannot influence another or forge another's provenance; secret material used to sign provenance is inaccessible to user-defined build steps.
+  - Defeats: *cross-build contamination*, *provenance forgery by the build itself*, *exfiltration of the provenance-signing key by build code.*
+  - This is the level where provenance becomes genuinely *non-falsifiable by the user*.
 
 ```bash
 # Verify you actually received L3-grade, builder-signed provenance
@@ -32,7 +36,7 @@ slsa-verifier verify-image ghcr.io/acme/app@sha256:5d41402abc... \
   --builder-id "https://github.com/slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@refs/tags/v2.0.0"
 ```
 
-What *no* Build level addresses: a compromised **source repo** (the commit itself is malicious) and a malicious **dependency** pulled in legitimately. Those are different threat surfaces — see Supply-Chain Security.
+- What *no* Build level addresses: a compromised **source repo** (the commit itself is malicious) and a malicious **dependency** pulled in legitimately. Those are different threat surfaces — see Supply-Chain Security.
 
 ---
 
@@ -55,23 +59,20 @@ It does **not** defeat:
 | Trusted insider with signing identity | They are, by definition, an allowed signer. |
 | A *bug* you shipped | Signing has no opinion on correctness. |
 
-The SolarWinds attack is the canonical illustration: the *build system* was subverted, so malicious updates were *correctly signed* and passed every signature check downstream. The defense there is not "more signatures" — it is **L3 builder hardening, reproducible builds, and source controls**, narrowing how the build can be subverted in the first place.
-
-Senior takeaway: present signing as **one layer**. It collapses the "transport and storage" attack surface to near zero and makes provenance auditable, but the *source → build* surface needs separate controls.
+- The SolarWinds attack is the canonical illustration: the *build system* was subverted, so malicious updates were *correctly signed* and passed every signature check downstream. The defense there is not "more signatures" — it is **L3 builder hardening, reproducible builds, and source controls**, narrowing how the build can be subverted in the first place.
+- Senior takeaway: present signing as **one layer**. It collapses the "transport and storage" attack surface to near zero and makes provenance auditable, but the *source → build* surface needs separate controls.
 
 ---
 
 ## Core Concept 3 — Reproducible builds as a trust primitive
 
-A signature says "*I* built these bytes." A **reproducible build** says "*anyone* can rebuild the same bytes from the same source and check." That is qualitatively stronger: it converts trust in *you* into independently verifiable fact.
-
-A build is reproducible when identical sources plus a recorded environment yield **bit-for-bit identical output**. The enemy is non-determinism. The usual sources and fixes:
-
-- **Embedded timestamps** → honor `SOURCE_DATE_EPOCH`.
-- **Absolute build paths** baked into binaries → strip/remap (`-ffile-prefix-map`, Go's `-trimpath`).
-- **Non-deterministic ordering** (map iteration, parallel output, archive member order) → sort; use deterministic archivers.
-- **Locale / timezone / hostname / `umask`** leaking in → pin in the build environment.
-- **Unpinned dependencies** → lockfiles + content-addressed fetches.
+- A signature says "*I* built these bytes." A **reproducible build** says "*anyone* can rebuild the same bytes from the same source and check." That is qualitatively stronger: it converts trust in *you* into independently verifiable fact.
+- A build is reproducible when identical sources plus a recorded environment yield **bit-for-bit identical output**. The enemy is non-determinism. Usual sources and fixes:
+  - **Embedded timestamps** → honor `SOURCE_DATE_EPOCH`.
+  - **Absolute build paths** baked into binaries → strip/remap (`-ffile-prefix-map`, Go's `-trimpath`).
+  - **Non-deterministic ordering** (map iteration, parallel output, archive member order) → sort; use deterministic archivers.
+  - **Locale / timezone / hostname / `umask`** leaking in → pin in the build environment.
+  - **Unpinned dependencies** → lockfiles + content-addressed fetches.
 
 ```bash
 # Go: trim paths and pin the build timestamp
@@ -87,7 +88,7 @@ sha256sum app && (cd /tmp/clean && go build -trimpath -o app2 ./cmd/app && sha25
 diffoscope app app2
 ```
 
-Reproducibility lets a verifier rebuild and compare, turning "trust the publisher" into "verify the publisher." It is the trust primitive behind Debian's reproducible-builds effort and a strong complement to SLSA: provenance says *how* it was built; reproducibility lets you *check the claim*.
+- Reproducibility lets a verifier rebuild and compare, turning "trust the publisher" into "verify the publisher." It is the trust primitive behind Debian's reproducible-builds effort and a strong complement to SLSA: provenance says *how* it was built; reproducibility lets you *check the claim*.
 
 ---
 
@@ -99,9 +100,9 @@ Build L3 demands a builder where:
 - The **provenance-signing material is unreachable** from user build steps. If `make` could read the signing key, malicious build code could mint false provenance.
 - The build definition is **version-controlled and immutable** for a given run.
 
-Practical realizations: GitHub Actions reusable workflows used via the SLSA generator (the signing happens in a context the job's own steps cannot touch), Google Cloud Build with provenance, Tekton Chains with isolated task pods. The common thread is **separation between "code under build" and "the authority that signs the provenance."**
-
-Pair this with **hermetic builds** — no network during the build, all inputs pinned and content-addressed — so the build cannot pull in unrecorded, mutable inputs. Hermeticity is what makes provenance *complete*; isolation is what makes it *trustworthy*.
+- Practical realizations: GitHub Actions reusable workflows used via the SLSA generator (the signing happens in a context the job's own steps cannot touch), Google Cloud Build with provenance, Tekton Chains with isolated task pods.
+- The common thread: **separation between "code under build" and "the authority that signs the provenance."**
+- Pair this with **hermetic builds** — no network during the build, all inputs pinned and content-addressed — so the build cannot pull in unrecorded, mutable inputs. Hermeticity is what makes provenance *complete*; isolation is what makes it *trustworthy*.
 
 ---
 
@@ -146,7 +147,8 @@ spec:
                       value: true
 ```
 
-Policy-as-code gives you review, diff, rollout staging (`Audit` → `Enforce`), and a single source of truth. Treat the policy repo like any other production code: PRs, tests against known-good and known-bad images, and a break-glass path (see Professional level and the **quality-gates** topic).
+- Policy-as-code gives you review, diff, rollout staging (`Audit` → `Enforce`), and a single source of truth.
+- Treat the policy repo like any other production code: PRs, tests against known-good and known-bad images, and a break-glass path (see Professional level and the **quality-gates** topic).
 
 ---
 
@@ -158,7 +160,7 @@ Keyless removes per-publisher keys but does not remove *trust roots*. A verifier
 - **Rekor's key** — to mean log entries are authentic.
 - The **OIDC issuer** — to mean an identity assertion is real.
 
-Sigstore distributes and rotates these via **TUF (The Update Framework)**, which provides secure, rotatable, replay-resistant root distribution. `cosign initialize` fetches/refreshes the TUF root; air-gapped or high-assurance orgs may run their **own Sigstore stack** (private Fulcio/Rekor) and pin their own root.
+- Sigstore distributes and rotates these via **TUF (The Update Framework)**, which provides secure, rotatable, replay-resistant root distribution. `cosign initialize` fetches/refreshes the TUF root; air-gapped or high-assurance orgs may run their **own Sigstore stack** (private Fulcio/Rekor) and pin their own root.
 
 ```bash
 # Refresh the trust root (public good instance)
@@ -168,7 +170,8 @@ cosign initialize
 cosign verify --trusted-root=trusted_root.json ...
 ```
 
-**Revocation** works differently than with long-lived keys. There is no "revoke this key" because the key lived minutes. Instead you respond by **tightening verification policy**: if a workflow or identity is compromised, you stop *accepting* its signatures (narrow the allowed identity/issuer, or cut off a time window using Rekor timestamps). The Rekor log is also how you *audit* what a compromised identity signed and when. This is a different operational mindset — you manage *acceptance policy*, not key lifecycles.
+- **Revocation** works differently than with long-lived keys. There is no "revoke this key" because the key lived minutes. Instead you respond by **tightening verification policy**: if a workflow or identity is compromised, you stop *accepting* its signatures (narrow the allowed identity/issuer, or cut off a time window using Rekor timestamps).
+- The Rekor log is also how you *audit* what a compromised identity signed and when. This is a different operational mindset — you manage *acceptance policy*, not key lifecycles.
 
 ---
 
@@ -228,3 +231,8 @@ The senior skill is choosing *where in the lifecycle* verification happens (buil
 - Where should recovery responsibility live, and why?
 - Which assumption deserves an experiment before implementation?
 - How can the design evolve without changing every consumer at once?
+- How do SLSA Build levels L1, L2, and L3 differ in the attacks each one defeats?
+- A registry is fully compromised — what does signing protect against, and what does it not?
+- Why are reproducible builds a stronger trust primitive than signing alone?
+- How does revocation work under keyless signing, since there's no long-lived key to revoke?
+- What does Rekor provide that a bare signature does not?

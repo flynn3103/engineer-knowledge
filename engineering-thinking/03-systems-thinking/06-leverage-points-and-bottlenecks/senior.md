@@ -117,7 +117,9 @@ The hardest senior judgment is step 6's *stop*: recognizing that the constraint 
 - [Measure before you optimize](../../09-scientific-and-hypothesis-driven/03-measure-before-optimize/) — supplies the `p` that every Amdahl and ToC decision needs.
 
 ---
-## Check your understanding
+## Recall and apply
+
+**Practice loop:** Find the limiting step, state the evidence, try the smallest high-leverage change, and measure the whole-system result.
 
 Try to answer these questions from memory:
 

@@ -5,6 +5,13 @@
 
 ---
 
+## Quick use
+1. Set a measurable target.
+2. Classify assumptions as law, requirement, or convention.
+3. Model the binding resource, then investigate the gap.
+
+**Decision rule:** use analogy for routine reversible work; derive when the numbers do not reconcile.
+
 ## 1. The two modes, made precise
 
 Aristotle's *archai* and Descartes' method of doubt are the philosophical roots, but as an engineer you need an operational version. Here it is:
@@ -172,7 +179,7 @@ The pattern: **fundamentals earns its cost where reversibility is low or the flo
 The next step is to systematize *which* assumptions to attack — see [questioning assumptions](../02-questioning-assumptions/) — and to place this reasoning inside the larger frame of [systems thinking](../../03-systems-thinking/).
 
 ---
-## Check your understanding
+## Recall and apply
 
 Try to answer these questions from memory:
 

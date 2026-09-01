@@ -13,14 +13,14 @@ Use the smallest realistic scenario that exposes the decision and its failure be
 
 ## Core Concept 1 — A Versioning Policy as a Governed Standard
 
-A written policy that nobody enforces is decoration. A professional version policy is a **standard** — versioned itself, owned by a named group, and binding by default. It answers, unambiguously:
-
-- **What schemes are allowed for what artifact classes** (libraries → SemVer; deploy-only services → CalVer or SHA; contracts → SemVer on the contract). No per-team improvisation.
-- **The canonical breaking-change definition**, including the edge cases your org has been bitten by (error messages, enum additions, raised runtime minimums, default changes).
-- **The source of truth** for each artifact class (tag-derived vs manifest-derived) and the CI assertion that enforces it.
-- **The bump-derivation mechanism**: human-declared via Conventional Commits, machine-derived via API diff, or both with the diff as a floor.
-- **The minimum deprecation window per artifact class**, and who may grant exceptions.
-- **The exception path** — because there is always one, and undocumented exceptions become the norm.
+- A written policy that nobody enforces is decoration.
+- A professional version policy is a **standard** — versioned itself, owned by a named group, and binding by default. It answers, unambiguously:
+  - **What schemes are allowed for what artifact classes** (libraries → SemVer; deploy-only services → CalVer or SHA; contracts → SemVer on the contract). No per-team improvisation.
+  - **The canonical breaking-change definition**, including the edge cases your org has been bitten by (error messages, enum additions, raised runtime minimums, default changes).
+  - **The source of truth** for each artifact class (tag-derived vs manifest-derived) and the CI assertion that enforces it.
+  - **The bump-derivation mechanism**: human-declared via Conventional Commits, machine-derived via API diff, or both with the diff as a floor.
+  - **The minimum deprecation window per artifact class**, and who may grant exceptions.
+  - **The exception path** — because there is always one, and undocumented exceptions become the norm.
 
 ```yaml
 # Excerpt of a machine-readable org version policy (consumed by CI lint)
@@ -40,11 +40,12 @@ artifact_classes:
     registry_enforced: true
 ```
 
-The point of encoding it as data: the policy is then *checkable*, not merely *readable*.
+- The point of encoding it as data: the policy is then *checkable*, not merely *readable*.
 
 ## Core Concept 2 — Enforcing the Contract in the Platform
 
-Policy lives in the pipeline, not in a wiki. The professional move is to make the *correct* versioning behavior the path of least resistance and the incorrect behavior impossible to merge.
+- Policy lives in the pipeline, not in a wiki.
+- The professional move is to make the *correct* versioning behavior the path of least resistance and the incorrect behavior impossible to merge.
 
 **Bump derivation, automated.** Conventional Commits feed a release tool that computes the version and the changelog, removing human bump-choice entirely for the common case.
 
@@ -77,11 +78,12 @@ deny[msg] {
 }
 ```
 
-This is the same principle as [Quality Gates](../../testing/README.md) applied to versioning: the standard is enforced by the system, so compliance does not depend on diligence.
+- This is the same principle as [Quality Gates](../../testing/README.md) applied to versioning: the standard is enforced by the system, so compliance does not depend on diligence.
 
 ## Core Concept 3 — Versioning the Internal Platform: Protos, Schemas, Templates
 
-The highest-leverage versioning in a large org is rarely application code — it is the **shared internal contracts** that every team depends on: the proto/IDL repository, the event schemas, the shared base images, the IaC modules, and the pipeline templates. A breaking change to any of these is a fleveraged break across the whole company.
+- The highest-leverage versioning in a large org is rarely application code — it is the **shared internal contracts** that every team depends on: the proto/IDL repository, the event schemas, the shared base images, the IaC modules, and the pipeline templates.
+- A breaking change to any of these is a leveraged break across the whole company.
 
 **The central proto/IDL repository.** One source of truth, with compatibility *enforced at publish*:
 
@@ -92,7 +94,7 @@ buf breaking --against '.git#branch=main'
 #   FAIL — breaking change against main
 ```
 
-The proto repo's policy is typically **additive-only on the main line**; a breaking change requires a new package version (`acme.user.v2`) so `v1` consumers are untouched — the proto equivalent of Go's `/v2`.
+- The proto repo's policy is typically **additive-only on the main line**; a breaking change requires a new package version (`acme.user.v2`) so `v1` consumers are untouched — the proto equivalent of Go's `/v2`.
 
 **Event schemas via a registry with `FULL` or `BACKWARD` compatibility**, so a producer literally cannot publish a schema that breaks a consumer. Versioning becomes a property the platform guarantees rather than a convention teams follow.
 
@@ -106,7 +108,7 @@ module "vpc" {
 }
 ```
 
-The governing rule: **a platform contract that thousands depend on may evolve additively without ceremony, but a breaking change is a new versioned namespace plus a migration program — never an in-place edit.**
+- The governing rule: **a platform contract that thousands depend on may evolve additively without ceremony, but a breaking change is a new versioned namespace plus a migration program — never an in-place edit.**
 
 ## Core Concept 4 — Org-Wide Dependency Health and the Diamond at Scale
 
@@ -122,11 +124,12 @@ sbom-query 'pkg:maven/org.apache.logging.log4j/log4j-core@<2.17.0'
 
 **Automated, fleet-wide version advancement.** Renovate/Dependabot open PRs across all repos; the goal is keeping the estate close to the leading edge so the gap to any required upgrade (security or otherwise) is small. A fleet that floats 18 months behind cannot respond to a zero-day in hours.
 
-The diamond at scale also has a **convergence** cost: the more versions of a shared library are live across the fleet, the more compatibility surface the platform team maintains. Professional practice actively *narrows* the spread — campaigns to retire old majors, hard deprecation deadlines, and "version floor" policies ("no service may depend on `auth-lib < 5.0` after Q3").
+- The diamond at scale also has a **convergence** cost: the more versions of a shared library are live across the fleet, the more compatibility surface the platform team maintains.
+- Professional practice actively *narrows* the spread — campaigns to retire old majors, hard deprecation deadlines, and "version floor" policies ("no service may depend on `auth-lib < 5.0` after Q3").
 
 ## Core Concept 5 — The Economics of a MAJOR
 
-A MAJOR version bump is not a number; it is a **bill paid by every consumer**. At org scale this cost is quantifiable, and a professional treats it as a budget to be justified.
+- A MAJOR version bump is not a number; it is a **bill paid by every consumer**. At org scale this cost is quantifiable, and a professional treats it as a budget to be justified.
 
 ```
 Cost of a MAJOR ≈ (number of consumers) × (per-consumer migration effort)
@@ -148,7 +151,7 @@ npx @acme/migrate-v2 ./src
 - **Parallel-run the old major during the window.** `v1` and `v2` coexist (via import path, package namespace, or a compatibility shim) so migration is incremental, not a flag day.
 - **A break with no migration plan should not ship.** Policy: a MAJOR PR is blocked until it carries a migration guide, a codemod (where mechanical), and a funded window — turning "I'd like to break this" into "here is the cost and the plan."
 
-This is where the `api-versioning` skill's deprecation and migration strategies become operational policy rather than advice.
+- This is where the `api-versioning` skill's deprecation and migration strategies become operational policy rather than advice.
 
 ## Core Concept 6 — Deprecation Policy and Sunset Governance
 
@@ -191,7 +194,8 @@ A real org runs many artifact classes at once; the policy assigns each the schem
 | Container base image | SemVer, pinned by digest downstream | Reproducibility + controlled advancement. |
 | IaC / pipeline template | SemVer | Consumers pin ranges; breaks must signal. |
 
-The error to avoid is **monoculture by mandate** — forcing SemVer onto deploy-only services produces meaningless `3.0.0` bumps, while forcing CalVer onto libraries strips the compatibility signal integrators need. The policy's sophistication is in matching scheme to artifact class, then enforcing *that* mapping uniformly.
+- The error to avoid is **monoculture by mandate** — forcing SemVer onto deploy-only services produces meaningless `3.0.0` bumps, while forcing CalVer onto libraries strips the compatibility signal integrators need.
+- The policy's sophistication is in matching scheme to artifact class, then enforcing *that* mapping uniformly.
 
 ## Real-World Examples
 
@@ -233,3 +237,7 @@ The error to avoid is **monoculture by mandate** — forcing SemVer onto deploy-
 - Which team owns the full lifecycle and incident response?
 - What reversible increment produces the earliest useful evidence?
 - Which exit condition proves that migration or adoption is complete?
+- Why might CalVer be a better choice than SemVer for some software?
+- How would you design the versioning contract for an org with 800 services and a shared proto repo?
+- Describe a time SemVer "lied." What systemic fix would you put in place, rather than blaming the author?
+- Why prefer pinning by digest over pinning by tag in a production deployment?

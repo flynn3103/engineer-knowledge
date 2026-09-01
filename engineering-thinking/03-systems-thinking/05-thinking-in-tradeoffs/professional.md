@@ -113,7 +113,9 @@ The objective-evaluation toolkit (decision matrices, one-way vs two-way doors, r
 **Next:** [check your understanding](#check-your-understanding) and [check your understanding](#check-your-understanding) — or revisit the [systems-thinking section](../) and the [roadmap section root](../../README.md).
 
 ---
-## Check your understanding
+## Recall and apply
+
+**Practice loop:** Compare two options against the stated goal, name who pays each cost, and choose a metric to revisit the decision.
 
 Try to answer these questions from memory:
 

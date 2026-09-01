@@ -13,7 +13,8 @@ Use the smallest realistic scenario that exposes the decision and its failure be
 
 ## Sizing Pools and Parallelism in Production
 
-The first production question is almost always "how many workers?" — threads, goroutines, pool size, parallelism. The answer is not "as many as possible," and it is not a constant. It's a function of *what the work is bound on*.
+- The first production question is almost always "how many workers?" — threads, goroutines, pool size, parallelism.
+- The answer is not "as many as possible," and it is not a constant. It's a function of *what the work is bound on*.
 
 The foundational rule is **Little's Law turned into a sizing formula**. For a pool serving requests, the useful concurrency is:
 
@@ -21,14 +22,16 @@ The foundational rule is **Little's Law turned into a sizing formula**. For a po
 optimal threads ≈ cores × target_utilization × (1 + wait_time / service_time)
 ```
 
-For **CPU-bound** work, `wait_time ≈ 0`, so the answer collapses to roughly **number of cores** (plus one to cover an occasional page fault). More threads than cores on pure CPU work buys nothing and *costs* context switches and cache pollution. For **I/O-bound** work — a request that spends 90 ms waiting on a database and 10 ms computing — the `wait/service` ratio is 9, so the same core count wants ~10× the threads to stay busy. This is why a thread-per-request server tuned for an in-memory workload starves when the workload becomes I/O-heavy, and vice versa.
+- **CPU-bound** work: `wait_time ≈ 0`, so the answer collapses to roughly **number of cores** (plus one to cover an occasional page fault). More threads than cores on pure CPU work buys nothing and *costs* context switches and cache pollution.
+- **I/O-bound** work — e.g. a request that spends 90 ms waiting on a database and 10 ms computing: the `wait/service` ratio is 9, so the same core count wants ~10× the threads to stay busy.
+- This is why a thread-per-request server tuned for an in-memory workload starves when the workload becomes I/O-heavy, and vice versa.
 
 Concrete defaults teams actually ship:
 
 - **Java fixed thread pool, CPU-bound:** `Runtime.getRuntime().availableProcessors()` (or +1). Anything larger just adds scheduler overhead.
 - **Java fixed thread pool, I/O-bound:** size up from cores by the wait/service ratio, *bounded by the downstream's capacity* — a 200-thread pool hammering a database that handles 30 concurrent queries is just moving the queue.
 - **Java common ForkJoinPool:** defaults to `availableProcessors() - 1`. In a container this reads *host* cores unless you set `-Djava.util.concurrent.ForkJoinPool.common.parallelism=N` (or run on a JVM that's cgroup-aware). Parallel streams, `CompletableFuture` without an explicit executor, and many libraries all share this one pool — so an under- or over-sized common pool is a fleet-wide default.
-- **Go goroutines:** goroutines are cheap (a few KB), so you rarely size the *count* directly — you size the **parallelism** (`GOMAXPROCS`, next section) and the **concurrency limit** on whatever they contend over (a semaphore, a `errgroup` with `SetLimit`, a worker pool over a bounded channel). Spawning a goroutine per request is fine; letting a million of them hit an unbounded `sql.DB` is not.
+- **Go goroutines:** goroutines are cheap (a few KB), so you rarely size the *count* directly — you size the **parallelism** (`GOMAXPROCS`, next section) and the **concurrency limit** on whatever they contend over (a semaphore, an `errgroup` with `SetLimit`, a worker pool over a bounded channel). Spawning a goroutine per request is fine; letting a million of them hit an unbounded `sql.DB` is not.
 
 > **The professional reality:** the "right" pool size is a *measured* number for *this* workload on *this* hardware, not a copied constant. The single biggest sizing mistake is making a pool large to "handle load" — an oversized pool doesn't add throughput past the bottleneck, it just deepens the queue and inflates tail latency. Size to the bottleneck (cores for CPU work, downstream capacity for I/O work), then *protect* it with a concurrency limit rather than enlarging it.
 
@@ -38,9 +41,9 @@ Concrete defaults teams actually ship:
 
 This is the single most common concurrency-in-production footgun of the container era, and it bites Go and Java equally.
 
-A runtime decides its parallelism from "how many CPUs do I have?" — Go sets `GOMAXPROCS` (the number of OS threads that run goroutines simultaneously) from `runtime.NumCPU()`; the JVM sizes the common ForkJoinPool and GC threads from `availableProcessors()`. The trap: in a container, *the number of cores the kernel reports is the host's*, but the number of cores you're *allowed to use* is the cgroup CPU quota — and they're set in two completely different places.
-
-A Kubernetes pod with `resources.limits.cpu: "1"` is enforced as a **CFS quota**: `cpu.cfs_quota_us = 100000`, `cpu.cfs_period_us = 100000` — i.e. 100 ms of CPU per 100 ms period, one core's worth. But `runtime.NumCPU()` on a 64-core node returns **64**. So Go spins up 64 goroutine-running threads competing for one core's worth of quota.
+- A runtime decides its parallelism from "how many CPUs do I have?" — Go sets `GOMAXPROCS` (the number of OS threads that run goroutines simultaneously) from `runtime.NumCPU()`; the JVM sizes the common ForkJoinPool and GC threads from `availableProcessors()`.
+- The trap: in a container, *the number of cores the kernel reports is the host's*, but the number of cores you're *allowed to use* is the cgroup CPU quota — and they're set in two completely different places.
+- A Kubernetes pod with `resources.limits.cpu: "1"` is enforced as a **CFS quota**: `cpu.cfs_quota_us = 100000`, `cpu.cfs_period_us = 100000` — i.e. 100 ms of CPU per 100 ms period, one core's worth. But `runtime.NumCPU()` on a 64-core node returns **64**. So Go spins up 64 goroutine-running threads competing for one core's worth of quota.
 
 The damage is twofold and nonobvious:
 
@@ -65,7 +68,7 @@ resources:
   limits:   { cpu: "2" }     # GOMAXPROCS=2 / ForkJoinPool parallelism=2
 ```
 
-For the JVM, run a container-aware JVM (`-XX:+UseContainerSupport`, default since JDK 10) and set `-XX:ActiveProcessorCount=N` or the explicit ForkJoinPool parallelism when you use fractional limits.
+- For the JVM, run a container-aware JVM (`-XX:+UseContainerSupport`, default since JDK 10) and set `-XX:ActiveProcessorCount=N` or the explicit ForkJoinPool parallelism when you use fractional limits.
 
 > **The professional reality:** `GOMAXPROCS = host cores` inside a quota-limited container is not "using all the power available" — it's *manufacturing* contention and CFS throttling that no amount of CPU profiling explains, because the stalls happen *outside* your process, in the kernel scheduler. Set parallelism from the *quota*, prefer integral CPU limits, and watch `nr_throttled`. This one config line has recovered double-digit-percentage throughput on real fleets.
 
@@ -73,11 +76,10 @@ For the JVM, run a container-aware JVM (`-XX:+UseContainerSupport`, default sinc
 
 ## The Connection Pool Is the Real Bottleneck
 
-You can size your thread/goroutine pool perfectly and still be bottlenecked somewhere you didn't tune: the **connection pool to a downstream**. In most request/response services the binding concurrency constraint is not CPU and not the worker pool — it's how many simultaneous database (or cache, or upstream-HTTP) operations you're allowed to have in flight.
-
-The mechanism is Little's Law again, on the *downstream*. If your database can usefully serve 30 concurrent queries (more just thrash its own locks, buffer pool, and CPU), then a pool of `maxOpenConns = 30` is the real concurrency ceiling of your service *regardless of how many goroutines or threads you run*. Goroutines past 30 just block waiting to check out a connection.
-
-This is why the classic incident is "we added more app replicas and the database fell over." Each replica brings its own pool. Ten replicas × `maxOpenConns: 100` = a thousand connections fighting over a database tuned for a few hundred — the app scaled, the *shared resource* contended, and throughput went *down* (the USL's β term, made of memory).
+- You can size your thread/goroutine pool perfectly and still be bottlenecked somewhere you didn't tune: the **connection pool to a downstream**.
+- In most request/response services the binding concurrency constraint is not CPU and not the worker pool — it's how many simultaneous database (or cache, or upstream-HTTP) operations you're allowed to have in flight.
+- The mechanism is Little's Law again, on the *downstream*. If your database can usefully serve 30 concurrent queries (more just thrash its own locks, buffer pool, and CPU), then a pool of `maxOpenConns = 30` is the real concurrency ceiling of your service *regardless of how many goroutines or threads you run*. Goroutines past 30 just block waiting to check out a connection.
+- This is why the classic incident is "we added more app replicas and the database fell over." Each replica brings its own pool. Ten replicas × `maxOpenConns: 100` = a thousand connections fighting over a database tuned for a few hundred — the app scaled, the *shared resource* contended, and throughput went *down* (the USL's β term, made of memory).
 
 Concrete sizing:
 
@@ -280,3 +282,8 @@ perf c2c report                    # the smoking gun: two cores writing the same
 - Which team owns the full lifecycle and incident response?
 - What reversible increment produces the earliest useful evidence?
 - Which exit condition proves that migration or adoption is complete?
+- A Go service runs fine on a 32-core host but is sluggish and burns CPU in a Kubernetes pod with a 2-core limit — diagnose it.
+- You sharded a hot counter into 64 per-thread counters and contention vanished, but a different microbenchmark got slower — why might sharding backfire?
+- When would you choose a shared-nothing or single-writer architecture over fine-grained locking, and what do you give up?
+- What is backpressure, and why is an unbounded queue a production incident waiting to happen?
+- Why is extrapolating a scaling test from its linear region a common capacity-planning mistake, and how do you avoid it?

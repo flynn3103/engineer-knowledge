@@ -23,7 +23,9 @@ main;run;handleRequest;render;bytes.Buffer.Write 240
 main;run;gc;markObjects 95
 ```
 
-That's it. Each line says "this exact call path was observed 412 times" (or held 1530 samples, or allocated 240 KB — the unit is whatever you fed in). The leftmost frame is the root of every stack; the rightmost is where the CPU actually was at the moment of the sample. The whole expressive flame-graph picture is just this text, drawn.
+- Each line says "this exact call path was observed 412 times" (or held 1530 samples, or allocated 240 KB — the unit is whatever you fed in).
+- The leftmost frame is the root of every stack; the rightmost is where the CPU actually was at the moment of the sample.
+- The whole expressive flame-graph picture is just this text, drawn.
 
 Because the format is this trivial, it is the universal interchange of the profiling world. Any profiler that can walk a stack can emit it, and any flame-graph renderer can read it. This is precisely why "learn to read a flame graph once, use it in every language" holds: the picture is language-agnostic *because the format it's built from is*.
 
@@ -35,9 +37,8 @@ Because the format is this trivial, it is the universal interchange of the profi
 
 A profiler doesn't capture a flame graph. It captures a *pile of raw stacks* — one full stack trace per timer tick (say, 99 times a second). Turning that pile into the picture is a three-step pipeline, and seeing the steps demystifies the whole thing.
 
-**Step 1 — Collapse.** Take every raw sample and flatten its stack into one semicolon-joined line. A 50-frame deep sample becomes one string `frame0;frame1;...;frame49`. Two samples caught in the *same* call path produce the *same* string.
-
-**Step 2 — Count.** Run the equivalent of `sort | uniq -c` over those strings. Identical stacks merge into a single folded line with their total count. This is the "folding" the name refers to — collapsing N identical stacks into one line with `N` on the end.
+1. **Collapse.** Take every raw sample and flatten its stack into one semicolon-joined line. A 50-frame deep sample becomes one string `frame0;frame1;...;frame49`. Two samples caught in the *same* call path produce the *same* string.
+2. **Count.** Run the equivalent of `sort | uniq -c` over those strings. Identical stacks merge into a single folded line with their total count. This is the "folding" the name refers to — collapsing N identical stacks into one line with `N` on the end.
 
 ```
 raw samples                          folded
@@ -49,7 +50,7 @@ a;b;d
 a;e
 ```
 
-**Step 3 — Draw.** Walk the folded lines and build a tree: a frame's rectangle width is proportional to the sum of counts of every line passing through it; its children sit on the level above (or below — see the next section). Siblings are sorted alphabetically, *not* by time — there is **no time axis**; the x-position of a box is meaningless, only its width matters.
+3. **Draw.** Walk the folded lines and build a tree: a frame's rectangle width is proportional to the sum of counts of every line passing through it; its children sit on the level above (or below — see the next section). Siblings are sorted alphabetically, *not* by time — there is **no time axis**; the x-position of a box is meaningless, only its width matters.
 
 That last point trips up almost everyone at first: a flame graph looks like a timeline and is not one. Two adjacent boxes are not "before and after"; they're just two functions that happened to sort next to each other. Width is the only quantitative axis.
 
@@ -95,7 +96,10 @@ Here is the leverage that makes flame graphs more than a CPU toy: **the count on
 | **Off-CPU time** | nanoseconds this stack spent **blocked** (not running) | `perf sched`/`offcputime` (bcc), async-profiler `-e wall` | "What am I **waiting** on — locks, disk, network?" |
 | **Lock contention** | time blocked on a specific mutex | async-profiler `-e lock`, Go block/mutex profile | "Which lock is serialising my threads?" |
 
-The under-used hero of this table is the **off-CPU flame graph**. A CPU flame graph can only show you code that is *running* — by construction it is blind to a thread that is parked waiting for a database response, because a sleeping thread consumes zero CPU samples. If your service spends 200 ms per request and 180 ms of that is waiting on a downstream call, a CPU flame graph will look nearly *empty* and you'll conclude "the code is fast" — which is true and completely beside the point.
+The under-used hero of this table is the **off-CPU flame graph**.
+
+- A CPU flame graph can only show you code that is *running* — by construction it is blind to a thread that is parked waiting for a database response, because a sleeping thread consumes zero CPU samples.
+- If your service spends 200 ms per request and 180 ms of that is waiting on a downstream call, a CPU flame graph will look nearly *empty* and you'll conclude "the code is fast" — which is true and completely beside the point.
 
 ```
 CPU flame graph of a slow handler        Off-CPU flame graph of the SAME handler
@@ -174,7 +178,9 @@ perf script | stackcollapse-perf.pl > after.folded
 difffolded.pl before.folded after.folded | flamegraph.pl > diff.svg
 ```
 
-Reading it: a big **blue** box exactly over the function you optimized is the proof you wanted — that's where the time left. A surprise **red** box is the regression you didn't know you caused: maybe your new caching path shifted cost into `hashKey`, or you traded CPU for a new allocation that GC now pays for. The net benchmark number could be +12% while a red tower quietly warns that one path doubled.
+- A big **blue** box exactly over the function you optimized is the proof you wanted — that's where the time left.
+- A surprise **red** box is the regression you didn't know you caused: maybe your new caching path shifted cost into `hashKey`, or you traded CPU for a new allocation that GC now pays for.
+- The net benchmark number could be +12% while a red tower quietly warns that one path doubled.
 
 > **Key insight:** A single profile shows you where time *is*; a differential shows you where time *moved*. "Faster on the benchmark" is a scalar that can hide a regression — the diff graph turns your optimization into a falsifiable claim: *blue where you expected, and no unexplained red.* Always diff with the **same workload** on both sides, or the colours are noise.
 
@@ -186,9 +192,17 @@ A caveat: differential flame graphs assume the two runs are comparable. Differen
 
 The `collapse → count` step sounds trivial until two realities of real code make "are these two stacks the same?" genuinely hard. Get the merging wrong and the picture lies.
 
-**Recursion.** A recursive function appears many times in a single stack: `parse;parse;parse;parse;scan`. Each level is a distinct frame *in that one sample*, so the folded line legitimately contains the name repeated. That's correct — but it means a deeply recursive call path produces a tall, narrow tower, and naive tooling can *over-count* if it merges recursive frames into one. Good renderers (Speedscope, modern flamegraph.pl) keep the recursion visible as a tower; some offer a "merge recursion" toggle that collapses the tower into one box so you can see the *total* recursive cost at a glance. Know which mode you're in: the tower and the merged box describe the same time differently.
+**Recursion.**
 
-**Inlining.** The optimizer routinely *inlines* a small callee into its caller, so the function that exists in your source has **no stack frame** at runtime — the CPU is literally executing the caller's frame. A naive profile then attributes the cost to the caller and the inlined function *vanishes from the graph*, leaving you searching for a function that the hardware no longer has frames for.
+- A recursive function appears many times in a single stack: `parse;parse;parse;parse;scan`. Each level is a distinct frame *in that one sample*, so the folded line legitimately contains the name repeated. That's correct.
+- But it means a deeply recursive call path produces a tall, narrow tower, and naive tooling can *over-count* if it merges recursive frames into one.
+- Good renderers (Speedscope, modern flamegraph.pl) keep the recursion visible as a tower; some offer a "merge recursion" toggle that collapses the tower into one box so you can see the *total* recursive cost at a glance.
+- Know which mode you're in: the tower and the merged box describe the same time differently.
+
+**Inlining.**
+
+- The optimizer routinely *inlines* a small callee into its caller, so the function that exists in your source has **no stack frame** at runtime — the CPU is literally executing the caller's frame.
+- A naive profile then attributes the cost to the caller and the inlined function *vanishes from the graph*, leaving you searching for a function that the hardware no longer has frames for.
 
 ```
 source:           runtime stack after inlining:
@@ -197,7 +211,9 @@ source:           runtime stack after inlining:
                     └─────────────────────┘     shows up as hot()'s self time
 ```
 
-The fix is tool support: `perf` with debug info can *reconstruct* inlined frames (`perf script --inline`), and Go/async-profiler annotate inlined frames so they reappear in the graph, often marked. Without that, two traps follow: (1) a function you "know" is hot is missing — because it was inlined into its caller; (2) a caller looks like it has surprising *self* time that is really its inlined children. When a frame's self time looks too high to explain, suspect inlining before you suspect the profiler is broken.
+- The fix is tool support: `perf` with debug info can *reconstruct* inlined frames (`perf script --inline`), and Go/async-profiler annotate inlined frames so they reappear in the graph, often marked.
+- Without that, two traps follow: (1) a function you "know" is hot is missing — because it was inlined into its caller; (2) a caller looks like it has surprising *self* time that is really its inlined children.
+- When a frame's self time looks too high to explain, suspect inlining before you suspect the profiler is broken.
 
 > **Key insight:** "Collapse identical stacks" hides two hard questions. Recursion makes a name legitimately repeat — don't merge it away unless you mean to. Inlining makes a real function *disappear* from the stack entirely — its cost gets charged to its caller. Both distort the shape, and both are *toolchain* problems: enable inline reconstruction and pick a recursion mode deliberately, or you'll read a picture that quietly misattributes time.
 
@@ -230,7 +246,11 @@ main.main;http.serve;app.handleOrder;app.validate                   120
 runtime.gcBgMarkWorker;runtime.scanobject                           640
 ```
 
-Now **read the hot path**. Sum by leaf-ward frame: `json.Marshal` appears with 2210 + 390 = **2600** of ~4440 samples — roughly **59%** of CPU is in JSON marshalling, and most of *that* is `reflect.Value.Field`. That's a classic signature: reflection-based encoding is the bottleneck, not your business logic (`app.validate` is a rounding error at 120). Note also `gcBgMarkWorker` at 640 (~14%) — GC is doing real work, hinting the marshalling is also allocating heavily.
+Now **read the hot path**:
+
+- Sum by leaf-ward frame: `json.Marshal` appears with 2210 + 390 = **2600** of ~4440 samples — roughly **59%** of CPU is in JSON marshalling, and most of *that* is `reflect.Value.Field`.
+- That's a classic signature: reflection-based encoding is the bottleneck, not your business logic (`app.validate` is a rounding error at 120).
+- Note also `gcBgMarkWorker` at 640 (~14%) — GC is doing real work, hinting the marshalling is also allocating heavily.
 
 Two leads, ranked by the graph:
 
@@ -278,3 +298,9 @@ Then **prove it** with a differential: capture `after.folded` under the *same* l
 - What constraint would make you choose the alternative design?
 - How would you isolate a local defect from an integration defect?
 - What evidence shows that the change remains maintainable?
+- A frame is wide but covered by dozens of thin children with none individually significant — what pattern is this, and how do you fix it?
+- A framework or runtime frame appears wide across many otherwise-unrelated stacks — what does that tell you, and what do you do about it?
+- Classic flame graph vs icicle graph — what's the difference, and when would you prefer each?
+- What metrics besides CPU time can a flame graph visualize, and how do you read each one?
+- What is a differential flame graph, and why does it beat eyeballing two separate graphs side by side?
+- What is the folded-stacks format, and why is it the universal interchange between profilers and flame-graph renderers?

@@ -14,13 +14,13 @@ Use the smallest realistic scenario that exposes the decision and its failure be
 
 ## Core Concept 1 — Rollback as a tested, rehearsed capability
 
-The defining senior belief: **an unexercised rollback path does not exist.** Treat rollback like a backup — backups that are never restored are folklore. You verify rollback the same way: by doing it, regularly, on purpose.
+> The defining senior belief: **an unexercised rollback path does not exist.** Treat rollback like a backup — backups that are never restored are folklore. You verify rollback the same way: by doing it, regularly, on purpose.
 
 **What "tested" means in practice:**
 
 - **Retention is enforced and verified.** The previous N artifacts are pinned in the registry and protected from GC. A scheduled job actually pulls and runs the N-1 image to confirm it still starts. (Immutability and retention live in [Registries & Distribution](../05-registries-and-distribution/senior.md).)
 - **The migration is provably reversible.** CI runs the N-1 code against the post-migration schema and asserts it passes. If it doesn't, the migration is destructive and the release is blocked until expand/contract is applied.
-- **Game days exercise the real path.** On a schedule, in staging that mirrors production, you deploy a known-bad version and recover using only the documented procedure and tooling — measuring how long it takes and where people stumble.
+- **Game days exercise the real path.** On a schedule, in staging that mirrors production, deploy a known-bad version and recover using only the documented procedure and tooling — measuring how long it takes and where people stumble.
 
 ```bash
 # Game-day skeleton: deploy a deliberately bad version, then recover.
@@ -32,13 +32,16 @@ kubectl rollout status deployment/checkout
 echo "rollback took $(( $(date +%s) - START ))s"    # this number is the deliverable
 ```
 
-The output of a game day is not "it worked." It is a *number* (recovery time), a *list of friction points*, and *fixes* for them. Run it often enough that the muscle memory survives the panic of a real Sev-1.
+- The output of a game day is not "it worked." It is a *number* (recovery time), a *list of friction points*, and *fixes* for them.
+- Run it often enough that the muscle memory survives the panic of a real Sev-1.
 
 ---
 
 ## Core Concept 2 — Automated rollback on SLO breach
 
-Humans are slow and stressed during incidents. The fastest, most reliable rollback is one that fires automatically when objective health signals degrade — before a human even pages. Progressive-delivery controllers make this declarative.
+- Humans are slow and stressed during incidents.
+- The fastest, most reliable rollback is one that fires automatically when objective health signals degrade — before a human even pages.
+- Progressive-delivery controllers make this declarative.
 
 **Argo Rollouts** with an analysis template that auto-aborts on error-rate breach:
 
@@ -75,7 +78,8 @@ spec:
             / sum(rate(http_requests_total{job="checkout"}[2m]))
 ```
 
-When the canary's 5xx ratio exceeds 1% for two intervals, the rollout **auto-aborts**: traffic snaps back to the stable ReplicaSet and the new version is held at zero weight. No human, no page-to-action delay. The same applies to Flagger with its `webhooks` and metric checks.
+- When the canary's 5xx ratio exceeds 1% for two intervals, the rollout **auto-aborts**: traffic snaps back to the stable ReplicaSet and the new version is held at zero weight.
+- No human, no page-to-action delay. The same applies to Flagger with its `webhooks` and metric checks.
 
 Two design notes:
 
@@ -86,7 +90,8 @@ Two design notes:
 
 ## Core Concept 3 — Rollback time as an SRE metric (MTTR)
 
-If you can't measure recovery, you can't improve it. **Rollback time is a first-class reliability metric** and a major component of MTTR (Mean Time To Recovery), one of the four DORA metrics.
+- If you can't measure recovery, you can't improve it.
+- **Rollback time is a first-class reliability metric** and a major component of MTTR (Mean Time To Recovery), one of the four DORA metrics.
 
 Decompose the recovery clock so you can attack each segment:
 
@@ -99,15 +104,17 @@ MTTR = detect + decide + act + verify
   verify  : time to confirm health restored (improve: health checks, dashboards)
 ```
 
-Track the *distribution*, not just the mean — p50 and p95 rollback times tell different stories. Set an explicit objective, e.g. "p95 rollback under 5 minutes for tier-1 services," and treat regressions against it as bugs. Auto-rollback collapses `detect + decide + act` into near-zero, which is why it's the single biggest MTTR lever you have.
-
-A useful corollary: **the cheaper and faster rollback is, the more aggressively you can ship.** Fast recovery is what *licenses* high deploy frequency — the two DORA velocity metrics and the two stability metrics reinforce each other.
+- Track the *distribution*, not just the mean — p50 and p95 rollback times tell different stories.
+- Set an explicit objective, e.g. "p95 rollback under 5 minutes for tier-1 services," and treat regressions against it as bugs.
+- Auto-rollback collapses `detect + decide + act` into near-zero, which is why it's the single biggest MTTR lever you have.
+- A useful corollary: **the cheaper and faster rollback is, the more aggressively you can ship.** Fast recovery is what *licenses* high deploy frequency — the two DORA velocity metrics and the two stability metrics reinforce each other.
 
 ---
 
 ## Core Concept 4 — Mixed-version compatibility as a contract
 
-At the middle level you learned N and N-1 must interoperate. At senior level you make that a *contract you can verify in CI*, not a hope.
+- At the middle level you learned N and N-1 must interoperate.
+- At senior level you make that a *contract you can verify in CI*, not a hope.
 
 - **API compatibility** — enforce with consumer-driven contract tests (Pact) and schema linting (e.g., `buf breaking` for protobuf, OpenAPI diff). A breaking change *fails the build*, not production.
 
@@ -117,16 +124,16 @@ buf breaking --against '.git#branch=main'
 ```
 
 - **Message/event compatibility** — register schemas in a schema registry with a compatibility policy (`BACKWARD` so new producers don't break old consumers). For a rollback you also need `FORWARD` (old producers, new consumers), so practically you want `FULL` compatibility across the rollback window.
-
 - **Tolerant readers everywhere** — code must ignore unknown fields and supply defaults for missing optional ones. This is what lets N and N-1 share a wire format without lockstep deploys.
 
-The senior framing: **backward compatibility is not a courtesy, it's the precondition for rollback.** Any change that breaks N↔N-1 interop has secretly converted itself into an *irreversible* release. Catch those in CI.
+> The senior framing: **backward compatibility is not a courtesy, it's the precondition for rollback.** Any change that breaks N↔N-1 interop has secretly converted itself into an *irreversible* release. Catch those in CI.
 
 ---
 
 ## Core Concept 5 — Idempotency and the safe-to-retry property
 
-Rollbacks, rollouts, and automated recovery all re-run operations: a pod restarts, a migration step re-applies, a message redelivers, a reconcile loop fires again. If those operations aren't **idempotent**, the chaos of a rollback *creates* corruption.
+- Rollbacks, rollouts, and automated recovery all re-run operations: a pod restarts, a migration step re-applies, a message redelivers, a reconcile loop fires again.
+- If those operations aren't **idempotent**, the chaos of a rollback *creates* corruption.
 
 Design for safe replay:
 
@@ -140,7 +147,8 @@ UPDATE users SET name = full_name
 WHERE name IS NULL AND full_name IS NOT NULL;
 ```
 
-During a rollback, the system is in a *partially transitioned* state by definition — some nodes new, some old, some operations half-done. Idempotency is what makes that state recoverable rather than corrupting.
+- During a rollback, the system is in a *partially transitioned* state by definition — some nodes new, some old, some operations half-done.
+- Idempotency is what makes that state recoverable rather than corrupting.
 
 ---
 
@@ -154,7 +162,7 @@ Stateless services roll back trivially. The hard cases are stateful, and a senio
 - **External side effects** — emails sent, payments captured, webhooks delivered. These *cannot* be rolled back at all. The only mitigation is to gate side-effecting code behind flags so you can stop the effect, and to design compensating actions (refund, retraction).
 - **Stateful workloads (StatefulSets, leader election)** — rolling these back has ordering and quorum constraints; an in-place rollback can violate invariants. The `high-availability-patterns` skill covers safe rollback of stateful clusters.
 
-The principle: **identify every piece of state your release touches and ask "does this come back when the code does?" If not, you have an irreversibility you must design around** — usually with flags, dual-format reads, or compensating actions.
+> The principle: **identify every piece of state your release touches and ask "does this come back when the code does?" If not, you have an irreversibility you must design around** — usually with flags, dual-format reads, or compensating actions.
 
 ---
 
@@ -170,9 +178,9 @@ Mature organizations make a deliberate *cultural* choice between two valid stanc
 | Risk | Rollback can be impossible (state) | Fixing forward under pressure can introduce new bugs |
 | Fits | Lower deploy frequency, regulated, batch releases | Continuous deployment, feature-flag-heavy, elite DORA |
 
-The highest-performing teams trend toward **roll-forward via feature flags**: they deploy continuously, gate everything behind flags, and "recover" by flipping flags (which is itself an instant rollback of *behavior* without a code rollback). The deploy and the release are decoupled — see [Feature Flags & Progressive Delivery](../06-feature-flags-and-progressive-delivery/senior.md).
-
-But this is *not* universal advice. If your pipeline takes 40 minutes, roll-forward means 40 minutes of pain; rollback is correct. The senior job is to *choose consciously* based on deploy frequency, pipeline speed, and how much of your system is flag-gated — and to invest in whichever path you've chosen so it's genuinely fast.
+- The highest-performing teams trend toward **roll-forward via feature flags**: deploy continuously, gate everything behind flags, and "recover" by flipping flags (itself an instant rollback of *behavior* without a code rollback). The deploy and the release are decoupled — see [Feature Flags & Progressive Delivery](../06-feature-flags-and-progressive-delivery/senior.md).
+- This is *not* universal advice. If your pipeline takes 40 minutes, roll-forward means 40 minutes of pain; rollback is correct.
+- The senior job is to *choose consciously* based on deploy frequency, pipeline speed, and how much of your system is flag-gated — and to invest in whichever path you've chosen so it's genuinely fast.
 
 ---
 
@@ -218,3 +226,9 @@ But this is *not* universal advice. If your pipeline takes 40 minutes, roll-forw
 - Where should recovery responsibility live, and why?
 - Which assumption deserves an experiment before implementation?
 - How can the design evolve without changing every consumer at once?
+- How would you design an automated rollback that triggers on SLO breach, and what precondition does it depend on?
+- How would you measure whether your rollback capability is actually good?
+- A release drops a column and the checkout error rate spikes — what's your recovery path, and why can't you just roll back?
+- Why is an unexercised rollback runbook effectively no rollback plan at all?
+- A release double-sends confirmation emails; the code rollback finishes in seconds — is the incident over? Why or why not?
+- During a rollout you see intermittent, non-deterministic request failures — what's your first hypothesis and how do you confirm it?

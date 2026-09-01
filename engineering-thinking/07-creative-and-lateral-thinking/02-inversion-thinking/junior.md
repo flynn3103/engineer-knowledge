@@ -182,7 +182,15 @@ You just produced a quality checklist without needing to be an expert — you on
 - [Section overview](../) · [Engineering-thinking roadmap](../../README.md)
 
 ---
-## Check your understanding
+## Use it today
+
+1. State the desired outcome in one sentence.
+2. Ask, “What would make the opposite happen?” and list five answers.
+3. Turn each answer into a prevention check before you ship.
+
+## Recall and apply
+
+Use these prompts to check your understanding and choose one action to try in your next task.
 
 Try to answer these questions from memory:
 

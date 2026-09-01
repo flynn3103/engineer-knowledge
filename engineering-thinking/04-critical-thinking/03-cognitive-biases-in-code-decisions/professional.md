@@ -6,6 +6,13 @@
 
 ---
 
+## Action card
+1. Make outside-view estimation, independent review, and blameless learning defaults.
+2. Capture decision reasoning and estimate-versus-actual data.
+3. Audit the defaults and tune them from outcomes.
+
+**Decision rule:** do not ask people to be unbiased; make bias visible and costly to act on.
+
 ## 1. Bias is a property of the system, not the people
 
 A staff engineer who debiases individual meetings doesn't scale; there are too many meetings. The leverage is in *mechanisms that debias by default*, so that the average decision made by the average team on an average Tuesday — with no bias-aware facilitator present — still comes out reasonable.
@@ -157,7 +164,7 @@ The throughline: **stop asking people to be unbiased; build a system whose defau
 - Back to [critical thinking](../) · [engineering thinking overview](../../README.md).
 
 ---
-## Check your understanding
+## Recall and apply
 
 Try to answer these questions from memory:
 

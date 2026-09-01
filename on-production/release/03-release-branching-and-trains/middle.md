@@ -25,7 +25,10 @@ The choice is not fashion — it's a function of how often you deploy and how mu
 | Release = | Merge `release` → `main` + tag | Tag on `main` (or short branch cut from `main`) |
 | Hidden cost | Painful integration, stale branches | Requires discipline + feature flags for incomplete work |
 
-**Why high-velocity teams left GitFlow:** GitFlow optimizes for *isolating* parallel work, which means problems are discovered *late*, at merge time, when many changes collide. Trunk-based optimizes for *integrating early*, so conflicts and broken assumptions surface within hours, not weeks. The price of trunk-based is discipline: incomplete work must hide behind **feature flags** rather than long-lived branches (see [Feature Flags & Progressive Delivery](../06-feature-flags-and-progressive-delivery/README.md)).
+- **Why high-velocity teams left GitFlow:**
+  - GitFlow optimizes for *isolating* parallel work, so problems are discovered *late*, at merge time, when many changes collide.
+  - Trunk-based optimizes for *integrating early*, so conflicts and broken assumptions surface within hours, not weeks.
+  - The price of trunk-based is discipline: incomplete work must hide behind **feature flags** rather than long-lived branches (see [Feature Flags & Progressive Delivery](../06-feature-flags-and-progressive-delivery/README.md)).
 
 ```mermaid
 flowchart TD
@@ -45,7 +48,7 @@ flowchart TD
 
 ## Core Concept 2 — Cutting and stabilizing a release branch
 
-Even trunk-based teams that ship a *versioned* product often cut a short-lived release branch so that `main` can keep moving while the release stabilizes.
+- Even trunk-based teams that ship a *versioned* product often cut a short-lived release branch so `main` can keep moving while the release stabilizes.
 
 ```bash
 # Cut at a known-good commit on main (not blindly "HEAD")
@@ -54,20 +57,18 @@ git switch -c release/2.4 v2.4.0-rc-base   # or a specific reviewed SHA
 git push -u origin release/2.4
 ```
 
-After the cut, you **stabilize**: run the full test suite, fix what's broken on `main`, cherry-pick those fixes in, and re-test. Lock the branch down so only the release team can push and only fixes land:
-
-```bash
-# Example: GitHub branch protection enforces review + green CI on release/*
-# (configured in repo settings or branch-protection rules)
-```
-
-A stabilization window has a clear end: the branch becomes the GA tag, and you stop touching it except for hotfixes.
+- After the cut, you **stabilize**:
+  - Run the full test suite.
+  - Fix what's broken on `main`.
+  - Cherry-pick those fixes in, and re-test.
+  - Lock the branch down so only the release team can push and only fixes land (e.g. GitHub branch protection enforcing review + green CI on `release/*`).
+- A stabilization window has a clear end: the branch becomes the GA tag, and you stop touching it except for hotfixes.
 
 ---
 
 ## Core Concept 3 — RC, soak time, and promotion gates
 
-A mature pipeline doesn't jump from "built" to "shipped." It **promotes** an artifact through stages, each with a gate.
+- A mature pipeline doesn't jump from "built" to "shipped." It **promotes** an artifact through stages, each with a gate.
 
 ```
 build ──► RC artifact ──► staging (soak) ──► canary ──► GA
@@ -81,15 +82,20 @@ git push origin v2.4.0-rc.1
 # CI publishes e.g. myapp@sha256:abc...  -> this digest is what gets promoted
 ```
 
-**Soak/bake time** is the deliberate period where the RC runs in staging (or a canary slice) under realistic traffic so latent issues — memory leaks, slow queries, config drift — have time to appear. A clean soak is a **promotion gate**: only after it passes does RC become GA.
-
-**The promote-don't-rebuild rule:** promotion moves the *same artifact* (by content digest) forward; it never recompiles. Rebuilding could pull a newer dependency, a different compiler, or a changed base image — meaning you'd ship something you never tested. Promote by digest, not by re-running the build.
+- **Soak/bake time:**
+  - The deliberate period where the RC runs in staging (or a canary slice) under realistic traffic.
+  - Gives latent issues — memory leaks, slow queries, config drift — time to appear.
+  - A clean soak is a **promotion gate**: only after it passes does RC become GA.
+- **The promote-don't-rebuild rule:**
+  - Promotion moves the *same artifact* (by content digest) forward; it never recompiles.
+  - Rebuilding could pull a newer dependency, a different compiler, or a changed base image — meaning you'd ship something you never tested.
+  - Promote by digest, not by re-running the build.
 
 ---
 
 ## Core Concept 4 — Cherry-pick policy and avoiding divergence
 
-Once a release branch exists, it and `main` start to drift. Your cherry-pick policy is what keeps them honest.
+- Once a release branch exists, it and `main` start to drift. Your cherry-pick policy is what keeps them honest.
 
 **Policy (typical):**
 1. **Fix on `main` first.** This guarantees the fix exists in all future versions.
@@ -105,7 +111,10 @@ git cherry-pick -x abc123      # -x records "(cherry picked from abc123)"
 git push
 ```
 
-The `-x` flag is important: it stamps the original SHA into the message, so anyone can trace the release-branch commit back to its `main` origin. **The danger of divergence:** if a fix lands *only* on the release branch and is never forward-ported to `main`, the next release reintroduces the bug (a regression). Always ask: "does this fix also exist on `main`?"
+- The `-x` flag is important:
+  - It stamps the original SHA into the message, so anyone can trace the release-branch commit back to its `main` origin.
+- **The danger of divergence:** if a fix lands *only* on the release branch and is never forward-ported to `main`, the next release reintroduces the bug (a regression).
+  - Always ask: "does this fix also exist on `main`?"
 
 ---
 
@@ -124,13 +133,15 @@ Week 0          Week 2           Week 3          Week 4
 - **Code freeze:** even fixes need approval; the build is locked for final validation.
 - **GA:** tag and ship.
 
-The cadence is a **forcing function**: instead of arguing whether to hold for feature X, the rule is "if it's not ready at branch point, it catches the next train." This removes a whole category of release-day brinkmanship and makes delivery predictable for everyone downstream (docs, marketing, support).
+- The cadence is a **forcing function**:
+  - Instead of arguing whether to hold for feature X, the rule is "if it's not ready at branch point, it catches the next train."
+  - This removes a whole category of release-day brinkmanship and makes delivery predictable for everyone downstream (docs, marketing, support).
 
 ---
 
 ## Core Concept 6 — LTS branches and backporting
 
-Products with many users on different versions maintain several **release lines** at once: the current line plus N-1, N-2, and often a **Long-Term Support (LTS)** line that gets fixes for years.
+- Products with many users on different versions maintain several **release lines** at once: the current line plus N-1, N-2, and often a **Long-Term Support (LTS)** line that gets fixes for years.
 
 ```
 main ───────────────────────────────► (3.x development)
@@ -138,7 +149,7 @@ main ─────────────────────────
     release/2.x (maintenance)  release/1.x-lts (security only)
 ```
 
-When a security fix lands on `main`, you **backport** it to every supported line:
+- When a security fix lands on `main`, you **backport** it to every supported line:
 
 ```bash
 # Fix on main -> commit sec999
@@ -146,7 +157,9 @@ git switch release/2.x && git cherry-pick -x sec999 && git push
 git switch release/1.x-lts && git cherry-pick -x sec999 && git push
 ```
 
-Backporting gets harder the older the line, because the surrounding code has changed — the cherry-pick may conflict and need a hand-adapted version. This is the real, recurring cost of supporting old versions, and it's a major reason teams limit how many lines they keep alive.
+- Backporting gets harder the older the line, because the surrounding code has changed.
+  - The cherry-pick may conflict and need a hand-adapted version.
+  - This is the real, recurring cost of supporting old versions, and it's a major reason teams limit how many lines they keep alive.
 
 ---
 
@@ -191,3 +204,7 @@ Backporting gets harder the older the line, because the surrounding code has cha
 - What constraint would make you choose the alternative design?
 - How would you isolate a local defect from an integration defect?
 - What evidence shows that the change remains maintainable?
+- What's the eligibility rule for cherry-picking a fix onto a release branch, and why fix `main` first?
+- Why do teams need soak/bake time before promoting an RC to GA?
+- A team on GitFlow says merges hurt every release — what's your diagnosis and recommendation?
+- How would you size how many release lines (LTS, maintenance) to support?

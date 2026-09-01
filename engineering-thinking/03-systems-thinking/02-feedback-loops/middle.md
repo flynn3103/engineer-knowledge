@@ -146,7 +146,9 @@ This is the bridge to thinking in tradeoffs: every damper costs something (laten
 **Keep this:** the behavior is in the structure. Read the loops — their sign, gain, delay, and which one dominates — and you can predict whether a system settles, swings, or dies.
 
 ---
-## Check your understanding
+## Recall and apply
+
+**Practice loop:** Draw one feedback loop. Label the reinforcing or balancing effect, delay, and metric that would show it.
 
 Try to answer these questions from memory:
 

@@ -1,30 +1,27 @@
 # Object-Oriented Design
 
-> A progressive engineering roadmap for turning object-oriented design principles into repeatable decisions, observable practices, and maintainable systems.
-
-Use this section to move from correct execution in a small scope to design ownership, system-level trade-offs, and organization-scale practice. Each topic emphasizes concrete methods, failure modes, and evidence you can use to verify the result.
+Use these guides to assign clear responsibilities, keep change local, and make design trade-offs explicit.
 
 ## Topics
 
-| # | Topic | Focus |
-|---|---|---|
-| 01 | [Generic](01-generic/README.md) | Build practical judgment in generic. |
-| 02 | [Coupling and Cohesion](02-coupling-and-cohesion/README.md) | Build practical judgment in coupling, cohesion. |
-| 03 | [Module and Class](03-module-and-class/README.md) | Build practical judgment in module, class. |
-| 04 | [SOLID](04-solid/README.md) | Build practical judgment in solid. |
-| 05 | [Anti-Patterns and Code Smells](07-antipatterns-and-code-smells/README.md) | Build practical judgment in anti-patterns, code smells. |
-| 06 | [Object Thinking](08-object-thinking/README.md) | Build practical judgment in object thinking. |
-| 07 | [Object-Oriented Design and Modeling](09-oo-design-and-modeling/README.md) | Build practical judgment in object-oriented design, modeling. |
+- [Generic Principles](01-generic/README.md) — apply KISS, YAGNI, separation of concerns, and related fundamentals.
+- [Coupling and Cohesion](02-coupling-and-cohesion/README.md) — reduce unnecessary dependencies and keep related behavior together.
+- [Modules and Classes](03-module-and-class/README.md) — create boundaries that hide what changes.
+- [SOLID](04-solid/README.md) — use responsibility and substitution principles without dogma.
+- [Anti-Patterns and Code Smells](07-antipatterns-and-code-smells/README.md) — recognize design shapes that make change expensive.
+- [Object Thinking](08-object-thinking/README.md) — model behavior and collaborating responsibilities.
+- [Design and Modeling](09-oo-design-and-modeling/README.md) — apply GRASP, metrics, concurrency, and extensibility deliberately.
 
-## How to use this section
+## How to use the guides
 
-Follow the topics in order when the subject is new, or enter at the topic closest to your current problem. Every leaf topic contains four progressive guides:
+1. Start with the topic that matches your current design problem.
+2. Read the level that matches the scope you own.
+3. Apply one practice step to a real class, module, or boundary.
+4. Move up when you can explain the trade-off and validate the result.
 
-| Level | Scope | Expected outcome |
-|---|---|---|
-| Junior | A small, well-defined change | Apply the technique correctly with guidance. |
-| Middle | A real codebase or component | Make and explain local design trade-offs independently. |
-| Senior | A system boundary under change | Shape an approach, contain risk, and validate assumptions. |
-| Professional | Multiple teams and sustained delivery | Establish an operating model with measurable outcomes. |
+## Levels
 
-Each level ends with unanswered comprehension questions for active recall. Supporting `interview`, `tasks`, `find-bug`, `optimize`, and answer files are intentionally excluded.
+- **Junior:** Recognize the principle and make a focused local change.
+- **Middle:** Apply it across a component and explain the trade-offs.
+- **Senior:** Use it to contain system-level risk and guide change.
+- **Professional:** Establish shared design practices across teams.

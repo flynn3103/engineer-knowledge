@@ -6,6 +6,13 @@
 
 ---
 
+## Quick use
+1. Build a local reference class from incident and project history.
+2. Update its prior with current evidence.
+3. Use EV only after checking variance, tails, and irreversible loss.
+
+**Decision rule:** reject a positive-EV choice that can cause ruin.
+
 ## 1. Base rates as priors you actually maintain
 
 A junior knows base rates exist. A mid-level engineer **keeps a few that are calibrated to their own system**, because generic base rates ("70% of outages are deploys") are only a starting point.
@@ -167,7 +174,7 @@ Even with no ruin, you may rationally prefer lower variance. A guaranteed +40 is
 - Related: [reasoning under uncertainty](../01-reasoning-under-uncertainty/) · [risk and failure probabilities](../03-risk-and-failure-probabilities/) · [estimation under uncertainty](../04-estimation-under-uncertainty/) · [evaluating tradeoffs objectively](../../04-critical-thinking/04-evaluating-tradeoffs-objectively/) · section root: [probabilistic thinking](../) · [engineering thinking](../../README.md).
 
 ---
-## Check your understanding
+## Recall and apply
 
 Try to answer these questions from memory:
 

@@ -169,7 +169,13 @@ The point is not to run this ceremony on every line of code — that would be pa
 - Back to [Metacognition & learning](../) · [Engineering Thinking](../../README.md)
 
 ---
-## Check your understanding
+## Use it today
+
+1. Separate observations, interpretations, and decisions in a short note.
+2. Seek disconfirming evidence and a perspective outside the immediate team.
+3. Check the outcome later to calibrate the original reasoning.
+
+## Recall and apply
 
 Try to answer these questions from memory:
 

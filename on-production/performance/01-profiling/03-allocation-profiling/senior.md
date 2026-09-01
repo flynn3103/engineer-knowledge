@@ -13,7 +13,8 @@ Use the smallest realistic scenario that exposes the decision and its failure be
 
 ## How Go Samples Allocations — MemProfileRate and the Poisson Sampler
 
-A naive allocation profiler would record a stack trace on *every* `malloc`. In a service allocating a million objects per second that is unaffordable — the profiling overhead would dwarf the workload. Every production allocation profiler therefore **samples**, and to use the output correctly you have to know exactly *how*.
+- A naive allocation profiler would record a stack trace on *every* `malloc`. In a service allocating a million objects per second that is unaffordable — profiling overhead would dwarf the workload.
+- Every production allocation profiler therefore **samples**, and to use the output correctly you have to know exactly *how*.
 
 Go's heap profiler is controlled by one knob:
 
@@ -21,9 +22,15 @@ Go's heap profiler is controlled by one knob:
 runtime.MemProfileRate = 512 * 1024   // the default: 512 KiB
 ```
 
-The documented contract is "profile approximately one allocation for every `MemProfileRate` bytes allocated." The word *approximately* is doing real work. Go does **not** sample deterministically every 512 KiB — that would alias badly against any allocation pattern whose stride is a multiple of the rate (imagine a loop that allocates exactly 512 KiB per iteration; deterministic sampling would credit one call site and miss everything else). Instead the runtime draws each sample interval from an **exponential distribution** with mean `MemProfileRate`. Because allocations arrive as a stream and the *gaps between sampled allocations* are exponential, the sampling process is a **Poisson process** over the byte stream — the continuous-allocation analog of "flip a weighted coin per byte."
+- The documented contract: "profile approximately one allocation for every `MemProfileRate` bytes allocated." The word *approximately* is doing real work.
+- Go does **not** sample deterministically every 512 KiB — that would alias badly against any allocation pattern whose stride is a multiple of the rate (imagine a loop that allocates exactly 512 KiB per iteration; deterministic sampling would credit one call site and miss everything else).
+- Instead the runtime draws each sample interval from an **exponential distribution** with mean `MemProfileRate`.
+- Because allocations arrive as a stream and the *gaps between sampled allocations* are exponential, the sampling process is a **Poisson process** over the byte stream — the continuous-allocation analog of "flip a weighted coin per byte."
 
-Mechanically, the runtime keeps a per-P countdown of bytes until the next sample (`mcache.nextSample`). Each allocation decrements it by the object's size; when it crosses zero, the runtime records a stack trace for *that* allocation and redraws the next interval from the exponential distribution (`fastexprand` in the runtime). The redraw is the crucial part: a fresh exponential gap each time is what guarantees every allocation has probability proportional to its size of being the one sampled, with no aliasing.
+Mechanically:
+- The runtime keeps a per-P countdown of bytes until the next sample (`mcache.nextSample`).
+- Each allocation decrements it by the object's size; when it crosses zero, the runtime records a stack trace for *that* allocation and redraws the next interval from the exponential distribution (`fastexprand` in the runtime).
+- The redraw is the crucial part: a fresh exponential gap each time is what guarantees every allocation has probability proportional to its size of being the one sampled, with no aliasing.
 
 ```go
 // Conceptually, per allocating goroutine's P:
@@ -34,7 +41,11 @@ if nextSample <= 0 {
 }
 ```
 
-The size-weighting falls out for free and is the reason `-alloc_space` and `-alloc_objects` are *different questions* answered by the *same samples*. A 4 MiB allocation crosses the countdown far more often than a 64-byte one — so large allocations are over-represented per object but correctly represented per byte. When you ask for `alloc_space`, pprof reports the size-weighted estimate; when you ask for `alloc_objects`, it reports the count estimate. A call site that does `make([]byte, 8<<20)` once dominates `alloc_space` and is invisible in `alloc_objects`; a call site that does `make([]byte, 64)` ten million times is the reverse. **Reading the wrong one is the single most common way seniors misdiagnose an allocation problem.**
+- The size-weighting falls out for free and is the reason `-alloc_space` and `-alloc_objects` are *different questions* answered by the *same samples*.
+- A 4 MiB allocation crosses the countdown far more often than a 64-byte one — large allocations are over-represented per object but correctly represented per byte.
+- `alloc_space` reports the size-weighted estimate; `alloc_objects` reports the count estimate.
+- A call site doing `make([]byte, 8<<20)` once dominates `alloc_space` and is invisible in `alloc_objects`; a call site doing `make([]byte, 64)` ten million times is the reverse.
+- **Reading the wrong one is the single most common way seniors misdiagnose an allocation problem.**
 
 ```bash
 # Both views come from the same heap profile:
@@ -42,7 +53,11 @@ go tool pprof -alloc_space   ./bin cpu.heap   # bytes — "what's churning the m
 go tool pprof -alloc_objects ./bin cpu.heap   # count — "what's churning the most objects?"
 ```
 
-Tuning the rate is a real lever. `MemProfileRate = 1` records *every* allocation (exact, but expensive — only for short benchmark runs). Setting it to `0` disables heap profiling entirely. Doubling it from 512 KiB to 1 MiB halves the sample volume and the overhead, at the cost of resolution on rare-but-large call sites. Note one sharp edge: `MemProfileRate` must be set **before any allocation you care about happens** — set it in an `init()` or at the very top of `main`, because the runtime captures the value when it first arms the sampler.
+Tuning the rate is a real lever:
+- `MemProfileRate = 1` records *every* allocation (exact, but expensive — only for short benchmark runs).
+- `MemProfileRate = 0` disables heap profiling entirely.
+- Doubling it from 512 KiB to 1 MiB halves the sample volume and the overhead, at the cost of resolution on rare-but-large call sites.
+- Sharp edge: `MemProfileRate` must be set **before any allocation you care about happens** — set it in an `init()` or at the very top of `main`, because the runtime captures the value when it first arms the sampler.
 
 > **Key insight:** `-alloc_space` is not a measurement, it is an **estimate from a Poisson sampler**. The exponential redraw per sample is what makes it size-proportional and alias-free, which is *also* what makes `-alloc_space` and `-alloc_objects` two valid answers to two different questions from one set of samples. Know which question you're asking before you read the graph.
 
@@ -50,15 +65,20 @@ Tuning the rate is a real lever. `MemProfileRate = 1` records *every* allocation
 
 ## Unsampling — Why alloc_space Is an Estimate and How It's Scaled Back
 
-If the profiler only recorded one allocation per ~512 KiB, how does pprof report "this call site allocated 4.2 GB"? It **unsamples** — it scales each sample back up to estimate the population it represents. Getting this math is what separates "the graph says 4 GB" from "I trust the 4 GB."
+- If the profiler only recorded one allocation per ~512 KiB, how does pprof report "this call site allocated 4.2 GB"? It **unsamples** — it scales each sample back up to estimate the population it represents.
+- Getting this math is what separates "the graph says 4 GB" from "I trust the 4 GB."
 
-When the runtime records a sample at an allocation of size `s`, with rate `R = MemProfileRate`, the probability that *this particular allocation* was the one to trip the countdown is approximately `s / R` for small objects (each byte has ~`1/R` chance; `s` bytes, so ~`s/R`). The unbiased estimator therefore multiplies each sample by the inverse of its sampling probability:
+When the runtime records a sample at an allocation of size `s`, with rate `R = MemProfileRate`:
+- The probability that *this particular allocation* was the one to trip the countdown is approximately `s / R` for small objects (each byte has ~`1/R` chance; `s` bytes, so ~`s/R`).
+- The unbiased estimator therefore multiplies each sample by the inverse of its sampling probability:
 
 ```
 scale(size) ≈ 1 / (1 - exp(-size / R))
 ```
 
-That `1 - exp(...)` form (not the naive `R/size`) is the exact correction Go's runtime uses — it stays accurate even when an object's size is large relative to `R`, where the simple `R/size` approximation breaks down. For a small object (`size ≪ R`), `1 - exp(-size/R) ≈ size/R`, so the scale is ≈ `R/size` — a 64-byte sample with `R = 512 KiB` stands in for ~8192 such objects. For a huge object (`size ≫ R`), the scale approaches `1` — a 16 MiB allocation is almost certainly sampled every time, so it represents essentially just itself.
+- That `1 - exp(...)` form (not the naive `R/size`) is the exact correction Go's runtime uses — it stays accurate even when an object's size is large relative to `R`, where the simple `R/size` approximation breaks down.
+- For a small object (`size ≪ R`): `1 - exp(-size/R) ≈ size/R`, so the scale is ≈ `R/size` — a 64-byte sample with `R = 512 KiB` stands in for ~8192 such objects.
+- For a huge object (`size ≫ R`): the scale approaches `1` — a 16 MiB allocation is almost certainly sampled every time, so it represents essentially just itself.
 
 ```go
 // Runtime's scaling, conceptually (see runtime/mprof.go scaleHeapSample):
@@ -72,7 +92,7 @@ func scale(count, size, rate int64) (int64, int64) {
 }
 ```
 
-Three consequences a senior must internalize:
+**Three consequences a senior must internalize:**
 
 1. **The estimate has variance, and the variance is worst exactly where the data is thinnest.** A call site with thousands of samples is tight; a call site that produced *two* samples is a coin-flip estimate that pprof will still print to the byte. Treat small-sample call sites as order-of-magnitude, not exact. If you need precision on a specific path, lower `MemProfileRate` for a targeted run.
 
@@ -88,16 +108,22 @@ Three consequences a senior must internalize:
 
 The JVM samples allocations too, but the mechanism is tied to a different runtime structure: the **TLAB** (Thread-Local Allocation Buffer). Understanding TLABs explains both *why* JVM allocation sampling is nearly free and *what it systematically misses*.
 
-The fast path of a Java `new` is a **pointer bump** inside the thread's TLAB — a private chunk of Eden the thread carved out so it can allocate without any cross-thread synchronization. The thread just increments a pointer; there is no lock, no CAS, no runtime call. This is why allocation in Java is famously cheap (a handful of instructions) — and it's exactly why you *can't* cheaply instrument every allocation: the common path never enters the runtime at all.
+- The fast path of a Java `new` is a **pointer bump** inside the thread's TLAB — a private chunk of Eden the thread carved out so it can allocate without any cross-thread synchronization. No lock, no CAS, no runtime call.
+- This is why allocation in Java is famously cheap (a handful of instructions) — and exactly why you *can't* cheaply instrument every allocation: the common path never enters the runtime at all.
+- So the JVM piggybacks its sampling on the *one moment the allocation slow path runs*: when the TLAB is exhausted.
 
-So the JVM piggybacks its sampling on the *one moment the allocation slow path runs*: when the TLAB is exhausted. Historically this surfaced as two JFR events:
+Historically this surfaced as two JFR events:
 
 - **`jdk.ObjectAllocationInNewTLAB`** — fired when an allocation didn't fit the current TLAB and the thread grabbed a fresh one. This is the implicit sampler: you get one event roughly per TLAB-worth of allocation (TLABs are adaptively sized, often tens to hundreds of KiB), so the *effective sample rate is "one per TLAB refill,"* not one per allocation.
 - **`jdk.ObjectAllocationOutsideTLAB`** — fired for allocations too large to fit any TLAB, allocated directly in the heap (the "humongous"/large-object path). These are individually significant and always recorded.
 
-The trouble with TLAB-boundary sampling is that its bias is *structural and hard to reason about*: the event fires on the allocation that *happened to overflow the TLAB*, which is not necessarily the call site responsible for most of the bytes — it's whoever drew the short straw at the boundary. The sample rate is also coupled to TLAB sizing, which the JVM tunes adaptively per thread.
+- The trouble with TLAB-boundary sampling is that its bias is *structural and hard to reason about*: the event fires on the allocation that *happened to overflow the TLAB*, not necessarily the call site responsible for most of the bytes — it's whoever drew the short straw at the boundary.
+- The sample rate is also coupled to TLAB sizing, which the JVM tunes adaptively per thread.
 
-JDK 16+ replaced this with **`jdk.ObjectAllocationSample`** (JEP 349), a properly rate-limited sampler that targets a *maximum event rate* (a small, bounded number of samples per second regardless of allocation pressure) and reports an estimated `weight` per sample so you can unsample back to bytes — the same statistical idea as Go, but rate-limited by *events per second* rather than *bytes per sample*. This is the event you want in modern JFR: bounded overhead, no TLAB-coupling, and a weight field for scaling.
+JDK 16+ replaced this with **`jdk.ObjectAllocationSample`** (JEP 349):
+- A properly rate-limited sampler that targets a *maximum event rate* (a small, bounded number of samples per second regardless of allocation pressure).
+- Reports an estimated `weight` per sample so you can unsample back to bytes — the same statistical idea as Go, but rate-limited by *events per second* rather than *bytes per sample*.
+- This is the event you want in modern JFR: bounded overhead, no TLAB-coupling, and a weight field for scaling.
 
 ```bash
 # Modern JFR: low-overhead, rate-limited allocation sampling
@@ -107,7 +133,10 @@ java -XX:+FlightRecorder \
 jfr print --events jdk.ObjectAllocationSample app.jfr
 ```
 
-**async-profiler `--alloc`** takes a sharper approach. Instead of (or in addition to) JFR events, it installs a callback on the JVM's TLAB-allocation and outside-TLAB code paths via the internal `AsyncGetCallTrace` / TLAB hooks, samples at a configurable byte interval (`--alloc 512k`), and — critically — captures the **full native + Java call stack** at the allocation point, including frames the JFR events flatten. That stack fidelity is why async-profiler allocation flame graphs are usually more actionable than raw JFR allocation views.
+**async-profiler `--alloc`** takes a sharper approach:
+- Instead of (or in addition to) JFR events, it installs a callback on the JVM's TLAB-allocation and outside-TLAB code paths via the internal `AsyncGetCallTrace` / TLAB hooks.
+- Samples at a configurable byte interval (`--alloc 512k`).
+- Critically, captures the **full native + Java call stack** at the allocation point, including frames the JFR events flatten — that stack fidelity is why async-profiler allocation flame graphs are usually more actionable than raw JFR allocation views.
 
 ```bash
 # Sample one allocation per ~512 KiB, emit a flame graph:
@@ -122,28 +151,33 @@ asprof -e alloc -i 512k -f alloc-flame.html <pid>
 
 Here is the reason allocation profiling earns its place at all. You don't reduce allocations because allocations are intrinsically bad — short-lived stack-like objects are nearly free. You reduce them because **allocation rate drives GC frequency, and GC frequency drives CPU and pause cost.** A senior reasons about this quantitatively, not as folklore.
 
-Take a tracing collector with a heap that grows from a live set `L` up to a trigger size before collecting. In Go that trigger is governed by `GOGC` (default 100): the GC runs when the heap reaches `L × (1 + GOGC/100)` — i.e., when *new allocation since the last GC* equals the live set. So the **headroom** between collections is:
+- Take a tracing collector with a heap that grows from a live set `L` up to a trigger size before collecting.
+- In Go that trigger is governed by `GOGC` (default 100): the GC runs when the heap reaches `L × (1 + GOGC/100)` — i.e., when *new allocation since the last GC* equals the live set.
+- So the **headroom** between collections is:
 
 ```
 headroom = L × (GOGC / 100)        # default GOGC=100 → headroom = L (one live-set's worth)
 ```
 
-If your steady-state live set is `L = 200 MB` and `GOGC = 100`, the GC fires every time you allocate another 200 MB. Now bring in allocation rate `A` (bytes/sec from your profile):
+- If your steady-state live set is `L = 200 MB` and `GOGC = 100`, the GC fires every time you allocate another 200 MB. Bring in allocation rate `A` (bytes/sec from your profile):
 
 ```
 GC_period   = headroom / A = (L × GOGC/100) / A
 GC_freq     = A / (L × GOGC/100)            # collections per second
 ```
 
-At `A = 2 GB/s` and headroom `200 MB`, that's a GC **every 100 ms — 10 collections per second.** Halve the allocation rate to `1 GB/s` (the thing your allocation profile lets you do) and you get a GC every 200 ms — **GC frequency halved, with no change to the heap or the live set.** That is the entire payoff of allocation reduction expressed in one equation.
+- At `A = 2 GB/s` and headroom `200 MB`, that's a GC **every 100 ms — 10 collections per second.**
+- Halve the allocation rate to `1 GB/s` (the thing your allocation profile lets you do) and you get a GC every 200 ms — **GC frequency halved, with no change to the heap or the live set.** That is the entire payoff of allocation reduction expressed in one equation.
 
-The three corners trade off against each other:
+**The three corners trade off against each other:**
 
 - **Lower allocation rate `A`** → fewer GCs → less GC CPU. *This is what allocation profiling buys you.*
 - **Larger heap headroom (raise `GOGC`, or `-Xmx`)** → fewer GCs → less GC CPU, **but** more RAM and a larger live region to scan, which can grow pause time in non-concurrent or partially-concurrent phases.
 - **Pause/latency target** (Go's soft goal, `MaxGCPauseMillis` for G1) → the collector does more concurrent work and may collect *more often* to hit the target, raising CPU.
 
-You cannot optimize all three at once; you pick the constraint that's binding. GC **CPU cost** scales with how much you scan, ≈ `GC_freq × (cost to mark the live set)` ≈ `(A / headroom) × c·L`. Two ways to cut it: shrink `A` (allocation profiling) or grow headroom (more RAM). They trade memory for CPU against each other — and the allocation profile tells you whether the `A` lever even *has* room to move.
+- You cannot optimize all three at once; you pick the constraint that's binding.
+- GC **CPU cost** scales with how much you scan, ≈ `GC_freq × (cost to mark the live set)` ≈ `(A / headroom) × c·L`.
+- Two ways to cut it: shrink `A` (allocation profiling) or grow headroom (more RAM) — they trade memory for CPU against each other, and the allocation profile tells you whether the `A` lever even *has* room to move.
 
 ```bash
 # Watch the triangle live in Go:
@@ -160,9 +194,10 @@ GODEBUG=gctrace=1 ./app
 
 ## Escape Analysis — The Root Cause the Profile Points At
 
-An allocation profile tells you *where* heap allocations happen. It almost never tells you the *why* — and the why, in a compiled GC'd language, is nearly always **escape analysis deciding a value must live on the heap.** The senior workflow is: profile points at a call site → open the escape-analysis report → understand *why* the compiler heap-allocated → remove the reason. The profile is the symptom; escape analysis is the diagnosis.
-
-Escape analysis is the compiler pass that asks, for each value: *does its lifetime provably end when the function returns?* If yes, it goes on the stack (freed for free when the frame pops, invisible to the GC, never in your allocation profile). If the compiler **can't prove** the lifetime is bounded — the value's address outlives the frame — it must "escape" to the heap. Crucially this is a *conservative* analysis: when in doubt, it heap-allocates. Most removable allocations are cases where the value *could* have stayed on the stack but the compiler couldn't prove it.
+- An allocation profile tells you *where* heap allocations happen. It almost never tells you the *why* — and the why, in a compiled GC'd language, is nearly always **escape analysis deciding a value must live on the heap.**
+- The senior workflow: profile points at a call site → open the escape-analysis report → understand *why* the compiler heap-allocated → remove the reason. The profile is the symptom; escape analysis is the diagnosis.
+- Escape analysis is the compiler pass that asks, for each value: *does its lifetime provably end when the function returns?* If yes, it goes on the stack (freed for free when the frame pops, invisible to the GC, never in your allocation profile). If the compiler **can't prove** the lifetime is bounded — the value's address outlives the frame — it must "escape" to the heap.
+- Crucially this is a *conservative* analysis: when in doubt, it heap-allocates. Most removable allocations are cases where the value *could* have stayed on the stack but the compiler couldn't prove it.
 
 Read the report directly:
 
@@ -183,7 +218,7 @@ func stays() int {
 }
 ```
 
-The canonical escape triggers — the ones your profile will keep pointing at:
+**The canonical escape triggers — the ones your profile will keep pointing at:**
 
 - **Returning a pointer to a local.** The address outlives the frame; classic escape.
 - **Storing a pointer in something that escapes** — a struct field, a slice/map element, a global. The local is now reachable from outside.
@@ -191,13 +226,13 @@ The canonical escape triggers — the ones your profile will keep pointing at:
 - **Closures capturing by reference.** A closure that captures `&x` (or mutates a captured variable) forces `x` to the heap so the closure can outlive the frame.
 - **Slices/maps whose size the compiler can't bound.** `make([]T, n)` with non-constant `n` escapes; `make([]T, 8)` with a constant small size can stay on the stack.
 
-Three deeper interactions a senior must hold:
+**Three deeper interactions a senior must hold:**
 
-**Inlining changes escape outcomes.** Escape analysis runs *after* inlining, and inlining is what makes many small-value optimizations possible — once a callee is inlined into its caller, the compiler can see that the "returned pointer" never actually leaves the combined frame and keep it on the stack. This is why a function that allocates when called normally may *stop* allocating once it's small enough to inline, and why bumping a function over the inlining budget (it gets too big, e.g., by adding a `defer` or growing past the cost threshold) can silently *introduce* heap allocations at call sites that were previously stack-only. Check with `-gcflags='-m=2'`, which also prints inlining decisions.
+- **Inlining changes escape outcomes.** Escape analysis runs *after* inlining, and inlining is what makes many small-value optimizations possible — once a callee is inlined into its caller, the compiler can see that the "returned pointer" never actually leaves the combined frame and keep it on the stack. This is why a function that allocates when called normally may *stop* allocating once it's small enough to inline, and why bumping a function over the inlining budget (it gets too big, e.g., by adding a `defer` or growing past the cost threshold) can silently *introduce* heap allocations at call sites that were previously stack-only. Check with `-gcflags='-m=2'`, which also prints inlining decisions.
 
-**Interface devirtualization.** When the compiler can prove the concrete type behind an interface call (a monomorphic call site), it can *devirtualize* — replace the dynamic dispatch with a direct call, which then opens the door to inlining and *that* can let the value stay on the stack. Hidden polymorphism (passing values through `interface{}` you could have kept concrete) defeats this and shows up as allocation in the profile.
+- **Interface devirtualization.** When the compiler can prove the concrete type behind an interface call (a monomorphic call site), it can *devirtualize* — replace the dynamic dispatch with a direct call, which then opens the door to inlining and *that* can let the value stay on the stack. Hidden polymorphism (passing values through `interface{}` you could have kept concrete) defeats this and shows up as allocation in the profile.
 
-**`sync.Pool` is the escape hatch for allocations you couldn't eliminate.** When a value genuinely must escape (it's large, or its lifetime legitimately crosses the frame) and the call site is hot, `sync.Pool` lets you *recycle* the heap object instead of allocating a fresh one each time — amortizing the allocation across many uses. It doesn't make the allocation go away in the profile the first time, but it collapses the steady-state rate. Critically, a pooled object's lifetime is now *your* responsibility: it must be fully reset on `Put` (stale data is a classic pool bug), and the pool is cleared every GC, so it only helps for high-churn, short-lived reuse. The *techniques* for applying pools belong to [optimization](../../05-memory-and-allocation-profiling/senior.md) — here the point is that the profile + escape report is how you decide *which* call site deserves a pool.
+- **`sync.Pool` is the escape hatch for allocations you couldn't eliminate.** When a value genuinely must escape (it's large, or its lifetime legitimately crosses the frame) and the call site is hot, `sync.Pool` lets you *recycle* the heap object instead of allocating a fresh one each time — amortizing the allocation across many uses. It doesn't make the allocation go away in the profile the first time, but it collapses the steady-state rate. Critically, a pooled object's lifetime is now *your* responsibility: it must be fully reset on `Put` (stale data is a classic pool bug), and the pool is cleared every GC, so it only helps for high-churn, short-lived reuse. The *techniques* for applying pools belong to [optimization](../../05-memory-and-allocation-profiling/senior.md) — here the point is that the profile + escape report is how you decide *which* call site deserves a pool.
 
 > **Key insight:** Every line in your allocation profile is an escape-analysis verdict. `-gcflags='-m -m'` turns the profile's *where* into a *why* — and the why is almost always one of a handful of triggers (returned pointer, interface boxing, unbounded `make`, by-reference capture) that you can often remove by keeping the value concrete, bounding a size, or letting inlining do its job.
 
@@ -205,9 +240,8 @@ Three deeper interactions a senior must hold:
 
 ## Differential Allocation Profiles — Proving a Fix
 
-A senior never claims an optimization worked because "the flame graph looks better." You prove it with a **differential (before/after) profile** — and you control for the sampler so you're measuring the fix, not the noise.
-
-The pattern in Go: capture a profile before the change, capture one after under the *same* load and the *same* `MemProfileRate`, and diff them.
+- A senior never claims an optimization worked because "the flame graph looks better." You prove it with a **differential (before/after) profile** — and you control for the sampler so you're measuring the fix, not the noise.
+- The pattern in Go: capture a profile before the change, capture one after under the *same* load and the *same* `MemProfileRate`, and diff them.
 
 ```bash
 # Baseline and candidate, identical rate and workload:
@@ -220,7 +254,8 @@ go tool pprof -alloc_space -base=before.heap after.heap
 go tool pprof -alloc_objects -base=before.heap after.heap   # check BOTH views
 ```
 
-The `-base` flag subtracts sample-for-sample, so the flame graph now shows *deltas*: a call site you fixed shows as a large negative contribution, and — just as important — you can *see if your fix pushed allocations somewhere else* (a positive delta you didn't expect). Diffing both `-alloc_space` and `-alloc_objects` catches the case where you cut total bytes but tripled object count (e.g., you replaced one big buffer with many small ones), which can *worsen* GC because the collector cost is partly per-object, not purely per-byte.
+- The `-base` flag subtracts sample-for-sample, so the flame graph now shows *deltas*: a call site you fixed shows as a large negative contribution, and — just as important — you can *see if your fix pushed allocations somewhere else* (a positive delta you didn't expect).
+- Diffing both `-alloc_space` and `-alloc_objects` catches the case where you cut total bytes but tripled object count (e.g., you replaced one big buffer with many small ones), which can *worsen* GC because the collector cost is partly per-object, not purely per-byte.
 
 For microbenchmarks, `-benchmem` gives you the per-operation ground truth that the sampled profile can only estimate:
 
@@ -229,9 +264,9 @@ BenchHot-8   1.2µs/op   512 B/op   3 allocs/op     # before
 BenchHot-8   0.4µs/op     0 B/op   0 allocs/op     # after — provably zero-allocation
 ```
 
-`allocs/op` and `B/op` here are **exact** (the benchmark framework counts with `runtime.ReadMemStats` deltas around the measured loop, not sampling), which makes them the gold standard for "did this path become allocation-free?" Use the sampled profile to *find* the path; use `-benchmem` on a focused benchmark to *prove* the fix to the byte and to guard it against regression in CI.
-
-On the JVM, the same discipline applies with JFR: record `jdk.ObjectAllocationSample` before and after, and diff the per-class / per-stack allocation totals (`jfr print` plus your own aggregation, or a JMC/async-profiler diff view).
+- `allocs/op` and `B/op` here are **exact** (the benchmark framework counts with `runtime.ReadMemStats` deltas around the measured loop, not sampling), which makes them the gold standard for "did this path become allocation-free?"
+- Use the sampled profile to *find* the path; use `-benchmem` on a focused benchmark to *prove* the fix to the byte and to guard it against regression in CI.
+- On the JVM, the same discipline applies with JFR: record `jdk.ObjectAllocationSample` before and after, and diff the per-class / per-stack allocation totals (`jfr print` plus your own aggregation, or a JMC/async-profiler diff view).
 
 > **Key insight:** A real allocation fix is proven by a *differential* profile under controlled load and an identical sample rate, cross-checked on both bytes and objects, and pinned by an exact `-benchmem`/`allocs/op` assertion in a benchmark — so the win is measured, attributed, and regression-guarded, not eyeballed.
 
@@ -263,7 +298,9 @@ Seeing `runtime.growslice` or `runtime.mapassign` high in the profile is a *sign
 
 The allocation pattern that matters is the one under *real* traffic, not your benchmark. Continuous profiling — capturing low-overhead allocation profiles from production continuously and storing them over time — is how seniors catch allocation regressions that never show up in a microbenchmark.
 
-The mechanism is the same Poisson/TLAB sampler running with a *production-safe* rate. Go already samples heap allocations by default (`MemProfileRate = 512 KiB`) with overhead low enough to leave on in production — the heap profile is always available at `/debug/pprof/heap` (or `pprof.Lookup("allocs")`). A continuous-profiling agent (Grafana Pyroscope, Polar Signals/Parca, Datadog, Google Cloud Profiler) scrapes that endpoint on an interval, tags each profile with version/instance/commit, and stores it so you can query "allocation by call site, over time, across the fleet."
+- The mechanism is the same Poisson/TLAB sampler running with a *production-safe* rate.
+- Go already samples heap allocations by default (`MemProfileRate = 512 KiB`) with overhead low enough to leave on in production — the heap profile is always available at `/debug/pprof/heap` (or `pprof.Lookup("allocs")`).
+- A continuous-profiling agent (Grafana Pyroscope, Polar Signals/Parca, Datadog, Google Cloud Profiler) scrapes that endpoint on an interval, tags each profile with version/instance/commit, and stores it so you can query "allocation by call site, over time, across the fleet."
 
 ```go
 import "net/http"
@@ -281,7 +318,7 @@ go tool pprof http://localhost:6060/debug/pprof/allocs        # alloc_space/obje
 go tool pprof http://localhost:6060/debug/pprof/heap          # same data; default view is inuse
 ```
 
-What continuous allocation profiling unlocks that one-off profiling can't:
+**What continuous allocation profiling unlocks that one-off profiling can't:**
 
 - **Regression attribution by deploy.** When GC CPU jumps after a release, you diff the allocation profile *across the version boundary* (exactly the `-base` diff from earlier, but automated across deploys) and the new call site is right there. This is the production analog of the differential profile.
 - **Tail-correlated profiling.** A profile averaged over a minute hides the allocation spike that caused a 2-second pause. Production profilers that can slice the profile to a *time window* (or correlate with a trace) let you ask "what was allocating during the p99 latency event?"
@@ -336,3 +373,11 @@ The senior's posture: **allocation profiling is not a thing you turn on during a
 - Where should recovery responsibility live, and why?
 - Which assumption deserves an experiment before implementation?
 - How can the design evolve without changing every consumer at once?
+- Explain `MemProfileRate` and the scaling math behind an allocation profile — why does it matter for how you read the numbers?
+- How does the JVM sample allocations via TLABs and JFR, and what's a TLAB?
+- Draw the chain from allocation rate to user-visible latency — what is "the triangle"?
+- Two services have the same live heap size, but one spends 5% in GC and the other 30% — what's the most likely difference?
+- A teammate proposes fixing high GC CPU by enlarging the heap — when does that help, and when is it a band-aid?
+- "GC is 30% of CPU" — where do you look first, and why an allocation profile rather than a heap dump?
+- The profiler blames a runtime function like `runtime.mallocgc` or `growslice` — what does that mean, and where's the real bug?
+- A latency spike correlates with traffic, the heap looks stable, but GC frequency climbs under load — walk the diagnosis.

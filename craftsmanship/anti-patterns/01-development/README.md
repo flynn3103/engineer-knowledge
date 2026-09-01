@@ -1,26 +1,24 @@
-# Development
+# Development Anti-Patterns
 
-> A progressive engineering roadmap for turning development principles into repeatable decisions, observable practices, and maintainable systems.
-
-Use this section to move from correct execution in a small scope to design ownership, system-level trade-offs, and organization-scale practice. Each topic emphasizes concrete methods, failure modes, and evidence you can use to verify the result.
+> Recognize costly habits early, replace them with small safer moves, and keep the codebase easy to change.
 
 ## Topics
 
-| # | Topic | Focus |
+| # | Topic | What it helps you avoid |
 |---|---|---|
-| 01 | [Bad Structure](01-bad-structure/junior.md) | Build practical judgment in bad structure. |
-| 02 | [Bad Shortcuts](02-bad-shortcuts/junior.md) | Build practical judgment in bad shortcuts. |
-| 03 | [Over Engineering](03-over-engineering/junior.md) | Build practical judgment in over engineering. |
+| 01 | [Bad Structure](01-bad-structure/junior.md) | Code whose shape makes change risky. |
+| 02 | [Bad Shortcuts](02-bad-shortcuts/junior.md) | Local convenience that creates hidden future work. |
+| 03 | [Over-Engineering](03-over-engineering/junior.md) | Complexity that solves an imagined problem. |
 
-## How to use this section
+## How to use these guides
 
-Follow the topics in order when the subject is new, or enter at the topic closest to your current problem. Every leaf topic contains four progressive guides:
+Read a topic at the level that matches the scope you own:
 
-| Level | Scope | Expected outcome |
-|---|---|---|
-| Junior | A small, well-defined change | Apply the technique correctly with guidance. |
-| Middle | A real codebase or component | Make and explain local design trade-offs independently. |
-| Senior | A system boundary under change | Shape an approach, contain risk, and validate assumptions. |
-| Professional | Multiple teams and sustained delivery | Establish an operating model with measurable outcomes. |
+| Level | Practice |
+|---|---|
+| Junior | Spot the smell and make a small clear fix. |
+| Middle | Prevent the smell in day-to-day design and review. |
+| Senior | Change risky legacy systems safely and improve the conditions that create debt. |
+| Professional | Use evidence, constraints, and team policy to make trade-offs repeatable. |
 
-Each level ends with unanswered comprehension questions for active recall. Supporting `interview`, `tasks`, `find-bug`, `optimize`, and answer files are intentionally excluded.
+Use the checklists during implementation and review. The questions at the end of each guide are for active recall; answer them without looking back.

@@ -134,7 +134,11 @@ If any answer is "I'm not sure," you've found your next clarifying question — 
 **Where this leads:** Once you truly understand the problem, you can [devise a plan](../02-devising-a-plan/) to solve it. When the "problem" is a bug, understanding it means reproducing it first — see [debugging as problem-solving](../05-debugging-as-problem-solving/). And many misunderstandings come from unexamined beliefs, covered in [questioning assumptions](../../05-first-principles-thinking/02-questioning-assumptions/). Back to the [problem-solving section](../) and the [roadmap root](../../README.md).
 
 ---
-## Check your understanding
+## Recall and apply
+
+**Practice loop:** Restate one live problem, list its constraints and unknowns, then confirm them with the right person or evidence.
+
+Use these prompts to check your understanding and choose one action to try in your next task.
 
 Try to answer these questions from memory:
 

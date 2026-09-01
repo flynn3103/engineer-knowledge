@@ -150,7 +150,13 @@ Next, [professional.md](professional.md) covers learning at staff/principal scal
 **See also:** [Deliberate practice](../03-deliberate-practice/) · [Knowing what you don't know](../04-knowing-what-you-dont-know/) · [First-principles thinking](../../05-first-principles-thinking/) · [Section overview](../) · [Roadmap root](../../README.md)
 
 ---
-## Check your understanding
+## Use it today
+
+1. Build learning plans around the capabilities your work will need next.
+2. Teach or apply a new idea to expose gaps in your understanding.
+3. **Decision rule:** change the learning method when recall and transfer do not improve.
+
+## Recall and apply
 
 Try to answer these questions from memory:
 

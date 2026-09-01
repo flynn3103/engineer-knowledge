@@ -106,7 +106,9 @@ Get the order wrong and you build a platform nobody adopts, because the "pattern
 - Recognizing a pattern across N teams is the prerequisite for building the right **platform/abstraction** — don't abstract three coincidences.
 
 ---
-## Check your understanding
+## Recall and apply
+
+**Practice loop:** Apply one idea to a current task. State the signal you saw, the choice you made, and what happened.
 
 Try to answer these questions from memory:
 

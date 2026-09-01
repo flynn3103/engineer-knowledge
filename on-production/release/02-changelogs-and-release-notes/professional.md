@@ -47,7 +47,7 @@ A real standard specifies, at minimum:
 
 The standard's job is to convert a thousand individual judgment calls into a few decisions made once, centrally. The professional skill is writing a standard that is **prescriptive where consistency matters** (format, security, retention) and **permissive where it doesn't** (entry wording style), so teams comply without friction or resentment.
 
-> A standard nobody can follow easily is shelfware. Pair every "must" with a paved-road tool that makes the "must" automatic — see Core Concept 4.
+> **Warning:** a standard nobody can follow easily is shelfware. Pair every "must" with a paved-road tool that makes the "must" automatic — see Core Concept 4.
 
 ---
 
@@ -61,7 +61,7 @@ Beyond a contract, the changelog and release record carry **legal and regulatory
 - **License and dependency provenance.** For some compliance regimes the changelog must note dependency changes that affect licensing or the SBOM. This ties the changelog to [Supply-Chain Security](../09-supply-chain-security/README.md).
 - **Contractual feature commitments.** If a contract promises a feature "by Q3," the dated release note is evidence of delivery. Conversely, announcing a removed feature in the changelog can trigger contractual notice periods.
 
-> The reframe: the changelog is not just developer courtesy; it is a **record of corporate action**. Design it with the same integrity controls you'd apply to any audit artifact — immutability, attribution, timestamps, review.
+> **Reframe:** the changelog is not just developer courtesy; it is a **record of corporate action**. Design it with the same integrity controls you'd apply to any audit artifact — immutability, attribution, timestamps, review.
 
 ---
 
@@ -100,7 +100,11 @@ deny[msg] {
 }
 ```
 
-The professional principle: **make compliance the default and non-compliance loud.** Reviews catch what automation can't (judgment, wording); automation catches what reviews miss under deadline pressure (omissions). You need both, layered.
+**Professional principle:** make compliance the default and non-compliance loud.
+
+- Reviews catch what automation can't — judgment, wording.
+- Automation catches what reviews miss under deadline pressure — omissions.
+- You need both, layered.
 
 ---
 
@@ -255,3 +259,7 @@ The professional value-add is recognizing systemic failures before they compound
 - Which team owns the full lifecycle and incident response?
 - What reversible increment produces the earliest useful evidence?
 - Which exit condition proves that migration or adoption is complete?
+- How does a changelog function as a compliance/audit artifact, and what does that require operationally?
+- A high-severity CVE affects three supported branches — how do you coordinate the disclosure across artifacts, advisory, and customers?
+- Leadership proposes "100% of releases have release notes" as a target metric — what's your response?
+- Can you edit a shipped changelog entry to fix a typo? What should happen instead, and why?

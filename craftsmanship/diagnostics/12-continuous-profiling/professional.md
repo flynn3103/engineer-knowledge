@@ -345,7 +345,7 @@ A precise map of when each signal — and continuous vs point-in-time profiling 
 These are *complementary*, not competing:
 
 - **Continuous profiling** ([this roadmap](README.md)) *finds* the hot function in production, fleet-wide, with real data and concurrency. It answers "where is the time going right now, across everything?"
-- **Point-in-time profiling** ([Quality Engineering → Performance → Profiling](../../performance/01-profiling/README.md)) *fixes* a known hot function — the developer reproduces it on a laptop/benchmark, iterates with a profiler, and optimizes. It answers "why is this specific function slow and how do I make it fast?"
+- **Point-in-time profiling** ([Quality Engineering → Performance → Profiling](../../../On-Production/performance/01-profiling/README.md)) *fixes* a known hot function — the developer reproduces it on a laptop/benchmark, iterates with a profiler, and optimizes. It answers "why is this specific function slow and how do I make it fast?"
 
 The workflow is: **continuous profiling (prod) finds it → point-in-time profiling (laptop) fixes it → continuous profiling (deploy gate) confirms the fix and guards against regression.** The `profiling-techniques` skill is the point-in-time-optimization counterpart; this roadmap is the always-on-discovery side.
 

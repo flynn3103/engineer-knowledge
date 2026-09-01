@@ -160,7 +160,13 @@ These aren't gotchas — delivered with genuine curiosity, they make the *whole 
 - Back to [Metacognition & learning](../) · [Engineering Thinking](../../README.md)
 
 ---
-## Check your understanding
+## Use it today
+
+1. Build blameless review and decision practices that surface reasoning errors.
+2. Preserve predictions, assumptions, and outcomes so the organization can learn.
+3. Reward evidence-based reversals rather than confidence that resists correction.
+
+## Recall and apply
 
 Try to answer these questions from memory:
 

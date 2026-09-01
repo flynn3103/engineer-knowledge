@@ -117,7 +117,9 @@ See [Leverage points and bottlenecks](../06-leverage-points-and-bottlenecks/) fo
 **Keep this:** a system's behavior over time is dictated by its loops. Design the loops — their sign, gain, delay, and which one dominates near the limit — and the behavior follows.
 
 ---
-## Check your understanding
+## Recall and apply
+
+**Practice loop:** Draw one feedback loop. Label the reinforcing or balancing effect, delay, and metric that would show it.
 
 Try to answer these questions from memory:
 

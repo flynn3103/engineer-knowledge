@@ -278,7 +278,7 @@ The fidelity principle: **never sample away the rare thing you'll need.** Alloca
 
 ## Debugging in Production
 
-The whole point. (Cross-ref [testing-in-production](../../testing/13-testing-in-production/README.md) — observability is its prerequisite; you can't safely test in prod if you can't see what happens.)
+The whole point. (Cross-ref [testing-in-production](../../../On-Production/testing/13-testing-in-production/README.md) — observability is its prerequisite; you can't safely test in prod if you can't see what happens.)
 
 - **Production is the only complete environment.** Staging lacks real traffic shapes, real cardinality, real concurrency, real data. The unknown-unknowns live in prod, so observability must be a prod-first capability.
 - **The loop runs against live data.** Hypothesis → query the last hour of wide events → narrow → confirm. No reproduction, no redeploy.

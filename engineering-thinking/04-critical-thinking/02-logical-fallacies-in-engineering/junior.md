@@ -6,6 +6,13 @@
 
 ---
 
+## Action card
+1. Separate the proposal from its reason.
+2. Ask what local evidence supports that reason.
+3. Offer a neutral question, not a label.
+
+**Decision rule:** “everyone does it” is a lead to investigate, never a conclusion.
+
 ## 1. Why this matters before you can spot it
 
 A bad argument can reach a true conclusion by accident, and a good argument can reach a false one. So "the result was right" never tells you the *reasoning* was right. Engineering decisions compound: a design choice defended by a fallacy today becomes the load-bearing assumption nobody dares to question in two years.
@@ -161,7 +168,9 @@ The author never names a fallacy. They keep replacing *social* and *temporal* re
 Next, at the middle level: the trickier fallacies — sunk cost, survivorship bias, post hoc, no true Scotsman — and how they sabotage migrations, rewrites, and incident reviews.
 
 ---
-## Check your understanding
+## Recall and apply
+
+Use these prompts to check your understanding and choose one action to try in your next task.
 
 Try to answer these questions from memory:
 

@@ -159,7 +159,15 @@ This is the foundation for everything in this section. Next, see how the same mi
 - See also: [critical thinking](../../04-critical-thinking/) for the bias-defeating habits this builds on, and the [section overview](../).
 
 ---
-## Check your understanding
+## Use it today
+
+1. Write what you think is happening and why.
+2. Name one observation that would prove you wrong.
+3. Run the smallest safe check before changing code.
+
+## Recall and apply
+
+Use these prompts to check your understanding and choose one action to try in your next task.
 
 Try to answer these questions from memory:
 

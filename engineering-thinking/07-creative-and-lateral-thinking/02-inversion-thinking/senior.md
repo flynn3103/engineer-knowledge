@@ -136,7 +136,13 @@ flowchart LR
 - [Section overview](../) · [Engineering-thinking roadmap](../../README.md)
 
 ---
-## Check your understanding
+## Use it today
+
+1. Facilitate a pre-mortem before a consequential design or launch.
+2. Ask for concrete ways the system, rollout, and operations could fail.
+3. **Decision rule:** mitigate high-impact, plausible failures first; record accepted risks.
+
+## Recall and apply
 
 Try to answer these questions from memory:
 

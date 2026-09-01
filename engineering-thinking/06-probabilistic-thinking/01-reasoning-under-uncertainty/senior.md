@@ -6,6 +6,13 @@
 
 ---
 
+## Quick use
+1. Separate known risk, uncertain probabilities, and unknown unknowns.
+2. Use measured priors and update sequentially.
+3. Report distributions and calibration, not a comforting mean.
+
+**Decision rule:** when the distribution is unknown, reduce blast radius instead of pretending to know it.
+
 ## 1. Three things people lump together: risk, uncertainty, ignorance
 
 Frank Knight (*Risk, Uncertainty, and Profit*, 1921) drew a line that most engineers blur. Add a third category that the software world forces on us, and you get a crucial taxonomy:
@@ -196,7 +203,7 @@ Nate Silver's *The Signal and the Noise* makes a point seniors feel daily: more 
 | Section overview | [Probabilistic Thinking](../) |
 
 ---
-## Check your understanding
+## Recall and apply
 
 Try to answer these questions from memory:
 

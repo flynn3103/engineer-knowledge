@@ -225,7 +225,11 @@ Modeling is the synthesis step where [decomposition](../01-decomposition/), [pat
 **See also:** [Computational thinking overview](../) · [Abstraction and generalization](../03-abstraction-and-generalization/) · [Algorithmic thinking](../04-algorithmic-thinking/) · [Roadmap home](../../README.md)
 
 ---
-## Check your understanding
+## Recall and apply
+
+**Practice loop:** Model one current task explicitly: name the entities, rules, boundaries, and one assumption to test.
+
+Use these prompts to check your understanding and choose one action to try in your next task.
 
 Try to answer these questions from memory:
 

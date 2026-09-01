@@ -168,7 +168,11 @@ Debugging *is* problem-solving applied to your own code, so it borrows the whole
 - You only *know* it's fixed when you understand the mechanism — when you can turn the bug on and off.
 
 ---
-## Check your understanding
+## Recall and apply
+
+**Practice loop:** Write the symptom, a falsifiable cause, the smallest probe, and the result before changing production code.
+
+Use these prompts to check your understanding and choose one action to try in your next task.
 
 Try to answer these questions from memory:
 

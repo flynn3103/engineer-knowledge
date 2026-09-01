@@ -6,6 +6,13 @@
 
 ---
 
+## Quick use
+1. Name plausible outcomes.
+2. State your current confidence as a range or probability.
+3. Take the next action that cheaply separates the outcomes.
+
+**Decision rule:** update confidence when evidence arrives; do not defend the first guess.
+
 ## 1. The core idea: you almost never *know*
 
 As a junior engineer, you are constantly forced to answer questions you cannot fully verify:
@@ -151,7 +158,9 @@ A 5% chance of a typo is fine. A 5% chance of deleting the production database i
 **The one takeaway:** Stop forcing every uncertain question into a yes/no answer. Hold a probability, say it out loud, and let evidence move it.
 
 ---
-## Check your understanding
+## Recall and apply
+
+Use these prompts to check your understanding and choose one action to try in your next task.
 
 Try to answer these questions from memory:
 

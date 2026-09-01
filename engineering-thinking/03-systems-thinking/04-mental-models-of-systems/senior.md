@@ -136,7 +136,9 @@ Holding a model *and its limits* is what separates senior reasoning from cargo-c
 - The team runs on a **collection of models**; silent divergence is the dangerous failure mode — surface, share, and reconcile them as explicit artifacts.
 
 ---
-## Check your understanding
+## Recall and apply
+
+**Practice loop:** State the model you are using, its assumptions, a competing model, and the observation that would change your mind.
 
 Try to answer these questions from memory:
 

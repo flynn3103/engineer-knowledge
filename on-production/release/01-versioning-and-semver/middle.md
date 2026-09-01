@@ -13,7 +13,7 @@ Use the smallest realistic scenario that exposes the decision and its failure be
 
 ## Core Concept 1 — Precedence Rules in Full
 
-SemVer precedence is defined precisely, and you should know all of it because tooling depends on it.
+SemVer precedence is defined precisely, and tooling depends on all of it:
 
 1. Compare MAJOR, then MINOR, then PATCH numerically. First difference wins.
 2. A version **with** a pre-release has **lower** precedence than the same version without one: `1.0.0-rc.1 < 1.0.0`.
@@ -29,11 +29,11 @@ SemVer precedence is defined precisely, and you should know all of it because to
             <  1.0.0-beta.2   <  1.0.0-beta.11    <  1.0.0-rc.1   <  1.0.0
 ```
 
-Note `alpha.2 < alpha.10` (numeric) but if those were alphanumeric strings, `"10" < "2"` in ASCII — a classic source of "why did my RC sort wrong" bugs when people zero-pad or stringify identifiers.
+- Note `alpha.2 < alpha.10` (numeric) — but if those were alphanumeric strings, `"10" < "2"` in ASCII. This is a classic source of "why did my RC sort wrong" bugs when people zero-pad or stringify identifiers.
 
 ## Core Concept 2 — What Actually Counts as Breaking
 
-"Breaking" is the hardest judgment call in versioning. A breaking change is any change that requires a *correct* downstream user to modify their code, configuration, or expectations to keep working. The public API is wider than most people think:
+"Breaking" is the hardest judgment call in versioning. A breaking change is any change that requires a *correct* downstream user to modify their code, configuration, or expectations to keep working. The public API is wider than most people think.
 
 **Clearly breaking (MAJOR):**
 - Removing or renaming an exported function, type, field, flag, or endpoint.
@@ -76,13 +76,14 @@ SemVer carves out a deliberate escape hatch: **while MAJOR is 0, anything may ch
 0.x.y  →  "initial development; the public API is not stable."
 ```
 
-Under `0.x`, the *minor* slot acts like a major slot by convention in many ecosystems. Cargo, for instance, treats `0.2.0` and `0.3.0` as incompatible: `^0.2.1` resolves to `>=0.2.1, <0.3.0`, **not** `<1.0.0`. That mirrors how teams actually use `0.x`: each minor can break.
-
-The corollary: **reaching `1.0.0` is a commitment, not a milestone.** It says "I will not break this without bumping MAJOR." Many mature projects stay on `0.x` precisely to avoid that commitment — see ZeroVer below.
+- Under `0.x`, the *minor* slot acts like a major slot by convention in many ecosystems.
+- Cargo, for instance, treats `0.2.0` and `0.3.0` as incompatible: `^0.2.1` resolves to `>=0.2.1, <0.3.0`, **not** `<1.0.0`. That mirrors how teams actually use `0.x`: each minor can break.
+- The corollary: **reaching `1.0.0` is a commitment, not a milestone.** It says "I will not break this without bumping MAJOR."
+- Many mature projects stay on `0.x` precisely to avoid that commitment — see ZeroVer below.
 
 ## Core Concept 4 — Alternatives: CalVer, ZeroVer, EPOCH
 
-SemVer answers "is this safe to upgrade?" That is the right question for **libraries**. For other software, different schemes fit better.
+SemVer answers "is this safe to upgrade?" — the right question for **libraries**. Other software fits different schemes better.
 
 **CalVer (Calendar Versioning).** The version encodes the release date.
 
@@ -92,9 +93,12 @@ pip           24.0       → YY.MINOR
 Black         24.3.0     → YY.MM.MICRO
 ```
 
-CalVer fits when "newer is better" is the only question that matters and there is no stable import API to protect — operating systems, end-user apps, tools with continuous delivery, and time-boxed releases (`2024.06` tells you instantly how stale you are). It is a poor fit for libraries, because the number carries no compatibility signal.
+- Fits when "newer is better" is the only question that matters and there is no stable import API to protect — operating systems, end-user apps, tools with continuous delivery, time-boxed releases (`2024.06` tells you instantly how stale you are).
+- Poor fit for libraries, because the number carries no compatibility signal.
 
-**ZeroVer.** Deliberately never reaching `1.0.0`. Common, half-joking, and surprisingly principled: it keeps the "anything may change" license forever. Risky as a real policy because it signals "not production-ready" to cautious adopters.
+**ZeroVer.** Deliberately never reaching `1.0.0`.
+- Common, half-joking, and surprisingly principled: it keeps the "anything may change" license forever.
+- Risky as a real policy because it signals "not production-ready" to cautious adopters.
 
 **EPOCH.** When your numbering scheme itself was wrong (e.g. you switched from date strings to SemVer and the old numbers sort higher), an epoch prefix forces ordering. PEP 440 spells it `1!`:
 
@@ -137,21 +141,21 @@ The same intent ("accept compatible updates") is written five different ways. Me
 1.2.3            a "soft" requirement — a recommendation, not a hard pin
 ```
 
-**Go is the outlier.** It does not resolve ranges. You write a single minimum version, and the build uses **Minimal Version Selection (MVS)**: of all the minimums requested across the whole dependency graph, pick the highest. There is no `^` or `~`.
+- **Go is the outlier.** It does not resolve ranges. You write a single minimum version, and the build uses **Minimal Version Selection (MVS)**: of all the minimums requested across the whole dependency graph, pick the highest. There is no `^` or `~`.
 
 ```bash
 # go.mod
 require github.com/pkg/errors v0.9.1   # this is a *minimum*, not a ceiling
 ```
 
-Go also encodes the **major version in the import path** (Semantic Import Versioning):
+- Go also encodes the **major version in the import path** (Semantic Import Versioning):
 
 ```go
 import "github.com/foo/bar"        // v0 or v1
 import "github.com/foo/bar/v2"     // v2 — a different import path entirely
 ```
 
-And for commits without a tag, Go synthesizes a **pseudo-version**:
+- And for commits without a tag, Go synthesizes a **pseudo-version**:
 
 ```
 v0.0.0-20240101120000-abcdef123456
@@ -162,7 +166,8 @@ v0.0.0-20240101120000-abcdef123456
 
 ## Core Concept 6 — Single Source of Truth
 
-The version must be defined in exactly one authoritative place, and everything else derives from it. Otherwise the tag, the manifest, and the binary disagree and you cannot trust any of them.
+- The version must be defined in exactly one authoritative place, and everything else derives from it.
+- Otherwise the tag, the manifest, and the binary disagree and you cannot trust any of them.
 
 Two common patterns:
 
@@ -183,7 +188,7 @@ var version = "dev"  // overwritten at build time
 func main() { fmt.Println("v" + version) }
 ```
 
-Whichever you pick, never let two places drift. A common CI check: assert that the manifest version equals the tag being released.
+- Whichever you pick, never let two places drift. A common CI check: assert that the manifest version equals the tag being released.
 
 ## Real-World Examples
 
@@ -223,3 +228,8 @@ Whichever you pick, never let two places drift. A common CI check: assert that t
 - What constraint would make you choose the alternative design?
 - How would you isolate a local defect from an integration defect?
 - What evidence shows that the change remains maintainable?
+- How do you decide the correct version bump for a change without just guessing?
+- Where should the canonical version live, and how do you keep it from drifting away from the Git tag?
+- Your library needs a breaking change — how would you ship it responsibly?
+- How do npm, Go, and Cargo differ in how they resolve dependency versions?
+- What's the practical difference between `^1.2.3`, `~1.2.3`, and `~=1.2.3`?

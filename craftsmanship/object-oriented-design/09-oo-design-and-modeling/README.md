@@ -1,27 +1,28 @@
-# Object-Oriented Design and Modeling
+# OO Design and Modeling
 
-> A progressive engineering roadmap for turning object-oriented design and modeling principles into repeatable decisions, observable practices, and maintainable systems.
+## Purpose
 
-Use this section to move from correct execution in a small scope to design ownership, system-level trade-offs, and organization-scale practice. Each topic emphasizes concrete methods, failure modes, and evidence you can use to verify the result.
+This roadmap turns object-oriented design ideas into decisions you can use during implementation, review, and refactoring. Work through topics in order when the area is new; otherwise start with the design pressure you are seeing.
 
 ## Topics
 
-| # | Topic | Focus |
-|---|---|---|
-| 01 | [Grasp Responsibility Assignment](01-grasp-responsibility-assignment/junior.md) | Build practical judgment in grasp responsibility assignment. |
-| 02 | [Oo Metrics Ck Suite](02-oo-metrics-ck-suite/junior.md) | Build practical judgment in oo metrics ck suite. |
-| 03 | [Thread Safe Object Design](03-thread-safe-object-design/junior.md) | Build practical judgment in thread safe object design. |
-| 04 | [Designing for Extension and Polymorphism](04-designing-for-extension-and-polymorphism/junior.md) | Build practical judgment in designing for extension, polymorphism. |
+| Topic | Use it when |
+| --- | --- |
+| [GRASP Responsibility Assignment](01-grasp-responsibility-assignment/junior.md) | You see a controller coordinates everything or a class depends on information it does not own. |
+| [OO Metrics: CK Suite](02-oo-metrics-ck-suite/junior.md) | You see high complexity, coupling, inheritance depth, or response surface hides change risk. |
+| [Thread-Safe Object Design](03-thread-safe-object-design/junior.md) | You see mutable shared fields, check-then-act logic, and leaking internal collections. |
+| [Designing for Extension and Polymorphism](04-designing-for-extension-and-polymorphism/junior.md) | You see conditionals grow for types, subclasses violate contracts, or extension leaks internals. |
 
-## How to use this section
+## Learning path
 
-Follow the topics in order when the subject is new, or enter at the topic closest to your current problem. Every leaf topic contains four progressive guides:
+- **Junior:** recognize the concern and make one safe local improvement.
+- **Middle:** explain a component-level design trade-off.
+- **Senior:** manage boundaries, migration, and system risk.
+- **Professional:** establish team practices and measure outcomes.
 
-| Level | Scope | Expected outcome |
-|---|---|---|
-| Junior | A small, well-defined change | Apply the technique correctly with guidance. |
-| Middle | A real codebase or component | Make and explain local design trade-offs independently. |
-| Senior | A system boundary under change | Shape an approach, contain risk, and validate assumptions. |
-| Professional | Multiple teams and sustained delivery | Establish an operating model with measurable outcomes. |
+## How to study
 
-Each level ends with unanswered comprehension questions for active recall. Supporting `interview`, `tasks`, `find-bug`, `optimize`, and answer files are intentionally excluded.
+1. Pick a real change, not a hypothetical class diagram.
+2. Read the level that matches the scope you own.
+3. Use the “Practical move” as a review or pairing prompt.
+4. Capture evidence from code, tests, and change history before declaring success.

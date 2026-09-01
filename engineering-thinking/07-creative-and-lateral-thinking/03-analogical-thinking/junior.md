@@ -125,7 +125,15 @@ RETRY     — like redialing a busy phone number.
 - [Section: Creative & lateral thinking](../) · [Roadmap home](../../README.md)
 
 ---
-## Check your understanding
+## Use it today
+
+1. Describe the problem by its structure, not its familiar implementation.
+2. Find one system with the same structure.
+3. Copy the principle, then check where the analogy breaks.
+
+## Recall and apply
+
+Use these prompts to check your understanding and choose one action to try in your next task.
 
 Try to answer these questions from memory:
 

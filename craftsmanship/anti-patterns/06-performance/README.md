@@ -1,27 +1,19 @@
 # Performance
 
-> A progressive engineering roadmap for turning performance principles into repeatable decisions, observable practices, and maintainable systems.
+## Purpose
 
-Use this section to move from correct execution in a small scope to design ownership, system-level trade-offs, and organization-scale practice. Each topic emphasizes concrete methods, failure modes, and evidence you can use to verify the result.
+This section covers performance anti-patterns: recurring choices that make software harder to change, operate, or trust.
 
 ## Topics
 
-| # | Topic | Focus |
-|---|---|---|
-| 01 | [Premature Optimization Traps](01-premature-optimization-traps/junior.md) | Build practical judgment in premature optimization traps. |
-| 02 | [N Plus One in Code](02-n-plus-one-in-code/junior.md) | Build practical judgment in n plus one in code. |
-| 03 | [Unnecessary Allocation](03-unnecessary-allocation/junior.md) | Build practical judgment in unnecessary allocation. |
-| 04 | [Wrong Data Structure](04-wrong-data-structure/junior.md) | Build practical judgment in wrong data structure. |
+- [Premature Optimization Traps](01-premature-optimization-traps/junior.md): complex optimizations added before a measured performance problem exists.
+- [N+1 in Code](02-n-plus-one-in-code/junior.md): a loop triggers one expensive lookup or operation for each item.
+- [Unnecessary Allocation](03-unnecessary-allocation/junior.md): temporary objects or copies created repeatedly on a hot path.
+- [Wrong Data Structure](04-wrong-data-structure/junior.md): a collection does not match the operations performed most often.
 
-## How to use this section
+## Learning path
 
-Follow the topics in order when the subject is new, or enter at the topic closest to your current problem. Every leaf topic contains four progressive guides:
-
-| Level | Scope | Expected outcome |
-|---|---|---|
-| Junior | A small, well-defined change | Apply the technique correctly with guidance. |
-| Middle | A real codebase or component | Make and explain local design trade-offs independently. |
-| Senior | A system boundary under change | Shape an approach, contain risk, and validate assumptions. |
-| Professional | Multiple teams and sustained delivery | Establish an operating model with measurable outcomes. |
-
-Each level ends with unanswered comprehension questions for active recall. Supporting `interview`, `tasks`, `find-bug`, `optimize`, and answer files are intentionally excluded.
+- **Junior:** recognize the smell and improve a small change safely.
+- **Middle:** diagnose the pattern in a component and explain the trade-off.
+- **Senior:** manage the pattern across a system boundary.
+- **Professional:** establish a measurable prevention practice across teams.

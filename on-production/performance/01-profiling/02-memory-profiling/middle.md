@@ -26,9 +26,9 @@ HashMap                        48     1,240,000,000   ← shallow tiny, retained
 String[]  (some array)  8,000,000         8,000,000   ← shallow ≈ retained (leaf-ish)
 ```
 
-Sorting by **shallow** size surfaces big leaves (a giant `byte[]`, an interned-string pool) — occasionally the culprit, usually not. Sorting by **retained** size surfaces the *owners*: the one map, cache, or list whose removal reclaims the most memory. The owner is what you want, because the owner is what a single code change can release.
-
-The catch: an object's retained size depends on *what else points into its subtree*. If two roots both reference a large array, that array belongs to *neither* one's retained set — killing either root frees nothing, because the other still holds it. Retained size is computed against the whole graph, which is exactly what the dominator tree is for.
+- Sorting by **shallow** size surfaces big leaves (a giant `byte[]`, an interned-string pool) — occasionally the culprit, usually not.
+- Sorting by **retained** size surfaces the *owners*: the one map, cache, or list whose removal reclaims the most memory. The owner is what you want, because the owner is what a single code change can release.
+- The catch: an object's retained size depends on *what else points into its subtree*. If two roots both reference a large array, that array belongs to *neither* one's retained set — killing either root frees nothing, because the other still holds it. Retained size is computed against the whole graph, which is exactly what the dominator tree is for.
 
 > **Key insight:** Shallow size answers "how big is this object?" Retained size answers "how much memory does this object *cost me*?" Only the second question matters for a leak — and it's the one beginners never sort by. The leak is almost always a small-shallow, huge-retained node.
 
@@ -36,9 +36,10 @@ The catch: an object's retained size depends on *what else points into its subtr
 
 ## The Dominator Tree — "If X Were Freed, What Comes With It?"
 
-Retained size isn't magic; it's read off a structure called the **dominator tree**. Object **A dominates** object **B** if *every* path from a GC root to B passes through A. Equivalently: if A were removed, B becomes unreachable and dies. An object's retained set is exactly the set of objects it dominates, and its retained size is their total bytes.
-
-This is why retained size is well-defined even in a tangled object graph. The array referenced by two roots is dominated by *neither* root individually — there's a path to it that avoids each one — so it sits higher in the dominator tree, under whatever node *all* paths share (in the limit, the synthetic root). That's the formal version of "killing one owner frees nothing if another still points in."
+- Retained size isn't magic; it's read off a structure called the **dominator tree**.
+- Object **A dominates** object **B** if *every* path from a GC root to B passes through A. Equivalently: if A were removed, B becomes unreachable and dies.
+- An object's retained set is exactly the set of objects it dominates, and its retained size is their total bytes.
+- This is why retained size is well-defined even in a tangled object graph: the array referenced by two roots is dominated by *neither* root individually — there's a path to it that avoids each one — so it sits higher in the dominator tree, under whatever node *all* paths share (in the limit, the synthetic root). That's the formal version of "killing one owner frees nothing if another still points in."
 
 Eclipse MAT's central view is literally called the **Dominator Tree**, sorted by retained size:
 
@@ -51,7 +52,8 @@ com.acme.SessionCache                                   48    1,240,184,320     
 com.acme.MetricsBuffer                                  32      198,400,016        9.9%
 ```
 
-One read of this view tells you: 62% of the live heap is reachable through a single `SessionCache`, and it's a `ConcurrentHashMap` with half a million `UserSession` entries. You haven't proven it's a leak yet — but you've found the one object worth investigating, and you found it in seconds instead of scrolling a histogram of types.
+- One read of this view tells you: 62% of the live heap is reachable through a single `SessionCache`, and it's a `ConcurrentHashMap` with half a million `UserSession` entries.
+- You haven't proven it's a leak yet — but you've found the one object worth investigating, in seconds instead of scrolling a histogram of types.
 
 > **Key insight:** The dominator tree turns a tangled reachability graph into a clean ownership tree where each node's subtree is exactly what dies with it. "Find the leak" becomes "walk down the dominator tree following the largest retained child until the bytes stop being justified." That walk is the core skill of heap analysis.
 
@@ -59,7 +61,8 @@ One read of this view tells you: 62% of the live heap is reachable through a sin
 
 ## GC Roots and Retention Paths — "What Keeps This Alive?"
 
-Knowing *which* object retains the heap is half the answer. The other half — the half that names the bug — is *why it's still reachable*. An object is alive because there's a chain of references from a **GC root** down to it. That chain is the **retention path** (MAT calls it the **Path to GC Roots**), and the surprising link in it is your bug.
+- Knowing *which* object retains the heap is half the answer.
+- The other half — the half that names the bug — is *why it's still reachable*. An object is alive because there's a chain of references from a **GC root** down to it. That chain is the **retention path** (MAT calls it the **Path to GC Roots**), and the surprising link in it is your bug.
 
 GC roots are the entry points the collector treats as "always alive":
 
@@ -79,9 +82,10 @@ UserSession  @ 0x7f...a0
      └─ INSTANCE of com.acme.SessionCache        ← static field = GC ROOT
 ```
 
-The last line is the diagnosis: a `static INSTANCE` holds a `ConcurrentHashMap` that nobody ever evicts from. The `UserSession` can't die because a static field transitively reaches it. The fix isn't "free the session" — it's "stop the static singleton from holding sessions forever" (bound the map, evict on logout). **The path to the root *is* the bug report.**
-
-In MAT you right-click the object → **Path to GC Roots → exclude weak/soft references** (you exclude weak/soft because those *don't* prevent collection — including them produces paths that aren't real leaks). In Chrome DevTools the **Retainers** panel at the bottom of a heap snapshot shows the same thing: expand it to walk from the object up to a `(GC root)` or a `Window` / global.
+- The last line is the diagnosis: a `static INSTANCE` holds a `ConcurrentHashMap` that nobody ever evicts from. The `UserSession` can't die because a static field transitively reaches it.
+- The fix isn't "free the session" — it's "stop the static singleton from holding sessions forever" (bound the map, evict on logout). **The path to the root *is* the bug report.**
+- In MAT you right-click the object → **Path to GC Roots → exclude weak/soft references** (you exclude weak/soft because those *don't* prevent collection — including them produces paths that aren't real leaks).
+- In Chrome DevTools the **Retainers** panel at the bottom of a heap snapshot shows the same thing: expand it to walk from the object up to a `(GC root)` or a `Window` / global.
 
 > **Key insight:** Retained size says *how much*; the retention path says *why*. You can't fix a leak from retained size alone — you fix it from the path, because the path contains the one reference (a static map, an un-removed listener, a captured closure) that a code change must sever. Always end your analysis on a root, never on "it's big."
 
@@ -93,8 +97,7 @@ Go's heap profile (and the equivalent in every tool) gives you two *in-use* meas
 
 - **`inuse_space`** — live **bytes** by allocation site. Surfaces *few big* objects: a 200 MB slice, a cache holding large buffers.
 - **`inuse_objects`** — live **object count** by allocation site. Surfaces *many small* objects: ten million 32-byte structs that individually look like nothing but collectively dominate the heap and crush the GC.
-
-A leak can hide in either. A growing `map[string][]byte` of large blobs shows up loudly in `inuse_space`. A growing slice of millions of tiny structs (or a `sync.Map` accumulating tiny entries) may be modest in `inuse_space` but enormous in `inuse_objects` — and the object count is the tell.
+- A leak can hide in either. A growing `map[string][]byte` of large blobs shows up loudly in `inuse_space`. A growing slice of millions of tiny structs (or a `sync.Map` accumulating tiny entries) may be modest in `inuse_space` but enormous in `inuse_objects` — and the object count is the tell.
 
 ```bash
 # live bytes by site
@@ -111,7 +114,8 @@ Showing nodes accounting for 1.41GB, 96.2% of 1.46GB total
     0.21GB 14.4% 95.2%     0.21GB 14.4%  acme/proto.Unmarshal
 ```
 
-`flat` is bytes allocated *at* that function and still live; `cum` includes its callees. Here `(*Store).Put` holds 1.18 GB of live data by itself — the retainer. Switch to `inuse_objects` and if a *different* site jumps to the top, you have a many-small problem instead.
+- `flat` is bytes allocated *at* that function and still live; `cum` includes its callees.
+- Here `(*Store).Put` holds 1.18 GB of live data by itself — the retainer. Switch to `inuse_objects` and if a *different* site jumps to the top, you have a many-small problem instead.
 
 > **Key insight:** `inuse_space` finds the whale; `inuse_objects` finds the swarm. Always check both — sorting by bytes alone will miss a leak made of millions of tiny objects, and that swarm is often the one quietly destroying GC pause times.
 
@@ -119,7 +123,8 @@ Showing nodes accounting for 1.41GB, 96.2% of 1.46GB total
 
 ## Two Snapshots and a Diff — Isolating Growth
 
-A single snapshot tells you what's big *now*. It cannot tell you what's *leaking*, because a large heap can be perfectly healthy (see the next section). The only robust way to find a leak is to take **two snapshots** around a repeatable workload and look at the **delta**. What *grew* is the suspect; what's merely large but stable is noise.
+- A single snapshot tells you what's big *now*. It cannot tell you what's *leaking*, because a large heap can be perfectly healthy (see the next section).
+- The only robust way to find a leak is to take **two snapshots** around a repeatable workload and look at the **delta**. What *grew* is the suspect; what's merely large but stable is noise.
 
 The protocol — identical across runtimes:
 
@@ -130,7 +135,9 @@ The protocol — identical across runtimes:
 5. Take snapshot **B**.
 6. **Diff B against A.** Objects whose count/bytes rose by ~N (or N×k) are the leak; everything flat is irrelevant.
 
-The diff is what makes a leak *obvious*. A type that gained exactly 10,000 instances after 10,000 requests is not a coincidence — it's an object created per request that nothing releases. The tools expose this directly:
+- The diff is what makes a leak *obvious*. A type that gained exactly 10,000 instances after 10,000 requests is not a coincidence — it's an object created per request that nothing releases.
+
+The tools expose this directly:
 
 - **MAT:** open both heap dumps, use **Compare Basket** (add A, add B, ▣ compare) → a table of retained-size and instance-count deltas per class.
 - **Chrome DevTools:** take snapshot, act, take another; switch the selector to **Comparison** → columns **# New**, **# Deleted**, **# Delta**, **Size Delta** per constructor. Sort by `# Delta`.
@@ -145,9 +152,8 @@ The diff is what makes a leak *obvious*. A type that gained exactly 10,000 insta
 
 Before you declare a leak, rule out the two impostors. High heap usage is *not* the same as a leak, and acting on a false positive wastes days.
 
-**Impostor 1 — the GC simply hasn't run.** A managed runtime grows its heap on purpose; collecting early is wasted work. A sawtooth — heap climbs, GC fires, heap drops, repeat — is *healthy*, even if the peaks are high. You only suspect a leak when the *floor* of the sawtooth (live size right *after* a collection) trends upward over time. This is exactly why the two-snapshot protocol forces a GC before each capture: you compare *post-collection* floors, not pre-collection peaks. Without that forced GC, you'll "find" megabytes of garbage that the next collection would have reclaimed anyway.
-
-**Impostor 2 — a legitimate cache or buffer.** A bounded LRU cache that fills to its limit and stays there is *retaining memory by design*, not leaking. The distinguishing test is **boundedness**: does the retained set *plateau*, or does it grow without limit?
+- **Impostor 1 — the GC simply hasn't run.** A managed runtime grows its heap on purpose; collecting early is wasted work. A sawtooth — heap climbs, GC fires, heap drops, repeat — is *healthy*, even if the peaks are high. You only suspect a leak when the *floor* of the sawtooth (live size right *after* a collection) trends upward over time. This is exactly why the two-snapshot protocol forces a GC before each capture: you compare *post-collection* floors, not pre-collection peaks. Without that forced GC, you'll "find" megabytes of garbage that the next collection would have reclaimed anyway.
+- **Impostor 2 — a legitimate cache or buffer.** A bounded LRU cache that fills to its limit and stays there is *retaining memory by design*, not leaking. The distinguishing test is **boundedness**: does the retained set *plateau*, or does it grow without limit?
 
 | Signal | True leak | Healthy cache / buffer |
 |---|---|---|
@@ -156,7 +162,7 @@ Before you declare a leak, rule out the two impostors. High heap usage is *not* 
 | Diff after N ops, then N more | grows each round | grows once, then flat |
 | Has an eviction policy? | no (or broken) | yes, and it fires |
 
-So the real test is never "is the heap big?" It's "does the *floor* keep rising after GC, without bound, as the workload repeats?" If yes, leak. If it plateaus, you have a cache — possibly mis-sized, but not leaking.
+- The real test is never "is the heap big?" It's "does the *floor* keep rising after GC, without bound, as the workload repeats?" If yes, leak. If it plateaus, you have a cache — possibly mis-sized, but not leaking.
 
 > **Key insight:** A leak is *unbounded post-GC growth*, not high usage. Always compare the live floor *after* a forced collection across time. A high but flat floor is a cache; a rising floor is a leak. Confusing the two sends you optimizing healthy memory and ignoring the real one.
 
@@ -174,7 +180,8 @@ go tool pprof -inuse_space http://localhost:6060/debug/pprof/heap
 (pprof) list (*Store).Put   # annotate the source line holding the memory
 (pprof) web                 # SVG graph; box size ∝ retained bytes
 ```
-`list` overlays live-byte counts on the actual source, pointing at the exact line that allocates the retained data. `web` renders the retention graph where box area tracks bytes — the visual equivalent of a dominator tree.
+- `list` overlays live-byte counts on the actual source, pointing at the exact line that allocates the retained data.
+- `web` renders the retention graph where box area tracks bytes — the visual equivalent of a dominator tree.
 
 **Java — Eclipse MAT** on a `.hprof` dump (`jmap -dump:live,format=b,file=heap.hprof <pid>`; the `live` flag forces a GC first):
 
@@ -201,7 +208,7 @@ for stat in snap_b.compare_to(snap_a, 'lineno')[:10]:
     print(stat)
 # cache.py:88: size=412 MiB (+412 MiB), count=1048576 (+1048576)
 ```
-`tracemalloc` ties retained bytes to the *line that allocated them*, and `compare_to` gives you the diff directly — the Python analogue of pprof's `-diff_base`.
+- `tracemalloc` ties retained bytes to the *line that allocated them*, and `compare_to` gives you the diff directly — the Python analogue of pprof's `-diff_base`.
 
 > **Key insight:** Every tool exposes the same three primitives under different names — retained size (dominator tree / `inuse_space` / Size), path to root (Path to GC Roots / Retainers), and snapshot diff (Compare Basket / Comparison / `-diff_base` / `compare_to`). Learn the *concepts* and each new tool is just relabeled buttons.
 
@@ -226,7 +233,7 @@ Showing nodes accounting for 39.8MB, 99.1% of 40.2MB total
       flat  flat%   sum%        cum   cum%
     39.7MB 98.8% 98.8%     39.7MB 98.8%  acme/events.(*Bus).Subscribe
 ```
-The diff is unambiguous: nearly all *growth* lives at `(*Bus).Subscribe`. Absolute totals would have buried this under steady-state caches; the **delta** isolates it.
+- The diff is unambiguous: nearly all *growth* lives at `(*Bus).Subscribe`. Absolute totals would have buried this under steady-state caches; the **delta** isolates it.
 
 **Step 2 — go to the line.**
 
@@ -240,7 +247,8 @@ The diff is unambiguous: nearly all *growth* lives at `(*Bus).Subscribe`. Absolu
          .          .   44:    return ch
          .          .   45:}
 ```
-Live bytes are pinned to line 43: every `Subscribe` appends a channel to `b.subs[topic]` and **nothing ever removes it**. There's no `Unsubscribe`, so `b.subs` — reachable from a long-lived `*Bus` — grows without bound. This is the **listener-not-unregistered** retention bug, and `b.subs` is a small-shallow, huge-retained map: the textbook leak shape.
+- Live bytes are pinned to line 43: every `Subscribe` appends a channel to `b.subs[topic]` and **nothing ever removes it**.
+- There's no `Unsubscribe`, so `b.subs` — reachable from a long-lived `*Bus` — grows without bound. This is the **listener-not-unregistered** retention bug, and `b.subs` is a small-shallow, huge-retained map: the textbook leak shape.
 
 **Step 3 — confirm it's unbounded, not a cache.** Object count over a second hour rises by the same ~40 MB — monotonic, no plateau, no eviction policy. Leak confirmed.
 
@@ -255,17 +263,11 @@ The whole diagnosis — *diff → `list` → confirm unbounded → fix → re-di
 ## Common Mistakes
 
 1. **Sorting by shallow size and chasing the biggest type.** The biggest type is `byte[]`/`String`/`map` *everywhere*; it's rarely the leak. Sort by **retained** size to find the *owner* — the small node that holds the big subtree.
-
 2. **Stopping at "it's big" instead of walking to a root.** Retained size finds the *what*; only the **Path to GC Roots** finds the *why* — and you can't write a fix without the why. Always end on a root.
-
 3. **Diffing snapshots without forcing a GC first.** Without a pre-capture collection you compare heaps full of about-to-die garbage and "find" leaks the next GC would reclaim. Force GC, *then* snapshot — both times.
-
 4. **Calling a bounded cache a leak.** A cache that fills to capacity and *plateaus* is working as designed. The test is **unbounded post-GC growth**, not high usage. Check whether the floor plateaus before declaring a leak.
-
 5. **Sorting only by bytes and missing the swarm.** A leak of millions of tiny objects is modest in `inuse_space` but huge in `inuse_objects`. Check *both* — the swarm is often the one wrecking GC pauses.
-
 6. **Including weak/soft references in the retention path.** Weak and soft references don't keep objects alive, so paths through them aren't real leaks. In MAT, **exclude weak/soft** when computing Path to GC Roots, or you'll chase a non-bug.
-
 7. **Trusting "Leak Suspects" without verifying the path.** MAT's automated report is a great first pointer, but it reports the *dominant retainer*, which for a legitimate large cache is a false alarm. Always confirm with the path and the diff.
 
 ---
@@ -291,3 +293,10 @@ The whole diagnosis — *diff → `list` → confirm unbounded → fix → re-di
 - What constraint would make you choose the alternative design?
 - How would you isolate a local defect from an integration defect?
 - What evidence shows that the change remains maintainable?
+- What is a dominator tree, and why is it the right structure for leak hunting?
+- How does diffing two heap snapshots isolate a real leak that a single snapshot can't?
+- Give an example of memory that looks leaked in a tool but is actually working as intended.
+- What does Go's `runtime.MemProfileRate` control, and what's the tradeoff of changing it?
+- What happens when you capture a Java `.hprof` heap dump, and what does it cost in production?
+- How does JFR's old-object sample give leak information without a full heap dump?
+- Memory grew steadily for an hour and then flattened out — leak or not a leak?

@@ -127,7 +127,9 @@ Renaming a public abstraction after the fact is a breaking change with migration
 - Section overview: [`../`](../) · Roadmap home: [`../../README.md`](../../README.md).
 
 ---
-## Check your understanding
+## Recall and apply
+
+**Practice loop:** Apply one idea to a current task. State the decision it hides, the variation it exposes, and the result.
 
 Try to answer these questions from memory:
 

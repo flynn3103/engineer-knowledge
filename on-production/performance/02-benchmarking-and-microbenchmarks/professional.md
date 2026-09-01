@@ -13,7 +13,12 @@ Use the smallest realistic scenario that exposes the decision and its failure be
 
 ## A Benchmark Harness Is Infrastructure, Not a Script
 
-The moment more than one person relies on a benchmark number, the benchmark stops being a script and becomes infrastructure — with the same obligations as any shared system: stable inputs, versioned configuration, reproducible output, and a contract about what the number means.
+The moment more than one person relies on a benchmark number, the benchmark stops being a script and becomes infrastructure — with the same obligations as any shared system:
+
+- Stable inputs.
+- Versioned configuration.
+- Reproducible output.
+- A contract about what the number means.
 
 A harness that people trust has these properties:
 
@@ -39,7 +44,11 @@ A minimal harness contract, encoded as the shape of every result record:
 }
 ```
 
-Notice what is *not* here: a single "result" field. The harness emits the raw distribution and lets the comparison layer ([regression detection](../07-performance-budgets-and-regression-testing/professional.md)) decide whether two distributions differ. The harness measures; it does not judge. Keeping those concerns separate is what lets you change the statistical test later without re-running history.
+Notice what is *not* here: a single "result" field.
+
+- The harness emits the raw distribution and lets the comparison layer ([regression detection](../07-performance-budgets-and-regression-testing/professional.md)) decide whether two distributions differ.
+- The harness measures; it does not judge.
+- Keeping those concerns separate is what lets you change the statistical test later without re-running history.
 
 > **The professional reality:** the hardest part of a benchmark harness is not the measurement loop — `testing.B`, JMH, and Criterion already solve that. It's making the result *comparable across machines and across months*. That means provenance on every sample and a workload that is versioned, not ambient. Treat the harness like a measurement instrument: it needs calibration, a serial number, and a logbook.
 
@@ -49,14 +58,18 @@ Notice what is *not* here: a single "result" field. The harness emits the raw di
 
 This is the single most important professional insight on this page: **a shared cloud CI runner cannot produce a trustworthy absolute microbenchmark number, and most teams don't realize it until they've shipped a regression a noisy benchmark failed to catch.**
 
-A microbenchmark measures nanoseconds-to-microseconds per operation. To resolve a 3% change, your measurement noise must be well under 3%. A standard GitHub Actions / GitLab SaaS / generic cloud CI runner gives you noise far larger than that, because:
+- A microbenchmark measures nanoseconds-to-microseconds per operation. To resolve a 3% change, your measurement noise must be well under 3%.
+- A standard GitHub Actions / GitLab SaaS / generic cloud CI runner gives you noise far larger than that, because:
 
 - **Noisy neighbors.** You're on a shared hypervisor. Another tenant's workload steals CPU, thrashes the shared L3 cache, and saturates memory bandwidth — invisibly. The same code can run 30%+ slower depending on who else landed on the box.
 - **CPU frequency is not yours to control.** Turbo boost, thermal throttling, and cloud-vendor frequency scaling move the clock under you. You can't pin the governor to `performance` on a runner you don't own.
 - **vCPUs are shared cores.** Hyperthread siblings and burstable instance credits (AWS `t3`, etc.) mean your "CPU" is a time-slice, not a core. Burstable instances literally throttle after you exhaust credits — mid-suite.
 - **Ephemeral, heterogeneous hardware.** Today's runner is a Skylake, tomorrow's is an Ice Lake or Graviton. Absolute numbers across runs compare different silicon.
 
-The result: variance of 20–50% run-to-run, which drowns every real regression smaller than "we accidentally added an N² loop." Teams that benchmark on cloud CI get a check that is *red for noise and green for noise*, learn it's untrustworthy, and route around it. A benchmark people ignore is negative value — it cost CI minutes and trained the team to dismiss perf signal.
+The result: variance of 20–50% run-to-run, which drowns every real regression smaller than "we accidentally added an N² loop."
+
+- Teams that benchmark on cloud CI get a check that is *red for noise and green for noise*, learn it's untrustworthy, and route around it.
+- A benchmark people ignore is negative value — it cost CI minutes and trained the team to dismiss perf signal.
 
 **What to do instead — in priority order:**
 
@@ -129,9 +142,19 @@ bench:
     - run: ./scripts/comment_if_regression.sh delta.csv 3.0   # fail if >3% slower, p<0.05
 ```
 
-The alerting logic — *is this delta a real regression or noise?* — is non-trivial and belongs to [regression detection](../07-performance-budgets-and-regression-testing/professional.md): a Mann-Whitney U test on the two sample distributions, a minimum effect size (don't alert on a statistically-significant 0.3% that no one cares about), and a guard against alerting on a single bad run. The benchmarking layer's job is to *produce clean distributions*; the regression layer's job is to *decide if they differ*. Don't conflate them.
+The alerting logic — *is this delta a real regression or noise?* — is non-trivial and belongs to [regression detection](../07-performance-budgets-and-regression-testing/professional.md):
 
-The dashboard makes the trend pipeline pay off. A per-benchmark time series (latency/op on Y, commit/date on X) annotated with merge SHAs turns "perf got worse sometime this quarter" into "perf stepped 9% at commit `e4f7a1` on May 3." Grafana over a results table, or a hosted tool (Bencher, `cargo-criterion` + a viewer, the Go `benchmark` dashboards), both work. The non-negotiable is *annotation by commit* — a trend line without commit markers tells you something is wrong but not where.
+- A Mann-Whitney U test on the two sample distributions.
+- A minimum effect size (don't alert on a statistically-significant 0.3% that no one cares about).
+- A guard against alerting on a single bad run.
+
+The benchmarking layer's job is to *produce clean distributions*; the regression layer's job is to *decide if they differ*. Don't conflate them.
+
+The dashboard makes the trend pipeline pay off.
+
+- A per-benchmark time series (latency/op on Y, commit/date on X) annotated with merge SHAs turns "perf got worse sometime this quarter" into "perf stepped 9% at commit `e4f7a1` on May 3."
+- Grafana over a results table, or a hosted tool (Bencher, `cargo-criterion` + a viewer, the Go `benchmark` dashboards), both work.
+- The non-negotiable is *annotation by commit* — a trend line without commit markers tells you something is wrong but not where.
 
 > **The professional reality:** a continuous benchmarking pipeline is two pipelines with different SLAs — a fast relative gate that blocks PRs, and a thorough absolute trend job that catches drift. Conflating them gives you a gate too slow to keep and a trend too noisy to read. And the dashboard is only useful if every point links back to a commit.
 
@@ -139,7 +162,9 @@ The dashboard makes the trend pipeline pay off. A per-benchmark time series (lat
 
 ## Result Storage, Baselines, and Trend Tracking
 
-Benchmark results are time-series data with provenance, and the cheapest correct storage is usually a structured append-only store keyed by `(benchmark, commit, host)`. The schema matters more than the technology — Postgres, a columnar store, or even committed JSON files in a results repo all work if the record carries enough context.
+Benchmark results are time-series data with provenance, and the cheapest correct storage is usually a structured append-only store keyed by `(benchmark, commit, host)`.
+
+The schema matters more than the technology — Postgres, a columnar store, or even committed JSON files in a results repo all work if the record carries enough context.
 
 What every stored record needs (so a future comparison is valid):
 
@@ -174,7 +199,9 @@ Baseline hygiene that bites people:
 
 ## When a Microbenchmark Is a Lie About Production
 
-A microbenchmark can be *internally honest* — DCE-defeated, warmed up, low variance, statistically sound — and still tell you something false about production. This is the most expensive class of benchmarking error because the number *looks* trustworthy. The mechanisms:
+A microbenchmark can be *internally honest* — DCE-defeated, warmed up, low variance, statistically sound — and still tell you something false about production.
+
+This is the most expensive class of benchmarking error because the number *looks* trustworthy. The mechanisms:
 
 - **Cache warm vs cold.** A microbenchmark hammers the same small working set in a tight loop, so by the second iteration everything is in L1/L2 and the branch predictor is trained. Production touches that code path once per request, cold, with the caches full of *other* requests' data. A function that's 50ns hot can be 400ns cold. Your benchmark measured the warm case; production lives in the cold case.
 - **Single-tenant vs contended.** The benchmark runs alone on the box. Production runs that code on 64 threads contending for the same lock, the same allocator arena, the same cache lines (false sharing). A lock-free path that benchmarks beautifully single-threaded can collapse under contention — see [concurrency overhead](../06-concurrency-and-contention/README.md). The microbenchmark measured zero contention; production has plenty.
@@ -194,7 +221,10 @@ The defense is layering, not abandoning microbenchmarks:
 
 ## Flame-Graph-Guided Benchmark Targeting
 
-The complement to "don't trust every benchmark" is "don't *write* benchmarks blindly." The most common waste in benchmarking is optimizing — and benchmarking — code that doesn't matter. The flame graph tells you where the time actually goes, and that's where your benchmarks (and optimization effort) belong.
+The complement to "don't trust every benchmark" is "don't *write* benchmarks blindly."
+
+- The most common waste in benchmarking is optimizing — and benchmarking — code that doesn't matter.
+- The flame graph tells you where the time actually goes, and that's where your benchmarks (and optimization effort) belong.
 
 The disciplined loop:
 
@@ -203,7 +233,10 @@ The disciplined loop:
 3. **Use the flame graph to scope the benchmark correctly.** The graph shows whether the cost is in *your* code or in a framework/library frame underneath it — which directly determines whether your benchmark should isolate your code or include the framework. (This is exactly the trap in the war story below.)
 4. **Re-profile after optimizing** to confirm the wide frame shrank and a new bottleneck didn't just take its place.
 
-This turns benchmarking from a guessing game into targeted work. You benchmark the hot 5% of code that owns 80% of the time, and you ignore the cold 95% — because a benchmark of cold code is, by construction, measuring something that can't move the system.
+This turns benchmarking from a guessing game into targeted work:
+
+- You benchmark the hot 5% of code that owns 80% of the time.
+- You ignore the cold 95% — because a benchmark of cold code is, by construction, measuring something that can't move the system.
 
 > **The principle:** a flame graph is the map; benchmarks are the measurements you take at the marked locations. Writing a benchmark without first profiling is surveying random coordinates. Benchmark the widest frames; ignore the thin ones — Amdahl guarantees the thin ones can't matter.
 
@@ -211,7 +244,11 @@ This turns benchmarking from a guessing game into targeted work. You benchmark t
 
 ## The Cost and ROI of Benchmarking
 
-Benchmarks are not free. Each one costs authoring time, CI minutes, runner wear, maintenance as the code evolves, and — most insidiously — *attention*: a 40-minute suite with 300 benchmarks is a suite no one reads. The professional question is not "should we benchmark?" but "*which* code earns a benchmark?"
+Benchmarks are not free.
+
+- Each one costs authoring time, CI minutes, runner wear, and maintenance as the code evolves.
+- Most insidiously, each one costs *attention*: a 40-minute suite with 300 benchmarks is a suite no one reads.
+- The professional question is not "should we benchmark?" but "*which* code earns a benchmark?"
 
 Benchmark when the ROI is clear:
 
@@ -297,3 +334,9 @@ A simple ROI heuristic: a benchmark is worth maintaining if `(probability the co
 - Which team owns the full lifecycle and incident response?
 - What reversible increment produces the earliest useful evidence?
 - Which exit condition proves that migration or adoption is complete?
+- You're setting up benchmarking for a new library — what do you benchmark, and what do you deliberately skip?
+- How do you keep benchmarks useful in CI without them becoming flaky, ignored gates?
+- When should you decide not to benchmark at all, and just ship?
+- A teammate's PR claims a 15% speedup backed by a microbenchmark — what do you check before approving?
+- Why can't a shared cloud CI runner produce a trustworthy absolute microbenchmark number, and what do you do instead?
+- How do you decide what belongs in a fast per-PR benchmark gate versus a slower trend-tracking pipeline?

@@ -128,7 +128,9 @@ A staff/principal debugging effort isn't done at the fix; it's done when the *or
 - Done = toggle-proven fix + regression guard + **class eliminated** + a measurable improvement in how fast the *next* one is diagnosed.
 
 ---
-## Check your understanding
+## Recall and apply
+
+**Practice loop:** Write the symptom, a falsifiable cause, the smallest probe, and the result before changing production code.
 
 Try to answer these questions from memory:
 

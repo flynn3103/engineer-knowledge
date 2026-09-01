@@ -19,7 +19,11 @@ A benchmark has three jobs, and all three matter:
 2. **Measure** something objective — time, operations per second, bytes allocated.
 3. **Be repeatable** — run it again and get *roughly* the same answer.
 
-The word doing the heavy lifting is **controlled**. A measurement you can't reproduce isn't a benchmark; it's an anecdote. If you time something once, get "42 ms," and move on, you've learned almost nothing — you don't know if the true value is 40 ms or 80 ms, or whether the 42 was a fluke caused by your laptop indexing files in the background.
+The word doing the heavy lifting is **controlled**:
+
+- A measurement you can't reproduce isn't a benchmark — it's an anecdote.
+- Timing something once, getting "42 ms," and moving on teaches you almost nothing.
+- You don't know if the true value is 40 ms or 80 ms, or whether the 42 was a fluke caused by your laptop indexing files in the background.
 
 Go bakes this discipline into the standard library. A benchmark is just a function starting with `Benchmark`, taking a `*testing.B`:
 
@@ -35,7 +39,11 @@ func BenchmarkConcat(b *testing.B) {
 }
 ```
 
-The key piece is `b.N`. You do **not** pick how many times to run the code — the framework does. It runs your loop a few times, sees how long that took, then automatically scales `b.N` up (1, then 100, then 10,000, then millions) until the total run is long enough to measure reliably. You write the loop; Go decides the iteration count so the result is statistically meaningful.
+The key piece is `b.N`:
+
+- You do **not** pick how many times to run the code — the framework does.
+- It runs your loop a few times, sees how long that took, then automatically scales `b.N` up (1, then 100, then 10,000, then millions) until the total run is long enough to measure reliably.
+- You write the loop; Go decides the iteration count so the result is statistically meaningful.
 
 Run it:
 
@@ -51,7 +59,11 @@ BenchmarkConcat-8    1000000000    0.31 ns/op
 PASS
 ```
 
-Read that last line: the benchmark ran **one billion** iterations, and each one averaged **0.31 nanoseconds**. The `-8` is the number of CPUs available (`GOMAXPROCS`). You didn't ask for a billion runs — Go chose that many *because* the operation is so fast that it needed a huge sample to get a stable per-operation figure.
+Read that last line:
+
+- The benchmark ran **one billion** iterations, and each one averaged **0.31 nanoseconds**.
+- The `-8` is the number of CPUs available (`GOMAXPROCS`).
+- You didn't ask for a billion runs — Go chose that many *because* the operation is so fast that it needed a huge sample to get a stable per-operation figure.
 
 > **Key insight:** the value of a benchmark is not the single number it prints — it's that the number is *reproducible* and *comparable*. A benchmark exists so you can run it before a change and after a change and ask "did this actually help?" One run in isolation answers nothing.
 
@@ -61,7 +73,9 @@ Read that last line: the benchmark ran **one billion** iterations, and each one 
 
 Benchmarks come in two sizes, and confusing them is one of the most common ways people fool themselves.
 
-A **microbenchmark** measures one tiny thing in isolation — a single function, a parsing routine, one hot loop. It answers a narrow question: *"Of these two ways to write this exact function, which is faster?"*
+A **microbenchmark** measures one tiny thing in isolation — a single function, a parsing routine, one hot loop. It answers a narrow question:
+
+> *"Of these two ways to write this exact function, which is faster?"*
 
 ```go
 // Microbenchmark: which string-building approach wins?
@@ -76,7 +90,9 @@ func BenchmarkBuilder(b *testing.B) {
 }
 ```
 
-A **macrobenchmark** measures a whole, realistic operation — an entire HTTP request, a full report generation, processing a real input file end to end. It answers a broader question: *"How fast is the thing the user actually waits for?"*
+A **macrobenchmark** measures a whole, realistic operation — an entire HTTP request, a full report generation, processing a real input file end to end. It answers a broader question:
+
+> *"How fast is the thing the user actually waits for?"*
 
 ```go
 // Macrobenchmark: the whole request path, the way production runs it
@@ -91,7 +107,10 @@ func BenchmarkHandleRequest(b *testing.B) {
 }
 ```
 
-Both are useful, but they answer different questions, and **a microbenchmark win does not guarantee a macrobenchmark win.** You can make a string function 3× faster in a microbenchmark and have zero measurable effect on request latency — because that function was 0.1% of the request's time. This is the gap between *"fast in a loop"* and *"fast in production."*
+Both are useful, but they answer different questions, and **a microbenchmark win does not guarantee a macrobenchmark win.**
+
+- You can make a string function 3× faster in a microbenchmark and see zero measurable effect on request latency — because that function was 0.1% of the request's time.
+- This is the gap between *"fast in a loop"* and *"fast in production."*
 
 | | Microbenchmark | Macrobenchmark |
 |---|---|---|
@@ -117,11 +136,18 @@ fmt.Println(time.Since(start))   // "237µs" — done, right?
 
 This is wrong in at least four ways, and each one alone can make the number meaningless.
 
-**1. One run is noise, not signal.** Your machine is doing a hundred other things — the OS scheduler, background processes, your editor indexing. A single measurement captures whatever happened to be going on *that instant*. Run the same code three times and you might see 237µs, 198µs, 410µs. Which is "the" answer? None of them — you need many runs and their *distribution*.
+**1. One run is noise, not signal.**
+- Your machine is doing a hundred other things — the OS scheduler, background processes, your editor indexing.
+- A single measurement captures whatever happened to be going on *that instant*.
+- Run the same code three times and you might see 237µs, 198µs, 410µs. Which is "the" answer? None of them — you need many runs and their *distribution*.
 
-**2. The clock is too coarse for tiny code.** If `slowFunction()` takes 4 nanoseconds and your timer's resolution is ~50 nanoseconds, you're measuring the *clock*, not the code. This is why you can't time a single fast operation directly — you must run it millions of times and divide, which is exactly what `b.N` does for you.
+**2. The clock is too coarse for tiny code.**
+- If `slowFunction()` takes 4 nanoseconds and your timer's resolution is ~50 nanoseconds, you're measuring the *clock*, not the code.
+- This is why you can't time a single fast operation directly — you must run it millions of times and divide, which is exactly what `b.N` does for you.
 
-**3. The compiler may delete your code.** This is the sneaky one. If you compute a result and never use it, an optimising compiler is allowed to conclude the work is pointless and **remove it entirely** — a process called dead-code elimination (DCE). Your "benchmark" then measures an empty loop:
+**3. The compiler may delete your code.** This is the sneaky one.
+- If you compute a result and never use it, an optimising compiler is allowed to conclude the work is pointless and **remove it entirely** — a process called dead-code elimination (DCE).
+- Your "benchmark" then measures an empty loop:
 
 ```go
 // BROKEN: result is never used → the compiler may delete the call
@@ -145,7 +171,9 @@ func BenchmarkParse(b *testing.B) {
 }
 ```
 
-**4. Print-and-eyeball gives no notion of confidence.** Printing one number tells you nothing about how much it varies, so you can't tell a real 5% improvement from random jitter. You end up "confirming" wins that don't exist.
+**4. Print-and-eyeball gives no notion of confidence.**
+- Printing one number tells you nothing about how much it varies, so you can't tell a real 5% improvement from random jitter.
+- You end up "confirming" wins that don't exist.
 
 > **Key insight:** naive timing — one run, a wall clock wrapped around a tiny op, print and eyeball — produces a number that *looks* authoritative and is frequently false. A real benchmarking tool exists precisely to handle iteration count, clock resolution, dead-code elimination, and variance *for you*. Reaching for `time.Now()` to "quickly check" is how confident, wrong conclusions are born.
 
@@ -153,7 +181,10 @@ func BenchmarkParse(b *testing.B) {
 
 ## Core Concept 4 — Warm-Up and Steady State
 
-Code is often *slower the first time it runs* and faster afterward. If you measure that first slow run, you measure a cost the user rarely pays. The first few runs are the **warm-up**; the stable speed they settle into is the **steady state**.
+Code is often *slower the first time it runs* and faster afterward.
+
+- If you measure that first slow run, you measure a cost the user rarely pays.
+- The first few runs are the **warm-up**; the stable speed they settle into is the **steady state**.
 
 Why does code speed up after a few runs?
 
@@ -161,7 +192,10 @@ Why does code speed up after a few runs?
 - **Just-In-Time (JIT) compilation** (huge in **Java** and the JVM, and in JavaScript). The first runs execute slow interpreted bytecode; once the JIT notices a hot loop, it compiles it to optimised machine code and subsequent runs are *dramatically* faster.
 - **One-time setup** — lazy initialisation, connection pools, file-system caches warming.
 
-This matters most in Java. A naive JMH-less timing loop in Java can show a function getting 10× faster partway through purely because the JIT kicked in. That's why the JVM benchmarking tool **JMH** runs explicit warm-up iterations (which it *discards*) before it starts measuring:
+This matters most in Java:
+
+- A naive JMH-less timing loop in Java can show a function getting 10× faster partway through purely because the JIT kicked in.
+- That's why the JVM benchmarking tool **JMH** runs explicit warm-up iterations (which it *discards*) before it starts measuring:
 
 ```java
 @Warmup(iterations = 5)            // 5 runs, thrown away, to let the JIT compile
@@ -170,7 +204,10 @@ This matters most in Java. A naive JMH-less timing loop in Java can show a funct
 public void parse() { /* ... */ }
 ```
 
-Go is ahead-of-time compiled, so it has no JIT warm-up — but caches still need warming, and there's almost always **setup** you must keep out of the measurement. That's what `b.ResetTimer()` is for: do the expensive one-time preparation, then reset the clock so only the loop is timed.
+Go is ahead-of-time compiled, so it has no JIT warm-up:
+
+- Caches still need warming, and there's almost always **setup** you must keep out of the measurement.
+- That's what `b.ResetTimer()` is for: do the expensive one-time preparation, then reset the clock so only the loop is timed.
 
 ```go
 func BenchmarkSearch(b *testing.B) {
@@ -190,7 +227,9 @@ func BenchmarkSearch(b *testing.B) {
 
 Here is the rule that separates people who benchmark from people who *think* they benchmark: **never trust a single number — look at how much the numbers vary.**
 
-Run the same benchmark twice and you will get slightly different results, because your machine is noisy. The question is never "what was the number?" — it's "what was the number, *plus or minus how much*?" A measurement of `200 ns/op ± 2%` is solid. A measurement of `200 ns/op ± 40%` is mush, and any "improvement" smaller than that 40% swing is invisible noise.
+- Run the same benchmark twice and you will get slightly different results, because your machine is noisy.
+- The question is never "what was the number?" — it's "what was the number, *plus or minus how much*?"
+- A measurement of `200 ns/op ± 2%` is solid. A measurement of `200 ns/op ± 40%` is mush, and any "improvement" smaller than that 40% swing is invisible noise.
 
 Go makes this easy with `-count`, which runs each benchmark several times so you can see the spread:
 
@@ -222,7 +261,11 @@ name      old time/op    new time/op    delta
 Search-8     524ns ± 1%     310ns ± 2%   -40.84%  (p=0.000 n=10+10)
 ```
 
-Two things to read here. The `± 1%` and `± 2%` are the **variance** — small, so the measurements are trustworthy. The `p=0.000` is a confidence figure: it means the difference is statistically real, not luck. When benchstat instead prints `~ (p=0.21)`, it's telling you *"the change is within the noise — I can't say it did anything."* That honesty is the entire point.
+Two things to read here:
+
+- The `± 1%` and `± 2%` are the **variance** — small, so the measurements are trustworthy.
+- The `p=0.000` is a confidence figure: it means the difference is statistically real, not luck.
+- When benchstat instead prints `~ (p=0.21)`, it's telling you *"the change is within the noise — I can't say it did anything."* That honesty is the entire point.
 
 > **Key insight:** a benchmark result is a *range*, not a point. The discipline is to run many times, look at the spread, and only believe an improvement that is clearly bigger than the noise. "It went from 524 ns to 519 ns" is not an improvement — it's the machine breathing. Let a tool like benchstat decide what's real; your eyes are too eager to see wins.
 
@@ -230,11 +273,23 @@ Two things to read here. The `± 1%` and `± 2%` are the **variance** — small,
 
 ## Real-World Examples
 
-**1. The rewrite that "felt faster" and wasn't.** A developer replaces a `for`-loop string concatenation with a fancier approach because "it should be faster." They time it once before (190µs) and once after (170µs), declare victory, and merge. Run under benchstat with `-count=10`, the truth emerges: `~ (p=0.34)` — the change is pure noise, the two versions are identical within variance, and the "20µs improvement" was the machine hiccuping. A single before/after measurement had manufactured a win that didn't exist.
+**1. The rewrite that "felt faster" and wasn't.**
+- A developer replaces a `for`-loop string concatenation with a fancier approach because "it should be faster."
+- They time it once before (190µs) and once after (170µs), declare victory, and merge.
+- Run under benchstat with `-count=10`, the truth emerges: `~ (p=0.34)` — the change is pure noise, the two versions are identical within variance, and the "20µs improvement" was the machine hiccuping.
+- A single before/after measurement had manufactured a win that didn't exist.
 
-**2. The microbenchmark that optimised the wrong thing.** A team spends two days making a date-formatting function 4× faster, with a beautiful microbenchmark to prove it. The macrobenchmark of the actual API request? Unchanged. A [profile](../01-profiling/01-cpu-profiling/junior.md) later shows date formatting was 0.3% of request time; the real cost was a database query. The micro win was real *and* irrelevant — a textbook case of "fast in a loop, no effect in production."
+**2. The microbenchmark that optimised the wrong thing.**
+- A team spends two days making a date-formatting function 4× faster, with a beautiful microbenchmark to prove it.
+- The macrobenchmark of the actual API request? Unchanged.
+- A [profile](../01-profiling/01-cpu-profiling/junior.md) later shows date formatting was 0.3% of request time; the real cost was a database query.
+- The micro win was real *and* irrelevant — a textbook case of "fast in a loop, no effect in production."
 
-**3. The benchmark the compiler deleted.** Someone benchmarks a hashing function, sees `0.4 ns/op`, and excitedly reports that the hash is "basically free." It wasn't — the result was never used, so dead-code elimination removed the call and the benchmark timed an empty loop. Assigning the result to a package-level `sink` variable brought the honest number back: `38 ns/op`, a hundred times slower. The "free" hash was a measurement artifact, not a fact.
+**3. The benchmark the compiler deleted.**
+- Someone benchmarks a hashing function, sees `0.4 ns/op`, and excitedly reports that the hash is "basically free."
+- It wasn't — the result was never used, so dead-code elimination removed the call and the benchmark timed an empty loop.
+- Assigning the result to a package-level `sink` variable brought the honest number back: `38 ns/op`, a hundred times slower.
+- The "free" hash was a measurement artifact, not a fact.
 
 ---
 
@@ -277,3 +332,9 @@ Two things to read here. The `± 1%` and `± 2%` are the **variance** — small,
 - Which input changes the observed result, and why?
 - What is the smallest useful success check?
 - Which beginner mistake would your evidence catch?
+- Why benchmark instead of just reasoning about which code should be faster?
+- What's the difference between a benchmark and a profile?
+- A microbenchmark reports 0.3 ns/op for real work — what almost certainly happened?
+- Why does the first iteration of a benchmark often report a misleading time?
+- Why isn't a single timed measurement enough to trust a benchmark result?
+- What does Go's `b.N` represent, and who decides its value?

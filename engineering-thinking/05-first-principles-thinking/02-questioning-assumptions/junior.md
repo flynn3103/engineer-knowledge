@@ -5,6 +5,13 @@
 
 ---
 
+## Quick use
+1. Write “This assumes:” before coding.
+2. Mark the assumption that would force a redesign if false.
+3. Run the cheapest real check first.
+
+**Decision rule:** validate load-bearing assumptions before building on them.
+
 ## 1. Assumptions are everywhere, and most are invisible
 
 Every line of code rests on beliefs you never typed out. Look at this innocent function:
@@ -213,7 +220,9 @@ That two-minute list is the single highest-leverage habit in this whole topic. E
 - Back to the [first-principles-thinking section](../) or the [roadmap root](../../README.md).
 
 ---
-## Check your understanding
+## Recall and apply
+
+Use these prompts to check your understanding and choose one action to try in your next task.
 
 Try to answer these questions from memory:
 

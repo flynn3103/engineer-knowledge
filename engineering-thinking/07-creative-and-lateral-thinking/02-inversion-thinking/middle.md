@@ -168,7 +168,13 @@ The right column is a credible reliability checklist — and you derived it not 
 - [Section overview](../) · [Engineering-thinking roadmap](../../README.md)
 
 ---
-## Check your understanding
+## Use it today
+
+1. Invert the goal, the user journey, and the main failure condition.
+2. Group the resulting risks by category before choosing mitigations.
+3. Add the cheapest useful prevention or test to the plan.
+
+## Recall and apply
 
 Try to answer these questions from memory:
 

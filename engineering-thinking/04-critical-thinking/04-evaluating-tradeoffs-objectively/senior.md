@@ -8,6 +8,13 @@
 
 [middle.md](./middle.md) gave you a rigorous matrix, TCO, and ADRs. The senior shift is from *scoring options* to *managing the decision itself* — its speed, its risk, and its reversibility — because the most expensive mistakes are rarely picking the wrong option; they're spending six weeks deciding something you could have tried in an afternoon, or rushing the one decision you couldn't take back.
 
+## Action card
+1. Price both delay and being wrong.
+2. Diagnose reversibility and create optionality where it pays.
+3. Pre-commit assumptions, evidence needs, and revisit triggers.
+
+**Decision rule:** spend analysis where irreversible downside outweighs delay.
+
 ## 1. The two error costs you're trading between
 
 Every decision sits between two costs that pull in opposite directions:
@@ -139,7 +146,7 @@ Seniors set the *tempo* for others. Practical moves:
 **Next:** [professional.md](./professional.md) — running tradeoff evaluation as an org-level process, ADR governance, and defending decisions to executives.
 
 ---
-## Check your understanding
+## Recall and apply
 
 Try to answer these questions from memory:
 

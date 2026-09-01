@@ -6,6 +6,13 @@
 
 ---
 
+## Quick use
+1. Match precision to reversibility and decision stakes.
+2. Build a calibrated distribution from decomposed work and reference classes.
+3. Convert uncertainty into risk cost for the decision-maker.
+
+**Decision rule:** buy only the information that changes the decision.
+
 ## 1. Precision should match the decision, not the question
 
 The most common senior mistake is over-estimating. Spending a week building a careful capacity model for a choice you can reverse in an afternoon is *waste dressed as rigor*. The right amount of estimation is a function of the **decision**, not the curiosity of the question.
@@ -161,7 +168,7 @@ The meta-move: **never surrender the distribution, trade scope instead.** Estima
 5. **Defend the distribution** by trading scope — commit p90, hope p50, never let the range collapse to its floor.
 
 ---
-## Check your understanding
+## Recall and apply
 
 Try to answer these questions from memory:
 

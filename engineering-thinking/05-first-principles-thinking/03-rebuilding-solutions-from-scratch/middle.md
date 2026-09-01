@@ -5,6 +5,13 @@
 
 ---
 
+## Quick use
+1. State inputs, outputs, invariants, and constraints.
+2. Classify every difference: accidental, essential, or undocumented fence.
+3. Deliver Bucket-A improvements in reversible slices.
+
+**Decision rule:** the rebuild produces a classified diff; the refactor delivers value.
+
 ## 1. From reflex to method
 
 The junior file taught the instinct ("if we built this today…"). At the middle level you make it a repeatable procedure, because doing it by feel produces two failure modes: you either fall in love with your clean sketch and push a reckless rewrite, or you dismiss the whole exercise as daydreaming. The method keeps you between those rails.
@@ -151,7 +158,7 @@ Every step is reversible. Compare to big-bang: build the clean version entirely 
 - The disciplined edit techniques: [Refactoring](../../../code-craft/refactoring/)
 
 ---
-## Check your understanding
+## Recall and apply
 
 Try to answer these questions from memory:
 

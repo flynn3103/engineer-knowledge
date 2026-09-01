@@ -17,11 +17,17 @@ A budget that isn't *owned* isn't a budget — it's a number in a wiki. The sing
 
 Three things have to be true for a budget to have teeth:
 
-**1. It has a named owner, not a team alias.** "The platform team owns the search-latency budget" decays into nobody owning it. Assign budgets to a person (with a backup), the same way you assign service ownership. The owner's job isn't to *never regress* — it's to *know the current state and drive the decision* when a regression lands.
+**1. It has a named owner, not a team alias.**
+- "The platform team owns the search-latency budget" decays into nobody owning it. Assign budgets to a person (with a backup), the same way you assign service ownership.
+- The owner's job isn't to *never regress* — it's to *know the current state and drive the decision* when a regression lands.
 
-**2. A breach has a defined consequence and a defined responder.** Without this, a red dashboard is wallpaper. The consequence is a spectrum (covered in [Blocking Gate vs Non-Blocking Alert vs Trend-Only](#blocking-gate-vs-non-blocking-alert-vs-trend-only)), but *someone specific* must be on the hook to respond. The model that works: the **regression is attributed to the offending PR**, and the PR author — not the budget owner — is the first responder. The author has the context; the budget owner escalates if the author can't.
+**2. A breach has a defined consequence and a defined responder.**
+- Without this, a red dashboard is wallpaper. The consequence is a spectrum (see [Blocking Gate vs Non-Blocking Alert vs Trend-Only](#blocking-gate-vs-non-blocking-alert-vs-trend-only)), but *someone specific* must be on the hook to respond.
+- The model that works: the **regression is attributed to the offending PR**, and the PR author — not the budget owner — is the first responder. The author has the context; the budget owner escalates if the author can't.
 
-**3. Changing the budget requires sign-off, not a quiet edit.** The moment a budget becomes uncomfortable, the path of least resistance is to bump the number. If anyone can edit `latency_budget_ms: 200` → `250` in a config file and merge it, the budget is fiction. Gate budget changes behind a lightweight RFC:
+**3. Changing the budget requires sign-off, not a quiet edit.**
+- The moment a budget becomes uncomfortable, the path of least resistance is to bump the number. If anyone can edit `latency_budget_ms: 200` → `250` in a config file and merge it, the budget is fiction.
+- Gate budget changes behind a lightweight RFC:
 
 ```markdown
 # RFC: Raise checkout-service p99 budget 180ms → 220ms
@@ -47,7 +53,8 @@ the async migration as PERF-4471 (target Q3).
 - [ ] Eng director (accepts the regression on record): @priya
 ```
 
-The RFC does two things: it makes the cost *visible* (a director's name is on accepting 40 ms of permanent latency), and it creates an audit trail so the budget's history is a record of deliberate decisions, not entropy. The friction is the point — it should be slightly annoying to widen a budget, exactly as annoying as it is to widen an SLO.
+- The RFC does two things: it makes the cost *visible* (a director's name is on accepting 40ms of permanent latency), and it creates an audit trail so the budget's history is a record of deliberate decisions, not entropy.
+- The friction is the point — it should be slightly annoying to widen a budget, exactly as annoying as it is to widen an SLO.
 
 > **The professional reality:** budgets don't fail because the threshold math is wrong. They fail because no one is accountable, breaches have no consequence, and the number can be edited away under deadline pressure. Fix the org design first; the statistics were never the bottleneck.
 
@@ -57,13 +64,13 @@ The RFC does two things: it makes the cost *visible* (a director's name is on ac
 
 The cleanest mental upgrade at this tier is to stop treating a performance budget as a pass/fail line and start treating it as an **SLO with an error budget** — the same construct SRE uses for availability.
 
-A naive budget says "p99 checkout latency must be ≤ 200 ms." That formulation is brittle: a single spike trips it, and a sustained 201 ms is treated the same as a sustained 400 ms. The SLO formulation is richer:
+- A naive budget says "p99 checkout latency must be ≤ 200ms." Brittle: a single spike trips it, and a sustained 201ms is treated the same as a sustained 400ms.
+- The SLO formulation is richer:
+  - **SLI (indicator):** the measured quantity — p99 checkout latency over a rolling 28-day window.
+  - **SLO (objective):** "99% of 1-minute windows have p99 ≤ 200ms."
+  - **Error budget:** the allowed 1% of windows that may exceed it — roughly 7 hours/month of being over budget.
 
-- **SLI (indicator):** the measured quantity — p99 checkout latency over a rolling 28-day window.
-- **SLO (objective):** "99% of 1-minute windows have p99 ≤ 200 ms."
-- **Error budget:** the allowed 1% of windows that may exceed it — roughly 7 hours/month of being over budget.
-
-Now a regression isn't binary. It *burns error budget*. A small regression burns slowly; a large one burns fast. You alert on the **burn rate**, which gives you the same elegant escalation SRE uses:
+Now a regression isn't binary — it *burns error budget*. A small regression burns slowly; a large one burns fast. Alert on the **burn rate**, giving the same elegant escalation SRE uses:
 
 ```yaml
 # Multi-window burn-rate alerts for a latency SLO (concept)
@@ -77,7 +84,8 @@ Now a regression isn't binary. It *burns error budget*. A small regression burns
   severity: ticket
 ```
 
-The error-budget framing unlocks the organizational lever that makes budgets *negotiable in a healthy way*: **when the error budget is exhausted, feature work that risks latency stops until the budget is recovered.** That's the SRE freeze, applied to performance. It converts "performance vs features" from a recurring argument into a pre-agreed policy. Teams don't litigate it every sprint; they agreed once that an exhausted budget halts risky merges.
+- The error-budget framing unlocks the organizational lever that makes budgets *negotiable in a healthy way*: **when the error budget is exhausted, feature work that risks latency stops until the budget is recovered.** That's the SRE freeze, applied to performance.
+- It converts "performance vs features" from a recurring argument into a pre-agreed policy. Teams don't litigate it every sprint; they agreed once that an exhausted budget halts risky merges.
 
 > **The link that matters:** a performance budget *is* a latency SLO measured pre-production (in CI/benchmarks) and validated post-production (in [RUM](#the-production-feedback-loop--rum-and-canaries-as-ground-truth)). The CI benchmark is your *leading* indicator; the production SLO is your *ground-truth* indicator. They should agree; when they diverge, your benchmark is lying to you (see [Latency and Throughput](../03-latency-and-throughput/professional.md) for why lab p99 and prod p99 drift).
 
@@ -87,7 +95,7 @@ The error-budget framing unlocks the organizational lever that makes budgets *ne
 
 At one engineer's scale, "continuous benchmarking" is a CI job that runs `go test -bench` and posts a comment. At org scale it's *infrastructure* — a system with the same operational weight as your metrics stack, and it has four components that you will build or buy whether you plan to or not.
 
-**1. A dedicated runner fleet.** This is the non-negotiable foundation, and the most common thing teams get wrong. Shared CI runners are *noisy*: they share CPUs with other jobs, have variable thermal state, and live on cloud instances with stolen cycles and noisy neighbors. Benchmark noise on a shared runner can dwarf the regressions you're trying to detect. You need **dedicated, isolated, identical hardware**:
+**1. A dedicated runner fleet.** The non-negotiable foundation, and the most common thing teams get wrong. Shared CI runners are *noisy*: they share CPUs with other jobs, have variable thermal state, and live on cloud instances with stolen cycles and noisy neighbors. You need **dedicated, isolated, identical hardware**:
 
 - Bare-metal or pinned dedicated instances — no neighbors, no CPU steal.
 - Fixed CPU frequency: disable turbo/boost, pin the governor to `performance`, so a result doesn't depend on thermal luck.
@@ -102,7 +110,7 @@ echo 1 > /proc/sys/kernel/perf_event_paranoid
 taskset -c 4-7 ./run-benchmarks --warmup 5 --iterations 30
 ```
 
-A pragmatic fleet for a mid-size org is small — often 4–10 machines — because benchmark runs are serialized per machine to avoid contention. The fleet's *value* is consistency, not throughput.
+- A pragmatic fleet for a mid-size org is small — often 4–10 machines — because benchmark runs are serialized per machine to avoid contention. The fleet's *value* is consistency, not throughput.
 
 **2. A result store / time-series database.** Every benchmark result, tagged with commit SHA, machine ID, and full environment fingerprint, written to a queryable store. This is what turns "is this PR slower?" into "is this metric trending up over the last 200 commits?" Go's perf dashboard, Perfherder, and Chromium's dashboard are all, at heart, this store plus a UI.
 
@@ -136,12 +144,12 @@ The single most consequential design decision in performance governance is *what
 | **Non-blocking alert** | Red posts a comment / pings a channel, merge proceeds | Micro-benchmark suites; per-component timings; anything with > ~2% run-to-run noise | Alert fatigue → muted channel → invisible regressions |
 | **Trend-only** | No per-PR verdict; watched as a time series, sheriff investigates steps | Noisy metrics; metrics with no clean per-PR signal; broad coverage suites | None for trust, but slow detection (a sheriff has to look) |
 
-The governing principle: **block only what is (a) genuinely user-facing and (b) stable enough that a red verdict is almost always real.** A blocking gate's credibility is its entire value, and credibility is destroyed by a single percentage of false positives. If a gate cries wolf even 3% of the time on a busy repo, engineers learn the ritual "regression? just re-run it" — and the next time it fires on a *real* 2x regression, they re-run that too, and ship it.
+- The governing principle: **block only what is (a) genuinely user-facing and (b) stable enough that a red verdict is almost always real.** A blocking gate's credibility is its entire value, and credibility is destroyed by a single percentage of false positives. If a gate cries wolf even 3% of the time on a busy repo, engineers learn the ritual "regression? just re-run it" — and the next time it fires on a *real* 2x regression, they re-run that too, and ship it.
 
 The mapping that works in practice:
 
 - **Block** on a handful of curated, rock-stable, user-facing budgets: end-to-end page-load p95, API latency budget, bundle size, cold-start time. These should be macro-benchmarks or production-shaped scenarios with noise well under the regression you care about.
-- **Alert** on the broad micro-benchmark suite — the hundreds of `BenchmarkX` functions. They're valuable as a trend and for attribution, but per-PR blocking on a noisy micro-bench is pure friction. Post a comment, don't block.
+- **Alert** on the broad micro-benchmark suite — the hundreds of `BenchmarkX` functions. Valuable as a trend and for attribution, but per-PR blocking on a noisy micro-bench is pure friction. Post a comment, don't block.
 - **Trend-only** for the long tail — exploratory metrics, third-party-dependent timings, anything you haven't yet earned the right to gate on.
 
 > **The migration path:** a metric *earns* its way up the ladder. New metrics start trend-only. Once they're stable for a quarter and clearly tied to user experience, promote them to alert. Only after they've proven they fire true positives do you promote to a blocking gate. Demote instantly the moment a gate produces a false positive that wastes the team's time — a blocking gate that has lost trust is worse than no gate.
@@ -152,7 +160,9 @@ The mapping that works in practice:
 
 Automated detection is half the system. The other half is a *human workflow* that turns a fired alert into a closed regression — and a *trust budget* that, once spent, is brutally hard to recover.
 
-**The sheriff rotation.** Borrowed directly from Chromium and Mozilla: a rotating role (a week at a time) whose job is to watch the performance dashboards and triage every regression alert. The sheriff isn't expected to *fix* regressions — they're a dispatcher. The rotation spreads the load and the knowledge, and crucially it means *someone is always looking*. Without a named sheriff, dashboards rot; everyone assumes someone else is watching.
+**The sheriff rotation.** Borrowed directly from Chromium and Mozilla: a rotating role (a week at a time) whose job is to watch the performance dashboards and triage every regression alert.
+- The sheriff isn't expected to *fix* regressions — they're a dispatcher. The rotation spreads the load and the knowledge, and crucially it means *someone is always looking*.
+- Without a named sheriff, dashboards rot; everyone assumes someone else is watching.
 
 **The triage workflow.** A good system does most of this automatically and leaves the sheriff the judgment calls:
 
@@ -172,7 +182,8 @@ Auto-file a bug, assign to the commit author, link the dashboard
    └─ Not real (flaky benchmark / infra blip)        → MUTE the benchmark, file a fix-the-bench bug
 ```
 
-The last branch is the most important and the most neglected. **Flaky benchmarks are the cancer of a perf program.** A benchmark that fires false alarms doesn't just waste the sheriff's time — it teaches everyone that perf alerts are noise. The discipline that keeps the system alive: *a benchmark that produces a false positive is muted immediately and treated as broken until fixed.* It does not get to keep crying wolf while someone "gets around to" stabilizing it. Killing flaky benchmarks aggressively is how you protect the trust budget of the ones that remain.
+- The last branch is the most important and the most neglected. **Flaky benchmarks are the cancer of a perf program.** A benchmark that fires false alarms doesn't just waste the sheriff's time — it teaches everyone that perf alerts are noise.
+- The discipline that keeps the system alive: *a benchmark that produces a false positive is muted immediately and treated as broken until fixed.* It does not get to keep crying wolf while someone "gets around to" stabilizing it.
 
 > **Trust is the real currency.** Every false positive — a flaky gate, a noisy alert, a regression bug filed against an innocent commit — withdraws from a trust account. When the balance hits zero, engineers route around the entire system, and you're back to shipping regressions blind. Protect trust ruthlessly: fewer, more-reliable signals beat broad, noisy coverage every time. A perf program's health is measured not by how many benchmarks it runs but by how often its alerts are *believed*.
 
@@ -182,7 +193,9 @@ The last branch is the most important and the most neglected. **Flaky benchmarks
 
 Every benchmark is a model of reality, and every model is wrong somewhere. The CI suite runs on pristine hardware with synthetic inputs; production runs on whatever the customer has, under real traffic shapes, with cache states and contention the lab never reproduces. The professional posture treats **production as the ground-truth budget** and the lab as a leading indicator that must be validated against it.
 
-**Real-user monitoring (RUM).** For anything user-facing, the budget that *actually matters* is the latency real users experience — Core Web Vitals (LCP, INP, CLS) from real browsers for frontend, prod p99/p999 from your APM for backend. RUM is the ultimate budget because it's denominated in the only units that count: user experience. Your CI benchmark should *track* RUM, not replace it. When the lab says "no regression" but RUM p99 climbs, the lab is unrepresentative — wrong inputs, wrong hardware mix, wrong concurrency — and that divergence is itself a high-value signal that your benchmark needs fixing.
+**Real-user monitoring (RUM).**
+- For anything user-facing, the budget that *actually matters* is the latency real users experience — Core Web Vitals (LCP, INP, CLS) from real browsers for frontend, prod p99/p999 from your APM for backend. RUM is the ultimate budget because it's denominated in the only units that count: user experience.
+- Your CI benchmark should *track* RUM, not replace it. When the lab says "no regression" but RUM p99 climbs, the lab is unrepresentative — wrong inputs, wrong hardware mix, wrong concurrency — and that divergence is itself a high-value signal that your benchmark needs fixing.
 
 **Canary performance comparison.** The highest-leverage regression catch happens *between* CI and full rollout: the canary. Before a build reaches 100% of traffic, route a small slice (1–5%) to it and statistically compare the canary's performance against the stable fleet on identical, *real* traffic:
 
@@ -197,7 +210,9 @@ Canary analysis — build a1b9f3c, 5% traffic, 30-min window
   → AUTOMATED ROLLBACK: p99 breach > 20% threshold. Build held at 5%.
 ```
 
-The canary catches what no lab benchmark can: regressions that only manifest under *real* traffic distribution, *real* cache behavior, and *real* data sizes. It's an apples-to-apples comparison (same time, same traffic, same hardware) and it gates the rollout, not the merge — so it can be strict without slowing PR velocity. A canary that auto-rolls-back on a p99 breach is the strongest single safeguard in the entire apparatus, because it sits at the last gate before users feel the pain.
+- The canary catches what no lab benchmark can: regressions that only manifest under *real* traffic distribution, *real* cache behavior, and *real* data sizes.
+- It's an apples-to-apples comparison (same time, same traffic, same hardware) and it gates the rollout, not the merge — so it can be strict without slowing PR velocity.
+- A canary that auto-rolls-back on a p99 breach is the strongest single safeguard in the entire apparatus, because it sits at the last gate before users feel the pain.
 
 > **The three-layer defense:** CI benchmarks (fast, cheap, leading, but unrepresentative) → canary comparison (slower, real traffic, gates rollout) → RUM/prod SLO (ground truth, but lagging). No single layer is sufficient. CI catches the obvious early; canary catches the production-only; RUM tells you whether the whole system is actually keeping its promise. Tune your investment so the cheap layers catch most regressions and the expensive ground-truth layer is the backstop, not the primary detector.
 
@@ -216,7 +231,7 @@ Eventually someone with a budget asks: *why does performance testing cost six fi
 
 **The value side is harder to see because it's counterfactual** — the regressions that *didn't* ship. To make it visible, instrument the wins:
 
-- **Count caught regressions and estimate their blast radius.** "The canary caught a 2x p99 regression that would have hit 100% of checkout traffic; at our conversion sensitivity (~1% revenue per 100 ms), a sustained 180 ms regression is ~$X/day." A single caught checkout or search regression often pays for the fleet for a year.
+- **Count caught regressions and estimate their blast radius.** "The canary caught a 2x p99 regression that would have hit 100% of checkout traffic; at our conversion sensitivity (~1% revenue per 100ms), a sustained 180ms regression is ~$X/day." A single caught checkout or search regression often pays for the fleet for a year.
 - **Track the alternative cost: perf incidents.** A regression that ships becomes an incident — on-call hours, customer impact, an emergency rollback, a postmortem. Tally incidents *avoided* (caught pre-prod) against incidents *that slipped*. A program that catches 10 real regressions a year and lets 1 slip has an obvious ROI story.
 - **Frame it as insurance, priced by exposure.** A browser, a database, or a high-traffic checkout flow has enormous performance exposure; a low-traffic internal tool has almost none. The apparatus should be sized to the exposure. Spending Chromium money to guard an internal admin panel is malpractice; spending nothing to guard a billion-user product is negligence.
 
@@ -253,19 +268,12 @@ Eventually someone with a budget asks: *why does performance testing cost six fi
 ## Common Mistakes
 
 1. **Budgets with no owner, no consequence, and an editable number.** The bundle creeps to 900 KB one PR at a time. Assign a named owner, define a breach consequence, and gate budget changes behind an RFC with sign-off.
-
 2. **Blocking merges on noisy micro-benchmarks.** A few percent of false failures trains everyone to re-run until green, then the gate catches nothing and eventually gets deleted. Block only stable user-facing metrics; alert on micro-benches.
-
 3. **Tolerating flaky benchmarks instead of muting them.** Every false alarm drains the trust account. Mute on the first false positive and fix the bench; a known-flaky benchmark that keeps firing is actively harmful.
-
 4. **Running benchmarks on shared CI runners.** Noisy neighbors and CPU steal produce noise that dwarfs real regressions. A dedicated, frequency-pinned, isolated fleet is the foundation, not an optimization.
-
 5. **Trusting the lab over production.** Synthetic inputs and pristine hardware miss production-scale, real-traffic regressions. Validate against RUM and gate rollout with a canary; treat lab-vs-prod divergence as a benchmark bug.
-
 6. **No attribution / no auto-bisect.** "Something regressed in the last 200 commits" is nearly useless under deadline. Tag every result with the SHA, annotate the dashboard, and auto-bisect to a single commit and author.
-
 7. **Defending the apparatus's cost with vibes.** "It's important" loses to a spreadsheet. Instrument the catches — count avoided incidents and prevented revenue loss, and size spend to the service's exposure.
-
 8. **No sheriff / no rotation.** Dashboards rot when everyone assumes someone else is watching. A named, rotating sheriff guarantees someone is always triaging.
 
 ---
@@ -291,3 +299,9 @@ Eventually someone with a budget asks: *why does performance testing cost six fi
 - Which team owns the full lifecycle and incident response?
 - What reversible increment produces the earliest useful evidence?
 - Which exit condition proves that migration or adoption is complete?
+- The perf gate is flaky and has blocked three legitimate PRs this week, and the team wants to turn it off — what do you do?
+- When do you make a perf check blocking, alerting, or trend-only? Give the decision rule.
+- Would you build automatic bisection for performance regressions? What's the trade-off?
+- When synthetic benchmarks can never perfectly represent production, where does ground truth actually come from?
+- How do you justify the ROI of a perf-regression program when it has a real ongoing cost?
+- Two benchmarks regressed and three improved in the same PR — how do you read that?

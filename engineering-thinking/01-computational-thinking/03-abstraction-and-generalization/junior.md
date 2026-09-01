@@ -143,7 +143,11 @@ A good instinct: prefer the simplest thing that reads clearly *today*. Abstracti
 - Section overview: [`../`](../) · Roadmap home: [`../../README.md`](../../README.md).
 
 ---
-## Check your understanding
+## Recall and apply
+
+**Practice loop:** Apply one idea to a current task. State the decision it hides, the variation it exposes, and the result.
+
+Use these prompts to check your understanding and choose one action to try in your next task.
 
 Try to answer these questions from memory:
 

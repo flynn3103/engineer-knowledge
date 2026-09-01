@@ -136,7 +136,11 @@ That loop — measure, find the constraint, fix it, re-measure — is the entire
 - Next, [middle](./middle.md) introduces Goldratt's Theory of Constraints and the five focusing steps that turn this habit into a repeatable method.
 
 ---
-## Check your understanding
+## Recall and apply
+
+**Practice loop:** Find the limiting step, state the evidence, try the smallest high-leverage change, and measure the whole-system result.
+
+Use these prompts to check your understanding and choose one action to try in your next task.
 
 Try to answer these questions from memory:
 

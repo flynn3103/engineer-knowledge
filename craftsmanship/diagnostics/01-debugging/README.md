@@ -4,7 +4,7 @@
 
 This roadmap is about **the craft of finding and fixing bugs** — the systematic discipline, the tools, and the language-specific debuggers that every working programmer relies on.
 
-> Looking for runtime/performance bottlenecks rather than functional bugs? See [Performance](../../performance/README.md) for profiling and benchmarking.
+> Looking for runtime/performance bottlenecks rather than functional bugs? See [Performance](../../../On-Production/performance/README.md) for profiling and benchmarking.
 >
 > Looking for the *methodology* (binary search through a problem, hypothesis-first thinking, reading errors carefully)? Pair this roadmap with the [`systematic-debugging`](../../../../skills/) skill.
 
@@ -17,7 +17,7 @@ Most "debugging" content lives inside a specific language's docs (gdb chapter fo
 | Roadmap | Question it answers |
 |---|---|
 | Refactoring | How do I fix code that already smells? |
-| [Testing](../../testing/README.md) | How do I prove code works? |
+| [Testing](../../../On-Production/testing/README.md) | How do I prove code works? |
 | **Debugging** (this) | How do I find out *why* code doesn't work, fast? |
 
 ---

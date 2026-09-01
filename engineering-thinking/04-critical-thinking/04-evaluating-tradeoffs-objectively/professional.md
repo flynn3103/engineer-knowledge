@@ -8,6 +8,13 @@
 
 [senior.md](./senior.md) covered making the right call at the right speed. The principal job is to make *the whole organization* good at this — so that hundreds of decisions you'll never see are made objectively, at the right tempo, and leave an honest trail. Your leverage is the *process and culture*, not any single matrix.
 
+## Action card
+1. Put each decision at the lowest responsible ownership level.
+2. Standardize the frame, including alternatives, downside, and revisit trigger.
+3. Measure decision latency and review outcomes without hindsight blame.
+
+**Decision rule:** govern the process, not the answer.
+
 ## 1. Decision rights: who decides what, at what altitude
 
 Most organizational decision dysfunction is not bad analysis — it's *unclear ownership*. Decisions stall in committee, or get re-litigated, or are made three levels too high. Before improving how decisions are *made*, fix *who makes them*.
@@ -112,7 +119,7 @@ Principles when defending:
 **Next:** [check your understanding](#check-your-understanding) — tradeoff questions you'll be asked, and [check your understanding](#check-your-understanding) — build-and-defend-a-matrix exercises.
 
 ---
-## Check your understanding
+## Recall and apply
 
 Try to answer these questions from memory:
 

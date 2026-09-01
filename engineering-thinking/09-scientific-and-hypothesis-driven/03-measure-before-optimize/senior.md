@@ -131,7 +131,13 @@ Notice what never happened: no CPU micro-optimization, no clever loop rewrites. 
 **Senior takeaway:** Derive the floor, find the constraining resource with a structured method, write each change as a falsifiable hypothesis with a predicted number, prove the win is statistically real, and — the mark of seniority — *stop the moment the requirement is met.*
 
 ---
-## Check your understanding
+## Use it today
+
+1. Tie performance work to a user or business objective and an SLO.
+2. Check tail behavior, saturation, and regressions—not only an average.
+3. Require before-and-after evidence in the decision record.
+
+## Recall and apply
 
 Try to answer these questions from memory:
 

@@ -142,7 +142,13 @@ Your behavior sets the team's norm. When you, the senior, say *"Honestly, I don'
 - Luft, J. & Ingham, H. (1955). *The Johari Window.*
 
 ---
-## Check your understanding
+## Use it today
+
+1. Expose critical unknowns early in planning, design, and incident response.
+2. Assign an owner and a resolution path for each material uncertainty.
+3. **Decision rule:** defer an irreversible commitment while a high-impact unknown is unresolved.
+
+## Recall and apply
 
 Try to answer these questions from memory:
 

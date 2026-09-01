@@ -148,7 +148,11 @@ Mental models are the foundation of [systems thinking](../). They feed directly 
 - The map is not the territory — treat every surprise as a model bug and update.
 
 ---
-## Check your understanding
+## Recall and apply
+
+**Practice loop:** State the model you are using, its assumptions, a competing model, and the observation that would change your mind.
+
+Use these prompts to check your understanding and choose one action to try in your next task.
 
 Try to answer these questions from memory:
 

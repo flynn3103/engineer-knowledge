@@ -134,7 +134,11 @@ For your next task, before coding, write three or four numbered steps in plain E
 - Back to the **[roadmap root](../../README.md)**.
 
 ---
-## Check your understanding
+## Recall and apply
+
+**Practice loop:** Compare a direct plan with one alternative. Record the next step, success signal, risk, and fallback.
+
+Use these prompts to check your understanding and choose one action to try in your next task.
 
 Try to answer these questions from memory:
 

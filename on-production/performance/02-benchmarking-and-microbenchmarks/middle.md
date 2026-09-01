@@ -23,7 +23,11 @@ func BenchmarkPopcount(b *testing.B) {
 }
 ```
 
-`bits.OnesCount64` has no side effects, and its result is never used. The compiler's reasoning is airtight: *a pure function whose result is discarded can be deleted entirely.* So it deletes the call. Your loop body becomes empty. You will measure the cost of an empty loop — perhaps `0.30 ns/op` — and conclude popcount is free. It is not; you measured nothing.
+`bits.OnesCount64` has no side effects, and its result is never used:
+
+- The compiler's reasoning is airtight: *a pure function whose result is discarded can be deleted entirely.* So it deletes the call.
+- Your loop body becomes empty.
+- You will measure the cost of an empty loop — perhaps `0.30 ns/op` — and conclude popcount is free. It is not; you measured nothing.
 
 This is **dead-code elimination (DCE)**, and it is not a bug — it is the compiler doing exactly its job. The fix is to make the result *observably used* so the compiler can't prove it's dead. Every benchmark framework provides a tool for this, called a **sink** or **blackhole**.
 
@@ -41,7 +45,11 @@ func BenchmarkPopcount(b *testing.B) {
 }
 ```
 
-Two defenses combine here: the input `uint64(i)` *varies* (so the result can't be precomputed), and the accumulated `s` is *published* to `sink` (so the work can't be discarded). Modern Go also offers `b.Loop()` (Go 1.24+), which keeps the loop variable and inputs alive automatically — but understanding *why* the sink is needed beats trusting magic.
+Two defenses combine here:
+
+- The input `uint64(i)` *varies* (so the result can't be precomputed).
+- The accumulated `s` is *published* to `sink` (so the work can't be discarded).
+- Modern Go also offers `b.Loop()` (Go 1.24+), which keeps the loop variable and inputs alive automatically — but understanding *why* the sink is needed beats trusting magic.
 
 **Java (JMH)** — return the value, or feed it to a `Blackhole`. JMH consumes returned values for you:
 
@@ -59,7 +67,7 @@ public void popcountMany(Blackhole bh) {
 }
 ```
 
-`Blackhole.consume` is engineered so the JIT cannot prove the value is dead, *and* so the sinking itself is nearly free — it's not just `volatile` (which would dominate the measurement).
+`Blackhole.consume` is engineered so the JIT cannot prove the value is dead, and so the sinking itself is nearly free — it's not just `volatile` (which would dominate the measurement).
 
 **Rust (criterion)** — wrap the value in `black_box`, which is an optimization barrier:
 
@@ -73,7 +81,10 @@ fn bench_popcount(c: &mut Criterion) {
 }
 ```
 
-`black_box(x)` tells the compiler "assume something opaque might read or write `x`," forcing both the input to be treated as unknown (defeats constant folding) and the result to be treated as used (defeats DCE).
+`black_box(x)` tells the compiler "assume something opaque might read or write `x`":
+
+- It forces the input to be treated as unknown (defeats constant folding).
+- It forces the result to be treated as used (defeats DCE).
 
 > **Key insight:** A microbenchmark with no sink is measuring the compiler's ability to delete your code, not your code's speed. The tell-tale sign is a result that's *suspiciously fast and suspiciously round* — sub-nanosecond, or identical across inputs that should differ. If `b/op` looks like an empty loop, your benchmark was eliminated.
 
@@ -83,7 +94,10 @@ fn bench_popcount(c: &mut Criterion) {
 
 DCE deletes work whose *result* is unused. Two cousins delete work whose *inputs* are known.
 
-**Constant folding** computes the answer at *compile time* when all inputs are constants. `Integer.bitCount(0xDEADBEEF)` has a constant argument — a sufficiently aggressive compiler folds it to the literal `24` and never runs the algorithm at runtime. That's why the Go fix above uses `uint64(i)`: a value the compiler can't know until the loop runs.
+**Constant folding** computes the answer at *compile time* when all inputs are constants.
+
+- `Integer.bitCount(0xDEADBEEF)` has a constant argument — a sufficiently aggressive compiler folds it to the literal `24` and never runs the algorithm at runtime.
+- That's why the Go fix above uses `uint64(i)`: a value the compiler can't know until the loop runs.
 
 **Loop-invariant code motion (hoisting)** moves a computation that doesn't depend on the loop variable *out* of the loop, running it once instead of `b.N` times:
 
@@ -97,7 +111,9 @@ func BenchmarkHash(b *testing.B) {
 }
 ```
 
-The compiler sees `hashU64(data)` produces the same value every iteration and lifts it out. You run it once and loop over the cached result. Your `ns/op` will be near zero and *will not scale with payload size* — a dead giveaway.
+- The compiler sees `hashU64(data)` produces the same value every iteration and lifts it out.
+- You run it once and loop over the cached result.
+- Your `ns/op` will be near zero and *will not scale with payload size* — a dead giveaway.
 
 The cure is the same principle as DCE: **make each iteration depend on the loop variable**, so no iteration is redundant.
 
@@ -118,7 +134,8 @@ func BenchmarkHash(b *testing.B) {
 
 ## Warm-Up and the JIT — Interpreter → C1 → C2
 
-On an AOT-compiled language (Go, Rust, C++) the machine code is fixed before the program runs, so "warm-up" mostly means filling caches and the branch predictor. On a JIT runtime — the JVM above all — your code runs at *several different speeds during one execution*, and benchmarking the wrong phase gives you a number off by 10–50×.
+- On an AOT-compiled language (Go, Rust, C++) the machine code is fixed before the program runs, so "warm-up" mostly means filling caches and the branch predictor.
+- On a JIT runtime — the JVM above all — your code runs at *several different speeds during one execution*, and benchmarking the wrong phase gives you a number off by 10–50×.
 
 HotSpot executes a Java method through three tiers:
 
@@ -126,9 +143,13 @@ HotSpot executes a Java method through three tiers:
 2. **C1 (client compiler)** — once a method is called enough times (default ~1,500–2,000 invocations), C1 compiles it to native code with light optimization. Fast to compile, moderately fast code.
 3. **C2 (server compiler)** — after more invocations (~10,000) C2 recompiles the *hot* methods with aggressive optimization: inlining, loop unrolling, escape analysis, speculative devirtualization. This is your steady-state speed.
 
-If you time the first few iterations, you're benchmarking the interpreter. Worse, C2 makes *speculative* optimizations based on observed behavior, and if a never-before-seen branch fires later, it **deoptimizes** — bails back to the interpreter and recompiles — causing a transient slowdown mid-benchmark.
+- If you time the first few iterations, you're benchmarking the interpreter.
+- Worse, C2 makes *speculative* optimizations based on observed behavior, and if a never-before-seen branch fires later, it **deoptimizes** — bails back to the interpreter and recompiles — causing a transient slowdown mid-benchmark.
 
-This is the entire reason JMH exists. You never hand-roll a JVM benchmark loop, because you cannot account for tiered compilation by hand. JMH runs explicit warm-up iterations (discarded) before measurement iterations:
+This is the entire reason JMH exists:
+
+- You never hand-roll a JVM benchmark loop, because you cannot account for tiered compilation by hand.
+- JMH runs explicit warm-up iterations (discarded) before measurement iterations:
 
 ```java
 @BenchmarkMode(Mode.AverageTime)
@@ -147,7 +168,11 @@ public class HashBenchmark {
 }
 ```
 
-`@Fork` matters more than it looks: a single JVM accumulates profiling data, so benchmark A can bias the JIT's decisions for benchmark B run in the same process. Forking gives each benchmark a clean JVM. `@Warmup` ensures C2 has kicked in before the stopwatch starts.
+`@Fork` matters more than it looks:
+
+- A single JVM accumulates profiling data, so benchmark A can bias the JIT's decisions for benchmark B run in the same process.
+- Forking gives each benchmark a clean JVM.
+- `@Warmup` ensures C2 has kicked in before the stopwatch starts.
 
 > **Key insight:** On a JIT runtime, "how fast is this code?" has no single answer — it depends on which compilation tier is running. A benchmark's job is to measure *steady state* (post-C2), which means discarding warm-up. The number you want is the asymptote, not the cold start — unless cold start *is* your concern (e.g. serverless), in which case you measure that deliberately and separately.
 
@@ -155,9 +180,16 @@ public class HashBenchmark {
 
 ## How `testing.B` Auto-Scales `b.N`
 
-Go's `testing.B` solves a timing problem you'd otherwise solve by hand: how many iterations do you need for a stable measurement? Run an operation that takes 5 ns just once and the clock's own resolution (tens of ns) swamps the result. You need to run it *millions* of times and divide.
+Go's `testing.B` solves a timing problem you'd otherwise solve by hand: how many iterations do you need for a stable measurement?
 
-The harness does this adaptively. It runs your benchmark function with a small `b.N` (e.g. 1), measures wall time, and if the total was too short to be trustworthy it *increases `b.N` and reruns the whole function*, repeating until the run lasts about `-benchtime` (default 1 second). Then it reports `total_time / b.N` as `ns/op`.
+- Run an operation that takes 5 ns just once and the clock's own resolution (tens of ns) swamps the result.
+- You need to run it *millions* of times and divide.
+
+The harness does this adaptively:
+
+- It runs your benchmark function with a small `b.N` (e.g. 1), measures wall time.
+- If the total was too short to be trustworthy it *increases `b.N` and reruns the whole function*, repeating until the run lasts about `-benchtime` (default 1 second).
+- Then it reports `total_time / b.N` as `ns/op`.
 
 ```go
 func BenchmarkEncode(b *testing.B) {
@@ -169,7 +201,9 @@ func BenchmarkEncode(b *testing.B) {
 }
 ```
 
-The critical consequence: **your benchmark function is called repeatedly with growing `b.N`**, and everything *outside* the `for` loop runs once per call. That's why expensive setup needs `b.ResetTimer()` (below) — otherwise its cost is amortized over `b.N` inconsistently across the scaling runs and pollutes the per-op number.
+The critical consequence: **your benchmark function is called repeatedly with growing `b.N`**, and everything *outside* the `for` loop runs once per call.
+
+- That's why expensive setup needs `b.ResetTimer()` (below) — otherwise its cost is amortized over `b.N` inconsistently across the scaling runs and pollutes the per-op number.
 
 Run it and Go reports the auto-scaled count:
 
@@ -179,13 +213,15 @@ BenchmarkEncode-8     2483418      482.6 ns/op      512 B/op       3 allocs/op
             GOMAXPROCS   b.N chosen   per-op time   bytes/op    allocations/op
 ```
 
-The `2483418` is the `b.N` the harness settled on to fill ~1 second. You don't pick it; you trust it — but you *do* need to keep per-iteration work consistent so dividing by `b.N` is meaningful.
+The `2483418` is the `b.N` the harness settled on to fill ~1 second. You don't pick it; you trust it. But you *do* need to keep per-iteration work consistent so dividing by `b.N` is meaningful.
 
 ---
 
 ## Isolating the Thing Under Test — Timers and Allocs
 
-A benchmark measures everything between "start clock" and "stop clock." If that span includes setup, teardown, or I/O you didn't mean to measure, your number is contaminated. Go gives you three controls.
+A benchmark measures everything between "start clock" and "stop clock." If that span includes setup, teardown, or I/O you didn't mean to measure, your number is contaminated.
+
+Go gives you three controls.
 
 **`b.ResetTimer()`** — discard everything timed so far. Use it after one-time setup:
 
@@ -212,7 +248,10 @@ func BenchmarkSort(b *testing.B) {
 }
 ```
 
-Use this sparingly: `StopTimer`/`StartTimer` have overhead, and if the paused work dwarfs the measured work, the timer-toggle cost itself becomes noise. When per-iteration setup is heavy, prefer pre-building a slab of inputs before the loop.
+Use this sparingly:
+
+- `StopTimer`/`StartTimer` have overhead, and if the paused work dwarfs the measured work, the timer-toggle cost itself becomes noise.
+- When per-iteration setup is heavy, prefer pre-building a slab of inputs before the loop.
 
 **`b.ReportAllocs()`** — add allocation columns (`B/op`, `allocs/op`) to the output. Allocations are often the real story behind a slow hot path, because each one is future GC work:
 
@@ -226,7 +265,7 @@ func BenchmarkBuild(b *testing.B) {
 // BenchmarkBuild-8  18234561  64.1 ns/op  16 B/op  1 allocs/op
 ```
 
-`allocs/op` is frequently the most actionable number in the row: dropping an allocation from a hot path often beats shaving nanoseconds off the CPU work, because you also remove the downstream GC cost it would have caused. (You can also enable it globally with `go test -benchmem`.)
+`allocs/op` is frequently the most actionable number in the row — dropping an allocation from a hot path often beats shaving nanoseconds off the CPU work, because you also remove the downstream GC cost it would have caused. (You can also enable it globally with `go test -benchmem`.)
 
 > **Key insight:** A benchmark's number is only as honest as its timer boundaries. The default span is "the whole function body times `b.N`"; `ResetTimer`, `StopTimer`/`StartTimer`, and pre-built input slabs are how you shrink that span down to *exactly* the operation under test — and nothing else.
 
@@ -234,7 +273,9 @@ func BenchmarkBuild(b *testing.B) {
 
 ## Throughput vs Latency — Two Different Numbers
 
-`ns/op` is a **latency** figure: how long one operation takes. But "fast" sometimes means **throughput**: how many operations complete per second, possibly in parallel. They are not reciprocals once concurrency, batching, or queuing enters — a system can have great throughput (lots of ops/sec via parallelism) while each individual op has poor latency.
+- `ns/op` is a **latency** figure: how long one operation takes.
+- But "fast" sometimes means **throughput**: how many operations complete per second, possibly in parallel.
+- They are not reciprocals once concurrency, batching, or queuing enters — a system can have great throughput (lots of ops/sec via parallelism) while each individual op has poor latency.
 
 For per-op latency, `ns/op` is your answer directly. For data-rate throughput, report **bytes processed per second** with `b.SetBytes`:
 
@@ -263,7 +304,7 @@ func BenchmarkCacheGet(b *testing.B) {
 }
 ```
 
-This surfaces contention: if `ns/op` *worsens* as you add goroutines (raise `-cpu`), you've found lock contention or false sharing — which is the domain of [03 — Latency and Throughput](../03-latency-and-throughput/middle.md) and [06 — Concurrency and Contention](../06-concurrency-and-contention/middle.md).
+This surfaces contention — if `ns/op` *worsens* as you add goroutines (raise `-cpu`), you've found lock contention or false sharing, which is the domain of [03 — Latency and Throughput](../03-latency-and-throughput/middle.md) and [06 — Concurrency and Contention](../06-concurrency-and-contention/middle.md).
 
 > **Key insight:** Decide which question you're answering *before* you write the benchmark. "How long does one op take?" → latency (`ns/op`). "How much work per second?" → throughput (`MB/s`, ops/sec). "Does it scale?" → parallel throughput. They demand different harness setups and a single benchmark rarely answers all three honestly.
 
@@ -271,7 +312,10 @@ This surfaces contention: if `ns/op` *worsens* as you add goroutines (raise `-cp
 
 ## Worked Example — Comparing Two Runs with benchstat
 
-A single `ns/op` is nearly meaningless on its own — it has no error bar, so you can't tell a real 3% win from CPU-frequency noise. The discipline is: run the benchmark *many times* on both the old and new code, then compare distributions statistically. Go's `benchstat` does exactly this.
+A single `ns/op` is nearly meaningless on its own — it has no error bar, so you can't tell a real 3% win from CPU-frequency noise.
+
+- The discipline is: run the benchmark *many times* on both the old and new code, then compare distributions statistically.
+- Go's `benchstat` does exactly this.
 
 Run each version multiple times (`-count`), capturing output to a file:
 
@@ -309,7 +353,11 @@ name        old time/op    new time/op    delta
 Encode-8     482.6ns ± 9%   471.2ns ±11%   ~     (p=0.218 n=10+10)
 ```
 
-`delta` shows `~` and `p=0.218`. That `~` means **no statistically significant difference** — your "2% improvement" is indistinguishable from noise at these variances. Shipping that change as a "perf win" is a fiction. Either it has no effect, or your benchmark is too noisy to detect one; quiet the machine (close apps, pin CPU frequency, raise `-count`) and rerun.
+`delta` shows `~` and `p=0.218`:
+
+- That `~` means **no statistically significant difference** — your "2% improvement" is indistinguishable from noise at these variances.
+- Shipping that change as a "perf win" is a fiction.
+- Either it has no effect, or your benchmark is too noisy to detect one; quiet the machine (close apps, pin CPU frequency, raise `-count`) and rerun.
 
 > **Key insight:** The output of an honest benchmark is a *distribution with a p-value*, not a single number. `benchstat`'s job is to stop you from celebrating noise. If `p > 0.05` or the `±` bands overlap heavily, you have not measured an improvement — you've measured your machine's jitter. "It got faster on one run" is the signature of a benchmark nobody should trust.
 
@@ -354,3 +402,9 @@ Encode-8     482.6ns ± 9%   471.2ns ±11%   ~     (p=0.218 n=10+10)
 - What constraint would make you choose the alternative design?
 - How would you isolate a local defect from an integration defect?
 - What evidence shows that the change remains maintainable?
+- What is constant folding and loop-invariant hoisting, and how do you defend a benchmark against both?
+- Why might allocating inside a benchmark's timed loop distort the comparison, and how do you handle it?
+- What does Go's `testing.B` handle for you automatically, and what must you still guard against yourself?
+- What is the equivalent of "don't let the compiler delete it" in Rust's criterion and C++'s google/benchmark?
+- Two benchmark runs differ by 3% — is the change real? How would you find out?
+- What's the difference between latency (`ns/op`) and throughput, and when do you report each?

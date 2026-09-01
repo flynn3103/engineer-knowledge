@@ -29,9 +29,15 @@ A dependency travels through four stages before it runs in your product. Each ar
   (xz backdoor)     typosquat           bad install          (SolarWinds)
 ```
 
-The crucial mental shift: **you don't just trust the package you chose. You trust the author, their account credentials, the registry's integrity, the build that produced the artifact, and every transitive dependency underneath — recursively.** A vulnerability or a backdoor anywhere in that tree is *your* vulnerability.
-
-This is why "I only use popular, well-maintained packages" is necessary but not sufficient. Popular packages have maintainers whose accounts get phished, and they pull in dozens of less-popular transitive deps you have never heard of.
+- **The crucial mental shift:** you don't just trust the package you chose. You trust:
+  - the author and their account credentials
+  - the registry's integrity
+  - the build that produced the artifact
+  - every transitive dependency underneath — recursively
+- A vulnerability or a backdoor anywhere in that tree is *your* vulnerability.
+- "I only use popular, well-maintained packages" is **necessary but not sufficient**:
+  - Popular packages have maintainers whose accounts get phished.
+  - They pull in dozens of less-popular transitive deps you've never heard of.
 
 ---
 
@@ -50,22 +56,21 @@ go list -m all | wc -l
 grep -c '^name = ' poetry.lock
 ```
 
-A modest web service routinely has **hundreds to thousands** of transitive packages. You read the code of maybe three of them. The rest you trust by reputation and momentum.
-
-Two consequences:
-
-1. **Attack surface is huge.** Any one of those packages can ship malicious code in its next release, and you'll pull it in the next time you update — automatically, if you use version ranges.
-2. **You inherit their security posture.** If a dependency leaks credentials, runs install scripts that exfiltrate environment variables, or hasn't patched a CVE, that becomes your problem at runtime.
-
-You can't audit everything. The goal is not zero trust — it's **bounded, reviewed, and observable trust**: know what you depend on, pin it, scan it, and add new dependencies deliberately.
+- A modest web service routinely has **hundreds to thousands** of transitive packages.
+- You read the code of maybe three of them. The rest you trust by reputation and momentum.
+- Two consequences:
+  1. **Attack surface is huge.** Any one of those packages can ship malicious code in its next release, and you'll pull it in the next time you update — automatically, if you use version ranges.
+  2. **You inherit their security posture.** If a dependency leaks credentials, runs install scripts that exfiltrate environment variables, or hasn't patched a CVE, that becomes your problem at runtime.
+- You can't audit everything. The goal is not zero trust — it's **bounded, reviewed, and observable trust**: know what you depend on, pin it, scan it, and add new dependencies deliberately.
 
 ---
 
 ## Core Concept 3 — Lockfiles pin what you actually got
 
-A `package.json` says `"lodash": "^4.17.0"` — *any* 4.x release from 4.17.0 up. That's a **range**. The same install on two different days, or on your machine vs CI, can resolve to different actual versions. Ranges are how a malicious new release silently enters your build.
-
-A **lockfile** records the *exact* version you resolved, plus a cryptographic hash of the package contents:
+- A `package.json` says `"lodash": "^4.17.0"` — *any* 4.x release from 4.17.0 up. That's a **range**.
+- The same install on two different days, or on your machine vs CI, can resolve to different actual versions.
+- Ranges are how a malicious new release silently enters your build.
+- A **lockfile** records the *exact* version you resolved, plus a cryptographic hash of the package contents:
 
 ```jsonc
 // package-lock.json (excerpt)
@@ -76,16 +81,20 @@ A **lockfile** records the *exact* version you resolved, plus a cryptographic ha
 }
 ```
 
-That `integrity` hash is the heart of it. On install, the package manager downloads the tarball, hashes it, and **refuses to proceed if the hash doesn't match.** So even if the registry is compromised and serves you a tampered tarball, the lockfile catches it.
-
-Go does the same with `go.sum`:
+- That `integrity` hash is the heart of it:
+  - On install, the package manager downloads the tarball, hashes it, and **refuses to proceed if the hash doesn't match.**
+  - So even if the registry is compromised and serves you a tampered tarball, the lockfile catches it.
+- Go does the same with `go.sum`:
 
 ```
 golang.org/x/text v0.14.0 h1:ScX5w1eTa3QqT8oi6+ziP7dTV1S2+ALU0bI+0zXKWiQ=
 golang.org/x/text v0.14.0/go.mod h1:18ZOQIKpY8NJVqYksKHtTdi31H5itFRjB5/qKTNYzSU=
 ```
 
-The `h1:` line is the hash of the module's *files*; the `/go.mod h1:` line is the hash of just its `go.mod`. When you build, Go verifies the downloaded module against these hashes. **`go.sum` does not say "this code is safe" — it says "this is the exact same code that was approved when the line was written."** It protects *integrity*, not *quality*. A backdoored module with a stable hash passes `go.sum` perfectly.
+- The `h1:` line is the hash of the module's *files*; the `/go.mod h1:` line is the hash of just its `go.mod`.
+- When you build, Go verifies the downloaded module against these hashes.
+- **`go.sum` does not say "this code is safe" — it says "this is the exact same code that was approved when the line was written."** It protects *integrity*, not *quality*.
+- A backdoored module with a stable hash passes `go.sum` perfectly.
 
 **The single most important junior habit:** commit your lockfile, and use the install command that *respects* it rather than re-resolving:
 
@@ -100,9 +109,10 @@ go mod verify     # checks the module cache against go.sum
 
 ## Core Concept 4 — Scanning your dependencies for known holes
 
-Most real-world supply-chain pain isn't a clever backdoor — it's a *known* vulnerability you never patched. Public databases (the GitHub Advisory Database, OSV, the NVD) track which package versions have which CVEs. A **scanner** matches your installed versions against those databases.
-
-`osv-scanner` (free, from Google's OSV project) reads your lockfile directly:
+- Most real-world supply-chain pain isn't a clever backdoor — it's a *known* vulnerability you never patched.
+- Public databases (the GitHub Advisory Database, OSV, the NVD) track which package versions have which CVEs.
+- A **scanner** matches your installed versions against those databases.
+- `osv-scanner` (free, from Google's OSV project) reads your lockfile directly:
 
 ```bash
 # Install once, then scan a project by its lockfile
@@ -111,7 +121,7 @@ osv-scanner --lockfile=go.mod
 osv-scanner scan .          # auto-discovers lockfiles in the tree
 ```
 
-Typical output flags a package, the vulnerable version range, and the fixed version:
+- Typical output flags a package, the vulnerable version range, and the fixed version:
 
 ```
 ╭─────────────────────────────────────┬──────────┬───────────╮
@@ -121,16 +131,15 @@ Typical output flags a package, the vulnerable version range, and the fixed vers
 ╰─────────────────────────────────────┴──────────┴───────────╯
 ```
 
-`grype` does the same for container images and directories:
+- `grype` does the same for container images and directories:
 
 ```bash
 grype dir:.                 # scan the current project
 grype myorg/api:1.4.2       # scan a built container image
 ```
 
-And **Dependabot** (GitHub) opens pull requests automatically when a dependency you use gets a security advisory — turning "we should patch that someday" into a reviewable PR in your inbox.
-
-The junior takeaway: a scanner finding is not noise to dismiss. It's a to-do. When CI flags a vulnerable dependency, the fix is usually a version bump — exactly what Dependabot proposes.
+- **Dependabot** (GitHub) opens pull requests automatically when a dependency you use gets a security advisory — turning "we should patch that someday" into a reviewable PR in your inbox.
+- **Junior takeaway:** a scanner finding is not noise to dismiss. It's a to-do. When CI flags a vulnerable dependency, the fix is usually a version bump — exactly what Dependabot proposes.
 
 ---
 
@@ -194,3 +203,9 @@ These are the cyber-hygiene basics. The middle and senior tiers build SBOMs, pro
 - Which input changes the observed result, and why?
 - What is the smallest useful success check?
 - Which beginner mistake would your evidence catch?
+- Define the software supply chain and explain why every link is an attack surface.
+- What is an SBOM, and what does it *not* give you?
+- What does `go.sum` protect, and what doesn't it protect?
+- What's the difference between a version range, a pinned version, and a hash-pinned dependency — what does each stop?
+- What's the difference between `npm ci` and `npm install`, and why does it matter in CI?
+- What is a VEX statement for?

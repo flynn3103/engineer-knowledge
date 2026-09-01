@@ -131,7 +131,9 @@ This is the bridge to the next topic. See [abstraction and generalization](../03
 - Recognition is the prerequisite for [abstraction](../03-abstraction-and-generalization/): notice the recurrence first, then factor it out.
 
 ---
-## Check your understanding
+## Recall and apply
+
+**Practice loop:** Apply one idea to a current task. State the signal you saw, the choice you made, and what happened.
 
 Try to answer these questions from memory:
 

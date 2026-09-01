@@ -153,7 +153,13 @@ The whole system has one purpose: to keep converting the org's unknown unknowns 
 - Luft, J. & Ingham, H. (1955). *The Johari Window.*
 
 ---
-## Check your understanding
+## Use it today
+
+1. Make uncertainty visible in strategy, portfolio, and architecture decisions.
+2. Invest in discovery where unknowns have the largest organizational blast radius.
+3. Make it safe to say “we do not know yet,” then fund the next evidence step.
+
+## Recall and apply
 
 Try to answer these questions from memory:
 

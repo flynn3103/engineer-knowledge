@@ -6,6 +6,13 @@
 
 ---
 
+## Quick use
+1. Preserve percentiles from estimate through portfolio commitment.
+2. Measure estimate versus actual and tune reference classes.
+3. Plan capacity and roadmap risk with portfolio-level distributions.
+
+**Decision rule:** committing the p50 as a date is a policy choice, not an estimate.
+
 ## 1. The org-level failure mode: estimates as commitments
 
 In most organizations the estimation pipeline is quietly broken in the same way:
@@ -153,7 +160,7 @@ The deepest skill is teaching leadership to read a distribution as *information 
 6. Defend the distribution by **trading scope, showing the ledger, and making slack explicit** — kill "just give me one number" with a better default.
 
 ---
-## Check your understanding
+## Recall and apply
 
 Try to answer these questions from memory:
 

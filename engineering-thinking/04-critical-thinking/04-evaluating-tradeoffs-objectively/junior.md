@@ -10,6 +10,13 @@ A tradeoff is what happens when no option is best at everything. Option A is fas
 
 This topic is the synthesis of the whole **Critical Thinking** section. It uses the claims-and-evidence discipline from [01-claims-evidence-and-reasoning](../01-claims-evidence-and-reasoning/), avoids the [logical fallacies](../02-logical-fallacies-in-engineering/), and fights the [cognitive biases](../03-cognitive-biases-in-code-decisions/) that make us rationalize.
 
+## Action card
+1. List criteria before options.
+2. Include “do nothing” as a fair baseline.
+3. Mark scores as measured, estimated, or guessed.
+
+**Decision rule:** use more rigor only when the decision is hard to reverse.
+
 ## 1. The core problem: you decide first, then justify
 
 Here is what actually happens to most junior engineers:
@@ -141,7 +148,9 @@ The junior mistake is rendering all three as identical confident integers, so a 
 **Next:** [middle.md](./middle.md) — dominant axes, total cost of ownership, and turning the matrix into an honest ADR.
 
 ---
-## Check your understanding
+## Recall and apply
+
+Use these prompts to check your understanding and choose one action to try in your next task.
 
 Try to answer these questions from memory:
 

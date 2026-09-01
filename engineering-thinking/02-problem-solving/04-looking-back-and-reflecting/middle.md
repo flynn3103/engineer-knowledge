@@ -148,7 +148,9 @@ One ticket became a suite-wide improvement, a calibration data point, and a docu
 Next: [senior](./senior.md) — running blameless postmortems and making reflection a habit that survives pressure. Back to the [problem-solving section](../) · [engineering thinking roadmap](../../README.md).
 
 ---
-## Check your understanding
+## Recall and apply
+
+**Practice loop:** After one task, record what you expected, what happened, what changed your mind, and one reusable lesson.
 
 Try to answer these questions from memory:
 

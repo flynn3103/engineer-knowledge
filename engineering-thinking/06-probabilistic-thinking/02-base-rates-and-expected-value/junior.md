@@ -6,6 +6,13 @@
 
 ---
 
+## Quick use
+1. Start with how often the event occurs in comparable cases.
+2. Adjust only when case-specific evidence warrants it.
+3. Compare uncertain options with probability times payoff.
+
+**Decision rule:** a vivid story does not outweigh the base rate by itself.
+
 ## 1. The base rate: start from "how often, in general?"
 
 A **base rate** is the background frequency of an event in a population, *before* you condition on anything specific about today's case.
@@ -171,7 +178,9 @@ flowchart TD
 - Section root: [probabilistic thinking](../) · Roadmap area: [engineering thinking](../../README.md).
 
 ---
-## Check your understanding
+## Recall and apply
+
+Use these prompts to check your understanding and choose one action to try in your next task.
 
 Try to answer these questions from memory:
 

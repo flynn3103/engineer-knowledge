@@ -143,7 +143,13 @@ The [professional](./professional.md) level scales these from one engineer's inv
 - Related: [measure before optimize](../03-measure-before-optimize/), [spikes and prototypes](../04-spikes-and-prototypes/), [debugging as problem-solving](../../02-problem-solving/05-debugging-as-problem-solving/), [critical thinking](../../04-critical-thinking/).
 
 ---
-## Check your understanding
+## Use it today
+
+1. Turn uncertain claims in a design or incident into falsifiable hypotheses.
+2. Ask what evidence would change the team's mind.
+3. **Decision rule:** do not treat an untestable explanation as a basis for a high-cost decision.
+
+## Recall and apply
 
 Try to answer these questions from memory:
 

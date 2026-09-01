@@ -6,6 +6,13 @@
 
 ---
 
+## Action card
+1. Write the claim, grounds, and warrant.
+2. Name a rebuttal and confidence level.
+3. Test the warrant against a confounder or controlled comparison.
+
+**Decision rule:** never make a system-level claim from an isolated measurement.
+
 ## 1. Toulmin's model: the warrant is the part you keep hiding
 
 Stephen Toulmin's *The Uses of Argument* (1958) gives the most useful decomposition for engineering. A complete argument has six parts; the three that matter most day-to-day are the first three, and the one engineers omit is the **warrant**.
@@ -141,7 +148,7 @@ Notice what happened: the reviewer accepted the *measurement* (the benchmark is 
 - Back to [Critical Thinking](../) · [Engineering Thinking](../../README.md).
 
 ---
-## Check your understanding
+## Recall and apply
 
 Try to answer these questions from memory:
 

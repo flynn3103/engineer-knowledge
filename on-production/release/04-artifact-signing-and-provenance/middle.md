@@ -16,17 +16,13 @@ Use the smallest realistic scenario that exposes the decision and its failure be
 
 Keyless signing has two pillars.
 
-**Fulcio** is a certificate authority that does not care about long-lived keys. cosign generates an *ephemeral* key pair in memory, presents your OIDC identity token, and Fulcio returns an X.509 certificate that:
-
-- is valid for roughly 10 minutes, and
-- embeds your identity (email, or for CI, the workflow URL) in the certificate's SAN extension.
-
-cosign signs with the ephemeral private key, then throws it away. There is no key to leak, rotate, or revoke.
-
-**Rekor** is an append-only **transparency log**. Every signature and attestation is recorded with a timestamp and the signing certificate. This gives two things:
-
-1. **Non-repudiation** — there is a public, tamper-evident record that identity X signed digest D at time T.
-2. **Timestamping** — because the cert lived only minutes, you need proof the signature was made *while the cert was valid*. Rekor's countersignature provides that, so verification still works long after the cert expired.
+- **Fulcio** — a certificate authority that does not deal in long-lived keys:
+  - cosign generates an *ephemeral* key pair in memory and presents your OIDC identity token.
+  - Fulcio returns an X.509 certificate that is valid for roughly 10 minutes and embeds your identity (email, or for CI, the workflow URL) in the certificate's SAN extension.
+  - cosign signs with the ephemeral private key, then throws it away. There is no key to leak, rotate, or revoke.
+- **Rekor** — an append-only **transparency log**. Every signature and attestation is recorded with a timestamp and the signing certificate. This gives two things:
+  1. **Non-repudiation** — there is a public, tamper-evident record that identity X signed digest D at time T.
+  2. **Timestamping** — because the cert lived only minutes, you need proof the signature was made *while the cert was valid*. Rekor's countersignature provides that, so verification still works long after the cert expired.
 
 ```bash
 # Inspect what was logged for an image
@@ -34,13 +30,14 @@ cosign tree registry.example.com/app@sha256:5d41402abc...
 # shows signatures and attestations attached to the digest
 ```
 
-The chain of trust becomes: *I trust the OIDC issuer to identify the signer → Fulcio to bind that identity into a cert → Rekor to prove the signature happened in-window.*
+- Chain of trust: *I trust the OIDC issuer to identify the signer → Fulcio to bind that identity into a cert → Rekor to prove the signature happened in-window.*
 
 ---
 
 ## Core Concept 2 — Signing from CI with workload identity
 
-In production the signer is a pipeline. GitHub Actions can mint an OIDC token that *is* the build's identity — no secret stored anywhere.
+- In production the signer is a pipeline, not a person.
+- GitHub Actions can mint an OIDC token that *is* the build's identity — no secret stored anywhere.
 
 ```yaml
 # .github/workflows/release.yml
@@ -76,25 +73,18 @@ jobs:
         run: cosign sign --yes ${{ steps.build.outputs.digest }}
 ```
 
-The resulting certificate's identity is not a person — it is the workflow, e.g.:
-
-```
-https://github.com/acme/app/.github/workflows/release.yml@refs/tags/v1.4.0
-```
-
-That string is what consumers will later *require*. It pins not just "acme signed this" but "acme's *release* workflow, from a tag, signed this." A leaked developer laptop cannot reproduce it.
+- The resulting certificate's identity is not a person — it is the workflow, e.g. `https://github.com/acme/app/.github/workflows/release.yml@refs/tags/v1.4.0`.
+- That string is what consumers will later *require*. It pins not just "acme signed this" but "acme's *release* workflow, from a tag, signed this." A leaked developer laptop cannot reproduce it.
 
 ---
 
 ## Core Concept 3 — Signed vs provenance: attestations
 
-A plain signature answers: *did the holder of identity X vouch for digest D?* It says nothing about *how* D came to exist.
-
-An **attestation** is a signed statement *about* the artifact. It uses the **in-toto** envelope: a `subject` (which artifact, by digest) plus a typed `predicate` (the claim). Common predicate types:
-
-- **SLSA provenance** — what built this and from where.
-- **SBOM** — the software bill of materials (dependencies).
-- **Vulnerability scan** — results at build time.
+- A plain signature answers: *did the holder of identity X vouch for digest D?* It says nothing about *how* D came to exist.
+- An **attestation** is a signed statement *about* the artifact. It uses the **in-toto** envelope: a `subject` (which artifact, by digest) plus a typed `predicate` (the claim). Common predicate types:
+  - **SLSA provenance** — what built this and from where.
+  - **SBOM** — the software bill of materials (dependencies).
+  - **Vulnerability scan** — results at build time.
 
 ```bash
 # Attach an SBOM as a signed attestation
@@ -104,18 +94,17 @@ cosign attest --yes \
   registry.example.com/app@sha256:5d41402abc...
 ```
 
-The distinction to internalize:
-
-- **Signed** = integrity + a voucher. "These bytes weren't changed and X stands behind them."
-- **Provenance/attestation** = a verifiable build story. "This came from commit `abc123` of `acme/app`, built by GitHub Actions workflow `release.yml`, with these parameters."
-
-You want both because a signature alone cannot tell a malicious-but-authentic build from a clean one — provenance lets a verifier insist the artifact came from an *expected source and builder*.
+- The distinction to internalize:
+  - **Signed** = integrity + a voucher. "These bytes weren't changed and X stands behind them."
+  - **Provenance/attestation** = a verifiable build story. "This came from commit `abc123` of `acme/app`, built by GitHub Actions workflow `release.yml`, with these parameters."
+- You want both because a signature alone cannot tell a malicious-but-authentic build from a clean one — provenance lets a verifier insist the artifact came from an *expected source and builder*.
 
 ---
 
 ## Core Concept 4 — SLSA provenance in practice
 
-SLSA provenance is a standardized predicate describing the build. The cleanest way to produce trustworthy provenance is to let the **build platform** generate it, so the values are not self-asserted by the thing being built. The SLSA project ships reusable GitHub Actions generators:
+- SLSA provenance is a standardized predicate describing the build.
+- The cleanest way to produce trustworthy provenance is to let the **build platform** generate it, so the values are not self-asserted by the thing being built. The SLSA project ships reusable GitHub Actions generators:
 
 ```yaml
 # Use the SLSA generator to build + emit provenance for a container
@@ -131,7 +120,7 @@ jobs:
       digest: ${{ needs.build.outputs.digest }}
 ```
 
-The provenance predicate (abbreviated) records:
+- The provenance predicate (abbreviated) records:
 
 ```json
 {
@@ -146,7 +135,7 @@ The provenance predicate (abbreviated) records:
 }
 ```
 
-Now a verifier can demand: this image must have provenance whose **source repo** is `acme/app` and whose **builder** is our trusted workflow. That defeats "attacker pushed a lookalike image" because the attacker cannot produce provenance signed by *your* builder pointing at *your* source.
+- Now a verifier can demand: this image must have provenance whose **source repo** is `acme/app` and whose **builder** is our trusted workflow. That defeats "attacker pushed a lookalike image" because the attacker cannot produce provenance signed by *your* builder pointing at *your* source.
 
 ---
 
@@ -169,7 +158,7 @@ cosign verify-attestation \
   ghcr.io/acme/app@sha256:5d41402abc...
 ```
 
-For artifacts built with the SLSA generator, `slsa-verifier` checks the provenance against expected source and builder in one step:
+- For artifacts built with the SLSA generator, `slsa-verifier` checks the provenance against expected source and builder in one step:
 
 ```bash
 slsa-verifier verify-image ghcr.io/acme/app@sha256:5d41402abc... \
@@ -177,13 +166,14 @@ slsa-verifier verify-image ghcr.io/acme/app@sha256:5d41402abc... \
   --source-tag v1.4.0
 ```
 
-Note how every verify command states **expectations** (identity, issuer, source, tag). Verification with no expectations is theater; the security comes from what you *require*.
+- Note how every verify command states **expectations** (identity, issuer, source, tag). Verification with no expectations is theater; the security comes from what you *require*.
 
 ---
 
 ## Core Concept 6 — Enforcing at admission
 
-Manual verification does not scale. You push enforcement to the place where artifacts are *used*. In Kubernetes, Sigstore's **policy-controller** (or **Kyverno**) rejects pods whose images do not meet policy.
+- Manual verification does not scale. You push enforcement to the place where artifacts are *used*.
+- In Kubernetes, Sigstore's **policy-controller** (or **Kyverno**) rejects pods whose images do not meet policy.
 
 ```yaml
 # Sigstore policy-controller: only admit images signed by our release workflow
@@ -202,7 +192,8 @@ spec:
             subjectRegExp: "^https://github.com/acme/app/.github/workflows/release.yml@.*$"
 ```
 
-A pod referencing an unsigned or wrong-identity image is denied before it ever runs. Beyond container platforms, the same principle shows up across ecosystems: `npm audit signatures` checks installed packages' Sigstore signatures, and **Maven Central requires PGP-signed artifacts** for publication.
+- A pod referencing an unsigned or wrong-identity image is denied before it ever runs.
+- Beyond container platforms, the same principle shows up across ecosystems: `npm audit signatures` checks installed packages' Sigstore signatures, and **Maven Central requires PGP-signed artifacts** for publication.
 
 > Rollout wisdom: deploy in **warn/audit mode first**, watch what *would* be blocked, fix the gaps, then flip to **enforce**. Turning on hard enforcement blind will block legitimate deploys and erode trust in the control. More on sequencing at the Senior level.
 
@@ -249,3 +240,9 @@ A pod referencing an unsigned or wrong-identity image is denied before it ever r
 - What constraint would make you choose the alternative design?
 - How would you isolate a local defect from an integration defect?
 - What evidence shows that the change remains maintainable?
+- Walk through keyless signing with cosign — what roles do Fulcio and Rekor play?
+- How do you sign an artifact from CI without storing a long-lived secret?
+- What's the difference between `cosign sign` and `cosign attest`?
+- What does `permissions: id-token: write` enable in a GitHub Actions workflow?
+- What does an in-toto attestation contain?
+- Why is builder-generated provenance more trustworthy than provenance the build script writes about itself?

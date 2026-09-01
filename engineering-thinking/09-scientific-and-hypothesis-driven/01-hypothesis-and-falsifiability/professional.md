@@ -160,7 +160,13 @@ The measurable goal: over time, "because it's falsifiable and we tested it" shou
 - Related: [experiments and A/B testing](../02-experiments-and-ab-testing/), [measure before optimize](../03-measure-before-optimize/), [spikes and prototypes](../04-spikes-and-prototypes/), [debugging as problem-solving](../../02-problem-solving/05-debugging-as-problem-solving/), [critical thinking](../../04-critical-thinking/), and the [section overview](../).
 
 ---
-## Check your understanding
+## Use it today
+
+1. Make predictions, evidence, and disconfirming signals required fields in decision records.
+2. Fund measurements that can overturn important assumptions.
+3. Normalize changing direction when evidence contradicts the prior plan.
+
+## Recall and apply
 
 Try to answer these questions from memory:
 

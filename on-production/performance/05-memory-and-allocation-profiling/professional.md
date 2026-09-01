@@ -13,9 +13,10 @@ Use the smallest realistic scenario that exposes the decision and its failure be
 
 ## Container Memory Limits and the OOMKill
 
-In production your process almost never owns the machine — it owns a **cgroup** with a memory limit. On Linux, `memory.max` (cgroup v2; `memory.limit_in_bytes` on v1) is a hard ceiling enforced by the kernel. The instant the cgroup's resident memory (RSS + page cache it can't reclaim + kernel accounting) crosses that line, the kernel's OOM killer terminates a process in the group — usually *your* process, with `SIGKILL`. No stack trace, no graceful shutdown, no chance to flush. In Kubernetes you see it as a pod `Reason: OOMKilled`, exit code 137 (128 + SIGKILL's signal 9).
-
-The crucial property: **an OOMKill is not a leak; it's exceeding a number.** A perfectly healthy process that simply needed 2.1 GiB in a 2 GiB cgroup dies exactly as hard as a leaking one. This is why so much production memory work is about the *relationship between the limit and the process's real footprint*, not about the code.
+- In production your process almost never owns the machine — it owns a **cgroup** with a memory limit. On Linux, `memory.max` (cgroup v2; `memory.limit_in_bytes` on v1) is a hard ceiling enforced by the kernel.
+- The instant the cgroup's resident memory (RSS + page cache it can't reclaim + kernel accounting) crosses that line, the kernel's OOM killer terminates a process in the group — usually *your* process, with `SIGKILL`. No stack trace, no graceful shutdown, no chance to flush.
+- In Kubernetes you see it as a pod `Reason: OOMKilled`, exit code 137 (128 + SIGKILL's signal 9).
+- The crucial property: **an OOMKill is not a leak; it's exceeding a number.** A perfectly healthy process that simply needed 2.1 GiB in a 2 GiB cgroup dies exactly as hard as a leaking one. This is why so much production memory work is about the *relationship between the limit and the process's real footprint*, not about the code.
 
 ```yaml
 # Kubernetes: request is what the scheduler reserves; limit is the OOMKill line.
@@ -62,7 +63,9 @@ GOMEMLIMIT=1750MiB        # in a 2Gi (2048Mi) cgroup: ~300Mi for stacks/runtime/
 # or set GOGC=off and rely solely on GOMEMLIMIT for a fixed-budget service.
 ```
 
-`GOMEMLIMIT` is a *soft* limit: as live heap approaches it, the GC runs more frequently to avoid crossing it — trading CPU for staying under the ceiling. If the live set genuinely exceeds the limit (a real leak or undersized budget), Go will GC-thrash rather than OOM-protect you; the limit buys grace, not magic. The headroom you leave (cgroup limit minus `GOMEMLIMIT`) absorbs stacks, the runtime, and cgo/off-heap.
+- `GOMEMLIMIT` is a *soft* limit: as live heap approaches it, the GC runs more frequently to avoid crossing it — trading CPU for staying under the ceiling.
+- If the live set genuinely exceeds the limit (a real leak or undersized budget), Go will GC-thrash rather than OOM-protect you; the limit buys grace, not magic.
+- The headroom you leave (cgroup limit minus `GOMEMLIMIT`) absorbs stacks, the runtime, and cgo/off-heap.
 
 > **The principle:** *the runtime must know its limit, and the limit it's told must be below the cgroup limit by the non-heap margin.* Heap budget = cgroup limit − (thread stacks + runtime/JIT + native/off-heap + safety). A GC tuned against the host's memory in a container is a latent OOMKill that fires the first busy hour.
 
@@ -96,7 +99,7 @@ GOGC=100 GOMEMLIMIT=1750MiB
 GOGC=400 GOMEMLIMIT=60GiB           # big heap, infrequent GC, low GC CPU
 ```
 
-The cost trade in one sentence: **more RAM = less CPU on GC, and RAM and CPU have different prices.** On typical cloud pricing a vCPU costs roughly 6–8× a GiB of RAM per hour, so for a CPU-bound service that's GC-heavy, *buying RAM to lower GC CPU is often the cheaper trade* — but only up to the point where you'd have to jump to a larger (pricier) instance to get that RAM. Measure GC CPU% (`gc` time in JFR / Go's `GODEBUG=gctrace=1`) and price both sides before turning the knob.
+- The cost trade in one sentence: **more RAM = less CPU on GC, and RAM and CPU have different prices.** On typical cloud pricing a vCPU costs roughly 6–8× a GiB of RAM per hour, so for a CPU-bound service that's GC-heavy, *buying RAM to lower GC CPU is often the cheaper trade* — but only up to the point where you'd have to jump to a larger (pricier) instance to get that RAM. Measure GC CPU% (`gc` time in JFR / Go's `GODEBUG=gctrace=1`) and price both sides before turning the knob.
 
 > **Rust / C++ note:** no tracing GC, so none of this applies — instead you manage allocators and arenas directly. Swapping the global allocator (`jemalloc`, `mimalloc`, `tcmalloc`) is the analogous "tuning knob," and fragmentation in long-lived processes (next section) is the dominant memory-creep mechanism rather than GC pacing.
 
@@ -137,13 +140,10 @@ GC CPU% spiking toward 100%, latency exploding,   →  GC THRASH / DEATH   →  
   throughput collapsing, live heap near limit         SPIRAL               then fix allocation rate
 ```
 
-**Leak.** Live heap trends up; GC can't reclaim it because something holds references (a growing map/cache without eviction, a registered-but-never-removed listener, a goroutine/thread leak holding closures). Diagnose with a **heap diff**: capture two heap profiles minutes/hours apart and look for the type whose retained bytes grew. In Go, `go tool pprof -base old.heap new.heap`; in Java, two heap dumps compared in Eclipse MAT's "dominator tree" / histogram delta.
-
-**Bloat.** A step change, not a slope — usually traceable to a single event: a deploy that raised a buffer or batch size, a request with an unexpectedly large payload, a cache that filled. Correlate the step with the deploy/traffic timeline; the fix is bounding the input, not finding a leak.
-
-**Fragmentation.** RSS rises while live heap stays flat — the allocator is holding pages it can't return because freed objects left holes too small to reuse and too scattered to coalesce. Endemic to long-lived processes with mixed allocation sizes under glibc `malloc`. Fixes: switch allocator (`jemalloc`/`tcmalloc`), tune `malloc` arenas (`MALLOC_ARENA_MAX`), or use slabs/arenas for the offending size class. In Go, fragmentation is mostly handled by the runtime, so RSS-flat-live divergence there usually points to *off-heap* (cgo, mmap) growth instead.
-
-**GC thrash / death spiral.** The dangerous one. As live heap approaches the limit, the GC fires more and more often to stay under it, each cycle reclaiming less, until the process spends nearly all CPU collecting and almost none doing work. Throughput collapses, latency explodes, and — because it's slow, not crashed — health checks may still pass while the service is effectively down. The JVM's `OutOfMemoryError: GC overhead limit exceeded` is the explicit version (>98% time in GC, <2% heap recovered). **The immediate move is to add headroom (raise the limit / `GOMEMLIMIT` / heap) to break the spiral, then fix the underlying allocation rate or live-set growth** — never just leave the limit raised, or you've only deferred it.
+- **Leak.** Live heap trends up; GC can't reclaim it because something holds references (a growing map/cache without eviction, a registered-but-never-removed listener, a goroutine/thread leak holding closures). Diagnose with a **heap diff**: capture two heap profiles minutes/hours apart and look for the type whose retained bytes grew. In Go, `go tool pprof -base old.heap new.heap`; in Java, two heap dumps compared in Eclipse MAT's "dominator tree" / histogram delta.
+- **Bloat.** A step change, not a slope — usually traceable to a single event: a deploy that raised a buffer or batch size, a request with an unexpectedly large payload, a cache that filled. Correlate the step with the deploy/traffic timeline; the fix is bounding the input, not finding a leak.
+- **Fragmentation.** RSS rises while live heap stays flat — the allocator is holding pages it can't return because freed objects left holes too small to reuse and too scattered to coalesce. Endemic to long-lived processes with mixed allocation sizes under glibc `malloc`. Fixes: switch allocator (`jemalloc`/`tcmalloc`), tune `malloc` arenas (`MALLOC_ARENA_MAX`), or use slabs/arenas for the offending size class. In Go, fragmentation is mostly handled by the runtime, so RSS-flat-live divergence there usually points to *off-heap* (cgo, mmap) growth instead.
+- **GC thrash / death spiral.** The dangerous one. As live heap approaches the limit, the GC fires more and more often to stay under it, each cycle reclaiming less, until the process spends nearly all CPU collecting and almost none doing work. Throughput collapses, latency explodes, and — because it's slow, not crashed — health checks may still pass while the service is effectively down. The JVM's `OutOfMemoryError: GC overhead limit exceeded` is the explicit version (>98% time in GC, <2% heap recovered). **The immediate move is to add headroom (raise the limit / `GOMEMLIMIT` / heap) to break the spiral, then fix the underlying allocation rate or live-set growth** — never just leave the limit raised, or you've only deferred it.
 
 > **The professional discipline:** classify before you fix. "Memory is high" is not a diagnosis. RSS slope + post-GC live-heap behavior + the deploy/traffic timeline tell you which of the four shapes you have, and each one has a different first move.
 
@@ -153,15 +153,12 @@ GC CPU% spiking toward 100%, latency exploding,   →  GC THRASH / DEATH   →  
 
 Memory is a line item. At fleet scale, the difference between provisioning each instance at 16 GiB and 8 GiB is real money, and the job is to **provision the smallest footprint that survives the peak with safe headroom** — no more, no less.
 
-**The headroom margin.** Set the limit above *peak* RSS (p99/p100 over a representative window including the worst load), not average. A limit at average RSS OOMKills on every spike; a limit at 3× peak burns money. A common starting point is **peak RSS × 1.3–1.5**, then tighten with observed data. The margin covers GC overshoot, traffic spikes, and the non-heap memory that grows with concurrency (more in-flight requests → more thread stacks and buffers).
-
-**The three-way trade.** For a fixed total workload you can usually spend it as:
-
-- **Bigger instances, fewer of them** — fewer per-instance fixed overheads (runtime, caches, base RSS amortized over more work), but coarser bin-packing and a bigger blast radius per failure.
-- **Smaller instances, more of them** — finer scaling granularity and smaller blast radius, but the per-instance fixed memory overhead is paid many more times (N copies of the JVM/runtime base, N caches).
-- **Same instances, tune the GC** — buy RAM to cut GC CPU (or the reverse) *within* an instance before changing the instance count.
-
-**Putting numbers on it.** Suppose a service runs 40 instances at 16 GiB but p99 RSS is 5 GiB. At a representative ~$0.005/GiB-hour for provisioned memory, the 11 GiB of slack per instance is `11 × 40 × 0.005 × 730 ≈ $1,600/month` of headroom you may not need. Drop to an 8 GiB limit (peak 5 GiB × 1.5 = 7.5 GiB, round up) and you reclaim most of it — *if* the live-heap and spike data say 8 GiB survives the peak. The discipline is to let the profiling data, not fear, set the limit.
+- **The headroom margin.** Set the limit above *peak* RSS (p99/p100 over a representative window including the worst load), not average. A limit at average RSS OOMKills on every spike; a limit at 3× peak burns money. A common starting point is **peak RSS × 1.3–1.5**, then tighten with observed data. The margin covers GC overshoot, traffic spikes, and the non-heap memory that grows with concurrency (more in-flight requests → more thread stacks and buffers).
+- **The three-way trade.** For a fixed total workload you can usually spend it as:
+  - **Bigger instances, fewer of them** — fewer per-instance fixed overheads (runtime, caches, base RSS amortized over more work), but coarser bin-packing and a bigger blast radius per failure.
+  - **Smaller instances, more of them** — finer scaling granularity and smaller blast radius, but the per-instance fixed memory overhead is paid many more times (N copies of the JVM/runtime base, N caches).
+  - **Same instances, tune the GC** — buy RAM to cut GC CPU (or the reverse) *within* an instance before changing the instance count.
+- **Putting numbers on it.** Suppose a service runs 40 instances at 16 GiB but p99 RSS is 5 GiB. At a representative ~$0.005/GiB-hour for provisioned memory, the 11 GiB of slack per instance is `11 × 40 × 0.005 × 730 ≈ $1,600/month` of headroom you may not need. Drop to an 8 GiB limit (peak 5 GiB × 1.5 = 7.5 GiB, round up) and you reclaim most of it — *if* the live-heap and spike data say 8 GiB survives the peak. The discipline is to let the profiling data, not fear, set the limit.
 
 > **The reality:** right-sizing is a measured trade, not a vibe. Pull p99/peak RSS from the same continuous-profiling you set up above, add a deliberate margin, and price both the slack you're carrying and the OOMKill risk you'd take by trimming it. "16 GiB to be safe" with p99 at 5 GiB is a budget bug, not safety.
 
@@ -194,17 +191,11 @@ Memory is a line item. At fleet scale, the difference between provisioning each 
 ## Common Mistakes
 
 1. **Letting the runtime size for the host inside a container.** A pre-container-aware JVM (or a Go service with no `GOMEMLIMIT`) sizes for the node's memory and OOMKills on the cgroup limit. Set `MaxRAMPercentage` / `GOMEMLIMIT` against the *limit*.
-
 2. **Sizing the heap equal to the cgroup limit.** RSS = heap + stacks + runtime + native; equal heap and limit OOMKills on the overhead. Leave a non-heap margin (a chunk of the limit, not zero).
-
 3. **Hardcoding `-Xmx` as a fraction of the limit in a template.** When the k8s limit changes, the `-Xmx` doesn't follow — you waste RAM or OOMKill. Use `MaxRAMPercentage` so it tracks automatically.
-
 4. **Calling every high-memory incident a "leak."** Bloat, fragmentation, and GC thrash look like "memory is high" but have different fixes. Classify by live-heap slope and the deploy timeline first.
-
 5. **Leaving a raised limit as the "fix" for GC thrash.** Adding headroom breaks the spiral but only defers it if live-set growth or allocation rate is the real cause. Mitigate fast, then fix the root cause.
-
 6. **Provisioning for fear instead of data.** "16 GiB to be safe" with p99 RSS at 5 GiB is a budget bug. Right-size from peak RSS × a deliberate margin, using your continuous-profiling data.
-
 7. **Profiling only in dev.** Slow leaks and fragmentation never show in a five-minute benchmark. Run an always-on profiler (JFR / continuous pprof) so the data exists *before* the incident.
 
 ---
@@ -230,3 +221,8 @@ Memory is a line item. At fleet scale, the difference between provisioning each 
 - Which team owns the full lifecycle and incident response?
 - What reversible increment produces the earliest useful evidence?
 - Which exit condition proves that migration or adoption is complete?
+- A service is OOMKilled in its container but runs fine on your laptop. Why, and how do you fix it?
+- Your profile shows GC consuming 30% of CPU. What is your structured response?
+- How do you decide whether to spend RAM to save CPU, or CPU to save RAM?
+- When would you go off-heap or use arena/region allocation, and what does it cost you?
+- How would you choose a GC (or GC settings) for a given production workload?

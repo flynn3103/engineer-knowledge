@@ -8,7 +8,6 @@ nav:
   - Release: release
   - Monitoring: monitoring
   - Observability: observability
-  - Diagnostics: diagnostics
   - SRE & Reliability: sre-reliability
   - Chaos Engineering: chaos-engineering
   - Security at Scale: security-at-scale
