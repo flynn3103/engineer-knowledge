@@ -1,30 +1,36 @@
 # Testing
 
-> The full taxonomy of automated tests — what each level catches, what it misses, and the disciplines (the pyramid, property-based testing, mutation testing, contract testing, BDD) that determine whether tests actually protect the code or just decorate it.
+Use this roadmap to choose the smallest test that can prove the behavior you need.
 
 ## Topics
 
-| # | Topic | What you'll learn |
-|---|-------|-------------------|
-| 01 | [Test Strategy & the Pyramid](01-test-strategy-and-the-pyramid/junior.md) | The pyramid vs. the trophy vs. the honeycomb; what to test where; cost/confidence trade-offs |
-| 02 | [Unit Testing](02-unit-testing/junior.md) | One unit, no I/O, no clock, no network; isolation, AAA, naming, fast feedback |
-| 03 | [Integration Testing](03-integration-testing/junior.md) | Two or more components together; real DB vs. in-memory; Testcontainers |
-| 04 | [End-to-End Testing](04-end-to-end-testing/junior.md) | The full stack from outside; brittle/slow/valuable; Playwright, Cypress, Selenium |
-| 05 | [Contract Testing](05-contract-testing/junior.md) | Pact / Spring Cloud Contract; consumer-driven contracts for microservice boundaries |
-| 06 | [Property-Based Testing](06-property-based-testing/junior.md) | Hypothesis, jqwik, proptest, fast-check; invariants, generators, shrinking |
-| 07 | [Mutation Testing](07-mutation-testing/junior.md) | PIT, mutmut, Stryker; what mutation score actually means; testing your tests |
-| 08 | [Snapshot & Approval Testing](08-snapshot-and-approval-testing/junior.md) | Jest snapshots, golden files, ApprovalTests; when they help vs. ossify |
-| 09 | [Performance & Load Testing](09-performance-and-load-testing/junior.md) | k6, Locust, Gatling, JMeter; closed vs. open workload models |
-| 10 | [Test Doubles: Mocks & Fakes](10-test-doubles-mocks-fakes/junior.md) | Dummy / stub / fake / spy / mock; classical vs. mockist; the over-mocking trap |
-| 11 | [Test Data Management](11-test-data-management/junior.md) | Factories, fixtures, builders; seeding, anonymisation, determinism |
-| 12 | [Flaky Tests & Reliability](12-flaky-tests-and-reliability/junior.md) | Root-cause taxonomy, triage playbook, quarantine, suite trust |
-| 13 | [Testing in Production](13-testing-in-production/junior.md) | Canaries, synthetic monitoring, feature-flag testing, shadow traffic, chaos |
-| 14 | [Acceptance & BDD](14-acceptance-and-bdd/junior.md) | Behaviour specs, Gherkin/Cucumber, executable specifications, the three amigos |
+- [Test Strategy & the Pyramid](test-strategy-and-the-pyramid/README.md) — place checks at the right level.
+- [Unit Testing](unit-testing/README.md) — verify focused logic quickly and deterministically.
+- [Integration Testing](integration-testing/README.md) — verify real boundaries such as databases and HTTP clients.
+- [End-to-End Testing](end-to-end-testing/README.md) — protect the critical user journeys.
+- [Contract Testing](contract-testing/README.md) — keep service boundaries compatible.
+- [Property-Based Testing](property-based-testing/README.md) — test invariants across many generated inputs.
+- [Mutation Testing](mutation-testing/README.md) — measure whether tests detect meaningful faults.
+- [Snapshot & Approval Testing](snapshot-and-approval-testing/README.md) — review stable, high-value outputs.
+- [Performance & Load Testing](performance-and-load-testing/README.md) — validate response time and capacity under load.
+- [Test Doubles: Mocks & Fakes](test-doubles-mocks-fakes/README.md) — choose substitutes without hiding important behavior.
+- [Test Data Management](test-data-management/README.md) — create safe, deterministic data for tests.
+- [Flaky Tests & Reliability](flaky-tests-and-reliability/README.md) — find, fix, and prevent unreliable checks.
+- [Testing in Production](testing-in-production/README.md) — learn safely from live systems.
+- [Acceptance & BDD](acceptance-and-bdd/README.md) — turn shared behavior into executable examples.
 
-## How to use this section
+## How to use the guides
 
-Each topic has four depth levels — **junior → middle → senior → professional** — plus an **interview** Q&A bank. Start at your level and climb.
+1. Start with the topic closest to the failure you want to prevent.
+2. Read the level that matches the responsibility you own today.
+3. Apply one checklist or example to a real change.
+4. Use the review questions at the end of each guide to confirm understanding.
 
----
+## Levels
 
-> Part of the [Quality Engineering](../README.md) roadmap.
+- **Junior:** Run a clear test and explain what it proves.
+- **Middle:** Choose a suitable test boundary and verify the integrated behavior.
+- **Senior:** Protect system invariants under failure, change, and scale.
+- **Professional:** Establish reliable team practices with measurable outcomes.
+
+> Part of the [On Production](../README.md) roadmap.

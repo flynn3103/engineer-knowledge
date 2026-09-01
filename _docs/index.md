@@ -59,9 +59,9 @@ The knowledge required for modern software development is scattered across count
 
     ---
 
-    LLM application development, prompt engineering, RAG, agents, and evaluation. *(Coming soon)*
+    Build grounded, tool-using AI systems with agents, retrieval, evaluation, security, and operational practices.
 
-    [:octicons-arrow-right-24: Browse AI Engineering](AI-Engineering/README.md)
+    [:octicons-arrow-right-24: Browse AI Engineering](AI-Engineering/)
 
 - :material-rocket-launch:{ .lg .middle } **Project**
 

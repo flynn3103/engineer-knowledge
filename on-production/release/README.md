@@ -1,74 +1,31 @@
-# Release Engineering Roadmap
+# Release Engineering
 
-> *"A build produces a binary; a release produces a promise."*
+Use these guides to turn a built artifact into a safe, traceable, and reversible release.
 
-This roadmap is about **turning built artifacts into releasable, traceable, reversible deliveries**: how you version them, describe what changed, cut them on a branch or a train, sign them so consumers can trust their origin, push them to a registry, expose them progressively behind flags, take them back when they fail, automate the whole pipeline, and defend the chain that produced them. Release engineering is the discipline that lets you say with confidence *what* was shipped, *when*, *by whom*, and *how to undo it*.
+## Topics
 
-> Looking for *building the artifact* (compile, link, package, cache)? See [Build Source Code](../../Craftsmanship/build-source-code/README.md).
->
-> Looking for *deploying the artifact* (containers, orchestration, rollout mechanics)? See [Infrastructure](../infrastructure/README.md).
+- [Versioning & SemVer](versioning-and-semver/README.md) — choose a version policy that communicates compatibility.
+- [Changelogs & Release Notes](changelogs-and-release-notes/README.md) — explain changes, impact, and required action.
+- [Release Branching & Trains](release-branching-and-trains/README.md) — choose a predictable path from code to release.
+- [Artifact Signing & Provenance](artifact-signing-and-provenance/README.md) — prove where an artifact came from.
+- [Registries & Distribution](registries-and-distribution/README.md) — publish immutable artifacts consumers can retrieve.
+- [Feature Flags & Progressive Delivery](feature-flags-and-progressive-delivery/README.md) — reduce release risk with controlled exposure.
+- [Rollback & Roll-Forward](rollback-and-roll-forward/README.md) — recover quickly when a release fails.
+- [Release Automation](release-automation/README.md) — automate repeatable release steps and safeguards.
+- [Supply-Chain Security](supply-chain-security/README.md) — secure the path from source to consumer.
 
----
+## How to use the guides
 
-## Why a Dedicated Roadmap
+1. Start with the release risk you need to reduce.
+2. Read the level that matches the responsibility you own.
+3. Apply one checklist to a real release.
+4. Keep evidence: the artifact identity, approval, rollout result, and recovery path.
 
-Release engineering lives between the build and the deploy, and it is the part teams most often skip until a bad ship forces the lesson. Versioning is policy, not syntax. A changelog is a contract with users. A rollback path is not a fallback — it is part of the release. A signature is the difference between "we built this" and "we can prove we built this." Understanding releases *as a category* — semver vs calver, RC promotion, signed provenance, feature flags, supply-chain attestation — keeps you fluent across `cargo publish`, `npm publish`, `mvn release`, `goreleaser`, and whatever the next registry demands.
+## Levels
 
-| Roadmap | Question it answers |
-|---|---|
-| [Build Source Code](../../Craftsmanship/build-source-code/README.md) | Can I reproducibly turn my source into a runnable artifact? |
-| [Testing](../testing/README.md) | Does my code work? |
-| **Release Engineering** (this) | Can I ship that artifact safely, traceably, and reversibly? |
+- **Junior:** Follow a known release procedure safely.
+- **Middle:** Choose and verify a release workflow for one service.
+- **Senior:** Protect release invariants across dependencies and failure cases.
+- **Professional:** Establish organization-wide release practices and measures.
 
----
-
-## Sections
-
-| # | Topic | Focus |
-|---|---|---|
-| [01](01-versioning-and-semver/README.md) | Versioning & SemVer | Semantic versioning, calver/datever, the breaking-change discipline, pre-release and build metadata |
-| [02](02-changelogs-and-release-notes/README.md) | Changelogs & Release Notes | Keep a Changelog, conventional commits, automated generation; changelog vs release notes vs migration guide |
-| [03](03-release-branching-and-trains/README.md) | Release Branching & Trains | Release branches vs trunk-based release tags, release candidates and promotion, release trains and cadence |
-| [04](04-artifact-signing-and-provenance/README.md) | Artifact Signing & Provenance | Sigstore / cosign, SLSA levels, in-toto attestations, reproducible builds as a trust primitive |
-| [05](05-registries-and-distribution/README.md) | Registries & Distribution | Container and package registries, immutability and retention, yank/deprecate semantics, mirrors and CDNs |
-| [06](06-feature-flags-and-progressive-delivery/README.md) | Feature Flags & Progressive Delivery | Flags as a release control, canary and ring deployments, percentage rollouts, flag lifecycle and debt |
-| [07](07-rollback-and-roll-forward/README.md) | Rollback & Roll-Forward | Binary rollback, flag kill-switches, roll-forward vs revert, hotfix policy, backward-compatible migrations |
-| [08](08-release-automation/README.md) | Release Automation | `semantic-release`, changesets, `goreleaser`, release-please; the fully automated tag-to-publish pipeline |
-| [09](09-supply-chain-security/README.md) | Supply-Chain Security | SBOMs, dependency provenance, pinning and lockfiles, signing verification at install, SLSA threat model |
-
----
-
-## Tiers
-
-Every topic is written across five tiers, each a standalone page:
-
-| Tier | File | For the reader who… |
-|---|---|---|
-| **Junior** | `junior.md` | is meeting the concept for the first time and needs the *what* and *why* with concrete commands |
-| **Middle** | `middle.md` | can run the tools and needs the working policy, the trade-offs, and the failure modes |
-| **Senior** | `senior.md` | owns the policy and must reason about it under constraints, at scale, and across teams |
-| **Professional** | `professional.md` | sets org-wide standards, designs the platform, and weighs governance, compliance, and cost |
-| **Interview** | `interview.md` | is preparing to be questioned on it — a question bank with model answers and what each probes |
-
----
-
-## Languages
-
-The roadmap is policy-centric, but examples cover release tooling for **Go** (`go.mod` versioning, `ldflags` version embedding, `goreleaser`), **Java** (Maven Release Plugin, Gradle, Nexus staging), **Python** (PEP 440, `twine` to PyPI, `build` for wheels), **Rust** (`cargo publish`, crates.io yank semantics), and **JS/TS** (`npm publish`, `semantic-release`, changesets for monorepos).
-
----
-
-## References
-
-- *Software Engineering at Google* — Winters, Manshreck, Wright (release engineering chapter)
-- *Continuous Delivery* — Jez Humble, David Farley (the canonical text on deployment pipelines and release readiness)
-- *Keep a Changelog* — keepachangelog.com (the de facto changelog format)
-- *Semantic Versioning* — semver.org (the spec, including pre-release and build metadata)
-- *SLSA Framework* — slsa.dev (Supply-chain Levels for Software Artifacts; provenance and signing levels)
-- *Sigstore* — sigstore.dev (keyless signing, transparency logs, cosign)
-
----
-
-## Project Context
-
-Part of the [Senior Project](../../index.md) — a personal effort to consolidate the essential knowledge of software engineering in one place.
+Use the questions at the end of each guide for active recall.
