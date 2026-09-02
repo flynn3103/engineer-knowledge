@@ -2,7 +2,6 @@ title: AI Engineering
 nav:
   - Overview: README.md
   - LLM Fundamentals: llm-fundamentals
-  - AI Model: ai-model
   - RAG: rag
   - AI Agent: ai-agent
   - AI Evaluation: ai-evaluation

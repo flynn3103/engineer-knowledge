@@ -36,5 +36,5 @@ Before you reach for reasoning mode, name the specific step in the task where a 
 - [Choosing the Right Model](../choosing-the-right-model/README.md) — reasoning-vs-standard is a special case of this general model-selection decision, applied specifically to test-time compute.
 - [Fine-Tuning](../fine-tuning/README.md) — when a standard model's raw capability, not its reasoning depth, is the actual gap, fine-tuning is the lever to check before reaching for reasoning mode.
 - [Pretrained Models](../pretrained-models/README.md) — reasoning models add a further training stage (e.g., DeepSeek-R1's documented reinforcement-learning stage) on top of the pretrain → SFT → RLHF pipeline this topic assumes you already know.
-- [AI Agent](../../ai-agent/README.md) — reasoning models are commonly used as the planning component in agentic systems that decompose a goal into steps.
+- [AI Agent](../../../ai-agent/README.md) — reasoning models are commonly used as the planning component in agentic systems that decompose a goal into steps.
 

@@ -36,7 +36,7 @@ Before trusting a model's advertised context length or latency, compute or measu
 
 - [Tokenization](../tokenization/README.md) — tokens are the units self-attention operates over; you can't reason about attention cost without knowing how many tokens your input actually produces.
 - [Context Window](../context-window/README.md) — the KV cache and attention pattern this topic covers are what determine whether an advertised context window is actually usable in production.
-- [Choosing the Right Model](../../ai-model/choosing-the-right-model/README.md) — model selection and versioning across vendors builds directly on the professional-level compatibility matrix in this topic.
+- [Choosing the Right Model](../ai-model/choosing-the-right-model/README.md) — model selection and versioning across vendors builds directly on the professional-level compatibility matrix in this topic.
 
 ---
 

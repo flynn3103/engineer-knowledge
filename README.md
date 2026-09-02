@@ -12,7 +12,7 @@ The knowledge required for modern engineering work is scattered across countless
 - **Programming Languages** — Go, Python, plus shared language/runtime internals
 - **Infrastructure** — containers, Kubernetes, deployment strategies, CI/CD, IaC, GitOps, multi-region, disaster recovery, autoscaling, VPC, virtual machines, and network protocols
 - **Data Engineering** — service communication and APIs, databases, distributed systems, event streaming, orchestration, storage, and concurrent processing
-- **AI Engineering** — LLM fundamentals, model selection/fine-tuning, RAG, agent architecture, evaluation, and feature stores
+- **AI Engineering** — LLM fundamentals (including model selection/fine-tuning), RAG, agent architecture, evaluation, and feature stores
 - **Blog** — *coming soon*
 
 ## Project Structure
@@ -34,7 +34,7 @@ The knowledge required for modern engineering work is scattered across countless
 │   └── language-internals/               # Runtime, memory, types, compilers, and interoperability
 ├── 📂 infrastructure/                    # Containers, orchestration, deployment, CI/CD, IaC, GitOps, VPC, VMs, and protocols
 ├── 📂 data-engineering/                  # Communication/APIs, databases, distributed systems, streaming, scheduling, storage, and concurrency
-├── 📂 ai-engineering/                    # LLM fundamentals, model selection/fine-tuning, RAG, agents, evaluation, feature store
+├── 📂 ai-engineering/                    # LLM fundamentals (incl. model selection/fine-tuning), RAG, agents, evaluation, feature store
 └── 📂 blog/                              # Coming soon
 ```
 

@@ -40,4 +40,4 @@ Before you trust a model's output shape, confirm which pipeline stage produced i
 - [Choosing the Right Model](../choosing-the-right-model/README.md) — once you know what a model *is*, this is how you pick one for a specific job.
 - [Fine-Tuning](../fine-tuning/README.md) — adapting a pretrained model further, beyond what its provider's SFT/RLHF pass already did.
 - [Reasoning Models](../reasoning-models/README.md) — models with an additional RL stage optimized specifically for multi-step reasoning, not just preference alignment.
-- [LLM Fundamentals](../../llm-fundamentals/README.md) — the mechanical layer underneath all of this: tokens, context windows, and decoding.
+- [LLM Fundamentals](../../README.md) — the mechanical layer underneath all of this: tokens, context windows, and decoding.

@@ -2,29 +2,27 @@
 
 > Build grounded, tool-using AI systems whose behavior can be understood, evaluated, secured, and operated — from how the model itself works to how an agent built on top of it is tested in production.
 
-This domain follows the natural build order of an LLM-based product: understand the model's fundamentals, choose and adapt the right model, ground it in your own data with RAG, wrap it in agentic behavior, and evaluate the result before and after it ships.
+This domain follows the natural build order of an LLM-based product: understand the model's fundamentals (including how to choose and adapt the right model), ground it in your own data with RAG, wrap it in agentic behavior, and evaluate the result before and after it ships.
 
 ```mermaid
 flowchart LR
-    Fund["LLM Fundamentals"] --> Model["AI Model"]
-    Model --> Rag["RAG"]
+    Fund["LLM Fundamentals<br/>(incl. AI Model)"] --> Rag["RAG"]
     Rag --> Agent["AI Agent"]
     Agent --> Eval["AI Evaluation"]
-    Eval -.->|feeds back into| Model
+    Eval -.->|feeds back into| Fund
     Fund --> Store["Feature Store"]
-    Store -.->|serves inputs to| Model
+    Store -.->|serves inputs to| Fund
 ```
 
 ## Sections
 
 | # | Section | Focus |
 |---|---|---|
-| 01 | [LLM Fundamentals](llm-fundamentals/README.md) | Transformer architecture, tokenization, context window, decoding/sampling, prompt engineering, and context engineering. |
-| 02 | [AI Model](ai-model/README.md) | Pretrained model families, choosing the right model, fine-tuning, and reasoning models. |
-| 03 | [RAG](rag/README.md) | Retrieval techniques, embeddings and vector databases, and knowledge base design. |
-| 04 | [AI Agent](ai-agent/README.md) | Agent architectures (including memory), agentic techniques, and tools/MCP. |
-| 05 | [AI Evaluation](ai-evaluation/README.md) | Observability, testing, and evaluation for LLM and agentic systems. |
-| 06 | [Feature Store](feature-store/README.md) | Reproducible model inputs across training and serving — offline/online stores, point-in-time correctness. |
+| 01 | [LLM Fundamentals](llm-fundamentals/README.md) | Transformer architecture, tokenization, context window, decoding/sampling, prompt engineering, context engineering, and AI Model selection/fine-tuning/reasoning. |
+| 02 | [RAG](rag/README.md) | Retrieval techniques, embeddings and vector databases, and knowledge base design. |
+| 03 | [AI Agent](ai-agent/README.md) | Agent architectures (including memory), agentic techniques, and tools/MCP. |
+| 04 | [AI Evaluation](ai-evaluation/README.md) | Observability, testing, and evaluation for LLM and agentic systems. |
+| 05 | [Feature Store](feature-store/README.md) | Reproducible model inputs across training and serving — offline/online stores, point-in-time correctness. |
 
 ## How to use this domain
 

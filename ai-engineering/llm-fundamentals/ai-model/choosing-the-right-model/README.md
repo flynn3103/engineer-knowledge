@@ -44,4 +44,4 @@ Before comparing quality, name every hard constraint — data residency, a laten
 - [Pretrained Models](../pretrained-models/README.md) — know what pipeline stage produced a model (base vs. instruct, RLHF'd or not) before you can meaningfully compare it to another candidate.
 - [Fine-Tuning](../fine-tuning/README.md) — the next lever when a bake-off shows no available model clears the quality bar at any acceptable cost or latency.
 - [Reasoning Models](../reasoning-models/README.md) — choosing between a standard and a reasoning-mode model is a specific instance of this same decision framework, with latency and cost trade-offs that are usually larger.
-- [AI Evaluation](../../ai-evaluation/README.md) — the evaluation methodology a bake-off's rubric and eval set depend on.
+- [AI Evaluation](../../../ai-evaluation/README.md) — the evaluation methodology a bake-off's rubric and eval set depend on.

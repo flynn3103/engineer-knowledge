@@ -43,4 +43,4 @@ Never start a fine-tuning project by writing a training script. Start by writing
 
 - [Choosing the Right Model](../choosing-the-right-model/README.md) — the model bake-off that precedes fine-tuning; fine-tuning is what you reach for when no off-the-shelf model clears the bar
 - [Pretrained Models](../pretrained-models/README.md) — fine-tuning starts from a pretrained, often already instruct-tuned, base model
-- [AI Evaluation](../../ai-evaluation/README.md) — the evaluation methodology needed to detect a fine-tuned model's regressions before and after deployment
+- [AI Evaluation](../../../ai-evaluation/README.md) — the evaluation methodology needed to detect a fine-tuned model's regressions before and after deployment
