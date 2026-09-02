@@ -1,50 +1,97 @@
 # Computational Thinking — Junior
 
-Focus on one question: **how do I turn a large request into small results I can verify?**
+**Your question:** How do I break down a big feature request into small, testable pieces?
 
-Suppose the request is “let users upload a profile picture.” The sentence hides file selection, validation, resizing, storage, database update, authorization, and display. Coding from the sentence mixes concerns and makes failures hard to locate.
+The phrase “add profile picture upload” is too vague to code safely. It hides file validation, resizing, storage, database updates, and display logic. If you code from the phrase alone, failures scatter across concerns and become hard to debug.
 
-## Decompose by outcomes
+## The method: Decompose into observable outcomes
 
-Write observable outcomes, not vague activities:
+Instead of tasks, write **outcomes**—things you can verify without completing the feature:
 
-- reject an unsupported or oversized file;
-- store one accepted image;
-- associate its URL with the correct user;
-- return a useful response;
-- display the new image.
+**Bad (activities):** upload file → validate → store → update database → display  
+**Good (outcomes):**
+- File type is JPG, PNG, or WebP (reject others immediately)
+- File size ≤ 5 MB (reject oversized files with clear error)
+- Image stored in /uploads with unique name
+- User.profile_image_url points to the stored file
+- API response includes new image URL and timestamp
+- Old image is removed from storage (optional: defer)
 
-```mermaid
-sequenceDiagram
-    User->>API: upload image
-    API->>API: validate type and size
-    API->>Storage: store accepted image
-    Storage-->>API: URL
-    API->>Database: update user
-    API-->>User: new profile image
-```
+### How to apply it
 
-## Recognize patterns carefully
+1. Read the feature request word-by-word. For each concept, ask: “How will I know this worked?”
+2. Write 5–8 outcomes. Each should:
+   - Be checkable with inputs and expected outputs
+   - Be achievable in one code change or one test
+   - Have a single reason to fail
+3. Check for missing outcomes: authorization, errors, edge cases, cleanup
+4. Draw dependencies—which outcome must happen first?
 
-Look for repeated behavior: validation, authorization, persistence, or error translation. Repetition is a clue, not an automatic reason to create a generic helper. First name what is actually the same and what varies.
+### A concrete example
+
+**Request:** Users can upload a profile picture
+
+**Outcomes in order:**
+1. Validate: MIME type in [image/jpeg, image/png, image/webp] → reject with code 400 if not
+2. Validate: file size ≤ 5MB → reject with code 413 if not
+3. Resize: convert to 256×256 → store in /uploads with hash-based filename
+4. Update: set user.profile_image_url to /uploads/{hash}.jpg
+5. Return: 200 response with { image_url, uploaded_at } JSON
+6. Display: fetch and render image in UI with fallback avatar
+
+Each outcome is testable alone:
+- Test 1: send PNG file → expect 200, size recorded
+- Test 2: send 20MB file → expect 413, database unchanged
+- Test 3: check database after valid upload → user.profile_image_url matches stored path
+
+## Recognize and name patterns
+
+Repeated logic is a signal to standardize:
+- “Validate file type” appears twice → extract as reusable check
+- “Reject with error code” appears in multiple places → standardize response format
+
+**But first:** name what's actually the same and what differs. File validation checks MIME type; data validation checks range. Don't merge them into a generic `validate()` function—keep concerns separate.
 
 ## Choose the smallest useful abstraction
 
-An abstraction hides irrelevant detail while preserving what callers need. `ImageStore.save(data) -> URL` is useful if callers should not know whether storage is local or remote. `Utils.process(data)` hides too much and communicates nothing.
+An abstraction **hides irrelevant detail**. Ask: “Does the caller need to know this?”
 
-## Write the procedure before code
+- ✓ Good: `ImageStore.save(bytes) -> url` (caller shouldn't know if storage is local or S3)
+- ✗ Poor: `Utils.process(data)` (unclear what it does; hides everything)
+- ✗ Poor: `FileValidator.validate(file)` returning a boolean (doesn't say why it failed)
 
-List inputs, outputs, decisions, and failure paths. Walk through a normal case and one edge case. Then implement one vertical slice and test it.
+A minimal abstraction:
+- Has a clear name (the single responsibility)
+- Accepts concrete inputs (not generic objects)
+- Returns a clear result or raises named exceptions
+- Is testable without touching external systems
 
-## Apply it today
+## Common beginner mistakes
 
-Take one ticket and write: desired result, five smaller outcomes, one dependency per outcome, and the first testable slice. Stop if a step cannot be verified; split it again.
+| Mistake | Why it hurts | How to fix |
+|---|---|---|
+| “Implement feature X” → split into 50 tasks | Tasks are too interdependent to verify alone | Split by outcomes instead; one outcome = one testable result |
+| Hide all error details in a generic exception | Caller can't diagnose failure | Raise specific exceptions (FileTooLarge, UnsupportedType) |
+| Create a utility function after seeing two uses | Premature abstraction hides intent | Wait until the third use and first understand what's actually the same |
+| Merge validation logic across domains | Validation rules diverge later, causing bugs | Keep validators separate by concern |
 
-## Test yourself
+## Hands-on exercise
 
-1. Why is “build the backend” a poor decomposition?
-2. Which details should an `ImageStore` hide?
-3. What repeated behavior is not yet a justified abstraction?
-4. How would you verify the first slice without completing the feature?
+Take one ticket from your backlog. Write:
+1. The desired result (1 sentence)
+2. Five smaller, observable outcomes
+3. Which outcome has no dependency (start there)
+4. How you'd test outcome #1 without finishing outcome #5
+5. One edge case (oversized file, missing field, race condition)
+
+Stop if any outcome cannot be tested. Split it again.
+
+## Verify your thinking
+
+- [ ] Can you test outcome #1 without writing code for outcome #2?
+- [ ] Does each outcome have exactly one input and output you can name?
+- [ ] Can you explain why the order of outcomes matters?
+- [ ] Can you name three ways outcome #3 could fail?
+- [ ] Would a new team member understand what each outcome means?
 
 Continue to [`middle.md`](middle.md).
