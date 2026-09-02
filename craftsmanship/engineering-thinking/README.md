@@ -17,9 +17,10 @@ The sections are complementary rather than isolated. Decomposition makes a probl
 | 05 | [First-Principles Thinking](05-first-principles-thinking/) | Reduce a problem to genuine constraints, challenge inherited assumptions, and rebuild possible solutions from fundamentals. |
 | 06 | [Probabilistic Thinking](06-probabilistic-thinking/) | Make calibrated decisions with base rates, expected value, failure probabilities, risk, and uncertain estimates. |
 | 07 | [Creative and Lateral Thinking](07-creative-and-lateral-thinking/) | Generate and evaluate non-obvious options through divergence, inversion, analogy, and productive constraints. |
-| 08 | [Object Thinking](../craftsmanship/object-oriented-design/08-object-thinking/) | Model behavior and responsibility, use tell-don't-ask and CRC techniques, and recognize when object thinking is the wrong fit. |
+| 08 | [Debug-Thinking](08-debug-thinking/) | Recognize failure patterns, decompose a bug into small testable slices, and trace root cause from evidence, not assumption. |
 | 09 | [Scientific and Hypothesis-Driven Thinking](09-scientific-and-hypothesis-driven/) | Form falsifiable hypotheses, design experiments, measure before optimizing, and use spikes to retire uncertainty. |
 | 10 | [Metacognition and Learning](10-metacognition-and-learning/) | Inspect your own reasoning, practice deliberately, learn efficiently, and map the limits of your knowledge. |
+| 11 | [Object Thinking](../object-oriented-design/README.md) | Model behavior and responsibility, use tell-don't-ask and CRC techniques, and recognize when object thinking is the wrong fit. |
 
 ## How to use this roadmap
 
@@ -50,4 +51,4 @@ Use the loop at every scale. What changes between levels is the size of the syst
 
 ---
 
-> Pair this roadmap with [Craftsmanship](../craftsmanship/README.md) when the reasoning needs to become code, tests, architecture, or an operational system.
+> Pair this roadmap with [Craftsmanship](../README.md) when the reasoning needs to become code, tests, architecture, or an operational system.

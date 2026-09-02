@@ -19,7 +19,7 @@ flowchart LR
     Reflect --> Frame
 ```
 
-This guide preserves the full problem-solving loop: understand the problem, devise a plan, execute it, reflect, debug systematically, and recover when stuck.
+This guide preserves the full problem-solving loop: understand the problem, devise a plan, execute it, reflect, and recover when stuck. For the dedicated deep dive on diagnosing a specific failure — pattern recognition, decomposition, evidence-driven hypotheses — see [Debug-Thinking](../08-debug-thinking/README.md).
 
 | Level | Guide | You are done when |
 |---|---|---|
@@ -36,4 +36,5 @@ Write the problem statement and evidence before the solution. If you cannot desc
 
 - [Computational Thinking](../01-computational-thinking/README.md)
 - [Critical Thinking](../04-critical-thinking/README.md)
+- [Debug-Thinking](../08-debug-thinking/README.md)
 - [Scientific Thinking](../09-scientific-and-hypothesis-driven/README.md)

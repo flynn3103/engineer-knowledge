@@ -28,4 +28,4 @@ Start from the failure you need to detect, then choose the lowest test level tha
 ## Related
 
 - [Release](../release/README.md)
-- [Chaos Engineering](../chaos-engineering/README.md)
+- [SRE and Reliability](../sre-reliability/README.md)

@@ -4,8 +4,6 @@ nav:
     - ... | regex=^engineering-thinking/.+
   - Code Review:
     - ... | regex=^code-review/.+
-  - Diagnostics:
-    - ... | regex=^diagnostics/.+
   - Documentation:
     - ... | regex=^documentation/.+
   - Legacy Code:

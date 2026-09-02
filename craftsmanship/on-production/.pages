@@ -5,8 +5,6 @@ nav:
   - Testing: testing
   - Performance: performance
   - Release: release
-  - Monitoring: monitoring
-  - Observability: observability
   - SRE & Reliability: sre-reliability
   - Security at Scale: security-at-scale
   - Data Privacy: data-privacy

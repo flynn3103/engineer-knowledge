@@ -27,4 +27,4 @@ Build once, identify immutably, promote the same artifact, and exercise rollback
 ## Related
 
 - [Testing](../testing/README.md)
-- [Monitoring](../monitoring/README.md)
+- [SRE and Reliability](../sre-reliability/README.md)

@@ -17,9 +17,10 @@ The foundational thinking skills that surround implementation. Start with framin
 | 05 | [First-Principles Thinking](engineering-thinking/05-first-principles-thinking/) | Reduce a problem to genuine constraints, challenge inherited assumptions, and rebuild possible solutions from fundamentals. |
 | 06 | [Probabilistic Thinking](engineering-thinking/06-probabilistic-thinking/) | Make calibrated decisions with base rates, expected value, failure probabilities, risk, and uncertain estimates. |
 | 07 | [Creative and Lateral Thinking](engineering-thinking/07-creative-and-lateral-thinking/) | Generate and evaluate non-obvious options through divergence, inversion, analogy, and productive constraints. |
-| 08 | [Object Thinking](engineering-thinking/object-oriented-design/) | Model behavior and responsibility, use tell-don't-ask and CRC techniques, and recognize when object thinking is the wrong fit. |
+| 08 | [Debug-Thinking](engineering-thinking/08-debug-thinking/) | Recognize failure patterns, decompose a bug into small testable slices, and trace root cause from evidence, not assumption. |
 | 09 | [Scientific and Hypothesis-Driven Thinking](engineering-thinking/09-scientific-and-hypothesis-driven/) | Form falsifiable hypotheses, design experiments, measure before optimizing, and use spikes to retire uncertainty. |
 | 10 | [Metacognition and Learning](engineering-thinking/10-metacognition-and-learning/) | Inspect your own reasoning, practice deliberately, learn efficiently, and map the limits of your knowledge. |
+| 11 | [Object Thinking](object-oriented-design/README.md) | Model behavior and responsibility, use tell-don't-ask and CRC techniques, and recognize when object thinking is the wrong fit. |
 
 ## Part 2: Practical Disciplines
 
@@ -28,12 +29,11 @@ Seven essential practices for making code safe, understandable, and maintainable
 | Discipline | Main outcome |
 |---|---|
 | [Code Review](code-review/README.md) | Improve correctness, design, security, learning, and team flow. |
-| [Diagnostics](diagnostics/README.md) | Turn production symptoms into evidence, mitigation, and durable learning. |
 | [Documentation](documentation/README.md) | Keep decisions, interfaces, and operations understandable and current. |
 | [Legacy Code](legacy-code/README.md) | Create safety before changing code you do not fully understand. |
 | [Object-Oriented Design](object-oriented-design/README.md) | Assign behavior and responsibility while controlling coupling. |
 | [Professionalism](professionalism/README.md) | Make honest commitments, protect quality under pressure, and collaborate responsibly. |
-| [On Production](on-production/README.md) | Size, test, deploy, observe, and harden a system after it ships. |
+| [On Production](on-production/README.md) | Size, test, deploy, trace, and harden a system after it ships. |
 
 ## Level progression
 

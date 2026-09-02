@@ -29,4 +29,4 @@ Write for a named audience and task. Put documentation near the source of truth 
 ## Related
 
 - [Code Review](../code-review/README.md)
-- [Diagnostics](../diagnostics/README.md)
+- [Debug-Thinking](../engineering-thinking/08-debug-thinking/README.md)

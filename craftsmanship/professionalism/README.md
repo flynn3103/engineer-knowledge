@@ -47,6 +47,6 @@ Before accepting work, write the outcome, constraints, uncertainty, evidence nee
 
 ## Related
 
-- [Problem-Solving](../02-problem-solving/README.md)
-- [Critical Thinking](../04-critical-thinking/README.md)
-- [Metacognition and Learning](../10-metacognition-and-learning/README.md)
+- [Problem-Solving](../engineering-thinking/02-problem-solving/README.md)
+- [Critical Thinking](../engineering-thinking/04-critical-thinking/README.md)
+- [Metacognition and Learning](../engineering-thinking/10-metacognition-and-learning/README.md)
