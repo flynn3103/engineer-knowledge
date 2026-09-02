@@ -31,4 +31,4 @@ Before improving a retrieval or chunking technique, check whether the knowledge 
 
 - [RAG Techniques](../rag-techniques/junior.md) — the retrieval loop that queries what this topic builds.
 - [Embeddings and Vector Databases](../embeddings-and-vector-db/junior.md) — where ingested, chunked content ultimately gets indexed.
-- [Feature Store](../../feature-store/README.md) — a parallel discipline of reproducible, versioned, access-aware data delivery for model inputs instead of documents.
+- [Feature Store](../../mlops/feature-store/README.md) — a parallel discipline of reproducible, versioned, access-aware data delivery for model inputs instead of documents.

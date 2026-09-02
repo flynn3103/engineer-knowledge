@@ -5,4 +5,4 @@ nav:
   - RAG: rag
   - AI Agent: ai-agent
   - AI Evaluation: ai-evaluation
-  - Feature Store: feature-store
+  - MLOps: mlops

@@ -34,6 +34,6 @@ Define feature semantics and event-time behavior before choosing storage. A fast
 
 ## Related
 
-- [Embeddings and Vector Databases](../rag/embeddings-and-vector-db/)
-- [RAG Techniques](../rag/rag-techniques/)
-- [Evaluation](../ai-evaluation/evaluation/)
+- [Embeddings and Vector Databases](../../rag/embeddings-and-vector-db/)
+- [RAG Techniques](../../rag/rag-techniques/)
+- [Evaluation](../../ai-evaluation/evaluation/)

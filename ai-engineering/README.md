@@ -10,8 +10,8 @@ flowchart LR
     Rag --> Agent["AI Agent"]
     Agent --> Eval["AI Evaluation"]
     Eval -.->|feeds back into| Fund
-    Fund --> Store["Feature Store"]
-    Store -.->|serves inputs to| Fund
+    Fund --> Ops["MLOps<br/>(incl. Feature Store)"]
+    Ops -.->|serves inputs to| Fund
 ```
 
 ## Sections
@@ -22,7 +22,7 @@ flowchart LR
 | 02 | [RAG](rag/README.md) | Retrieval techniques, embeddings and vector databases, and knowledge base design. |
 | 03 | [AI Agent](ai-agent/README.md) | Agent architectures (including memory), agentic techniques, and tools/MCP. |
 | 04 | [AI Evaluation](ai-evaluation/README.md) | Observability, testing, and evaluation for LLM and agentic systems. |
-| 05 | [Feature Store](feature-store/README.md) | Reproducible model inputs across training and serving — offline/online stores, point-in-time correctness. |
+| 05 | [MLOps](mlops/README.md) | Feature store, experiment tracking, training pipelines, deployment/serving, and monitoring/drift. |
 
 ## How to use this domain
 

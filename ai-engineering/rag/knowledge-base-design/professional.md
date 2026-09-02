@@ -20,7 +20,7 @@ The predictable failure mode without an operating model: every team stands up it
 | **Access-control policy and enforcement** | Security/platform, jointly with each collection owner | Platform enforces pre-filtering per [senior.md](senior.md) as a structural guarantee; collection owner is accountable for keeping `acl` metadata accurate |
 | **Cross-collection registry and health** | A governance function (often part of the platform or AI-evaluation team, see [AI Evaluation](../../ai-evaluation/)) | Tracks every registered collection's owner, SLA, and staleness/access-audit status in one place |
 
-This mirrors the ownership split a mature organization applies to any shared data infrastructure (see [Feature Store — Professional](../../feature-store/professional.md) for the same pattern applied to model-input data instead of documents): no product team is asked to become ingestion-pipeline experts, and no central team is asked to know whether a specific HR policy is current — that judgment belongs to the team that owns HR content.
+This mirrors the ownership split a mature organization applies to any shared data infrastructure (see [Feature Store — Professional](../../mlops/feature-store/professional.md) for the same pattern applied to model-input data instead of documents): no product team is asked to become ingestion-pipeline experts, and no central team is asked to know whether a specific HR policy is current — that judgment belongs to the team that owns HR content.
 
 ## Core Concept 2 — A Collection Registry, Not Tribal Knowledge
 

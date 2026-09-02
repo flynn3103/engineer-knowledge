@@ -37,4 +37,4 @@ Before trusting a similarity search result, confirm the query and the indexed ve
 
 - [RAG Techniques](../rag-techniques/junior.md) — the retrieval loop this topic's search operation feeds into.
 - [Knowledge Base Design](../knowledge-base-design/junior.md) — what gets embedded and indexed in the first place.
-- [Feature Store](../../feature-store/README.md) — the same reproducibility discipline (offline/online consistency, versioning) applied to model features instead of embeddings.
+- [Feature Store](../../mlops/feature-store/README.md) — the same reproducibility discipline (offline/online consistency, versioning) applied to model features instead of embeddings.
