@@ -1,37 +1,38 @@
 # Metacognition and Learning
 
-> Inspect how you think, practice, and update beliefs so experience turns into reusable skill rather than repeated exposure.
+> Inspect your own reasoning, practice the specific weakness that's holding you back, and know the edges of what you actually know.
 
 ```mermaid
 flowchart LR
-    J[Junior: active recall] --> M[Middle: deliberate practice]
-    M --> S[Senior: debug reasoning]
-    S --> P[Professional: learning systems]
+    J[Junior: spot the illusion of competence] --> M[Middle: practice deliberately]
+    M --> S[Senior: calibrate confidence]
+    S --> P[Professional: build learning systems]
 ```
 
 ```mermaid
 flowchart LR
-    Attempt --> Feedback
-    Feedback --> Model[update mental model]
-    Model --> Practice[target weakness]
-    Practice --> Transfer[apply in new context]
-    Transfer --> Attempt
+    Attempt --> Reflect[Reflect: what worked, what didn't]
+    Reflect --> Gap[Name the specific gap]
+    Gap --> Practice[Practice with fast feedback]
+    Practice --> Calibrate[Check prediction vs outcome]
+    Calibrate --> Attempt
 ```
 
-This guide combines learning how to learn, debugging your reasoning, deliberate practice, and knowing the boundary of your knowledge.
+The core skills are self-reflection right after doing real work, telling recognition apart from actual retrieval, choosing learning techniques with evidence behind them over passive review, calibrating your own confidence against your track record, mapping the boundary of your own knowledge before a high-stakes call, and — at professional level — designing mentorship, calibration, and postmortem loops so a team's judgment improves over time, not just one person's. They form one loop: notice a gap between how understood something feels and how well you can actually reproduce or predict it, target that gap with practice that gives fast feedback, and check afterward whether your confidence matched what actually happened.
 
 | Level | Guide | You are done when |
 |---|---|---|
-| Junior | [Learn actively](junior.md) | You can retrieve, apply, and verify a concept without copying. |
-| Middle | [Practice deliberately](middle.md) | You can isolate weaknesses and build a feedback loop. |
-| Senior | [Debug your reasoning](senior.md) | You can expose assumptions, uncertainty, and decision errors. |
-| Professional | [Build learning organizations](professional.md) | You can design knowledge flow, expertise, and feedback across teams. |
+| Junior | [Tell familiarity from understanding](junior.md) | You can catch yourself mistaking "I've seen this" for "I could build this," and you reflect on your own work right after finishing it. |
+| Middle | [Practice the weak spot, not the whole job](middle.md) | You can name a specific weakness from evidence, pick a learning technique suited to it, and build a feedback loop instead of passively repeating work. |
+| Senior | [Know where your confidence is wrong](senior.md) | You can check your own track record for over- or under-confidence and map what you don't know before a high-stakes technical call. |
+| Professional | [Build learning into how the team works](professional.md) | You can design mentorship, calibration, and postmortem loops that make the org's judgment measurably better over time, not just your own. |
 
 ## Practice rule
 
-Spend less time rereading and more time predicting, retrieving, building, explaining, receiving feedback, and correcting errors.
+After every piece of real work, spend five minutes writing what worked, what took longer than expected and why, and what you'd do differently — then, before you trust any skill you're tempted to call "known," test it by explaining or reproducing it unaided instead of rereading it.
 
 ## Related
 
-- [Scientific Thinking](../09-scientific-and-hypothesis-driven/README.md)
+- [Computational Thinking](../01-computational-thinking/README.md)
+- [Debug-Thinking](../08-debug-thinking/README.md) — its professional level covers spreading diagnostic skill across a team; this topic covers building that same kind of learning capability more broadly, across estimation, design judgment, and calibration, not only debugging.
 - [Critical Thinking](../04-critical-thinking/README.md)

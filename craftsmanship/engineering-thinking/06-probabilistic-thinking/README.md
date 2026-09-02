@@ -31,5 +31,6 @@ Replace “will” with a probability, range, assumptions, and next evidence tha
 
 ## Related
 
+- [Computational Thinking](../01-computational-thinking/README.md)
 - [Critical Thinking](../04-critical-thinking/README.md)
-- [Systems Thinking](../03-systems-thinking/README.md)
+- [Scientific and Hypothesis-Driven Thinking](../09-scientific-and-hypothesis-driven/README.md)
