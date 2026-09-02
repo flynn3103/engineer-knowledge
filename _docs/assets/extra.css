@@ -654,3 +654,327 @@ a.sibling-end__link:hover {
   font-weight: 700;
   cursor: default;
 }
+
+/* ================================================================
+   Mobile/Responsive — Improved padding and margins for mobile devices
+   ================================================================ */
+
+/* Mobile breakpoint: max-width 768px */
+@media (max-width: 768px) {
+  /* Content area padding */
+  .md-content {
+    padding: 1rem !important;
+  }
+
+  /* Article padding for mobile */
+  .md-typeset {
+    padding: 0.75rem !important;
+  }
+
+  /* Headers with better mobile spacing */
+  .md-typeset h1 {
+    margin-top: 0.5rem;
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
+  }
+
+  .md-typeset h2 {
+    margin-top: 1.5rem;
+    margin-bottom: 0.8rem;
+    padding-left: 0.4em;
+    font-size: 1.1rem;
+  }
+
+  .md-typeset h3 {
+    margin-top: 1.2rem;
+    margin-bottom: 0.6rem;
+    font-size: 0.95rem;
+  }
+
+  /* Paragraph spacing */
+  .md-typeset p {
+    margin-bottom: 1rem;
+  }
+
+  /* List items padding */
+  .md-typeset ul,
+  .md-typeset ol {
+    margin: 0.8rem 0;
+    padding-left: 1.5rem;
+  }
+
+  .md-typeset li {
+    margin-bottom: 0.4rem;
+  }
+
+  /* Code inline padding */
+  .md-typeset code {
+    padding: 0.15em 0.3em;
+    font-size: 0.8em;
+  }
+
+  /* Code block padding */
+  .md-typeset pre {
+    padding: 0.75rem !important;
+    margin: 1rem 0 !important;
+    overflow-x: auto;
+  }
+
+  /* Blockquote padding */
+  .md-typeset blockquote {
+    padding: 0.5em 0.8em;
+    margin: 1rem 0;
+  }
+
+  /* Admonition spacing */
+  .md-typeset .admonition,
+  .md-typeset details {
+    padding: 0.75rem;
+    margin: 1rem 0;
+  }
+
+  .md-typeset .admonition-title,
+  .md-typeset summary {
+    padding: 0.5rem 0.75rem;
+    margin: -0.75rem -0.75rem 0.75rem -0.75rem;
+  }
+
+  /* Table padding */
+  .md-typeset table:not([class]) {
+    font-size: 0.75rem;
+  }
+
+  .md-typeset table:not([class]) th,
+  .md-typeset table:not([class]) td {
+    padding: 0.5rem 0.4rem;
+  }
+
+  /* Grid cards padding */
+  .md-typeset .grid {
+    gap: 0.6rem;
+  }
+
+  .md-typeset .grid.cards > :is(ul, ol) > li,
+  .md-typeset .grid > .card {
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+  }
+
+  /* Mermaid diagram padding */
+  .mermaid {
+    margin: 0.8rem 0;
+    padding: 0.4rem;
+  }
+
+  /* Tabs padding */
+  .md-tabs {
+    padding: 0 0.5rem;
+  }
+
+  .md-tabs__link {
+    padding: 0.5rem 0.4rem !important;
+    font-size: 0.7rem;
+  }
+
+  /* Navigation items padding */
+  .md-nav {
+    font-size: 0.75rem;
+  }
+
+  .md-nav__link {
+    padding: 0.4rem 0.5rem;
+  }
+
+  /* Sidebar secondary navigation padding */
+  .md-nav--secondary {
+    padding: 0.5rem 0;
+  }
+
+  .md-nav--secondary .md-nav__link {
+    padding-left: 0.5rem;
+  }
+
+  /* Footer padding */
+  .md-footer-meta__inner {
+    padding: 0.5rem !important;
+  }
+
+  /* Report section */
+  .sp-report {
+    margin-top: 2rem;
+    padding: 0 0.5rem;
+  }
+
+  .sp-report-row {
+    padding: 0.4rem 0.6rem;
+    gap: 0 0.4rem;
+  }
+
+  /* Sibling navigation on mobile */
+  .sibling-end {
+    margin: 2rem 0 0;
+    padding: 1rem 0.5rem 0 0.5rem;
+  }
+
+  .sibling-end__label {
+    flex: 0 0 auto;
+    margin-right: 0.5rem;
+  }
+
+  .sibling-end__group {
+    gap: 0.3rem 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .sibling-end__link {
+    padding: 0.2rem 0.5rem;
+    font-size: 0.65rem;
+  }
+}
+
+/* Extra small devices: max-width 480px */
+@media (max-width: 480px) {
+  /* Content padding for very small screens */
+  .md-content {
+    padding: 0.75rem !important;
+  }
+
+  .md-typeset {
+    padding: 0.5rem !important;
+  }
+
+  /* Smaller headers for tiny screens */
+  .md-typeset h1 {
+    font-size: 1.3rem;
+    margin-bottom: 0.8rem;
+  }
+
+  .md-typeset h2 {
+    font-size: 1rem;
+    margin-top: 1rem;
+    margin-bottom: 0.6rem;
+    padding-left: 0.3em;
+  }
+
+  .md-typeset h3 {
+    font-size: 0.9rem;
+    margin-top: 0.8rem;
+    margin-bottom: 0.4rem;
+  }
+
+  /* Tighter list padding */
+  .md-typeset ul,
+  .md-typeset ol {
+    margin: 0.6rem 0;
+    padding-left: 1.2rem;
+  }
+
+  .md-typeset li {
+    margin-bottom: 0.3rem;
+  }
+
+  /* Reduced code block padding */
+  .md-typeset pre {
+    padding: 0.5rem !important;
+    margin: 0.8rem 0 !important;
+    font-size: 0.75rem;
+  }
+
+  /* Tighter blockquote */
+  .md-typeset blockquote {
+    padding: 0.4em 0.6em;
+    margin: 0.8rem 0;
+  }
+
+  /* Compact admonition */
+  .md-typeset .admonition,
+  .md-typeset details {
+    padding: 0.5rem;
+    margin: 0.8rem 0;
+  }
+
+  .md-typeset .admonition-title,
+  .md-typeset summary {
+    padding: 0.4rem 0.5rem;
+    margin: -0.5rem -0.5rem 0.5rem -0.5rem;
+    font-size: 0.75rem;
+  }
+
+  /* Grid cards on tiny screens */
+  .md-typeset .grid {
+    gap: 0.5rem;
+  }
+
+  .md-typeset .grid.cards > :is(ul, ol) > li,
+  .md-typeset .grid > .card {
+    padding: 0.6rem;
+  }
+
+  /* Mermaid smaller on mobile */
+  .mermaid {
+    margin: 0.6rem 0;
+    padding: 0.3rem;
+    font-size: 0.8em;
+  }
+
+  /* Header styling on small screens */
+  .md-header__title {
+    font-size: 0.9rem;
+    padding: 0.3rem 0;
+  }
+
+  .md-header__button.md-logo {
+    padding: 0.3rem 0.4rem 0.3rem 0.3rem;
+  }
+
+  /* Tabs on mobile */
+  .md-tabs__link {
+    padding: 0.4rem 0.3rem !important;
+    font-size: 0.65rem;
+    margin: 0 0.2rem;
+  }
+
+  /* Footer on mobile */
+  .md-footer-meta__inner {
+    padding: 0.4rem !important;
+  }
+
+  .sp-report {
+    margin-top: 1.5rem;
+    padding: 0;
+    font-size: 0.7rem;
+  }
+
+  .sp-report-row {
+    padding: 0.3rem 0.5rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.2rem;
+  }
+
+  /* Sibling links compact on mobile */
+  .sibling-end {
+    margin: 1.5rem 0 0;
+    padding: 0.8rem 0 0 0;
+  }
+
+  .sibling-end__title {
+    margin: 0 0 0.6rem;
+    font-size: 0.6rem;
+  }
+
+  .sibling-end__label {
+    flex: 0 0 auto;
+    font-size: 0.6rem;
+  }
+
+  .sibling-end__link {
+    padding: 0.15rem 0.4rem;
+    font-size: 0.6rem;
+  }
+
+  .sibling-end__group {
+    gap: 0.2rem 0.4rem;
+    margin-bottom: 0.4rem;
+  }
+}
