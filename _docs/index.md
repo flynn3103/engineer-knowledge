@@ -51,7 +51,7 @@ The knowledge required for modern software development is scattered across count
 
     ---
 
-    Build grounded, tool-using AI systems with agents, retrieval, evaluation, security, and operational practices.
+    LLM fundamentals, model selection and fine-tuning, RAG, agentic architecture, and evaluation for AI systems.
 
     [:octicons-arrow-right-24: Browse AI Engineering](AI-Engineering/)
 
