@@ -14,5 +14,3 @@ nav:
     - ... | regex=^object-oriented-design/.+
   - Professionalism:
     - ... | regex=^professionalism/.+
-  - Technical Debt:
-    - ... | regex=^technical-debt/.+

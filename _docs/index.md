@@ -19,7 +19,7 @@ The knowledge required for modern software development is scattered across count
 
     ---
 
-    Code review, object-oriented design, testing disciplines, documentation, legacy code, build engineering, anti-patterns, and technical debt.
+    Engineering thinking (decomposition, systems, critical, first-principles, probabilistic, creative, scientific), code review, object-oriented design, documentation, legacy code, and professionalism.
 
     [:octicons-arrow-right-24: Browse Craftsmanship](Craftsmanship/README.md)
 
@@ -38,14 +38,6 @@ The knowledge required for modern software development is scattered across count
     Trace requests across protocols, DNS, CDNs, load balancers, service boundaries, and production APIs—and verify each layer with real evidence.
 
     [:octicons-arrow-right-24: Browse Networking](Networking/README.md)
-
-- :material-head-cog:{ .lg .middle } **Engineering Thinking**
-
-    ---
-
-    Practical reasoning methods for decomposition, problem-solving, systems, critical, first-principles, probabilistic, creative, scientific, and reflective thinking.
-
-    [:octicons-arrow-right-24: Browse Engineering Thinking](Engineering-Thinking/README.md)
 
 - :material-database:{ .lg .middle } **Data Engineering**
 

@@ -31,5 +31,5 @@ Ask which object is responsible for deciding and protecting the rule. Prefer tel
 
 ## Related
 
-- [Anti-Patterns](../anti-patterns/README.md)
 - [Legacy Code](../legacy-code/README.md)
+- [Code Review](../code-review/README.md)

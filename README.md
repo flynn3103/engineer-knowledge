@@ -8,7 +8,7 @@
 
 The knowledge required for modern engineering work is scattered across countless blogs, courses, and documentation. This project brings it all together in **one place**, in a **structured way**, organized around seven domains:
 
-- **Craftsmanship** — engineering thinking (computational, systems, critical, first-principles, probabilistic, creative, scientific reasoning), code review, object-oriented design, documentation, diagnostics, legacy code, professionalism, and technical debt
+- **Craftsmanship** — engineering thinking (computational, systems, critical, first-principles, probabilistic, creative, scientific reasoning), code review, object-oriented design, documentation, diagnostics, legacy code, and professionalism
 - **Programming Languages** — Go plus shared language/runtime internals
 - **Networking** — protocols, DNS, CDNs, load balancing, service communication, and APIs at scale
 - **On Production** — estimation, testing, performance, release, and diagnostics for a system after it ships (more sections planned)
@@ -27,8 +27,7 @@ The knowledge required for modern engineering work is scattered across countless
 │   ├── documentation/                    # Decisions, interfaces, operations
 │   ├── legacy-code/                      # Working with unfamiliar code safely
 │   ├── object-oriented-design/           # Behavior, responsibility, coupling
-│   ├── professionalism/                  # Reliability, growth, integrity
-│   └── technical-debt/                   # Managing change cost
+│   └── professionalism/                  # Reliability, growth, integrity
 ├── 📂 programming-languages/
 │   ├── golang/                           # Go roadmap — concurrency through production debugging
 │   └── language-internals/               # Runtime, memory, types, compilers, and interoperability

@@ -31,5 +31,5 @@ Do not “clean up” behavior you do not understand. First capture what the sys
 
 ## Related
 
-- [Technical Debt](../technical-debt/README.md)
-- [Anti-Patterns](../anti-patterns/README.md)
+- [Object-Oriented Design](../object-oriented-design/README.md)
+- [Professionalism](../professionalism/README.md)
