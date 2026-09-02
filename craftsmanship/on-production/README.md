@@ -2,7 +2,7 @@
 
 > Reason about a system after it ships: size it correctly, prove it works, watch it run, ship changes to it safely, and keep it reliable, secure, and affordable under real traffic.
 
-This roadmap picks up where design and implementation end. It follows the lifecycle of a system once it is live: estimate its scale before you build, test it so you know it works, understand its performance envelope, deploy and release it safely, hold it to a reliability bar with the tracing, metrics, and postmortem discipline that catches what breaks, defend it at scale, protect the data it holds, and keep it affordable.
+This roadmap picks up where design and implementation end. It follows the lifecycle of a system once it is live: estimate its scale before you build, test it so you know it works, understand its performance envelope, deploy and release it safely, hold it to a reliability bar with the tracing, metrics, and postmortem discipline that catches what breaks, recover from a disaster that takes out more than one component, defend it at scale, protect the data it holds, and keep it affordable.
 
 > Deployment mechanics, orchestration, and network infrastructure now live in [Infrastructure](../../infrastructure/README.md).
 
@@ -11,7 +11,8 @@ flowchart LR
     Estimate["Estimate"] --> Test["Test"]
     Test --> Deploy["Deploy & Release"]
     Deploy --> Reliability["SRE & Reliability<br/>(trace, measure, learn)"]
-    Reliability --> Harden["Security, Privacy, Cost"]
+    Reliability --> DR["Disaster Recovery"]
+    DR --> Harden["Security, Privacy, Cost"]
     Harden -.->|feeds back into| Estimate
 ```
 
@@ -24,9 +25,10 @@ flowchart LR
 | 03 | [Performance](performance/README.md) | Measure before optimizing, and protect the hot path from regression. |
 | 04 | [Release](release/README.md) | Turn a built artifact into a traceable, reversible delivery. |
 | 05 | [SRE & Reliability](sre-reliability/README.md) | Trace and measure a live system, own an error budget, and respond to incidents deliberately. |
-| 06 | [Security at Scale](security-at-scale/README.md) | Defend a system whose attack surface grows with its traffic. |
-| 07 | [Data Privacy](data-privacy/README.md) | Handle user data under real legal and contractual obligations. |
-| 08 | [Cost Efficiency](cost-efficiency/README.md) | Treat spend as a first-class engineering constraint. |
+| 06 | [Disaster Recovery](disaster-recovery/README.md) | Recover from a large-scale disaster within a defined RPO/RTO, not just a single-component incident. |
+| 07 | [Security at Scale](security-at-scale/README.md) | Defend a system whose attack surface grows with its traffic. |
+| 08 | [Data Privacy](data-privacy/README.md) | Handle user data under real legal and contractual obligations. |
+| 09 | [Cost Efficiency](cost-efficiency/README.md) | Treat spend as a first-class engineering constraint. |
 
 The debugging *mindset* — pattern recognition, decomposition, evidence-driven hypotheses — is covered separately in [Engineering Thinking → Debug-Thinking](../engineering-thinking/08-debug-thinking/README.md). SRE & Reliability here covers the *tooling and operational practice*: what you trace, measure, and review once something needs diagnosing in a live system.
 

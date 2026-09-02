@@ -6,6 +6,7 @@ nav:
   - Performance: performance
   - Release: release
   - SRE & Reliability: sre-reliability
+  - Disaster Recovery: disaster-recovery
   - Security at Scale: security-at-scale
   - Data Privacy: data-privacy
   - Cost Efficiency: cost-efficiency

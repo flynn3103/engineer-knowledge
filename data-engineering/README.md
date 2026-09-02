@@ -4,6 +4,7 @@ Build reliable data systems that turn raw events into useful, trustworthy datase
 
 ## Learning paths
 
+- [Communication](communication/README.md) — API contracts and evolution, real-time delivery, and traffic routing (load balancers, CDN, DNS).
 - [Concurrency, Async & Parallel](concurrency-async-parallel/README.md) — coordinate work safely and use compute efficiently.
 - [Databases](databases/README.md) — model, operate, scale, and tune data stores.
 - [Distributed Systems](distributed-system/README.md) — reason about coordination, transactions, reliability, and trade-offs.

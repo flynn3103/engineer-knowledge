@@ -8,8 +8,6 @@ nav:
   - Infrastructure as Code: infrastructure-as-code
   - GitOps (Argo CD, Flux): gitops-argocd-flux
   - Multi-Region Deployment: multi-region-deployment
-  - Disaster Recovery: disaster-recovery
   - Autoscaling: autoscaling
-  - Cloud Network Architecture (VPC): vpc
   - Virtual Machine: virtual-machine
-  - Protocols: protocols
+  - Network: network
