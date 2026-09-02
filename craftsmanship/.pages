@@ -1,0 +1,18 @@
+nav:
+  - README: README.md
+  - Engineering Thinking:
+    - ... | regex=^engineering-thinking/.+
+  - Code Review:
+    - ... | regex=^code-review/.+
+  - Diagnostics:
+    - ... | regex=^diagnostics/.+
+  - Documentation:
+    - ... | regex=^documentation/.+
+  - Legacy Code:
+    - ... | regex=^legacy-code/.+
+  - Object-Oriented Design:
+    - ... | regex=^object-oriented-design/.+
+  - Professionalism:
+    - ... | regex=^professionalism/.+
+  - Technical Debt:
+    - ... | regex=^technical-debt/.+

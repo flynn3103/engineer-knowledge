@@ -10,8 +10,6 @@ nav:
     - ... | regex=^Networking/.+
   - On Production:
     - ... | regex=^On-Production/.+
-  - Engineering Thinking:
-    - ... | regex=^Engineering-Thinking/.+
   - Data Engineering:
     - ... | regex=^Data-Engineering/.+
   - AI Engineering:
