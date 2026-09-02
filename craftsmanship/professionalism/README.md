@@ -1,25 +1,52 @@
-# Professionalism
+# Engineering Professionalism
 
-> Professionalism is accountability for impact, commitment to growth, and integrity in every decision and interaction.
+> Professionalism means taking responsibility for the promises, quality, risks, and human consequences of engineering work—even when pressure makes shortcuts attractive.
 
-Engineering professionalism goes beyond writing correct code. It's about delivering value reliably, growing yourself and your team, earning trust through consistency, and making decisions you can defend.
+```mermaid
+flowchart LR
+    Junior[Junior: reliable personal practice] --> Middle[Middle: honest commitments and teamwork]
+    Middle --> Senior[Senior: protect delivery and quality]
+    Senior --> Professional[Professional: shape ethical engineering systems]
+```
 
-This guide covers four levels of professional responsibility: demonstrating reliability in assigned work, earning ownership through initiative, building others' capability, and shaping organizational excellence.
+```mermaid
+flowchart LR
+    Need[Business or user need] --> Clarify[Clarify outcome and constraints]
+    Clarify --> Commit[Make an evidence-based commitment]
+    Commit --> Build[Build with tests and review]
+    Build --> Accept[Validate acceptance criteria]
+    Accept --> Operate[Own production outcome]
+    Operate --> Learn[Reflect, teach, improve]
+    Learn --> Clarify
+```
 
-## Topics
+Professionalism is not formality, seniority, or never making mistakes. It is a repeatable way of behaving when other people depend on your work:
 
-| Level | Focus | Outcome |
+- say **no** to unsafe or impossible requests and explain the evidence;
+- say **yes** only when the commitment is understood and achievable;
+- keep quality controls when deadlines tighten;
+- estimate with uncertainty rather than manufacturing confidence;
+- protect focus and communicate changing priorities;
+- agree on acceptance criteria before implementation;
+- collaborate without hiding conflict or responsibility;
+- grow capability through mentoring and apprenticeship;
+- protect users, colleagues, society, and the public interest.
+
+## Choose a level
+
+| Level | Guide | You are done when |
 |---|---|---|
-| [Junior](junior.md) | Execute reliably and communicate clearly | Be trustworthy in tasks you own |
-| [Middle](middle.md) | Own outcomes and build team confidence | Earn autonomy through consistency |
-| [Senior](senior.md) | Multiply impact through others | Shape decisions and grow leaders |
-| [Professional](professional.md) | Optimize for organization-scale outcomes | Define what engineering excellence means |
+| Junior | [Build reliable personal habits](junior.md) | You can surface uncertainty, keep small commitments, test your work, and ask for help early. |
+| Middle | [Commit and collaborate responsibly](middle.md) | You can negotiate scope, estimate in ranges, define acceptance, and improve team delivery. |
+| Senior | [Protect outcomes under pressure](senior.md) | You can manage risk, disagreement, incidents, quality, and mentoring across a system. |
+| Professional | [Create professional engineering systems](professional.md) | You can align incentives, governance, ethics, delivery, and learning across teams. |
 
-## Quick start
+## Practice rule
 
-Start at the level matching your current responsibility. Apply one concrete practice from your level, verify it works, then move to the next.
+Before accepting work, write the outcome, constraints, uncertainty, evidence needed for completion, and conditions that would require renegotiation. A professional commitment includes communication when reality changes.
 
-**Junior:** Commit to one standard (testing, documentation, code review rigor) you'll maintain for 30 days.  
-**Middle:** Own one outcome end-to-end; track feedback and adjust your approach monthly.  
-**Senior:** Mentor one person; document what you learn about their growth.  
-**Professional:** Define one operating principle your team will follow; measure its impact after 90 days.
+## Related
+
+- [Problem-Solving](../02-problem-solving/README.md)
+- [Critical Thinking](../04-critical-thinking/README.md)
+- [Metacognition and Learning](../10-metacognition-and-learning/README.md)

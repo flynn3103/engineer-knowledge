@@ -1,6 +1,7 @@
 title: Data Engineering
 nav:
   - Overview: README.md
+  - Communication: communication
   - Concurrency, Async & Parallel: concurrency-async-parallel
   - Databases: databases
   - Distributed Systems: distributed-system

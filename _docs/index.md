@@ -19,7 +19,7 @@ The knowledge required for modern software development is scattered across count
 
     ---
 
-    Engineering thinking (decomposition, systems, critical, first-principles, probabilistic, creative, scientific), code review, object-oriented design, documentation, legacy code, and professionalism.
+    Engineering thinking (decomposition, systems, critical, first-principles, probabilistic, creative, scientific), code review, object-oriented design, documentation, legacy code, professionalism, and running a system in production.
 
     [:octicons-arrow-right-24: Browse Craftsmanship](Craftsmanship/README.md)
 
@@ -31,19 +31,19 @@ The knowledge required for modern software development is scattered across count
 
     [:octicons-arrow-right-24: Browse Programming Languages](Programming-Languages/README.md)
 
-- :material-lan:{ .lg .middle } **Networking**
+- :material-server-network:{ .lg .middle } **Infrastructure**
 
     ---
 
-    Trace requests across protocols, DNS, CDNs, load balancers, service boundaries, and production APIs—and verify each layer with real evidence.
+    Ship a running instance safely across environments — containers, orchestration, deployment strategies, pipelines, infrastructure as code, and the network/scaling/recovery mechanics that keep it running.
 
-    [:octicons-arrow-right-24: Browse Networking](Networking/README.md)
+    [:octicons-arrow-right-24: Browse Infrastructure](Infrastructure/README.md)
 
 - :material-database:{ .lg .middle } **Data Engineering**
 
     ---
 
-    Build reliable data systems with databases, distributed systems, event streaming, workflow orchestration, and storage foundations.
+    Build reliable data systems with databases, distributed systems, event streaming, workflow orchestration, storage foundations, and service-to-service communication (APIs, DNS, CDNs, load balancers).
 
     [:octicons-arrow-right-24: Browse Data Engineering](Data-Engineering/)
 

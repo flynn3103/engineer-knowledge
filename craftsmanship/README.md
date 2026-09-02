@@ -23,7 +23,7 @@ The foundational thinking skills that surround implementation. Start with framin
 
 ## Part 2: Practical Disciplines
 
-Six essential practices for making code safe, understandable, and maintainable.
+Seven essential practices for making code safe, understandable, and maintainable.
 
 | Discipline | Main outcome |
 |---|---|
@@ -33,6 +33,7 @@ Six essential practices for making code safe, understandable, and maintainable.
 | [Legacy Code](legacy-code/README.md) | Create safety before changing code you do not fully understand. |
 | [Object-Oriented Design](object-oriented-design/README.md) | Assign behavior and responsibility while controlling coupling. |
 | [Professionalism](professionalism/README.md) | Make honest commitments, protect quality under pressure, and collaborate responsibly. |
+| [On Production](on-production/README.md) | Size, test, deploy, observe, and harden a system after it ships. |
 
 ## Level progression
 

@@ -6,13 +6,12 @@
 
 ## Purpose
 
-The knowledge required for modern engineering work is scattered across countless blogs, courses, and documentation. This project brings it all together in **one place**, in a **structured way**, organized around seven domains:
+The knowledge required for modern engineering work is scattered across countless blogs, courses, and documentation. This project brings it all together in **one place**, in a **structured way**, organized around six domains:
 
-- **Craftsmanship** — engineering thinking (computational, systems, critical, first-principles, probabilistic, creative, scientific reasoning), code review, object-oriented design, documentation, diagnostics, legacy code, and professionalism
-- **Programming Languages** — Go plus shared language/runtime internals
-- **Networking** — protocols, DNS, CDNs, load balancing, service communication, and APIs at scale
-- **On Production** — estimation, testing, performance, release, and diagnostics for a system after it ships (more sections planned)
-- **Data Engineering** — databases, distributed systems, event streaming, orchestration, storage, and concurrent processing
+- **Craftsmanship** — engineering thinking (computational, systems, critical, first-principles, probabilistic, creative, scientific reasoning), code review, object-oriented design, documentation, diagnostics, legacy code, professionalism, and on-production practice (estimation, testing, performance, release, monitoring, observability, reliability, security, privacy, cost)
+- **Programming Languages** — Go, Python, plus shared language/runtime internals
+- **Infrastructure** — containers, Kubernetes, deployment strategies, CI/CD, IaC, GitOps, multi-region, disaster recovery, autoscaling, VPC, virtual machines, and network protocols
+- **Data Engineering** — service communication and APIs, databases, distributed systems, event streaming, orchestration, storage, and concurrent processing
 - **AI Engineering** — agents, retrieval, evaluation, security, and AI storage systems
 - **Blog** — *coming soon*
 
@@ -20,20 +19,21 @@ The knowledge required for modern engineering work is scattered across countless
 
 ```
 📁 engineer-knowledge
-├── 📂 craftsmanship/                     # Thinking skills + practical disciplines
+├── 📂 craftsmanship/                     # Thinking skills + practical disciplines + on-production practice
 │   ├── engineering-thinking/             # 10 sections: computational → metacognition
 │   ├── code-review/                      # Review practices across levels
 │   ├── diagnostics/                      # Production debugging and learning
 │   ├── documentation/                    # Decisions, interfaces, operations
 │   ├── legacy-code/                      # Working with unfamiliar code safely
 │   ├── object-oriented-design/           # Behavior, responsibility, coupling
-│   └── professionalism/                  # Reliability, growth, integrity
+│   ├── professionalism/                  # Reliability, growth, integrity
+│   └── on-production/                    # Estimation, testing, performance, release, monitoring, reliability, security, privacy, cost
 ├── 📂 programming-languages/
 │   ├── golang/                           # Go roadmap — concurrency through production debugging
+│   ├── python/                           # Python roadmap
 │   └── language-internals/               # Runtime, memory, types, compilers, and interoperability
-├── 📂 networking/                         # Protocols, traffic delivery, service communication, and APIs
-├── 📂 on-production/                     # Estimation, testing, performance, release, diagnostics + planned sections
-├── 📂 data-engineering/                  # Databases, distributed systems, streaming, scheduling, storage, and concurrency
+├── 📂 infrastructure/                    # Containers, orchestration, deployment, CI/CD, IaC, GitOps, VPC, VMs, and protocols
+├── 📂 data-engineering/                  # Communication/APIs, databases, distributed systems, streaming, scheduling, storage, and concurrency
 ├── 📂 ai-engineering/                    # Agents, retrieval, evaluation, security, and AI storage
 └── 📂 blog/                              # Coming soon
 ```

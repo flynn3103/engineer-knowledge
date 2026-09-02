@@ -6,10 +6,8 @@ nav:
     - ... | regex=^Craftsmanship/.+
   - Programming Languages:
     - ... | regex=^Programming-Languages/.+
-  - Networking:
-    - ... | regex=^Networking/.+
-  - On Production:
-    - ... | regex=^On-Production/.+
+  - Infrastructure:
+    - ... | regex=^Infrastructure/.+
   - Data Engineering:
     - ... | regex=^Data-Engineering/.+
   - AI Engineering:
