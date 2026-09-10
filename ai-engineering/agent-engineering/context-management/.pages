@@ -1,0 +1,8 @@
+title: Context Management
+nav:
+  - Overview: README.md
+  - Context Fundamentals: context-fundamentals
+  - Search and Retrieval: search-and-retrieval
+  - RAG and Vector Decisions: rag-and-vector-decisions
+  - Tool Interfaces and MCP: tool-interfaces-and-mcp
+  - Compaction and Memory: compaction-and-memory
