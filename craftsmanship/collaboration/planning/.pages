@@ -1,7 +1,6 @@
 title: Planning
 nav:
   - README.md
-  - junior.md
-  - middle.md
-  - senior.md
-  - professional.md
+  - problem.md
+  - mistake.md
+  - best-practise.md
