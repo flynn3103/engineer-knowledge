@@ -1,32 +1,15 @@
-# Estimation
+# Time Management
 
-> Estimate timeline, effort, and risk by anchoring in evidence, not confidence. Good estimates are ranges with assumptions, not point numbers with false precision.
+> Make promises about work that protect the most important outcome, rather than accepting more work than time can hold.
 
-```mermaid
-flowchart LR
-    J[Junior: ranges and assumptions] --> M[Middle: calibrated estimates]
-    M --> S[Senior: estimate dependencies and risk]
-    S --> P[Professional: portfolio estimation]
-```
-
-```mermaid
-flowchart LR
-    Task --> BaselineData --> Range --> Assumptions --> Verification
-```
-
-| Level | Guide | You are done when |
-|---|---|---|
-| Junior | [Estimate with ranges](junior.md) | You can estimate timeline and effort with a range and state your assumptions. |
-| Middle | [Build calibrated estimates](middle.md) | You can estimate using historical data, adjust for differences, and track accuracy. |
-| Senior | [Estimate dependencies and risk](senior.md) | You can estimate across dependent tasks, account for correlation, and model failure modes. |
-| Professional | [Estimate portfolios](professional.md) | You can estimate across multiple initiatives, allocate resources, and adjust forecasts. |
-
-## Practice rule
-
-Every estimate needs three things: a range (not a point), the assumptions behind it, and the evidence it's based on. Track actual vs. estimated to improve calibration.
+| Guide | Answers |
+|---|---|
+| [Problem](problem.md) | Why do deadlines fail, and what should a useful commitment include? |
+| [Mistake](mistake.md) | What goes wrong under pressure, and how do I catch it? |
+| [Best Practise](best-practise.md) | How do I use the Pressure Commitment Loop every week? |
 
 ## Related
 
-- [Delegation](../delegation/README.md)
-- [Meeting](../meeting/README.md)
+- [Planning](../planning/README.md)
+- [Manage Up](../manage-up/README.md)
 - [Ownership](../ownership/README.md)
